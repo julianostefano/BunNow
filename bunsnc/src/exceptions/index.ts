@@ -2,6 +2,7 @@
  * ServiceNow Specific Exceptions - Full PySNC Compatibility
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
+import { errorHandler, ServiceNowError, ErrorContext } from '../utils/ErrorHandler';
 
 /**
  * Base class for all ServiceNow exceptions
@@ -157,9 +158,9 @@ export function createExceptionFromResponse(statusCode: number, message: string,
 }
 
 /**
- * Utility function to handle and throw appropriate exceptions
+ * Utility function to handle and throw appropriate exceptions with advanced error handling
  */
-export function handleServiceNowError(error: any, operation?: string): never {
+export function handleServiceNowError(error: any, operation?: string, context?: Partial<ErrorContext>): never {
   // Handle null/undefined errors
   if (error === null || error === undefined) {
     throw new ServiceNowException(`${operation || 'Operation'} failed`);
@@ -168,6 +169,12 @@ export function handleServiceNowError(error: any, operation?: string): never {
   // Handle string errors
   if (typeof error === 'string') {
     throw new ServiceNowException(error);
+  }
+  
+  // Handle ServiceNowError from ErrorHandler
+  if (error instanceof ServiceNowError) {
+    // Convert to legacy exception for backwards compatibility
+    throw createExceptionFromResponse(error.statusCode, error.message, error.details);
   }
   
   // Handle already ServiceNow exceptions
@@ -198,22 +205,116 @@ export function handleServiceNowError(error: any, operation?: string): never {
 }
 
 /**
- * Decorator for methods that should handle ServiceNow errors
+ * Enhanced error handler that uses the advanced ErrorHandler for retry and recovery
  */
-export function handleErrors(operation?: string) {
+export async function handleServiceNowErrorWithRecovery<T>(
+  error: any, 
+  operation: string,
+  retryOperation: () => Promise<T>,
+  context?: Partial<ErrorContext>
+): Promise<T> {
+  const fullContext: ErrorContext = {
+    operation,
+    timestamp: Date.now(),
+    ...context
+  };
+  
+  try {
+    return await errorHandler.handleError(error, fullContext, retryOperation);
+  } catch (finalError) {
+    // If ErrorHandler couldn't recover, fall back to legacy exception handling
+    handleServiceNowError(finalError, operation, context);
+  }
+}
+
+/**
+ * Create ServiceNowError from response data
+ */
+export function createServiceNowError(
+  statusCode: number,
+  responseText: string,
+  context: ErrorContext,
+  response?: Response
+): ServiceNowError {
+  return errorHandler.createError(statusCode, responseText, context, response);
+}
+
+/**
+ * Decorator for methods that should handle ServiceNow errors with retry and recovery
+ */
+export function handleErrors(operation?: string, enableRecovery: boolean = false) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
     
     descriptor.value = async function (...args: any[]) {
-      try {
-        return await originalMethod.apply(this, args);
-      } catch (error) {
-        handleServiceNowError(error, operation || propertyKey);
+      const operationName = operation || propertyKey;
+      const context: ErrorContext = {
+        operation: operationName,
+        timestamp: Date.now(),
+        clientId: (this as any).clientId || (this as any).apiId
+      };
+      
+      if (enableRecovery) {
+        try {
+          return await originalMethod.apply(this, args);
+        } catch (error) {
+          // Use advanced error handling with retry and recovery
+          return await handleServiceNowErrorWithRecovery(
+            error,
+            operationName,
+            () => originalMethod.apply(this, args),
+            context
+          );
+        }
+      } else {
+        // Use simple error handling for backwards compatibility
+        try {
+          return await originalMethod.apply(this, args);
+        } catch (error) {
+          handleServiceNowError(error, operationName, context);
+        }
       }
     };
     
     return descriptor;
   };
 }
+
+/**
+ * Advanced decorator with full error handling capabilities
+ */
+export function handleErrorsWithRecovery(operation?: string, retryConfig?: any) {
+  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+    const originalMethod = descriptor.value;
+    
+    descriptor.value = async function (...args: any[]) {
+      const operationName = operation || propertyKey;
+      const context: ErrorContext = {
+        operation: operationName,
+        timestamp: Date.now(),
+        clientId: (this as any).clientId || (this as any).apiId,
+        table: args[0] // Assume first argument is table name
+      };
+      
+      try {
+        return await originalMethod.apply(this, args);
+      } catch (error) {
+        return await handleServiceNowErrorWithRecovery(
+          error,
+          operationName,
+          () => originalMethod.apply(this, args),
+          context
+        );
+      }
+    };
+    
+    return descriptor;
+  };
+}
+
+// Export ErrorHandler types and instances for advanced usage
+export { errorHandler, ServiceNowError, ErrorContext } from '../utils/ErrorHandler';
+export { performanceMonitor } from '../utils/PerformanceMonitor';
+export { transactionManager, Transaction } from '../utils/TransactionManager';
 
 // All exceptions are already exported above

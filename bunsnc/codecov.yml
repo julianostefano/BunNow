@@ -1,0 +1,31 @@
+# Codecov configuration
+# Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
+
+coverage:
+  status:
+    project:
+      default:
+        target: 85%
+        threshold: 5%
+    patch:
+      default:
+        target: 80%
+        threshold: 5%
+
+  ignore:
+    - "test/**/*"
+    - "src/tests/**/*"
+    - "**/*.test.ts"
+    - "**/*.spec.ts"
+    - "src/types/**/*"
+    - "src/examples/**/*"
+    - "dist/**/*"
+    - "coverage/**/*"
+
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: false
+
+github_checks:
+  annotations: true
