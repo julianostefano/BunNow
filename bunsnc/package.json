@@ -1,0 +1,56 @@
+{
+  "name": "bunsnc",
+  "version": "1.0.0",
+  "description": "CLI e biblioteca para integração ServiceNow, baseada em Bun/Elysia. Suporte a CRUD, batch, attachments e mock.",
+  "main": "dist/bunsnc",
+  "bin": {
+    "bunsnc": "dist/bunsnc"
+  },
+  "files": [
+    "dist/bunsnc",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ServiceNow/PySNC.git"
+  },
+  "keywords": [
+    "servicenow",
+    "cli",
+    "elysia",
+    "bun",
+    "integration",
+    "api"
+  ]
+    "author": "ServiceNow Dev Team <dev@example.com>",
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "start": "bun src/index.ts",
+    "build": "bun build",
+    "compile": "bun compile src/cli/index.ts --out dist/bunsnc",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "bunsnc": "file:/workspaces/PySNC/bunsnc/",
+    "elysia": "^0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^4.5.0",
+    "bun-types": "^0.1.0"
+  },
+  "keywords": [
+    "servicenow",
+    "cli",
+    "elysia",
+    "bun",
+    "integration",
+    "api"
+  ],
+  ],
+}
