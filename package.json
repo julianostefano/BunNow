@@ -1,7 +1,8 @@
 {
+  "name": "bunnow-project",
+  "version": "1.0.0",
+  "description": "Dual Python/TypeScript ServiceNow Integration Project",
   "dependencies": {
-    "": "file:/workspaces/PySNC",
-    "": "file:/workspaces/PySNC/",
     "@elysiajs/eden": "^1.3.2",
     "commander": "^11.1.0",
     "dotenv": "^16.4.5",

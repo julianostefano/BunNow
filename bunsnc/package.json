@@ -21,8 +21,8 @@
     "bun",
     "integration",
     "api"
-  ]
-    "author": "ServiceNow Dev Team <dev@example.com>",
+  ],
+  "author": "ServiceNow Dev Team <dev@example.com>",
   "license": "MIT",
   "engines": {
     "bun": ">=1.0.0"
@@ -37,20 +37,10 @@
     "test": "bun test"
   },
   "dependencies": {
-    "bunsnc": "file:/workspaces/PySNC/bunsnc/",
     "elysia": "^0.1.0"
   },
   "devDependencies": {
     "typescript": "^4.5.0",
     "bun-types": "^0.1.0"
-  },
-  "keywords": [
-    "servicenow",
-    "cli",
-    "elysia",
-    "bun",
-    "integration",
-    "api"
-  ],
-  ],
+  }
 }
