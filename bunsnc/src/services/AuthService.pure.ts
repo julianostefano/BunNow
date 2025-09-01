@@ -1,29 +1,28 @@
-// AuthService.pure.ts
-// Static, pure, best-practice AuthService for authentication/session features
-// No legacy or duplicate code included
+/**
+ * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
+ * AuthService.pure.ts - Static methods using real authentication
+ */
+import { AuthServiceCompat } from './auth.service';
 
 export abstract class AuthService {
     /**
-     * Mock login method. Replace with real implementation.
+     * Real login implementation using Basic Auth
      */
     static async login(username: string, password: string): Promise<{ token: string }> {
-        // TODO: Implement real authentication logic
-        return { token: 'mock-token' };
+        return await AuthServiceCompat.login(username, password);
     }
 
     /**
-     * Mock logout method. Replace with real implementation.
+     * Real logout implementation
      */
     static async logout(token: string): Promise<{ success: boolean }> {
-        // TODO: Implement real logout logic
-        return { success: true };
+        return await AuthServiceCompat.logout(token);
     }
 
     /**
-     * Mock token validation. Replace with real implementation.
+     * Real token validation implementation
      */
     static async validateToken(token: string): Promise<boolean> {
-        // TODO: Implement real token validation
-        return token === 'mock-token';
+        return await AuthServiceCompat.validateToken(token);
     }
 }
