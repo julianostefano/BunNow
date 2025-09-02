@@ -11,15 +11,23 @@ if (isCli) {
         }
     });
 } else {
-    // Sobe o servidor HTTP normalmente
-    import('elysia').then(({ Elysia }) => {
-        import('./routes/syncRoutes').then(({ setSyncRoutes }) => {
-            const app = new Elysia();
-            setSyncRoutes(app);
+    // Sobe o servidor HTTP com notificações integradas
+    import('./routes/index').then(({ createMainApp }) => {
+        createMainApp().then(app => {
             const PORT = process.env.PORT || 3000;
+            
+            console.log('🚀 Starting BunSNC Server...');
+            
             app.listen(PORT, () => {
-                console.log(`Server is running on http://localhost:${PORT}`);
+                console.log(`✅ BunSNC Server running on http://localhost:${PORT}`);
+                console.log('📡 Real-time notifications enabled');
+                console.log('🔗 WebSocket endpoint: ws://localhost:${PORT}/ws');
+                console.log('📊 SSE endpoints: http://localhost:${PORT}/events/*');
+                console.log('🔧 API documentation: http://localhost:${PORT}/');
             });
+        }).catch(error => {
+            console.error('❌ Failed to start server:', error);
+            process.exit(1);
         });
     });
 }

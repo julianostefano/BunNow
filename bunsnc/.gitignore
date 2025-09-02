@@ -22,6 +22,8 @@ out/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.notifications
+.env.database
 
 # Logs
 *.log
@@ -37,6 +39,8 @@ coverage/
 .cache/
 .temp/
 .tmp/
+redis-data/
+*.rdb
 
 # OS generated files
 .DS_Store
@@ -52,6 +56,13 @@ Thumbs.db
 *.wsdl
 servicenow-cache/
 
+# Database
+*.db
+*.sqlite
+*.sqlite3
+postgres-data/
+vector-data/
+
 # Test artifacts
 test-results/
 junit.xml
@@ -59,3 +70,15 @@ junit.xml
 # Bun specific
 bun.lockb
 .bun/
+
+# Streams and queues
+streams-data/
+queue-backup/
+
+# Hadoop temp files
+hadoop-temp/
+*.hdfs
+
+# Performance logs
+benchmarks/results/
+performance-*.log

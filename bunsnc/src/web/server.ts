@@ -22,6 +22,10 @@ import { ParquetWriter } from '../bigdata/parquet/ParquetWriter';
 import { OpenSearchClient } from '../bigdata/opensearch/OpenSearchClient';
 import { HDFSClient } from '../bigdata/hadoop/HDFSClient';
 import { DataPipelineOrchestrator } from '../bigdata/pipeline/DataPipelineOrchestrator';
+import htmxDashboard from './htmx-dashboard';
+import { db } from '../config/database';
+import { serviceNowStreams } from '../config/redis-streams';
+import { createWebSocketPlugin } from './websocket-handler';
 
 export interface WebServerConfig {
   port: number;
@@ -169,6 +173,12 @@ export class ServiceNowWebServer {
       // Background task processing
       .use(background())
 
+      // HTMX Dashboard Integration
+      .use(htmxDashboard)
+
+      // WebSocket Integration
+      .use(createWebSocketPlugin())
+
       // Auto-routes for file-based routing
       .use(autoroutes({
         routesDir: "./src/web/routes",
@@ -203,8 +213,10 @@ export class ServiceNowWebServer {
         },
       }))
 
-      // Main dashboard route
-      .get('/', () => this.renderDashboard())
+      // Main dashboard route - redirect to HTMX dashboard
+      .get('/', ({ set }) => {
+        set.redirect = '/htmx';
+      })
 
       // Server-Sent Events for real-time updates
       .get('/events/stream', (context) => this.handleSSEStream(context))
