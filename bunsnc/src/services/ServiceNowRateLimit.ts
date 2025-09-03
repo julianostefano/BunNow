@@ -37,8 +37,8 @@ export class ServiceNowRateLimiter {
 
   constructor(config?: Partial<RateLimitConfig>) {
     this.config = {
-      maxRequestsPerSecond: parseInt(process.env.SERVICENOW_RATE_LIMIT || '95'),
-      maxConcurrentRequests: parseInt(process.env.SERVICENOW_MAX_CONCURRENT || '18'),
+      maxRequestsPerSecond: parseInt(process.env.SERVICENOW_RATE_LIMIT || '10'),
+      maxConcurrentRequests: parseInt(process.env.SERVICENOW_MAX_CONCURRENT || '5'),
       exponentialBackoffBase: 2,
       maxRetries: 3,
       jitterEnabled: true,
@@ -210,9 +210,17 @@ export class ServiceNowRateLimiter {
    * Wait for concurrent request slot
    */
   private async waitForConcurrentSlot(): Promise<void> {
+    let waitTime = 0;
+    const maxWaitTime = 30000; // 30 seconds max wait
+    
     while (this.concurrentRequests >= this.config.maxConcurrentRequests) {
+      if (waitTime >= maxWaitTime) {
+        throw new Error('ServiceNow concurrent request timeout - max wait time exceeded');
+      }
+      
       console.log(`⏳ Max concurrent requests reached (${this.concurrentRequests}/${this.config.maxConcurrentRequests}), waiting...`);
-      await this.sleep(100);
+      await this.sleep(500); // Increased sleep time
+      waitTime += 500;
     }
   }
 

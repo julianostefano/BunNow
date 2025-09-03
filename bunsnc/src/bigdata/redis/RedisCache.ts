@@ -101,7 +101,8 @@ export class RedisCache extends EventEmitter {
    * Get value from cache
    */
   async get<T = any>(key: string): Promise<T | null> {
-    const timer = performanceMonitor.startTimer('redis_cache_get');
+    const timerName = `redis_cache_get_${Date.now()}_${Math.random()}`;
+    performanceMonitor.startTimer(timerName);
     const fullKey = this.buildKey(key);
     
     try {
@@ -128,7 +129,7 @@ export class RedisCache extends EventEmitter {
       this.metrics.misses++;
       return null;
     } finally {
-      performanceMonitor.endTimer(timer);
+      performanceMonitor.endTimer(timerName);
     }
   }
 
@@ -136,7 +137,8 @@ export class RedisCache extends EventEmitter {
    * Set value in cache
    */
   async set<T = any>(key: string, value: T, ttl?: number): Promise<boolean> {
-    const timer = performanceMonitor.startTimer('redis_cache_set');
+    const timerName = `redis_cache_set_${Date.now()}_${Math.random()}`;
+    performanceMonitor.startTimer(timerName);
     const fullKey = this.buildKey(key);
     const expiry = ttl || this.options.defaultTtl;
     
@@ -166,7 +168,7 @@ export class RedisCache extends EventEmitter {
       logger.error(`Cache set error for key ${key}:`, error);
       return false;
     } finally {
-      performanceMonitor.endTimer(timer);
+      performanceMonitor.endTimer(timerName);
     }
   }
 
@@ -174,7 +176,8 @@ export class RedisCache extends EventEmitter {
    * Get multiple values at once
    */
   async mget<T = any>(keys: string[]): Promise<(T | null)[]> {
-    const timer = performanceMonitor.startTimer('redis_cache_mget');
+    const timerName = `redis_cache_mget_${Date.now()}_${Math.random()}`;
+    performanceMonitor.startTimer(timerName);
     const fullKeys = keys.map(key => this.buildKey(key));
     
     try {
@@ -204,7 +207,7 @@ export class RedisCache extends EventEmitter {
       logger.error(`Cache mget error for keys ${keys.join(', ')}:`, error);
       return keys.map(() => null);
     } finally {
-      performanceMonitor.endTimer(timer);
+      performanceMonitor.endTimer(timerName);
     }
   }
 
@@ -212,7 +215,8 @@ export class RedisCache extends EventEmitter {
    * Set multiple values at once
    */
   async mset<T = any>(entries: Array<{ key: string; value: T; ttl?: number }>): Promise<boolean> {
-    const timer = performanceMonitor.startTimer('redis_cache_mset');
+    const timerName = `redis_cache_mset_${Date.now()}_${Math.random()}`;
+    performanceMonitor.startTimer(timerName);
     
     try {
       // Use pipeline for atomic operations
@@ -249,7 +253,7 @@ export class RedisCache extends EventEmitter {
       logger.error('Cache mset error:', error);
       return false;
     } finally {
-      performanceMonitor.endTimer(timer);
+      performanceMonitor.endTimer(timerName);
     }
   }
 
@@ -257,7 +261,8 @@ export class RedisCache extends EventEmitter {
    * Delete key from cache
    */
   async del(key: string): Promise<boolean> {
-    const timer = performanceMonitor.startTimer('redis_cache_del');
+    const timerName = `redis_cache_del_${Date.now()}_${Math.random()}`;
+    performanceMonitor.startTimer(timerName);
     const fullKey = this.buildKey(key);
     
     try {
@@ -277,7 +282,7 @@ export class RedisCache extends EventEmitter {
       logger.error(`Cache delete error for key ${key}:`, error);
       return false;
     } finally {
-      performanceMonitor.endTimer(timer);
+      performanceMonitor.endTimer(timerName);
     }
   }
 
@@ -285,7 +290,8 @@ export class RedisCache extends EventEmitter {
    * Delete multiple keys at once
    */
   async mdel(keys: string[]): Promise<number> {
-    const timer = performanceMonitor.startTimer('redis_cache_mdel');
+    const timerName = `redis_cache_mdel_${Date.now()}_${Math.random()}`;
+    performanceMonitor.startTimer(timerName);
     const fullKeys = keys.map(key => this.buildKey(key));
     
     try {
@@ -301,7 +307,7 @@ export class RedisCache extends EventEmitter {
       logger.error(`Cache mdelete error for keys ${keys.join(', ')}:`, error);
       return 0;
     } finally {
-      performanceMonitor.endTimer(timer);
+      performanceMonitor.endTimer(timerName);
     }
   }
 
@@ -376,7 +382,8 @@ export class RedisCache extends EventEmitter {
     factory: () => Promise<T>, 
     ttl?: number
   ): Promise<T> {
-    const timer = performanceMonitor.startTimer('redis_cache_get_or_set');
+    const timerName = `redis_cache_get_or_set_${Date.now()}_${Math.random()}`;
+    performanceMonitor.startTimer(timerName);
     
     try {
       // Try to get existing value
@@ -394,7 +401,7 @@ export class RedisCache extends EventEmitter {
       return newValue;
 
     } finally {
-      performanceMonitor.endTimer(timer);
+      performanceMonitor.endTimer(timerName);
     }
   }
 
@@ -402,7 +409,8 @@ export class RedisCache extends EventEmitter {
    * Invalidate cache keys matching pattern
    */
   async invalidatePattern(pattern: string): Promise<number> {
-    const timer = performanceMonitor.startTimer('redis_cache_invalidate_pattern');
+    const timerName = `redis_cache_invalidate_pattern_${Date.now()}_${Math.random()}`;
+    performanceMonitor.startTimer(timerName);
     const searchPattern = this.buildKey(pattern);
     
     try {
@@ -426,7 +434,7 @@ export class RedisCache extends EventEmitter {
       logger.error(`Cache pattern invalidation error for pattern ${pattern}:`, error);
       return 0;
     } finally {
-      performanceMonitor.endTimer(timer);
+      performanceMonitor.endTimer(timerName);
     }
   }
 
@@ -494,7 +502,8 @@ export class RedisCache extends EventEmitter {
    * Execute cache warmup for all patterns
    */
   async warmup(): Promise<void> {
-    const timer = performanceMonitor.startTimer('redis_cache_warmup');
+    const timerName = `redis_cache_warmup_${Date.now()}_${Math.random()}`;
+    performanceMonitor.startTimer(timerName);
     
     try {
       logger.info(`Starting cache warmup for ${this.warmupPatterns.size} patterns`);
@@ -518,7 +527,7 @@ export class RedisCache extends EventEmitter {
       this.emit('cache:warmup_completed');
 
     } finally {
-      performanceMonitor.endTimer(timer);
+      performanceMonitor.endTimer(timerName);
     }
   }
 
