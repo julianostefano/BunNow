@@ -258,7 +258,8 @@ export class SSEController extends EventEmitter {
     }
 
     const poll = async () => {
-      const timer = performanceMonitor.startTimer(`sse_poll_${subscriptionId}`);
+      const timerName = `sse_poll_${subscriptionId}`;
+      performanceMonitor.startTimer(timerName);
       
       try {
         await this.pollForEvents(subscription);
@@ -290,7 +291,7 @@ export class SSEController extends EventEmitter {
           retryCount: subscription.retryCount 
         });
       } finally {
-        performanceMonitor.endTimer(timer);
+        performanceMonitor.endTimer(timerName);
       }
 
       // Schedule next poll if still active

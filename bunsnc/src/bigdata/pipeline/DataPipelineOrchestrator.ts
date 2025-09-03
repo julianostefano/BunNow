@@ -244,7 +244,8 @@ export class DataPipelineOrchestrator extends EventEmitter {
     this.executions.set(executionId, execution);
     this.emit('pipeline:started', { executionId, pipelineId });
 
-    const timer = performanceMonitor.startTimer('pipeline_execution');
+    const timerName = 'pipeline_execution';
+    performanceMonitor.startTimer(timerName);
 
     try {
       // Execute pipeline stages
@@ -274,7 +275,7 @@ export class DataPipelineOrchestrator extends EventEmitter {
       this.emit('pipeline:failed', { executionId, pipelineId, error });
       
     } finally {
-      performanceMonitor.endTimer(timer);
+      performanceMonitor.endTimer(timerName);
     }
 
     return execution;

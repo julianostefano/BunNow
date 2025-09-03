@@ -381,7 +381,8 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
     }
 
     const startTime = Date.now();
-    const timer = performanceMonitor.startTimer('stream_processing_batch');
+    const timerName = 'stream_processing_batch';
+    performanceMonitor.startTimer(timerName);
     
     try {
       const results = await Promise.race([
@@ -422,7 +423,7 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
       throw error;
       
     } finally {
-      performanceMonitor.endTimer(timer);
+      performanceMonitor.endTimer(timerName);
     }
   }
 

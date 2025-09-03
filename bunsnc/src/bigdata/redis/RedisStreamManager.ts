@@ -112,7 +112,8 @@ export class RedisStreamManager extends EventEmitter {
     messageId: string = '*',
     maxLength?: number
   ): Promise<string> {
-    const timer = performanceMonitor.startTimer('redis_stream_add');
+    const timerName = 'redis_stream_add';
+    performanceMonitor.startTimer(timerName);
     
     try {
       // Convert data to string values (Redis requirement)
@@ -151,7 +152,7 @@ export class RedisStreamManager extends EventEmitter {
       logger.error(`Error adding message to stream ${streamKey}:`, error);
       throw error;
     } finally {
-      performanceMonitor.endTimer(timer);
+      performanceMonitor.endTimer(timerName);
     }
   }
 
@@ -164,7 +165,8 @@ export class RedisStreamManager extends EventEmitter {
     count?: number,
     blockTime?: number
   ): Promise<StreamMessage[]> {
-    const timer = performanceMonitor.startTimer('redis_stream_read');
+    const timerName = 'redis_stream_read';
+    performanceMonitor.startTimer(timerName);
     
     try {
       let result: any;
@@ -201,7 +203,7 @@ export class RedisStreamManager extends EventEmitter {
       return messages;
 
     } finally {
-      performanceMonitor.endTimer(timer);
+      performanceMonitor.endTimer(timerName);
     }
   }
 
@@ -264,7 +266,8 @@ export class RedisStreamManager extends EventEmitter {
    * Get stream information and statistics
    */
   async getStreamInfo(streamKey: string): Promise<StreamStats> {
-    const timer = performanceMonitor.startTimer('redis_stream_info');
+    const timerName = 'redis_stream_info';
+    performanceMonitor.startTimer(timerName);
     
     try {
       // Get basic stream info
@@ -318,7 +321,7 @@ export class RedisStreamManager extends EventEmitter {
       return streamInfo;
 
     } finally {
-      performanceMonitor.endTimer(timer);
+      performanceMonitor.endTimer(timerName);
     }
   }
 
