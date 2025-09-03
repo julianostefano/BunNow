@@ -150,7 +150,7 @@ export class BigDataServer {
       // Security and middleware
       .use(helmet())
       .use(cors({
-        origin: ['http://localhost:3000', 'https://your-servicenow-instance.com'],
+        origin: ['http://localhost:3008', 'https://your-servicenow-instance.com'],
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
         allowedHeaders: ['Content-Type', 'Authorization']
       }))
@@ -324,7 +324,7 @@ export class BigDataServer {
       .group('/api/v1/redis', (app) =>
         app
           .post('/stream/:streamKey', async ({ params, body, services, user }) => {
-            const messageId = await services.redis.addToStream(
+            const messageId = await services.redis.addMessage(
               params.streamKey,
               body as any,
               '*'
@@ -739,7 +739,7 @@ export class BigDataServer {
     return app;
   }
 
-  async start(port: number = 3000): Promise<void> {
+  async start(port: number = 3008): Promise<void> {
     if (this.isStarted) {
       throw new Error('Server is already started');
     }
