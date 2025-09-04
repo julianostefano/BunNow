@@ -4,6 +4,7 @@
  */
 
 import { ServiceNowWebServer, WebServerConfig } from './server';
+import { persistenceService } from '../services/PersistenceService';
 
 const config: WebServerConfig = {
   port: 3008,
@@ -39,6 +40,14 @@ const config: WebServerConfig = {
     outputPath: process.env.PARQUET_OUTPUT_PATH || '/tmp/parquet',
     compressionType: (process.env.PARQUET_COMPRESSION as any) || 'snappy',
   },
+  
+  mongodb: {
+    host: process.env.MONGODB_HOST || '10.219.8.210',
+    port: parseInt(process.env.MONGODB_PORT || '27018'),
+    username: process.env.MONGODB_USERNAME || 'admin',
+    password: process.env.MONGODB_PASSWORD || 'Logica2011_',
+    database: process.env.MONGODB_DATABASE || 'bunsnc',
+  },
 };
 
 async function startWebInterface() {
@@ -50,7 +59,12 @@ async function startWebInterface() {
     console.log(`   - Redis: ${config.redis.host}:${config.redis.port}`);
     console.log(`   - Hadoop: ${config.hadoop.namenode}:${config.hadoop.port}`);
     console.log(`   - OpenSearch: ${config.opensearch.host}:${config.opensearch.port}`);
+    console.log(`   - MongoDB: ${config.mongodb.host}:${config.mongodb.port}/${config.mongodb.database}`);
     console.log(`   - Parquet Output: ${config.parquet.outputPath}`);
+    
+    // Initialize MongoDB persistence
+    console.log('🍃 Initializing MongoDB persistence...');
+    await persistenceService.initialize();
     
     const server = new ServiceNowWebServer(config);
     await server.start();
@@ -76,15 +90,22 @@ async function startWebInterface() {
 }
 
 // Handle graceful shutdown
-process.on('SIGINT', () => {
-  console.log('🛑 Shutting down ServiceNow Web Interface...');
+async function gracefulShutdown(signal: string) {
+  console.log(`🛑 Received ${signal}, shutting down ServiceNow Web Interface gracefully...`);
+  
+  try {
+    // Shutdown persistence service
+    await persistenceService.shutdown();
+    console.log('🍃 MongoDB persistence shut down gracefully');
+  } catch (error) {
+    console.error('❌ Error during MongoDB shutdown:', error);
+  }
+  
   process.exit(0);
-});
+}
 
-process.on('SIGTERM', () => {
-  console.log('🛑 Shutting down ServiceNow Web Interface...');
-  process.exit(0);
-});
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 // Start the application
 startWebInterface();

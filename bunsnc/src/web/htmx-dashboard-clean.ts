@@ -156,6 +156,12 @@ function stateToNumeric(namedState: string): string {
 export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
   .use(html())
   .use(htmx())
+  .decorate('serviceNowAuthClient', serviceNowAuthClient)
+  
+  // Serve CSS using Bun.file() - correct Elysia pattern
+  .get('/styles.css', () => {
+    return Bun.file('/storage/enviroments/integrations/nex/BunNow/bunsnc/public/styles.css');
+  })
   
   /**
    * Main dashboard page - Clean ElysiaJS Theme
@@ -169,24 +175,34 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>BunSNC Dashboard - ElysiaJS Style</title>
-            <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-            <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-            <script src="https://cdn.tailwindcss.com"></script>
-            <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+            <!-- Alpine.js MUST be loaded for state selector to work -->
+            <script src="/public/js/htmx.min.js"></script>
+            <script src="/public/js/alpine.min.js" defer></script>
             <script>
-                tailwind.config = {
-                    darkMode: 'class',
-                    theme: {
-                        extend: {
-                            colors: {
-                                'elysia-blue': '#3b82f6',
-                                'elysia-purple': '#8b5cf6',
-                                'elysia-cyan': '#06b6d4',
-                            }
+                // Global closeModal function - always available
+                window.closeModal = function() {
+                    const modals = document.querySelectorAll('[id*="Modal"], [id*="modal"]');
+                    modals.forEach(modal => {
+                        if (modal && modal.style.display !== 'none') {
+                            modal.remove();
                         }
-                    }
-                }
+                    });
+                };
+                
+                // Ensure closeModal is available after HTMX content swaps
+                document.addEventListener('htmx:afterSwap', function(evt) {
+                    window.closeModal = function() {
+                        const modals = document.querySelectorAll('[id*="Modal"], [id*="modal"]');
+                        modals.forEach(modal => {
+                            if (modal && modal.style.display !== 'none') {
+                                modal.remove();
+                            }
+                        });
+                    };
+                });
             </script>
+            <link href="/public/css/tailwind.min.css" rel="stylesheet">
+            <script src="/public/js/lucide-local.min.js"></script>
             <style>
                 .gradient-bg {
                     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
@@ -307,6 +323,17 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
                     state: 'in_progress',
                     autoRefreshPaused: false,
                     refreshInterval: 15,
+                    // Mapeamento de labels de estado
+                    stateLabels: {
+                        'all': 'Todos Status',
+                        'new': 'Novo',
+                        'in_progress': 'Em Andamento', 
+                        'designated': 'Designado',
+                        'waiting': 'Em Espera',
+                        'resolved': 'Resolvido',
+                        'closed': 'Fechado',
+                        'cancelled': 'Cancelado'
+                    },
                     // Status específicos por tipo de ticket usando códigos ServiceNow
                     ticketTypeStates: {
                         incident: {
@@ -441,7 +468,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
                                 <i data-lucide="alert-circle" class="w-4 h-4 mr-2"></i>
                                 Incidents
                                 <span class="ml-2 px-2 py-1 text-xs rounded-full bg-red-500/20 text-red-300" 
-                                      x-show="activeTab === 'incident'">0</span>
+                                      x-show="activeTab === 'incident'" id="incident-count">0</span>
                             </button>
                             <button @click="loadTab('change_task')" 
                                     :class="activeTab === 'change_task' ? 
@@ -451,7 +478,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
                                 <i data-lucide="git-branch" class="w-4 h-4 mr-2"></i>
                                 Change Tasks
                                 <span class="ml-2 px-2 py-1 text-xs rounded-full bg-orange-500/20 text-orange-300" 
-                                      x-show="activeTab === 'change_task'">0</span>
+                                      x-show="activeTab === 'change_task'" id="change_task-count">0</span>
                             </button>
                             <button @click="loadTab('sc_task')" 
                                     :class="activeTab === 'sc_task' ? 
@@ -461,10 +488,15 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
                                 <i data-lucide="shopping-cart" class="w-4 h-4 mr-2"></i>
                                 Service Tasks
                                 <span class="ml-2 px-2 py-1 text-xs rounded-full bg-blue-500/20 text-blue-300" 
-                                      x-show="activeTab === 'sc_task'">0</span>
+                                      x-show="activeTab === 'sc_task'" id="sc_task-count">0</span>
                             </button>
                         </nav>
                     </div>
+                    
+                    <!-- Auto-load ticket counts -->
+                    <div hx-get="/htmx/ticket-counts" 
+                         hx-trigger="load, every 30s"
+                         hx-swap="outerHTML"></div>
 
                     <!-- Status Info Banner with Refresh Indicator -->
                     <div class="mb-6 p-4 bg-gradient-to-r from-gray-800/50 to-gray-700/50 rounded-xl border border-gray-600">
@@ -642,6 +674,40 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
                         }
                     }, 5000);
                 });
+
+                // Global function to show ticket details modal
+                window.showTicketDetails = function(sysId, table) {
+                    // Add loading state
+                    const button = event.target.closest('button');
+                    if (button) {
+                        button.innerHTML = '<i data-lucide="loader" class="w-4 h-4 inline mr-2 animate-spin"></i>Carregando...';
+                        button.disabled = true;
+                    }
+                    
+                    console.log(\`🔍 [MODAL DEBUG] Loading ticket details: \${sysId}, \${table}\`);
+                    console.log(\`🔍 [MODAL DEBUG] Target URL: /htmx/ticket-details/\${sysId}/\${table}\`);
+                    
+                    // Use HTMX to load ticket details
+                    htmx.ajax('GET', \`/htmx/ticket-details/\${sysId}/\${table}\`, {
+                        target: '#modal-container',
+                        swap: 'innerHTML'
+                    }).then(() => {
+                        console.log(\`✅ [MODAL DEBUG] Successfully loaded ticket details\`);
+                        // Reset button state
+                        if (button) {
+                            button.innerHTML = '<i data-lucide="eye" class="w-4 h-4 inline mr-2"></i>Ver Detalhes';
+                            button.disabled = false;
+                            lucide.createIcons();
+                        }
+                    }).catch((error) => {
+                        console.error(\`❌ [MODAL DEBUG] Error loading ticket details:\`, error);
+                        if (button) {
+                            button.innerHTML = '<i data-lucide="alert-circle" class="w-4 h-4 inline mr-2"></i>Erro';
+                            button.disabled = false;
+                            lucide.createIcons();
+                        }
+                    });
+                };
 
                 // Keyboard shortcuts
                 document.addEventListener('keydown', function(event) {
@@ -856,7 +922,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
               { 
                 sysparm_query: `number=${searchQuery.trim()}`,
                 sysparm_fields: 'sys_id,number,short_description,description,state,priority,urgency,impact,category,subcategory,assignment_group,assigned_to,caller_id,sys_created_on,sys_updated_on',
-                sysparm_display_value: 'both', // Same as Python scripts
+                sysparm_display_value: 'all', // Same as Python default
                 sysparm_exclude_reference_link: 'true',
                 sysparm_limit: 1
               }
@@ -887,7 +953,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
               { 
                 sysparm_query: `(short_descriptionCONTAINS${searchQuery.trim()}^ORdescriptionCONTAINS${searchQuery.trim()})^(${groupQuery})`,
                 sysparm_fields: 'sys_id,number,short_description,description,state,priority,urgency,impact,category,subcategory,assignment_group,assigned_to,caller_id,sys_created_on,sys_updated_on',
-                sysparm_display_value: 'both', // Same as Python scripts
+                sysparm_display_value: 'all', // Same as Python default
                 sysparm_exclude_reference_link: 'true',
                 sysparm_limit: 5
               }
@@ -945,12 +1011,16 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
               const state = ticket.state?.value || ticket.state || '1';
               const shortDescription = ticket.short_description?.value || ticket.short_description || 'Sem descrição';
               const assignmentGroup = ticket.assignment_group?.display_value || 'Não atribuído';
-              const assignedTo = ticket.assigned_to?.display_value || 'Não atribuído';
+              const assignedTo = (ticket.assigned_to && typeof ticket.assigned_to === 'object' && ticket.assigned_to.display_value) 
+                ? ticket.assigned_to.display_value 
+                : (ticket.assigned_to && typeof ticket.assigned_to === 'string') 
+                  ? `User (${ticket.assigned_to.slice(0, 8)}...)` 
+                  : 'Não atribuído';
               const createdOn = ticket.sys_created_on?.value || ticket.sys_created_on;
               
               return `
                 <div class="card-gradient rounded-xl border border-gray-600 p-6 hover:border-elysia-blue transition-all duration-300 cursor-pointer group" 
-                     onclick="showTicketDetails('${ticket.sys_id}', '${ticket.table_name}')">
+                     onclick="showTicketDetails('${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}', '${ticket.table_name}')">
                   <div class="flex justify-between items-start mb-4">
                     <div class="flex items-center space-x-3">
                       <span class="text-lg font-bold text-elysia-cyan">${ticketNumber}</span>
@@ -1016,7 +1086,11 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
                   </div>
                   
                   <div class="mt-4 text-right">
-                    <button class="px-4 py-2 bg-elysia-blue text-white rounded-lg text-sm hover:bg-blue-600 transition-all duration-300 group-hover:scale-105 focus:outline-none focus:ring-2 focus:ring-elysia-blue focus:ring-opacity-50">
+                    <button 
+                      hx-get="/htmx/ticket-details/${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}/${ticket.table_name}"
+                      hx-target="#modal-container"
+                      hx-swap="innerHTML"
+                      class="px-4 py-2 bg-elysia-blue text-white rounded-lg text-sm hover:bg-blue-600 transition-all duration-300 group-hover:scale-105 focus:outline-none focus:ring-2 focus:ring-elysia-blue focus:ring-opacity-50">
                       <i data-lucide="eye" class="w-4 h-4 inline mr-2"></i>
                       Ver Detalhes
                     </button>
@@ -1122,7 +1196,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
               {
                 sysparm_query: queryString,
                 sysparm_fields: 'sys_id,number,short_description,description,state,priority,urgency,impact,category,subcategory,assignment_group,assigned_to,caller_id,sys_created_on,sys_updated_on',
-                sysparm_display_value: 'both', // Same as Python scripts
+                sysparm_display_value: 'all', // Same as Python default
                 sysparm_exclude_reference_link: 'true',
                 sysparm_limit: 20
               }
@@ -1236,12 +1310,16 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
                   const urgency = ticket.urgency?.value || ticket.urgency || '';
                   const state = ticket.state?.value || ticket.state || '1';
                   const shortDescription = ticket.short_description?.value || ticket.short_description || 'Sem descrição';
-                  const assignedTo = ticket.assigned_to?.display_value || 'Não atribuído';
+                  const assignedTo = (ticket.assigned_to && typeof ticket.assigned_to === 'object' && ticket.assigned_to.display_value) 
+                ? ticket.assigned_to.display_value 
+                : (ticket.assigned_to && typeof ticket.assigned_to === 'string') 
+                  ? `User (${ticket.assigned_to.slice(0, 8)}...)` 
+                  : 'Não atribuído';
                   const createdOn = ticket.sys_created_on?.value || ticket.sys_created_on;
                   
                   return `
                     <div class="bg-gray-700/50 rounded-lg border border-gray-600 p-4 hover:border-elysia-blue transition-all duration-300 cursor-pointer group"
-                         onclick="showTicketDetails('${ticket.sys_id}', '${ticket.table_name}')">
+                         onclick="showTicketDetails('${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}', '${ticket.table_name}')">
                       <div class="flex justify-between items-start mb-3">
                         <div class="flex items-center space-x-3">
                           <span class="text-lg font-bold text-elysia-cyan">${ticketNumber}</span>
@@ -1330,10 +1408,14 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
             }
             
             // Use HTMX to load ticket details - fix the endpoint URL
-            htmx.ajax('GET', \`/htmx/ticket/\${sysId}/\${table}\`, {
+            console.log(\`🔍 [MODAL DEBUG] Loading ticket details: \${sysId}, \${table}\`);
+            console.log(\`🔍 [MODAL DEBUG] Target URL: /htmx/ticket-details/\${sysId}/\${table}\`);
+            
+            htmx.ajax('GET', \`/htmx/ticket-details/\${sysId}/\${table}\`, {
               target: '#modal-container',
               swap: 'innerHTML'
             }).then(() => {
+              console.log(\`✅ [MODAL DEBUG] Successfully loaded ticket details\`);
               // Reset button state
               if (button) {
                 button.innerHTML = '<i data-lucide="eye" class="w-4 h-4 inline mr-2"></i>Ver Detalhes';
@@ -1341,7 +1423,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
                 lucide.createIcons();
               }
             }).catch((error) => {
-              console.error('Error loading ticket details:', error);
+              console.error(\`❌ [MODAL DEBUG] Error loading ticket details:\`, error);
               if (button) {
                 button.innerHTML = '<i data-lucide="alert-circle" class="w-4 h-4 inline mr-2"></i>Erro';
                 button.disabled = false;
@@ -1371,6 +1453,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
    * Get ticket details modal
    */
   .get('/ticket/:sysId/:table', async ({ params: { sysId, table } }) => {
+    console.log(`🎫 Loading ticket details: sysId=${sysId}, table=${table}`);
     try {
       const ticketResponse = await serviceNowAuthClient.makeRequest(
         table,
@@ -1378,7 +1461,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
         { 
           sysparm_query: `sys_id=${sysId}`,
           sysparm_fields: 'sys_id,number,short_description,description,state,priority,urgency,impact,category,subcategory,assignment_group,assigned_to,caller_id,sys_created_on,sys_updated_on,resolved_at,closed_at',
-          sysparm_display_value: 'both', // Same as Python scripts
+          sysparm_display_value: 'all', // Same as Python default
           sysparm_exclude_reference_link: 'true'
         }
       );
@@ -1533,9 +1616,11 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
                         <label class="block text-sm font-medium text-gray-400 mb-1">Solicitante</label>
                         <p class="text-white">${
                           // Safe extraction with multiple fallbacks  
-                          ticket.caller_id?.display_value || 
-                          ticket.caller_id?.value ||
-                          (typeof ticket.caller_id === 'string' ? ticket.caller_id : 'N/A')
+                          (ticket.caller_id && typeof ticket.caller_id === 'object' && ticket.caller_id.display_value)
+                            ? ticket.caller_id.display_value
+                            : (ticket.caller_id && typeof ticket.caller_id === 'string')
+                              ? `User (${ticket.caller_id.slice(0, 8)}...)`
+                              : 'N/A'
                         }</p>
                       </div>
                       <div>
@@ -1736,28 +1821,28 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                   <!-- Add Note Action -->
                   <button class="flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                          onclick="showAnnotationForm('${ticket.sys_id}', '${table}')">
+                          onclick="showAnnotationForm('${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}', '${table}')">
                     <i data-lucide="message-circle" class="w-4 h-4 mr-2"></i>
                     Adicionar Nota
                   </button>
                   
                   <!-- Assign to Me -->
                   <button class="flex items-center justify-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                          onclick="assignToMe('${ticket.sys_id}', '${table}')">
+                          onclick="assignToMe('${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}', '${table}')">
                     <i data-lucide="user-check" class="w-4 h-4 mr-2"></i>
                     Assumir
                   </button>
                   
                   <!-- Change Status -->
                   <button class="flex items-center justify-center px-4 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium"
-                          onclick="showStatusChangeForm('${ticket.sys_id}', '${table}', '${ticket.state}')">
+                          onclick="showStatusChangeForm('${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}', '${table}', '${ticket.state}')">
                     <i data-lucide="refresh-cw" class="w-4 h-4 mr-2"></i>
                     Alterar Status
                   </button>
                   
                   <!-- Close Ticket -->
                   <button class="flex items-center justify-center px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-                          onclick="closeTicket('${ticket.sys_id}', '${table}')">
+                          onclick="closeTicket('${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}', '${table}')">
                     <i data-lucide="check-circle" class="w-4 h-4 mr-2"></i>
                     Encerrar
                   </button>
@@ -2064,19 +2149,28 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
     } catch (error) {
       console.error('Error loading ticket details:', error);
       return `
-        <div class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" id="ticket-modal">
+        <div class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" id="ticketModal">
           <div class="bg-gray-800 rounded-xl p-6 max-w-md w-full m-4 border border-gray-600">
             <div class="text-center">
               <i data-lucide="x-circle" class="w-16 h-16 mx-auto mb-4 text-red-400"></i>
               <h3 class="text-lg font-medium text-red-400 mb-2">Erro ao carregar ticket</h3>
               <p class="text-red-300 mb-4">Não foi possível carregar os detalhes do ticket.</p>
               <button class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                      onclick="document.getElementById('ticket-modal').remove()">
+                      onclick="closeModal()">
                 Fechar
               </button>
             </div>
           </div>
         </div>
+        <script>
+          lucide.createIcons();
+          window.closeModal = function() {
+            const modal = document.getElementById('ticketModal');
+            if (modal) {
+              modal.remove();
+            }
+          };
+        </script>
       `;
     }
   });
@@ -2329,12 +2423,99 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
         `).join('');
       };
 
+      // User lookup helper function 
+      const getUserDisplayName = async (userId) => {
+        if (!userId || typeof userId !== 'string') return 'N/A';
+        try {
+          const response = await serviceNowAuthClient.makeRequestPaginated('/sys_user', {
+            sysparm_query: `sys_id=${userId}`,
+            sysparm_fields: 'name,user_name,first_name,last_name',
+            sysparm_limit: 1
+          });
+          
+          const user = response?.result?.[0];
+          if (user) {
+            return user.name || user.user_name || `${user.first_name} ${user.last_name}`.trim() || 'Usuário';
+          }
+        } catch (error) {
+          console.warn(`Failed to lookup user ${userId}:`, error);
+        }
+        return `User (${userId.slice(0, 8)}...)`;
+      };
+
+      // Collect all unique user IDs from tickets
+      const userIds = new Set();
+      results.forEach(ticket => {
+        if (ticket.assigned_to && typeof ticket.assigned_to === 'string') {
+          userIds.add(ticket.assigned_to);
+        }
+        if (ticket.caller_id && typeof ticket.caller_id === 'string') {
+          userIds.add(ticket.caller_id);
+        }
+        if (ticket.opened_by && typeof ticket.opened_by === 'string') {
+          userIds.add(ticket.opened_by);
+        }
+      });
+
+      // Batch lookup users
+      const userDisplayNames = new Map();
+      if (userIds.size > 0) {
+        try {
+          console.log(`🔍 Looking up ${userIds.size} users: ${Array.from(userIds).join(', ')}`);
+          const userList = Array.from(userIds).join(',');
+          const usersResponse = await serviceNowAuthClient.makeRequestPaginated('/sys_user', {
+            sysparm_query: `sys_idIN${userList}`,
+            sysparm_fields: 'sys_id,name,user_name,first_name,last_name',
+            sysparm_limit: 100
+          });
+          
+          console.log(`🔍 Users response structure:`, JSON.stringify(usersResponse, null, 2));
+          if (usersResponse?.result) {
+            console.log(`📊 Processing ${usersResponse.result.length} users from response`);
+            usersResponse.result.forEach(user => {
+              const displayName = user.name || user.user_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Usuário';
+              userDisplayNames.set(user.sys_id, displayName);
+              console.log(`👤 User lookup: ${user.sys_id} = ${displayName}`);
+            });
+          } else {
+            console.log(`⚠️ No users result found in response:`, usersResponse);
+          }
+        } catch (error) {
+          console.warn('Failed to batch lookup users:', error);
+        }
+      }
+
       // Generate ticket cards HTML
       const ticketCards = results.map(ticket => {
         const ticketNumber = ticket.number?.display_value || ticket.number || 'N/A';
         const shortDescription = ticket.short_description?.display_value || ticket.short_description || 'Sem descrição';
-        const assignmentGroup = ticket.assignment_group?.display_value || 'Não atribuído';
-        const assignedTo = ticket.assigned_to?.display_value || 'Não atribuído';
+        // DEBUGGING: Log specific fields with full structure
+        console.log(`🔍 CARD DEBUG - Ticket ${ticket.number?.display_value || ticket.number}:`);
+        console.log(`  - target_group: ${ticket.target_group}`);
+        console.log(`  - assignment_group FULL: ${JSON.stringify(ticket.assignment_group, null, 2)}`);
+        console.log(`  - assigned_to FULL: ${JSON.stringify(ticket.assigned_to, null, 2)}`);
+        console.log(`  - caller_id FULL: ${JSON.stringify(ticket.caller_id, null, 2)}`);
+        
+        // Extract display values or fallback to raw values - ServiceNow returns both formats
+        const assignmentGroup = ticket.target_group || ticket.assignment_group?.display_value || ticket.assignment_group || 'Não atribuído';
+        
+        // User fields - Handle ServiceNow user object structure properly
+        const assignedTo = (ticket.assigned_to && typeof ticket.assigned_to === 'object' && ticket.assigned_to.display_value) 
+          ? ticket.assigned_to.display_value 
+          : (ticket.assigned_to && typeof ticket.assigned_to === 'string') 
+            ? `User (${ticket.assigned_to.slice(0, 8)}...)` 
+            : 'Não atribuído';
+          
+        const caller = (ticket.caller_id && typeof ticket.caller_id === 'object' && ticket.caller_id.display_value)
+          ? ticket.caller_id.display_value
+          : (ticket.opened_by && typeof ticket.opened_by === 'object' && ticket.opened_by.display_value)
+            ? ticket.opened_by.display_value
+            : (ticket.caller_id && typeof ticket.caller_id === 'string')
+              ? `User (${ticket.caller_id.slice(0, 8)}...)`
+              : (ticket.opened_by && typeof ticket.opened_by === 'string')
+                ? `User (${ticket.opened_by.slice(0, 8)}...)`
+                : 'N/A';
+        
         const priority = ticket.priority?.display_value || ticket.priority || 'N/A';
         const stateValue = ticket.state?.value || ticket.state || '1';
         const createdOn = ticket.sys_created_on?.display_value || ticket.sys_created_on;
@@ -2343,8 +2524,15 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
         const subcategory = ticket.subcategory?.display_value || ticket.subcategory || '';
         const urgency = ticket.urgency?.display_value || ticket.urgency || 'N/A';
         const impact = ticket.impact?.display_value || ticket.impact || 'N/A';
-        const caller = ticket.caller_id?.display_value || 'N/A';
         const description = ticket.description?.display_value || ticket.description || 'Sem descrição detalhada';
+        
+        // Debug user field structure
+        console.log(`🔍 Raw user fields for ticket ${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}:`);
+        console.log(`  assigned_to:`, JSON.stringify(ticket.assigned_to, null, 2));
+        console.log(`  caller_id:`, JSON.stringify(ticket.caller_id, null, 2));
+        console.log(`  opened_by:`, JSON.stringify(ticket.opened_by, null, 2));
+        console.log(`  → Final values: Grupo="${assignmentGroup}", Responsável="${assignedTo}", Solicitante="${caller}"`);
+        console.log('');
 
         // Get proper status configuration using the unified mapping system
         const statusConfig = getUnifiedStatusConfig(stateValue);
@@ -2354,7 +2542,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
 
         return `
           <div class="bg-gray-700/50 rounded-lg border border-gray-600 p-4 hover:border-elysia-blue transition-all duration-300 cursor-pointer group transform hover:scale-[1.02]"
-               onclick="showTicketDetails('${ticket.sys_id}', '${ticketType}')">
+               onclick="showTicketDetails('${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}', '${ticketType}')">
             <div class="flex justify-between items-start mb-3">
               <div class="flex items-center space-x-3">
                 <span class="text-lg font-bold text-elysia-cyan">${ticketNumber}</span>
@@ -2398,7 +2586,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
                 ${updatedOn && updatedOn !== createdOn ? `<span><i data-lucide="edit-3" class="w-3 h-3 inline mr-1"></i>Atualizado: ${new Date(updatedOn).toLocaleDateString('pt-BR')}</span>` : ''}
               </div>
               <button class="px-3 py-2 bg-elysia-blue/20 text-elysia-blue rounded-lg hover:bg-elysia-blue/30 transition-colors group-hover:scale-105 text-xs font-medium"
-                      onclick="event.stopPropagation(); showTicketDetails('${ticket.sys_id}', '${ticketType}')">
+                      onclick="event.stopPropagation(); showTicketDetails('${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}', '${ticketType}')">
                 <i data-lucide="eye" class="w-4 h-4 inline mr-1"></i>Ver Detalhes
               </button>
             </div>
@@ -2423,6 +2611,14 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
             </div>
           </div>
         </div>
+        <div class="infinite-scroll-trigger" 
+             id="scroll-trigger-${ticketType}"
+             hx-get="/htmx/tickets-lazy?group=${group}&ticketType=${ticketType}&state=${state}&page=${pageNum + 1}&limit=${limit}"
+             hx-target="#tickets-container-${ticketType}"
+             hx-swap="beforeend"
+             hx-trigger="intersect once"
+             style="height: 1px; margin-top: -100px;">
+        </div>
       ` : '';
 
       return ticketCards + loadMoreButton;
@@ -2438,20 +2634,80 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
       `;
     }
   })
+  
+  // Endpoint to get ticket counts for tabs
+  .get('/ticket-counts', async ({ query }) => {
+    const { group = 'all', state = 'in_progress' } = query as any;
+    
+    try {
+      const counts = {
+        incident: 0,
+        change_task: 0,
+        sc_task: 0
+      };
+      
+      // Get counts for each ticket type
+      for (const ticketType of ['incident', 'change_task', 'sc_task']) {
+        let stateQuery = '';
+        switch (state) {
+          case 'in_progress':
+            stateQuery = 'state=2';
+            break;
+          case 'waiting':
+            stateQuery = 'state=3';
+            break;
+          case 'all':
+            stateQuery = 'stateIN1,2,3';
+            break;
+          default:
+            stateQuery = 'state=2';
+        }
+        
+        try {
+          const response = await serviceNowAuthClient.makeRequest(ticketType, 'GET', {
+            sysparm_query: stateQuery,
+            sysparm_limit: '1',
+            sysparm_fields: 'sys_id'
+          });
+          const headers = response?.headers;
+          const totalHeader = headers?.['x-total-count'] || headers?.['X-Total-Count'] || '0';
+          counts[ticketType as keyof typeof counts] = parseInt(totalHeader);
+        } catch (error) {
+          console.log(`🔍 Error getting count for ${ticketType}:`, error);
+        }
+      }
+      
+      return `
+        <script>
+          document.getElementById('incident-count').textContent = '${counts.incident}';
+          document.getElementById('change_task-count').textContent = '${counts.change_task}';
+          document.getElementById('sc_task-count').textContent = '${counts.sc_task}';
+        </script>
+      `;
+    } catch (error) {
+      console.log('🔍 Error getting ticket counts:', error);
+      return `<script>console.log('Failed to load ticket counts');</script>`;
+    }
+  })
 
-  // GET endpoint for ticket details modal
-  .get('/ticket/:sysId/:table', async ({ params }) => {
+  // GET endpoint for ticket modal details
+  .get('/ticket-details/:sysId/:table', async ({ params, serviceNowAuthClient }) => {
     try {
       const { sysId, table } = params;
       
-      // Fetch ticket details from ServiceNow
-      const ticketResponse = await serviceNowAuthClient.makeRequest(
-        table,
-        'GET',
-        {
-          sysparm_query: `sys_id=${sysId}`,
-          sysparm_display_value: 'all'
-        }
+      console.log(`🔍 Loading ticket details for sysId: ${sysId}, table: ${table}`);
+      
+      // Log the request parameters for debugging
+      const queryParams = {
+        sysparm_query: `sys_id=${sysId}`,
+        sysparm_display_value: 'all'
+      };
+      console.log(`📊 API Request: /${table}`, queryParams);
+      
+      // Make API call to get ticket details with display values
+      const ticketResponse = await serviceNowAuthClient.makeRequestPaginated(
+        `/${table}`,
+        queryParams
       );
       
       const ticket = ticketResponse?.result?.[0];
@@ -2472,18 +2728,72 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
         `;
       }
 
-      // Safe data extraction
-      const number = ticket.number?.value || ticket.number || 'N/A';
-      const shortDescription = ticket.short_description?.value || ticket.short_description || 'Sem descrição';
-      const description = ticket.description?.value || ticket.description || 'Sem descrição detalhada';
+      // Safe data extraction with proper display value handling
+      const number = ticket.number?.display_value || ticket.number || 'N/A';
+      const shortDescription = ticket.short_description?.display_value || ticket.short_description || 'Sem descrição';
+      const description = ticket.description?.display_value || ticket.description || 'Sem descrição detalhada';
       const state = ticket.state?.value || ticket.state || '1';
       const priority = ticket.priority?.value || ticket.priority || '3';
       const urgency = ticket.urgency?.value || ticket.urgency || '3';
+      
+      // Properly handle user fields with lookup if needed
       const assignmentGroup = ticket.assignment_group?.display_value || 'Não atribuído';
-      const assignedTo = ticket.assigned_to?.display_value || 'Não atribuído';
-      const caller = ticket.caller_id?.display_value || 'N/A';
-      const createdOn = ticket.sys_created_on?.value || ticket.sys_created_on;
-      const updatedOn = ticket.sys_updated_on?.value || ticket.sys_updated_on;
+      
+      // User lookup for modal - handle ServiceNow object structure
+      let assignedTo = (ticket.assigned_to && typeof ticket.assigned_to === 'object' && ticket.assigned_to.display_value) 
+        ? ticket.assigned_to.display_value 
+        : (ticket.assigned_to && typeof ticket.assigned_to === 'string') 
+          ? `User (${ticket.assigned_to.slice(0, 8)}...)` 
+          : 'Não atribuído';
+          
+      let caller = (ticket.caller_id && typeof ticket.caller_id === 'object' && ticket.caller_id.display_value)
+        ? ticket.caller_id.display_value
+        : (ticket.opened_by && typeof ticket.opened_by === 'object' && ticket.opened_by.display_value)
+          ? ticket.opened_by.display_value
+          : (ticket.caller_id && typeof ticket.caller_id === 'string')
+            ? `User (${ticket.caller_id.slice(0, 8)}...)`
+            : (ticket.opened_by && typeof ticket.opened_by === 'string')
+              ? `User (${ticket.opened_by.slice(0, 8)}...)`
+              : 'N/A';
+      
+      // If display_value is empty, try to lookup users
+      if (assignedTo === 'Não atribuído' && ticket.assigned_to && typeof ticket.assigned_to === 'string') {
+        try {
+          const userResponse = await serviceNowAuthClient.makeRequestPaginated('/sys_user', {
+            sysparm_query: `sys_id=${ticket.assigned_to}`,
+            sysparm_fields: 'name,user_name,first_name,last_name',
+            sysparm_limit: 1
+          });
+          const user = userResponse?.result?.[0];
+          if (user) {
+            assignedTo = user.name || user.user_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Usuário';
+          }
+        } catch (error) {
+          console.warn(`Failed to lookup assigned_to user ${ticket.assigned_to}:`, error);
+        }
+      }
+      
+      if (caller === 'N/A') {
+        const callerId = ticket.caller_id || ticket.opened_by;
+        if (callerId && typeof callerId === 'string') {
+          try {
+            const userResponse = await serviceNowAuthClient.makeRequestPaginated('/sys_user', {
+              sysparm_query: `sys_id=${callerId}`,
+              sysparm_fields: 'name,user_name,first_name,last_name',
+              sysparm_limit: 1
+            });
+            const user = userResponse?.result?.[0];
+            if (user) {
+              caller = user.name || user.user_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Usuário';
+            }
+          } catch (error) {
+            console.warn(`Failed to lookup caller user ${callerId}:`, error);
+          }
+        }
+      }
+      
+      const createdOn = ticket.sys_created_on?.display_value || ticket.sys_created_on;
+      const updatedOn = ticket.sys_updated_on?.display_value || ticket.sys_updated_on;
 
       // Get status mapping
       const getStatusInfo = (stateValue) => {
@@ -2499,129 +2809,162 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
         return statusMap[stateValue] || { label: 'Desconhecido', color: 'bg-gray-500/20 text-gray-300 border-gray-500/30' };
       };
 
-      const statusInfo = getStatusInfo(state);
-
-      // Get priority color
-      const getPriorityColor = (priority) => {
-        const priorities = {
-          '1': 'bg-red-500/20 text-red-300',
-          '2': 'bg-orange-500/20 text-orange-300', 
-          '3': 'bg-yellow-500/20 text-yellow-300',
-          '4': 'bg-blue-500/20 text-blue-300',
-          '5': 'bg-gray-500/20 text-gray-300'
+      const getPriorityInfo = (priorityValue) => {
+        const priorityMap = {
+          '1': { label: 'Crítica', color: 'text-red-400' },
+          '2': { label: 'Alta', color: 'text-orange-400' },
+          '3': { label: 'Moderada', color: 'text-yellow-400' },
+          '4': { label: 'Baixa', color: 'text-blue-400' },
+          '5': { label: 'Planejamento', color: 'text-gray-400' }
         };
-        return priorities[priority] || 'bg-gray-500/20 text-gray-300';
+        return priorityMap[priorityValue] || { label: 'N/A', color: 'text-gray-400' };
       };
 
+      const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        try {
+          return new Date(dateString).toLocaleString('pt-BR');
+        } catch (error) {
+          return dateString;
+        }
+      };
+
+      const statusInfo = getStatusInfo(state);
+      const priorityInfo = getPriorityInfo(priority);
+
       return `
-        <div id="ticketModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick="closeModal()">
-          <div class="card-gradient rounded-xl border border-gray-600 w-full max-w-4xl max-h-[90vh] overflow-hidden" onclick="event.stopPropagation()">
+        <div id="ticketModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div class="bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 rounded-xl border border-gray-600 shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
             
             <!-- Modal Header -->
-            <div class="flex items-center justify-between p-6 border-b border-gray-600">
-              <div class="flex items-center space-x-4">
-                <h2 class="text-2xl font-bold text-white">${number}</h2>
-                <span class="px-3 py-1 rounded-full text-sm font-medium border ${statusInfo.color}">
-                  ${statusInfo.label}
-                </span>
-                <span class="px-2 py-1 rounded text-xs font-medium ${getPriorityColor(priority)}">
-                  P${priority}
-                </span>
+            <div class="border-b border-gray-600 p-6">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                  <div class="p-3 bg-elysia-blue/20 rounded-lg">
+                    <i data-lucide="ticket" class="w-6 h-6 text-elysia-blue"></i>
+                  </div>
+                  <div>
+                    <h2 class="text-2xl font-bold text-white">${number}</h2>
+                    <p class="text-gray-300 max-w-md truncate">${shortDescription}</p>
+                  </div>
+                </div>
+                <button onclick="closeModal()" class="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                  <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
               </div>
-              <button onclick="closeModal()" class="text-gray-400 hover:text-white transition-colors">
-                <i data-lucide="x" class="w-6 h-6"></i>
-              </button>
             </div>
 
-            <!-- Modal Tabs -->
-            <div class="border-b border-gray-600">
-              <div class="flex space-x-0" x-data="{ activeTab: 'details' }">
+            <!-- Modal Content -->
+            <div class="p-6 overflow-y-auto max-h-[calc(90vh-300px)]" x-data="{ activeTab: 'details' }">
+              
+              <!-- Tab Navigation -->
+              <div class="flex space-x-1 mb-6 bg-gray-800 p-1 rounded-lg">
                 <button @click="activeTab = 'details'" 
-                        :class="activeTab === 'details' ? 'border-elysia-blue text-elysia-blue' : 'border-transparent text-gray-400 hover:text-white'"
-                        class="px-6 py-3 border-b-2 font-medium text-sm transition-colors">
-                  <i data-lucide="ticket" class="w-4 h-4 inline mr-2"></i>
-                  Detalhes do Ticket
+                        :class="activeTab === 'details' ? 'bg-elysia-blue text-white' : 'text-gray-300 hover:text-white'"
+                        class="px-4 py-2 rounded-md transition-colors flex items-center space-x-2">
+                  <i data-lucide="info" class="w-4 h-4"></i>
+                  <span>Detalhes</span>
+                </button>
+                <button @click="activeTab = 'history'" 
+                        :class="activeTab === 'history' ? 'bg-elysia-blue text-white' : 'text-gray-300 hover:text-white'"
+                        class="px-4 py-2 rounded-md transition-colors flex items-center space-x-2">
+                  <i data-lucide="clock" class="w-4 h-4"></i>
+                  <span>Histórico</span>
                 </button>
                 <button @click="activeTab = 'notes'" 
-                        :class="activeTab === 'notes' ? 'border-elysia-blue text-elysia-blue' : 'border-transparent text-gray-400 hover:text-white'"
-                        class="px-6 py-3 border-b-2 font-medium text-sm transition-colors">
-                  <i data-lucide="message-square" class="w-4 h-4 inline mr-2"></i>
-                  Anotações
+                        :class="activeTab === 'notes' ? 'bg-elysia-blue text-white' : 'text-gray-300 hover:text-white'"
+                        class="px-4 py-2 rounded-md transition-colors flex items-center space-x-2">
+                  <i data-lucide="message-square" class="w-4 h-4"></i>
+                  <span>Anotações</span>
                 </button>
                 <button @click="activeTab = 'attachments'" 
-                        :class="activeTab === 'attachments' ? 'border-elysia-blue text-elysia-blue' : 'border-transparent text-gray-400 hover:text-white'"
-                        class="px-6 py-3 border-b-2 font-medium text-sm transition-colors">
-                  <i data-lucide="paperclip" class="w-4 h-4 inline mr-2"></i>
-                  Anexos
+                        :class="activeTab === 'attachments' ? 'bg-elysia-blue text-white' : 'text-gray-300 hover:text-white'"
+                        class="px-4 py-2 rounded-md transition-colors flex items-center space-x-2">
+                  <i data-lucide="paperclip" class="w-4 h-4"></i>
+                  <span>Anexos</span>
                 </button>
               </div>
-            </div>
 
-            <!-- Modal Body -->
-            <div class="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+              <!-- Tab Content -->
               
               <!-- Details Tab -->
               <div x-show="activeTab === 'details'" class="space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  
-                  <!-- Basic Info -->
-                  <div class="space-y-4">
-                    <h3 class="text-lg font-semibold text-white mb-4">Informações Básicas</h3>
-                    
-                    <div>
-                      <label class="text-sm text-gray-400">Descrição Curta</label>
-                      <p class="text-white mt-1">${shortDescription}</p>
-                    </div>
-                    
-                    <div>
-                      <label class="text-sm text-gray-400">Solicitante</label>
-                      <p class="text-white mt-1">${caller}</p>
-                    </div>
-                    
-                    <div>
-                      <label class="text-sm text-gray-400">Grupo de Atribuição</label>
-                      <p class="text-white mt-1">${assignmentGroup}</p>
-                    </div>
-                    
-                    <div>
-                      <label class="text-sm text-gray-400">Responsável</label>
-                      <p class="text-white mt-1">${assignedTo}</p>
+                
+                <!-- Status and Priority Row -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div class="space-y-2">
+                    <label class="text-sm font-medium text-gray-300">Status</label>
+                    <div class="px-3 py-2 rounded-lg border ${statusInfo.color}">
+                      <span class="font-medium">${statusInfo.label}</span>
                     </div>
                   </div>
+                  <div class="space-y-2">
+                    <label class="text-sm font-medium text-gray-300">Prioridade</label>
+                    <div class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg ${priorityInfo.color}">
+                      <span class="font-medium">${priorityInfo.label}</span>
+                    </div>
+                  </div>
+                  <div class="space-y-2">
+                    <label class="text-sm font-medium text-gray-300">Urgência</label>
+                    <div class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-gray-300">
+                      <span class="font-medium">${urgency}</span>
+                    </div>
+                  </div>
+                </div>
 
-                  <!-- Status & Dates -->
-                  <div class="space-y-4">
-                    <h3 class="text-lg font-semibold text-white mb-4">Status e Datas</h3>
-                    
-                    <div class="flex space-x-4">
-                      <div>
-                        <label class="text-sm text-gray-400">Prioridade</label>
-                        <p class="text-white mt-1">P${priority}</p>
-                      </div>
-                      <div>
-                        <label class="text-sm text-gray-400">Urgência</label>
-                        <p class="text-white mt-1">U${urgency}</p>
-                      </div>
+                <!-- Assignment Information -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div class="space-y-2">
+                    <label class="text-sm font-medium text-gray-300">Grupo</label>
+                    <div class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-gray-300">
+                      <span>${assignmentGroup}</span>
                     </div>
-                    
-                    <div>
-                      <label class="text-sm text-gray-400">Criado em</label>
-                      <p class="text-white mt-1">${createdOn ? new Date(createdOn).toLocaleString('pt-BR') : 'N/A'}</p>
+                  </div>
+                  <div class="space-y-2">
+                    <label class="text-sm font-medium text-gray-300">Responsável</label>
+                    <div class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-gray-300">
+                      <span>${assignedTo}</span>
                     </div>
-                    
-                    <div>
-                      <label class="text-sm text-gray-400">Atualizado em</label>
-                      <p class="text-white mt-1">${updatedOn ? new Date(updatedOn).toLocaleString('pt-BR') : 'N/A'}</p>
+                  </div>
+                  <div class="space-y-2">
+                    <label class="text-sm font-medium text-gray-300">Solicitante</label>
+                    <div class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-gray-300">
+                      <span>${caller}</span>
                     </div>
                   </div>
                 </div>
 
                 <!-- Description -->
-                <div>
-                  <label class="text-sm text-gray-400">Descrição Completa</label>
-                  <div class="mt-2 p-4 bg-gray-800/50 rounded-lg border border-gray-600">
-                    <p class="text-white whitespace-pre-wrap">${description}</p>
+                <div class="space-y-2">
+                  <label class="text-sm font-medium text-gray-300">Descrição</label>
+                  <div class="px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-gray-300 min-h-[100px]">
+                    <p class="whitespace-pre-wrap">${description}</p>
                   </div>
+                </div>
+
+                <!-- Timestamps -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div class="space-y-2">
+                    <label class="text-sm font-medium text-gray-300">Criado em</label>
+                    <div class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-gray-400">
+                      <span>${formatDate(createdOn)}</span>
+                    </div>
+                  </div>
+                  <div class="space-y-2">
+                    <label class="text-sm font-medium text-gray-300">Atualizado em</label>
+                    <div class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-gray-400">
+                      <span>${formatDate(updatedOn)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- History Tab -->
+              <div x-show="activeTab === 'history'" class="space-y-4">
+                <div class="text-center py-8 text-gray-400">
+                  <i data-lucide="clock" class="w-12 h-12 mx-auto mb-2"></i>
+                  <p>Histórico de alterações não disponível</p>
+                  <p class="text-sm">Esta funcionalidade será implementada em breve</p>
                 </div>
               </div>
 
@@ -2680,9 +3023,13 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
                   Resolver
                 </button>
                 <button onclick="closeTicket('${sysId}', '${table}')" 
-                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-                  <i data-lucide="x-circle" class="w-4 h-4 inline mr-2"></i>
+                        class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                  <i data-lucide="archive" class="w-4 h-4 inline mr-2"></i>
                   Encerrar
+                </button>
+                <button onclick="closeModal()" class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                  <i data-lucide="x" class="w-4 h-4 inline mr-2"></i>
+                  Fechar
                 </button>
               </div>
             </div>
@@ -2692,25 +3039,18 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
         <script>
           // Initialize Lucide icons
           lucide.createIcons();
-          
-          // Modal control functions
-          window.closeModal = function() {
-            document.getElementById('ticketModal').remove();
-          };
 
-          window.addNote = function(sysId, table) {
-            const noteText = prompt('Digite a anotação:');
-            if (noteText && noteText.trim()) {
-              htmx.ajax('POST', \`/htmx/ticket/\${sysId}/\${table}/note\`, {
-                values: { note: noteText.trim() },
-                target: \`#notes-container-\${sysId}\`,
-                swap: 'beforeend'
-              });
+          // Close modal function
+          window.closeModal = function() {
+            const modal = document.getElementById('ticketModal');
+            if (modal) {
+              modal.remove();
             }
           };
 
+          // Assign to me function  
           window.assignToMe = function(sysId, table) {
-            if (confirm('Deseja assumir este ticket?')) {
+            if (confirm('Assumir este ticket?')) {
               htmx.ajax('POST', \`/htmx/ticket/\${sysId}/\${table}/assign\`, {
                 target: '#modal-container',
                 swap: 'innerHTML'
@@ -2718,6 +3058,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
             }
           };
 
+          // Change status function
           window.changeStatus = function(sysId, table, newStatus) {
             const statusNames = {
               '1': 'Novo',
@@ -2752,6 +3093,11 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
 
     } catch (error) {
       console.error('Error loading ticket details:', error);
+      console.error('Error details:', error.message);
+      console.error('Error status:', error.response?.status);
+      console.error('Error data:', error.response?.data);
+      console.error('Error config URL:', error.config?.url);
+      
       return `
         <div id="ticketModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div class="card-gradient rounded-xl border border-gray-600 p-8 max-w-md w-full">
