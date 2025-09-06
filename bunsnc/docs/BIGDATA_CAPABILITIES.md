@@ -279,7 +279,7 @@ const server = createBigDataServer({
 await server.start(3000);
 ```
 
-**API Documentation:** Available at `http://localhost:3000/swagger`
+**API Documentation:** Available at `http://localhost:3008/swagger`
 
 ## Performance Characteristics
 

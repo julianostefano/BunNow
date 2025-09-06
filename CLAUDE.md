@@ -8,6 +8,7 @@ This is a refactoring project converting **PySNC** (Python ServiceNow client lib
 
 - **pysnc/** - Original Python library using Poetry, pytest, and Sphinx documentation
 - **bunsnc/** - New Bun/TypeScript implementation providing both CLI and HTTP API interfaces
+- Never use Emojis
 
 ## Architecture
 

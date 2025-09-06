@@ -354,7 +354,7 @@ consumers:
 services:
   bunsnc-api:
     image: oven/bun:latest
-    ports: ["3000:3000"]
+    ports: ["3008:3008"]
     environment:
       - DATABASE_URL=postgresql://nexcdc:nexcdc_2025@10.219.8.210:5432/vector
       - REDIS_URL=redis://default:nexcdc2025@10.219.8.210:6380/1

@@ -103,7 +103,9 @@ export class PerformanceMonitor {
     
     const timer = this.timers.get(name);
     if (!timer) {
-      logger.warn(`Timer '${name}' not found`, 'PerformanceMonitor');
+      // Changed from warning to debug level to reduce noise for missing timers
+      // This can happen in error scenarios where startTimer wasn't reached
+      logger.debug(`Timer '${name}' not found - likely due to error before timer start`, 'PerformanceMonitor');
       return 0;
     }
     

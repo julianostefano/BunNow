@@ -26,7 +26,7 @@
   ```ts
   import { treaty } from '@elysiajs/eden';
   import type { App } from './server';
-  const client = treaty<App>('http://localhost:3000');
+  const client = treaty<App>('http://localhost:3008');
   const { data } = await client.hi.get();
   ```
 - Para rotas dinâmicas:
@@ -40,7 +40,7 @@
   ```ts
   import { edenFetch } from '@elysiajs/eden';
   import type { App } from './server';
-  const fetch = edenFetch<App>('http://localhost:3000');
+  const fetch = edenFetch<App>('http://localhost:3008');
   const { data, error } = await fetch('/mirror', { method: 'POST', body: { id: 1, name: 'X' } });
   ```
 - Use Treaty para maioria dos casos, Fetch para projetos com muitas rotas.

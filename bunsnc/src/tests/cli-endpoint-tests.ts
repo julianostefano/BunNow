@@ -356,6 +356,232 @@ program
   });
 
 program
+  .command("test-slas")
+  .description("Test SLA/SLM data collection for specific tickets")
+  .requiredOption("-t, --tickets <tickets>", "Comma-separated list of ticket numbers (e.g., INC0012345,CHG0034567)")
+  .option("--export", "Export SLA results to JSON file")
+  .action(async (opts) => {
+    try {
+      const ticketNumbers = opts.tickets.split(',').map((t: string) => t.trim());
+      console.log(`🔍 Testing SLA data collection for ${ticketNumbers.length} tickets...`);
+      
+      const mapper = await createMapper();
+      
+      for (const ticket of ticketNumbers) {
+        console.log(`\n📋 Analyzing SLAs for ticket: ${ticket}`);
+        
+        // Test task_sla endpoint for this ticket
+        const slaResult = await mapper.testEndpoint(
+          'task_sla', 
+          `task.number=${ticket}`, 
+          100
+        );
+        
+        if (slaResult.status === 'success') {
+          console.log(`   ✅ Found ${slaResult.recordCount} SLA records`);
+          
+          if (slaResult.sampleData && slaResult.sampleData.length > 0) {
+            const sample = slaResult.sampleData[0];
+            console.log(`   🏷️  SLA Fields: ${Object.keys(sample).length}`);
+            console.log(`   📊 Key SLA fields: business_percentage, start_time, end_time, has_breached, stage`);
+            
+            // Show breach status if available
+            const breached = sample.has_breached;
+            const percentage = sample.business_percentage;
+            const stage = sample.stage;
+            
+            console.log(`   📈 Sample SLA: ${percentage}% complete, stage: ${stage}, breached: ${breached}`);
+          }
+        } else {
+          console.log(`   ❌ No SLA data found: ${slaResult.error}`);
+        }
+      }
+      
+      if (opts.export) {
+        console.log("\n💾 Exporting SLA results...");
+        await mapper.exportResults();
+      }
+      
+    } catch (error: any) {
+      console.error("❌ SLA test failed:", error.message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command("analyze-sla-tables")
+  .description("Comprehensive analysis of SLA-related tables")
+  .option("--output <path>", "Output directory for results", "src/tests/sla-schemas")
+  .action(async (opts) => {
+    try {
+      console.log("📊 Analyzing SLA/SLM related tables...");
+      
+      const mapper = await createMapper();
+      const slaRelatedTables = [
+        'task_sla',
+        'incident_sla', 
+        'contract_sla',
+        'sla_definition',
+        'sla'
+      ];
+      
+      for (const table of slaRelatedTables) {
+        try {
+          console.log(`\n🔍 Analyzing table: ${table}`);
+          
+          const schema = await mapper.mapDataStructure(table, 100);
+          
+          console.log(`   📋 Total Records: ${schema.totalRecords}`);
+          console.log(`   🏗️  Fields: ${schema.fields.length}`);
+          
+          // Show top fields for SLA tables
+          const topFields = schema.fields
+            .sort((a, b) => b.frequency - a.frequency)
+            .slice(0, 10);
+          
+          console.log("   🔝 Top Fields:");
+          topFields.forEach(field => {
+            console.log(`      ${field.fieldName} (${field.dataType}) - ${field.frequency.toFixed(1)}%`);
+          });
+          
+        } catch (error: any) {
+          console.log(`   ❌ Failed to analyze ${table}: ${error.message}`);
+        }
+      }
+      
+      console.log("\n📈 Generating SLA table relationships...");
+      
+      // Test relationships between ticket tables and SLA tables
+      const ticketTables = ['incident', 'change_task', 'sc_task'];
+      for (const ticketTable of ticketTables) {
+        try {
+          const ticketSchema = await mapper.mapDataStructure(ticketTable, 50);
+          console.log(`\n🔗 ${ticketTable} → SLA relationships:`);
+          
+          // Look for SLA-related fields
+          const slaFields = ticketSchema.fields.filter(field => 
+            field.fieldName.toLowerCase().includes('sla') ||
+            field.fieldName.toLowerCase().includes('slm')
+          );
+          
+          if (slaFields.length > 0) {
+            slaFields.forEach(field => {
+              console.log(`   📌 ${field.fieldName} (${field.dataType})`);
+            });
+          } else {
+            console.log(`   ℹ️  No direct SLA fields found - uses task_sla table relationship`);
+          }
+          
+        } catch (error: any) {
+          console.log(`   ❌ Failed to analyze ${ticketTable}: ${error.message}`);
+        }
+      }
+      
+      await mapper.exportResults();
+      console.log(`\n✅ SLA analysis completed! Check ${opts.output} directory for results.`);
+      
+    } catch (error: any) {
+      console.error("❌ SLA analysis failed:", error.message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command("test-ticket-sla-join")
+  .description("Test combined ticket + SLA data collection (like Python scripts)")
+  .requiredOption("-t, --ticket <ticket>", "Single ticket number to analyze")
+  .option("--table-type <type>", "Ticket table type", "incident")
+  .action(async (opts) => {
+    try {
+      console.log(`🎯 Testing combined ticket+SLA collection for ${opts.ticket}...`);
+      
+      const mapper = await createMapper();
+      
+      // Step 1: Get ticket data
+      console.log(`\n📋 Step 1: Collecting ticket data from ${opts.tableType}...`);
+      const ticketResult = await mapper.testEndpoint(
+        opts.tableType,
+        `number=${opts.ticket}`,
+        1
+      );
+      
+      if (ticketResult.status !== 'success' || !ticketResult.sampleData?.length) {
+        console.error(`❌ Ticket ${opts.ticket} not found in ${opts.tableType} table`);
+        process.exit(1);
+      }
+      
+      const ticketData = ticketResult.sampleData[0];
+      console.log(`   ✅ Found ticket: ${ticketData.number} (sys_id: ${ticketData.sys_id})`);
+      console.log(`   📊 Ticket fields: ${Object.keys(ticketData).length}`);
+      
+      // Step 2: Get SLA data
+      console.log(`\n🎯 Step 2: Collecting SLA data from task_sla...`);
+      const slaResult = await mapper.testEndpoint(
+        'task_sla',
+        `task.number=${opts.ticket}`,
+        50
+      );
+      
+      let slaData = [];
+      if (slaResult.status === 'success' && slaResult.sampleData?.length) {
+        slaData = slaResult.sampleData;
+        console.log(`   ✅ Found ${slaData.length} SLA records`);
+        
+        // Analyze SLA data
+        const breachedCount = slaData.filter(sla => sla.has_breached === 'true' || sla.has_breached === true).length;
+        const activeCount = slaData.filter(sla => sla.stage && sla.stage !== 'completed').length;
+        
+        console.log(`   📈 SLA Summary:`);
+        console.log(`      Active SLAs: ${activeCount}`);
+        console.log(`      Breached SLAs: ${breachedCount}`);
+        console.log(`      Breach Rate: ${slaData.length > 0 ? ((breachedCount / slaData.length) * 100).toFixed(1) : 0}%`);
+        
+      } else {
+        console.log(`   ℹ️  No SLA data found for ticket ${opts.ticket}`);
+      }
+      
+      // Step 3: Create combined document structure (like Python scripts)
+      console.log(`\n🔗 Step 3: Creating combined document structure...`);
+      
+      const combinedDocument = {
+        ticket: ticketData,
+        slms: slaData,
+        sync_timestamp: new Date().toISOString(),
+        collection_version: "1.0.0",
+        metadata: {
+          ticket_type: opts.tableType,
+          total_slas: slaData.length,
+          active_slas: slaData.filter(sla => sla.stage && sla.stage !== 'completed').length,
+          breached_slas: slaData.filter(sla => sla.has_breached === 'true' || sla.has_breached === true).length
+        }
+      };
+      
+      console.log(`✅ Combined document created:`);
+      console.log(`   📋 Ticket data: ${Object.keys(combinedDocument.ticket).length} fields`);
+      console.log(`   🎯 SLA data: ${combinedDocument.slms.length} records`);
+      console.log(`   📊 Document size: ~${JSON.stringify(combinedDocument).length} bytes`);
+      
+      // Step 4: Show storage strategy
+      console.log(`\n💾 Step 4: MongoDB storage strategy:`);
+      console.log(`   Collection: ticket_${opts.tableType}_with_slms`);
+      console.log(`   Document ID: ${ticketData.sys_id}`);
+      console.log(`   Partition Key: ${ticketData.sys_id.substring(0, 3)}`);
+      console.log(`   Indexes needed:`);
+      console.log(`     - ticket.sys_id (unique)`);
+      console.log(`     - ticket.number (unique)`);
+      console.log(`     - slms.has_breached (for breach queries)`);
+      console.log(`     - sync_timestamp (for temporal queries)`);
+      
+      console.log(`\n🎉 Combined ticket+SLA collection test completed successfully!`);
+      console.log(`💡 This matches the Python script pattern for storing tickets with SLM data`);
+      
+    } catch (error: any) {
+      console.error("❌ Combined test failed:", error.message);
+      process.exit(1);
+    }
+  });
+
+program
   .command("quick-test")
   .description("Quick test of bunsnc CLI functionality with ServiceNow endpoints")
   .option("-t, --table <table>", "Table to test", "incident")

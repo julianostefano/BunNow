@@ -8,6 +8,7 @@ import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { serviceNowRateLimiter } from './ServiceNowRateLimit';
 import Redis from 'ioredis';
 import { RedisCache } from '../bigdata/redis/RedisCache';
+import { RedisStreamManager } from '../bigdata/redis/RedisStreamManager';
 
 export interface AuthServiceResponse {
   cookies: Array<{
@@ -50,6 +51,7 @@ export class ServiceNowAuthClient {
   private lastAuthTime = 0;
   private authTTL = 30 * 60 * 1000; // 30 minutes
   private redisCache: RedisCache;
+  private redisStreamManager: RedisStreamManager;
 
   private readonly AUTH_SERVICE_URL = 'http://10.219.8.210:8000/auth';
   private readonly SERVICENOW_INSTANCE = 'iberdrola';
@@ -73,7 +75,7 @@ export class ServiceNowAuthClient {
 
     this.axiosClient = axios.create({
       baseURL: this.SERVICENOW_BASE_URL,
-      timeout: 30000, // 30 seconds timeout
+      timeout: 240000, // 240 seconds timeout (4 minutes)
       httpsAgent: new (require('https').Agent)({
         rejectUnauthorized: false // verify=False from Python
       }),
@@ -96,14 +98,26 @@ export class ServiceNowAuthClient {
 
     this.redisCache = new RedisCache(redis, {
       keyPrefix: 'servicenow:cache:',
-      defaultTtl: 300, // 5 minutes for ServiceNow data
+      defaultTtl: 120, // 2 minutes for faster refresh
       enableMetrics: true
     });
 
-    console.log('🔐 ServiceNow Auth Client initialized');
+    // Initialize Redis Stream Manager for real-time updates
+    this.redisStreamManager = new RedisStreamManager({
+      host: process.env.REDIS_HOST || '10.219.8.210',
+      port: parseInt(process.env.REDIS_PORT || '6380'),
+      password: process.env.REDIS_PASSWORD || 'nexcdc2025',
+    });
+
+    console.log('🔐 ServiceNow Auth Client initialized with Redis Streams');
     console.log(`🌐 ServiceNow URL: ${this.SERVICENOW_BASE_URL}`);
     console.log(`🔄 Using environment proxy variables`);
     console.log('📦 Redis cache enabled');
+    
+    // Pre-warm cache for critical data on startup
+    this.preWarmCache().catch(error => {
+      console.warn('⚠️ Cache pre-warming failed:', error.message);
+    });
   }
 
   /**
@@ -172,6 +186,326 @@ export class ServiceNowAuthClient {
   }
 
   /**
+   * Make request with ALL fields (no sysparm_fields limitation)
+   * Used for complete field mapping and analysis
+   */
+  async makeRequestFullFields(table: string, query: string, limit: number = 1): Promise<any> {
+    await this.authenticate();
+    
+    return serviceNowRateLimiter.executeRequest(async () => {
+      try {
+        const url = `${this.SERVICENOW_BASE_URL}/api/now/table/${table}`;
+        const response = await this.axiosClient({
+          method: 'get',
+          url,
+          params: {
+            sysparm_query: query,
+            sysparm_display_value: 'all', // Get both display_value and value for references
+            sysparm_exclude_reference_link: 'true',
+            sysparm_limit: limit
+            // NO sysparm_fields - this captures ALL available fields
+          }
+        });
+        
+        return response.data;
+      } catch (error) {
+        console.error(`ServiceNow full fields ${table} error:`, error);
+        throw error;
+      }
+    });
+  }
+
+  /**
+   * Get comprehensive SLA data for a specific task/incident
+   * Fetches data from task_sla, contract_sla, and sla_definition tables
+   */
+  async getSLADataForTask(taskSysId: string): Promise<any> {
+    await this.authenticate();
+    
+    return serviceNowRateLimiter.executeRequest(async () => {
+      try {
+        const slaData: any = {
+          task_slas: [],
+          contract_slas: [],
+          sla_definitions: []
+        };
+
+        // Get task_sla records for this specific task
+        const taskSLAUrl = `${this.SERVICENOW_BASE_URL}/api/now/table/task_sla`;
+        const taskSLAResponse = await this.axiosClient({
+          method: 'get',
+          url: taskSLAUrl,
+          params: {
+            sysparm_query: `task=${taskSysId}`,
+            sysparm_display_value: 'all',
+            sysparm_exclude_reference_link: 'true',
+            sysparm_limit: 50
+          }
+        });
+        slaData.task_slas = taskSLAResponse.data.result || [];
+
+        // Get SLA definitions referenced by task_slas
+        const slaDefinitionIds = slaData.task_slas
+          .map((sla: any) => sla.sla?.value)
+          .filter((id: string) => id);
+        
+        if (slaDefinitionIds.length > 0) {
+          const slaDefUrl = `${this.SERVICENOW_BASE_URL}/api/now/table/sla_definition`;
+          const slaDefResponse = await this.axiosClient({
+            method: 'get',
+            url: slaDefUrl,
+            params: {
+              sysparm_query: `sys_idIN${slaDefinitionIds.join(',')}`,
+              sysparm_display_value: 'all',
+              sysparm_exclude_reference_link: 'true'
+            }
+          });
+          slaData.sla_definitions = slaDefResponse.data.result || [];
+        }
+
+        return slaData;
+      } catch (error) {
+        console.error(`ServiceNow SLA data error:`, error);
+        throw error;
+      }
+    });
+  }
+
+  /**
+   * Get contract SLA data for a company/location
+   */
+  async getContractSLAData(company?: string, location?: string): Promise<any> {
+    await this.authenticate();
+    
+    return serviceNowRateLimiter.executeRequest(async () => {
+      try {
+        let query = 'active=true';
+        
+        if (company) {
+          query += `^company=${company}`;
+        } else if (location) {
+          query += `^location=${location}`;
+        }
+
+        const url = `${this.SERVICENOW_BASE_URL}/api/now/table/contract_sla`;
+        const response = await this.axiosClient({
+          method: 'get',
+          url,
+          params: {
+            sysparm_query: query,
+            sysparm_display_value: 'all',
+            sysparm_exclude_reference_link: 'true',
+            sysparm_limit: 20
+          }
+        });
+        
+        return response.data;
+      } catch (error) {
+        console.error(`ServiceNow contract SLA error:`, error);
+        throw error;
+      }
+    });
+  }
+
+  /**
+   * Get SLA breakdown data for a specific ticket (combines all SLA sources)
+   */
+  async getTicketSLABreakdown(ticketSysId: string): Promise<any> {
+    await this.authenticate();
+    
+    try {
+      // Get basic ticket info first
+      const ticketResponse = await this.makeRequestFullFields('incident', `sys_id=${ticketSysId}`, 1);
+      const ticket = ticketResponse?.result?.[0];
+      
+      if (!ticket) {
+        throw new Error(`Ticket ${ticketSysId} not found`);
+      }
+
+      // Run SLA queries in parallel for better performance
+      const [slaData, contractSLAData] = await Promise.all([
+        this.getSLADataForTask(ticketSysId),
+        this.getContractSLAData(ticket.company?.value, ticket.location?.value)
+      ]);
+
+      return {
+        ticket: {
+          sys_id: ticketSysId,
+          number: ticket.number?.display_value || ticket.number,
+          priority: ticket.priority?.display_value || ticket.priority,
+          urgency: ticket.urgency?.display_value || ticket.urgency,
+          impact: ticket.impact?.display_value || ticket.impact
+        },
+        sla_data: slaData,
+        contract_sla_data: contractSLAData?.result || [],
+        summary: {
+          active_slas: slaData.task_slas?.length || 0,
+          breached_slas: slaData.task_slas?.filter((sla: any) => sla.has_breached?.display_value === 'true').length || 0,
+          contract_slas: contractSLAData?.result?.length || 0
+        }
+      };
+    } catch (error) {
+      console.error(`ServiceNow ticket SLA breakdown error:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generic method to make ServiceNow API requests (similar to makeRequest pattern)
+   */
+  async makeRequest(table: string, method: string = 'GET', params: Record<string, any> = {}): Promise<any> {
+    await this.authenticate();
+    
+    return serviceNowRateLimiter.executeRequest(async () => {
+      try {
+        const url = `${this.SERVICENOW_BASE_URL}/api/now/table/${table}`;
+        const response = await this.axiosClient({
+          method: method.toLowerCase(),
+          url,
+          params
+        });
+        
+        return response.data;
+      } catch (error) {
+        console.error(`ServiceNow ${method} ${table} error:`, error);
+        throw error;
+      }
+    });
+  }
+
+  /**
+   * Paginated request with cache optimization for lazy loading
+   * Always filters by current month
+   */
+  async makeRequestPaginated(
+    table: string, 
+    group: string, 
+    state: string, 
+    page: number = 1, 
+    limit: number = 10
+  ): Promise<{
+    data: any[];
+    hasMore: boolean;
+    total: number;
+    currentPage: number;
+    totalPages: number;
+  }> {
+    await this.authenticate();
+    
+    // Generate current month filter dynamically
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+    const monthStart = `${currentYear}-${currentMonth}-01`;
+    const monthEnd = `${currentYear}-${currentMonth}-31`;
+    
+    // Build cache key
+    const cacheKey = `tickets_paginated:${table}:${group}:${state}:${currentMonth}:${page}:${limit}`;
+    
+    try {
+      // Try cache first
+      const cached = await this.redisCache.get(cacheKey);
+      if (cached) {
+        console.log(`🎯 Cache hit for paginated ${table} - page ${page}`);
+        return cached;
+      }
+
+      console.log(`🔍 Getting paginated ${table} - group: ${group}, state: ${state}, page: ${page}`);
+
+      return serviceNowRateLimiter.executeRequest(async () => {
+        try {
+          const offset = (page - 1) * limit;
+          
+          // Build query with current month filter
+          let query = `sys_created_onBETWEEN${monthStart}@${monthEnd}`;
+          
+          // Add state filter if not 'all'
+          if (state !== 'all') {
+            query += `^state=${state}`;
+          }
+          
+          // Add group filter if not 'all'
+          if (group !== 'all') {
+            query += `^assignment_group.nameCONTAINS${group}`;
+          }
+
+          const params = {
+            sysparm_query: query,
+            sysparm_fields: 'sys_id,number,short_description,description,state,priority,urgency,impact,category,subcategory,assignment_group,assigned_to,caller_id,opened_by,sys_created_on,sys_updated_on',
+            sysparm_display_value: 'all',
+            sysparm_exclude_reference_link: 'true',
+            sysparm_limit: limit,
+            sysparm_offset: offset
+          };
+
+          const url = `${this.SERVICENOW_BASE_URL}/api/now/table/${table}`;
+          const response = await this.axiosClient({
+            method: 'get',
+            url,
+            params
+          });
+
+          const data = response.data.result || [];
+          const total = parseInt(response.headers['x-total-count'] || '0') || data.length;
+          const totalPages = Math.ceil(total / limit);
+          const hasMore = page < totalPages;
+
+          const result = {
+            data: data.map(ticket => ({
+              ...ticket,
+              table_name: table,
+              target_group: group
+            })),
+            hasMore,
+            total,
+            currentPage: page,
+            totalPages
+          };
+
+          // Cache result for 2 minutes (aggressive TTL for real-time data)
+          await this.redisCache.set(cacheKey, result, 120);
+          
+          // Stream the data to Redis Streams for real-time updates
+          try {
+            const streamKey = `servicenow:stream:${table}:${currentMonth}`;
+            await this.redisStreamManager.addMessage(streamKey, {
+              table,
+              group,
+              state,
+              page: page.toString(),
+              limit: limit.toString(),
+              total: total.toString(),
+              timestamp: new Date().toISOString(),
+              data_count: result.data.length.toString(),
+              cache_key: cacheKey
+            }, '*', 1000); // Max 1000 messages in stream
+            console.log(`📡 Streamed ${result.data.length} ${table} records to Redis Stream`);
+          } catch (streamError) {
+            console.warn('⚠️ Redis Stream failed, continuing with cache only:', streamError);
+          }
+          
+          return result;
+
+        } catch (error) {
+          console.error(`ServiceNow paginated ${table} error:`, error);
+          throw error;
+        }
+      });
+
+    } catch (error) {
+      console.error(`Error in makeRequestPaginated:`, error);
+      // Return empty result on error
+      return {
+        data: [],
+        hasMore: false,
+        total: 0,
+        currentPage: page,
+        totalPages: 0
+      };
+    }
+  }
+
+  /**
    * Execute ServiceNow API query with rate limiting
    */
   private async executeQuery<T>(
@@ -183,7 +517,7 @@ export class ServiceNowAuthClient {
 
     const queryParams: Record<string, string> = {
       sysparm_query: query,
-      sysparm_display_value: 'both', // Same as Python serialize(display_value="both")
+      sysparm_display_value: 'all', // Same as Python default
       sysparm_exclude_reference_link: 'true',
       sysparm_limit: '1000' // Reasonable limit
     };
@@ -192,7 +526,7 @@ export class ServiceNowAuthClient {
       queryParams.sysparm_fields = fields;
     }
 
-    const url = `/api/now/table/${table}`;
+    const url = `${this.SERVICENOW_BASE_URL}/api/now/table/${table}`;
 
     return serviceNowRateLimiter.executeRequest(async () => {
       console.log(`🔍 ServiceNow query: ${table} - ${query.substring(0, 100)}...`);
@@ -580,6 +914,54 @@ export class ServiceNowAuthClient {
           lastAuthTime: this.lastAuthTime ? new Date(this.lastAuthTime).toISOString() : null
         }
       };
+    }
+  }
+
+  /**
+   * Pre-warm cache with critical data for faster initial loading
+   */
+  private async preWarmCache(): Promise<void> {
+    console.log('🔥 Starting cache pre-warming...');
+    
+    try {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+      
+      // Pre-warm most common queries
+      const preWarmQueries = [
+        // Critical incident tickets (highest priority)
+        { table: 'incident', group: 'all', state: 'in_progress', page: 1, limit: 10 },
+        { table: 'incident', group: 'L2-NE-IT NETWORK', state: 'in_progress', page: 1, limit: 10 },
+        
+        // Change tasks
+        { table: 'change_task', group: 'all', state: 'in_progress', page: 1, limit: 10 },
+        
+        // Service catalog tasks
+        { table: 'sc_task', group: 'all', state: 'in_progress', page: 1, limit: 10 },
+      ];
+
+      // Execute pre-warming in parallel with limited concurrency
+      const concurrentLimit = 3;
+      for (let i = 0; i < preWarmQueries.length; i += concurrentLimit) {
+        const batch = preWarmQueries.slice(i, i + concurrentLimit);
+        await Promise.allSettled(
+          batch.map(query => 
+            this.makeRequestPaginated(query.table, query.group, query.state, query.page, query.limit)
+              .catch(error => console.warn(`Pre-warm failed for ${query.table}:`, error.message))
+          )
+        );
+        
+        // Small delay between batches to avoid overwhelming the API
+        if (i + concurrentLimit < preWarmQueries.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+
+      console.log(`✅ Cache pre-warming completed for month ${currentYear}-${currentMonth}`);
+      
+    } catch (error) {
+      console.error('❌ Cache pre-warming failed:', error);
     }
   }
 }

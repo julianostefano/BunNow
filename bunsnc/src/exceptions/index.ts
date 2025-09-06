@@ -2,7 +2,7 @@
  * ServiceNow Specific Exceptions - Full PySNC Compatibility
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
-import { errorHandler, ServiceNowError, ErrorContext } from '../utils/ErrorHandler';
+import { ServiceNowError, type ErrorContext } from '../utils/ErrorHandler';
 
 /**
  * Base class for all ServiceNow exceptions
@@ -313,7 +313,9 @@ export function handleErrorsWithRecovery(operation?: string, retryConfig?: any) 
 }
 
 // Export ErrorHandler types and instances for advanced usage
-export { errorHandler, ServiceNowError, ErrorContext } from '../utils/ErrorHandler';
+export { ServiceNowError, type ErrorContext } from '../utils/ErrorHandler';
+import { errorHandler } from '../utils/ErrorHandler';
+export { errorHandler };
 export { performanceMonitor } from '../utils/PerformanceMonitor';
 export { transactionManager, Transaction } from '../utils/TransactionManager';
 

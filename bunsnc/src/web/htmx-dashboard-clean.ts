@@ -1487,24 +1487,15 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
       const ticket = ticketResponse.result[0];
       console.log(`🐛 [TICKET DETAILS] Raw ticket data:`, JSON.stringify(ticket, null, 2));
 
-      // Try to get SLA information
-      let slaInfo = [];
+      // Get comprehensive SLA information using our enhanced SLA method
+      let slaBreakdown = {};
       try {
-        const slaResponse = await serviceNowAuthClient.makeRequest(
-          'task_sla',
-          'GET',
-          {
-            sysparm_query: `task=${sysId}`,
-            sysparm_fields: 'sys_id,sla,stage,percentage,business_percentage,has_breached,breach_time,business_time_left,time_left,start_time,end_time',
-            sysparm_limit: 10
-          }
-        );
-        
-        if (slaResponse?.result) {
-          slaInfo = slaResponse.result;
-        }
+        console.log(`🎯 Getting comprehensive SLA breakdown for ${sysId} from table ${table}`);
+        slaBreakdown = await serviceNowAuthClient.getTicketSLABreakdown(sysId);
+        console.log(`✅ SLA breakdown obtained:`, Object.keys(slaBreakdown));
       } catch (slaError) {
-        console.warn('SLA information not available:', slaError);
+        console.warn('❌ Comprehensive SLA information not available:', slaError);
+        slaBreakdown = {};
       }
 
 
@@ -2690,71 +2681,52 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
     }
   })
 
-  // GET endpoint for ticket modal details
-  .get('/ticket-details/:sysId/:table', async ({ params, serviceNowAuthClient }) => {
+  // GET endpoint for ticket modal details - simplified following Elysia best practices  
+  .get('/ticket-details/:sysId/:table', async ({ params, serviceNowAuthClient, set }) => {
+    console.log(`🎯 Ticket details requested: ${params.sysId} from ${params.table}`);
+    
     try {
       const { sysId, table } = params;
       
-      console.log(`🔍 Loading ticket details for sysId: ${sysId}, table: ${table}`);
-      
-      // Log the request parameters for debugging
-      const queryParams = {
-        sysparm_query: `sys_id=${sysId}`,
-        sysparm_display_value: 'all'
-      };
-      console.log(`📊 API Request: /${table}`, queryParams);
-      
-      // Make API call to get ticket details with display values
-      const ticketResponse = await serviceNowAuthClient.makeRequestPaginated(
-        `/${table}`,
-        queryParams
+      // Fetch ticket data - single API call
+      const ticketResponse = await serviceNowAuthClient.makeRequestFullFields(
+        table,
+        `sys_id=${sysId}`,
+        1
       );
       
       const ticket = ticketResponse?.result?.[0];
       
       if (!ticket) {
+        set.headers['content-type'] = 'text/html';
         return `
           <div id="ticketModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div class="card-gradient rounded-xl border border-gray-600 p-8 max-w-md w-full">
+            <div class="bg-gray-900 rounded-xl border border-gray-600 p-8 max-w-md w-full">
               <div class="text-center">
-                <i data-lucide="alert-circle" class="w-16 h-16 mx-auto mb-4 text-red-400"></i>
                 <h3 class="text-lg font-medium text-red-400 mb-2">Ticket não encontrado</h3>
-                <button onclick="closeModal()" class="mt-4 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
-                  Fechar
-                </button>
+                <button onclick="closeModal()" class="mt-4 px-4 py-2 bg-gray-600 text-white rounded-lg">Fechar</button>
               </div>
             </div>
-          </div>
-        `;
+          </div>`;
       }
 
-      // Safe data extraction with proper display value handling
+      // Extract basic fields - following Elysia simple pattern
       const number = ticket.number?.display_value || ticket.number || 'N/A';
       const shortDescription = ticket.short_description?.display_value || ticket.short_description || 'Sem descrição';
       const description = ticket.description?.display_value || ticket.description || 'Sem descrição detalhada';
       const state = ticket.state?.value || ticket.state || '1';
       const priority = ticket.priority?.value || ticket.priority || '3';
-      const urgency = ticket.urgency?.value || ticket.urgency || '3';
-      
-      // Properly handle user fields with lookup if needed
+      let assignedTo = ticket.assigned_to?.display_value || 'Não atribuído';
       const assignmentGroup = ticket.assignment_group?.display_value || 'Não atribuído';
+      let caller = ticket.caller_id?.display_value || ticket.opened_by?.display_value || 'N/A';
+      const createdOn = ticket.sys_created_on?.display_value || ticket.sys_created_on || '';
+
+      // Simple status mapping
+      const statusMap = { '1': 'Novo', '2': 'Em Progresso', '6': 'Resolvido', '7': 'Fechado' };
+      const statusLabel = statusMap[state] || 'Desconhecido';
       
-      // User lookup for modal - handle ServiceNow object structure
-      let assignedTo = (ticket.assigned_to && typeof ticket.assigned_to === 'object' && ticket.assigned_to.display_value) 
-        ? ticket.assigned_to.display_value 
-        : (ticket.assigned_to && typeof ticket.assigned_to === 'string') 
-          ? `User (${ticket.assigned_to.slice(0, 8)}...)` 
-          : 'Não atribuído';
-          
-      let caller = (ticket.caller_id && typeof ticket.caller_id === 'object' && ticket.caller_id.display_value)
-        ? ticket.caller_id.display_value
-        : (ticket.opened_by && typeof ticket.opened_by === 'object' && ticket.opened_by.display_value)
-          ? ticket.opened_by.display_value
-          : (ticket.caller_id && typeof ticket.caller_id === 'string')
-            ? `User (${ticket.caller_id.slice(0, 8)}...)`
-            : (ticket.opened_by && typeof ticket.opened_by === 'string')
-              ? `User (${ticket.opened_by.slice(0, 8)}...)`
-              : 'N/A';
+      const priorityMap = { '1': 'Crítica', '2': 'Alta', '3': 'Moderada', '4': 'Baixa', '5': 'Planejamento' };
+      const priorityLabel = priorityMap[priority] || 'N/A';
       
       // If display_value is empty, try to lookup users
       if (assignedTo === 'Não atribuído' && ticket.assigned_to && typeof ticket.assigned_to === 'string') {
@@ -2792,7 +2764,6 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
         }
       }
       
-      const createdOn = ticket.sys_created_on?.display_value || ticket.sys_created_on;
       const updatedOn = ticket.sys_updated_on?.display_value || ticket.sys_updated_on;
 
       // Get status mapping
@@ -2832,9 +2803,271 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
       const statusInfo = getStatusInfo(state);
       const priorityInfo = getPriorityInfo(priority);
 
-      return `
+      // Helper function to safely extract field value with display_value preference
+      const getFieldValue = (field, defaultValue = 'N/A') => {
+        if (!field) return defaultValue;
+        if (typeof field === 'object' && field.display_value !== undefined) {
+          return field.display_value || field.value || defaultValue;
+        }
+        return field || defaultValue;
+      };
+
+      // Helper function to get field raw value (for sys_id references, etc.)
+      const getRawFieldValue = (field) => {
+        if (!field) return '';
+        if (typeof field === 'object' && field.value !== undefined) {
+          return field.value;
+        }
+        return field;
+      };
+
+      // Organize fields by categories based on our 155 field mapping
+      const fieldCategories = {
+        essential: {
+          title: 'Informações Essenciais',
+          icon: 'info',
+          fields: {
+            'sys_id': 'ID do Sistema',
+            'number': 'Número',
+            'short_description': 'Descrição Curta',
+            'description': 'Descrição Completa',
+            'state': 'Status',
+            'priority': 'Prioridade',
+            'urgency': 'Urgência',
+            'impact': 'Impacto'
+          }
+        },
+        assignment: {
+          title: 'Atribuições',
+          icon: 'users',
+          fields: {
+            'assigned_to': 'Atribuído para',
+            'assignment_group': 'Grupo de Atribuição',
+            'caller_id': 'Solicitante',
+            'opened_by': 'Aberto por',
+            'resolved_by': 'Resolvido por',
+            'closed_by': 'Fechado por'
+          }
+        },
+        notes: {
+          title: 'Anotações e Comentários',
+          icon: 'message-circle',
+          fields: {
+            'comments': 'Comentários',
+            'work_notes': 'Notas de Trabalho',
+            'comments_and_work_notes': 'Todos os Comentários',
+            'work_notes_list': 'Lista de Notas',
+            'close_notes': 'Notas de Fechamento'
+          }
+        },
+        sla: {
+          title: 'SLA e Tempo',
+          icon: 'timer',
+          fields: {
+            'sla_due': 'Vencimento SLA',
+            'business_stc': 'Tempo de Negócio',
+            'calendar_stc': 'Tempo de Calendário',
+            'resolve_time': 'Tempo de Resolução',
+            'response_time': 'Tempo de Resposta'
+          },
+          customRender: true // Flag to use custom SLA rendering
+        },
+        technical: {
+          title: 'Informações Técnicas',
+          icon: 'server',
+          fields: {
+            'cmdb_ci': 'Item de Configuração',
+            'category': 'Categoria',
+            'subcategory': 'Subcategoria',
+            'u_symptom': 'Sintoma',
+            'problem_id': 'Problema Relacionado',
+            'rfc': 'RFC Relacionado'
+          }
+        },
+        location: {
+          title: 'Localização e Empresa',
+          icon: 'map-pin',
+          fields: {
+            'location': 'Localização',
+            'company': 'Empresa',
+            'contact_type': 'Tipo de Contato',
+            'notify': 'Notificar'
+          }
+        },
+        audit: {
+          title: 'Auditoria',
+          icon: 'shield',
+          fields: {
+            'sys_created_on': 'Criado em',
+            'sys_updated_on': 'Atualizado em',
+            'sys_created_by': 'Criado por',
+            'sys_updated_by': 'Atualizado por',
+            'sys_mod_count': 'Modificações'
+          }
+        }
+      };
+
+      // Custom SLA section renderer with comprehensive data
+      const renderCustomSLASection = (slaData) => {
+        let slaHtml = '';
+        
+        // Basic SLA fields from the ticket itself
+        const basicSLAFields = [
+          { key: 'sla_due', label: 'Vencimento SLA' },
+          { key: 'business_stc', label: 'Tempo de Negócio' },
+          { key: 'calendar_stc', label: 'Tempo de Calendário' },
+          { key: 'resolve_time', label: 'Tempo de Resolução' },
+          { key: 'response_time', label: 'Tempo de Resposta' }
+        ];
+        
+        slaHtml += '<div class="space-y-4"><h4 class="text-lg font-semibold text-white mb-4">Campos SLA do Ticket</h4>';
+        
+        basicSLAFields.forEach(field => {
+          const value = getFieldValue(ticket[field.key]);
+          slaHtml += `
+            <div class="border-b border-gray-700 pb-3 mb-3">
+              <span class="text-gray-400 text-sm font-medium">${field.label}:</span>
+              <div class="text-white mt-1">${value}</div>
+            </div>
+          `;
+        });
+        
+        // Task SLA records if available
+        if (slaData.task_slas && slaData.task_slas.length > 0) {
+          slaHtml += '<h4 class="text-lg font-semibold text-white mb-4 mt-6">SLAs de Task</h4>';
+          slaData.task_slas.forEach((sla, index) => {
+            const percentage = sla.percentage?.display_value || sla.percentage || 'N/A';
+            const stage = sla.stage?.display_value || sla.stage || 'N/A';
+            const hasBreached = sla.has_breached?.display_value === 'true' || sla.has_breached === 'true';
+            const slaDefinition = sla.sla?.display_value || 'SLA não especificado';
+            
+            slaHtml += `
+              <div class="bg-gray-800/50 rounded-lg p-4 mb-4">
+                <div class="flex justify-between items-start mb-3">
+                  <h5 class="font-medium text-white">${slaDefinition}</h5>
+                  ${hasBreached ? 
+                    '<span class="px-2 py-1 bg-red-500/20 text-red-300 text-xs rounded-full border border-red-500/30">Violado</span>' :
+                    '<span class="px-2 py-1 bg-green-500/20 text-green-300 text-xs rounded-full border border-green-500/30">Ativo</span>'
+                  }
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <span class="text-gray-400 text-sm">Estágio:</span>
+                    <div class="text-white">${stage}</div>
+                  </div>
+                  <div>
+                    <span class="text-gray-400 text-sm">Progresso:</span>
+                    <div class="text-white">${percentage}%</div>
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+        }
+        
+        // Contract SLA records if available
+        if (slaData.contract_slas && slaData.contract_slas.length > 0) {
+          slaHtml += '<h4 class="text-lg font-semibold text-white mb-4 mt-6">SLAs de Contrato</h4>';
+          slaData.contract_slas.forEach(contractSLA => {
+            slaHtml += `
+              <div class="bg-gray-800/50 rounded-lg p-4 mb-4">
+                <h5 class="font-medium text-white mb-2">${contractSLA.contract?.display_value || 'Contrato não especificado'}</h5>
+                <div class="text-gray-300 text-sm">[Contract SLA Data]</div>
+              </div>
+            `;
+          });
+        }
+        
+        // SLA definitions if available
+        if (slaData.sla_definitions && slaData.sla_definitions.length > 0) {
+          slaHtml += '<h4 class="text-lg font-semibold text-white mb-4 mt-6">Definições de SLA</h4>';
+          slaData.sla_definitions.forEach(definition => {
+            slaHtml += `
+              <div class="bg-gray-800/50 rounded-lg p-4 mb-4">
+                <h5 class="font-medium text-white mb-2">${definition.name?.display_value || 'Definição de SLA'}</h5>
+                <div class="text-gray-300 text-sm">${definition.description?.display_value || 'Sem descrição disponível'}</div>
+              </div>
+            `;
+          });
+        }
+        
+        if (!slaData.task_slas && !slaData.contract_slas && !slaData.sla_definitions) {
+          slaHtml += '<div class="text-center py-8"><div class="text-gray-400">📊 Nenhum dado SLA abrangente disponível</div></div>';
+        }
+        
+        slaHtml += '</div>';
+        
+        return `
+          <div x-show="activeTab === 'sla'" class="space-y-4">
+            <div class="grid grid-cols-1 gap-6">
+              <div class="bg-gray-800/50 rounded-lg p-4">
+                ${slaHtml}
+              </div>
+            </div>
+          </div>
+        `;
+      };
+
+      // Helper to render field section - simplified version
+      const renderFieldSection = (categoryKey, category) => {
+        // Simple SLA rendering without custom data for now
+        if (categoryKey === 'sla' && category.customRender) {
+          return `<div x-show="activeTab === 'sla'" class="space-y-4">
+            <div class="bg-gray-800/50 rounded-lg p-4">
+              <h3 class="text-lg font-semibold text-white mb-4">SLA Information</h3>
+              <p class="text-gray-300">SLA data will be displayed here soon.</p>
+            </div>
+          </div>`;
+        }
+        
+        const fieldsHtml = Object.entries(category.fields)
+          .map(([fieldName, fieldLabel]) => {
+            const value = getFieldValue(ticket[fieldName]);
+            const rawValue = getRawFieldValue(ticket[fieldName]);
+            
+            // Special formatting for certain fields
+            let displayValue = value;
+            if (fieldName.includes('_on') && value !== 'N/A') {
+              displayValue = formatDate(value);
+            } else if (fieldName === 'description' && value && value.length > 200) {
+              displayValue = `<div class="max-h-32 overflow-y-auto text-sm bg-gray-800 p-3 rounded border">${value.replace(/\n/g, '<br>')}</div>`;
+            } else if (fieldName.includes('comments') || fieldName.includes('notes')) {
+              if (value && value !== 'N/A' && value.trim()) {
+                displayValue = `<div class="max-h-32 overflow-y-auto text-sm bg-gray-800 p-3 rounded border">${value.replace(/\n/g, '<br>')}</div>`;
+              } else {
+                displayValue = '<span class="text-gray-500 italic">Nenhuma anotação</span>';
+              }
+            }
+
+            return `
+              <div class="border-b border-gray-700 pb-3 mb-3 last:border-b-0 last:pb-0 last:mb-0">
+                <div class="flex justify-between items-start">
+                  <span class="text-gray-400 text-sm font-medium">${fieldLabel}:</span>
+                  ${rawValue && rawValue !== value && rawValue !== 'N/A' ? 
+                    `<span class="text-xs text-gray-500 cursor-pointer" title="Copiar ID: ${rawValue}">🔗</span>` : 
+                    ''
+                  }
+                </div>
+                <div class="text-white mt-1">${displayValue}</div>
+              </div>
+            `;
+          })
+          .join('');
+
+        return `
+          <div x-show="activeTab === '${categoryKey}'" class="space-y-4">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div class="bg-gray-800/50 rounded-lg p-4">
+                ${fieldsHtml}
+              </div>
+            </div>
+          </div>
+        `;
+      };
+
+      const htmlContent = `
         <div id="ticketModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div class="bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 rounded-xl border border-gray-600 shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+          <div class="bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 rounded-xl border border-gray-600 shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden">
             
             <!-- Modal Header -->
             <div class="border-b border-gray-600 p-6">
@@ -2846,6 +3079,10 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
                   <div>
                     <h2 class="text-2xl font-bold text-white">${number}</h2>
                     <p class="text-gray-300 max-w-md truncate">${shortDescription}</p>
+                    <div class="flex items-center space-x-4 mt-2">
+                      <span class="px-3 py-1 rounded-full text-xs border ${statusInfo.color}">${statusInfo.label}</span>
+                      <span class="text-xs ${priorityInfo.color}">Prioridade: ${priorityInfo.label}</span>
+                    </div>
                   </div>
                 </div>
                 <button onclick="closeModal()" class="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
@@ -2855,242 +3092,83 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
             </div>
 
             <!-- Modal Content -->
-            <div class="p-6 overflow-y-auto max-h-[calc(90vh-300px)]" x-data="{ activeTab: 'details' }">
+            <div class="overflow-y-auto max-h-[calc(90vh-200px)]" x-data="{ activeTab: 'essential' }">
               
               <!-- Tab Navigation -->
-              <div class="flex space-x-1 mb-6 bg-gray-800 p-1 rounded-lg">
-                <button @click="activeTab = 'details'" 
-                        :class="activeTab === 'details' ? 'bg-elysia-blue text-white' : 'text-gray-300 hover:text-white'"
-                        class="px-4 py-2 rounded-md transition-colors flex items-center space-x-2">
-                  <i data-lucide="info" class="w-4 h-4"></i>
-                  <span>Detalhes</span>
-                </button>
-                <button @click="activeTab = 'history'" 
-                        :class="activeTab === 'history' ? 'bg-elysia-blue text-white' : 'text-gray-300 hover:text-white'"
-                        class="px-4 py-2 rounded-md transition-colors flex items-center space-x-2">
-                  <i data-lucide="clock" class="w-4 h-4"></i>
-                  <span>Histórico</span>
-                </button>
-                <button @click="activeTab = 'notes'" 
-                        :class="activeTab === 'notes' ? 'bg-elysia-blue text-white' : 'text-gray-300 hover:text-white'"
-                        class="px-4 py-2 rounded-md transition-colors flex items-center space-x-2">
-                  <i data-lucide="message-square" class="w-4 h-4"></i>
-                  <span>Anotações</span>
-                </button>
-                <button @click="activeTab = 'attachments'" 
-                        :class="activeTab === 'attachments' ? 'bg-elysia-blue text-white' : 'text-gray-300 hover:text-white'"
-                        class="px-4 py-2 rounded-md transition-colors flex items-center space-x-2">
-                  <i data-lucide="paperclip" class="w-4 h-4"></i>
-                  <span>Anexos</span>
-                </button>
+              <div class="sticky top-0 bg-gray-900/95 border-b border-gray-700 p-4">
+                <div class="flex flex-wrap gap-1">
+                  ${Object.entries(fieldCategories).map(([key, category]) => `
+                    <button @click="activeTab = '${key}'" 
+                            :class="activeTab === '${key}' ? 'bg-elysia-blue text-white' : 'text-gray-300 hover:text-white hover:bg-gray-700'"
+                            class="px-3 py-2 rounded-md transition-colors flex items-center space-x-2 text-sm">
+                      <i data-lucide="${category.icon}" class="w-4 h-4"></i>
+                      <span>${category.title}</span>
+                    </button>
+                  `).join('')}
+                </div>
               </div>
 
               <!-- Tab Content -->
-              
-              <!-- Details Tab -->
-              <div x-show="activeTab === 'details'" class="space-y-6">
+              <div class="p-6">
+                ${Object.entries(fieldCategories).map(([key, category]) => renderFieldSection(key, category)).join('')}
                 
-                <!-- Status and Priority Row -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div class="space-y-2">
-                    <label class="text-sm font-medium text-gray-300">Status</label>
-                    <div class="px-3 py-2 rounded-lg border ${statusInfo.color}">
-                      <span class="font-medium">${statusInfo.label}</span>
-                    </div>
-                  </div>
-                  <div class="space-y-2">
-                    <label class="text-sm font-medium text-gray-300">Prioridade</label>
-                    <div class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg ${priorityInfo.color}">
-                      <span class="font-medium">${priorityInfo.label}</span>
-                    </div>
-                  </div>
-                  <div class="space-y-2">
-                    <label class="text-sm font-medium text-gray-300">Urgência</label>
-                    <div class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-gray-300">
-                      <span class="font-medium">${urgency}</span>
+                <!-- Raw Data Tab for Debugging -->
+                <div x-show="activeTab === 'raw'" class="space-y-4">
+                  <div class="bg-gray-800 rounded-lg p-4">
+                    <h3 class="text-lg font-semibold text-white mb-4">Dados Brutos (Debug)</h3>
+                    <div class="max-h-96 overflow-auto">
+                      <pre class="text-xs text-gray-300">[DEBUG] Ticket data available</pre>
                     </div>
                   </div>
                 </div>
-
-                <!-- Assignment Information -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div class="space-y-2">
-                    <label class="text-sm font-medium text-gray-300">Grupo</label>
-                    <div class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-gray-300">
-                      <span>${assignmentGroup}</span>
-                    </div>
-                  </div>
-                  <div class="space-y-2">
-                    <label class="text-sm font-medium text-gray-300">Responsável</label>
-                    <div class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-gray-300">
-                      <span>${assignedTo}</span>
-                    </div>
-                  </div>
-                  <div class="space-y-2">
-                    <label class="text-sm font-medium text-gray-300">Solicitante</label>
-                    <div class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-gray-300">
-                      <span>${caller}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Description -->
-                <div class="space-y-2">
-                  <label class="text-sm font-medium text-gray-300">Descrição</label>
-                  <div class="px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-gray-300 min-h-[100px]">
-                    <p class="whitespace-pre-wrap">${description}</p>
-                  </div>
-                </div>
-
-                <!-- Timestamps -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div class="space-y-2">
-                    <label class="text-sm font-medium text-gray-300">Criado em</label>
-                    <div class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-gray-400">
-                      <span>${formatDate(createdOn)}</span>
-                    </div>
-                  </div>
-                  <div class="space-y-2">
-                    <label class="text-sm font-medium text-gray-300">Atualizado em</label>
-                    <div class="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-gray-400">
-                      <span>${formatDate(updatedOn)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- History Tab -->
-              <div x-show="activeTab === 'history'" class="space-y-4">
-                <div class="text-center py-8 text-gray-400">
-                  <i data-lucide="clock" class="w-12 h-12 mx-auto mb-2"></i>
-                  <p>Histórico de alterações não disponível</p>
-                  <p class="text-sm">Esta funcionalidade será implementada em breve</p>
-                </div>
-              </div>
-
-              <!-- Notes Tab -->
-              <div x-show="activeTab === 'notes'" class="space-y-4">
-                <div class="flex justify-between items-center">
-                  <h3 class="text-lg font-semibold text-white">Anotações do Ticket</h3>
-                  <button onclick="addNote('${sysId}', '${table}')" 
-                          class="px-4 py-2 bg-elysia-blue text-white rounded-lg hover:bg-blue-600 transition-colors">
-                    <i data-lucide="plus" class="w-4 h-4 inline mr-2"></i>
-                    Nova Anotação
-                  </button>
-                </div>
-                
-                <div id="notes-container-${sysId}" class="space-y-3">
-                  <div class="text-center py-8 text-gray-400">
-                    <i data-lucide="message-square" class="w-12 h-12 mx-auto mb-2"></i>
-                    <p>Carregando anotações...</p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Attachments Tab -->
-              <div x-show="activeTab === 'attachments'" class="space-y-4">
-                <div class="flex justify-between items-center">
-                  <h3 class="text-lg font-semibold text-white">Anexos do Ticket</h3>
-                  <button class="px-4 py-2 bg-elysia-blue text-white rounded-lg hover:bg-blue-600 transition-colors">
-                    <i data-lucide="upload" class="w-4 h-4 inline mr-2"></i>
-                    Upload Anexo
-                  </button>
-                </div>
-                
-                <div class="text-center py-8 text-gray-400">
-                  <i data-lucide="paperclip" class="w-12 h-12 mx-auto mb-2"></i>
-                  <p>Nenhum anexo encontrado</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Modal Actions -->
-            <div class="border-t border-gray-600 p-6">
-              <div class="flex flex-wrap gap-3 justify-end">
-                <button onclick="assignToMe('${sysId}', '${table}')" 
-                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                  <i data-lucide="user-check" class="w-4 h-4 inline mr-2"></i>
-                  Assumir
-                </button>
-                <button onclick="changeStatus('${sysId}', '${table}', '2')" 
-                        class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors">
-                  <i data-lucide="play" class="w-4 h-4 inline mr-2"></i>
-                  Colocar em Andamento
-                </button>
-                <button onclick="changeStatus('${sysId}', '${table}', '6')" 
-                        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                  <i data-lucide="check" class="w-4 h-4 inline mr-2"></i>
-                  Resolver
-                </button>
-                <button onclick="closeTicket('${sysId}', '${table}')" 
-                        class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
-                  <i data-lucide="archive" class="w-4 h-4 inline mr-2"></i>
-                  Encerrar
-                </button>
-                <button onclick="closeModal()" class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors">
-                  <i data-lucide="x" class="w-4 h-4 inline mr-2"></i>
-                  Fechar
-                </button>
               </div>
             </div>
           </div>
-        </div>
-
-        <script>
-          // Initialize Lucide icons
-          lucide.createIcons();
-
-          // Close modal function
-          window.closeModal = function() {
-            const modal = document.getElementById('ticketModal');
-            if (modal) {
-              modal.remove();
-            }
-          };
-
-          // Assign to me function  
-          window.assignToMe = function(sysId, table) {
-            if (confirm('Assumir este ticket?')) {
-              htmx.ajax('POST', \`/htmx/ticket/\${sysId}/\${table}/assign\`, {
-                target: '#modal-container',
-                swap: 'innerHTML'
-              });
-            }
-          };
-
-          // Change status function
-          window.changeStatus = function(sysId, table, newStatus) {
-            const statusNames = {
-              '1': 'Novo',
-              '2': 'Em Andamento', 
-              '18': 'Designado',
-              '3': 'Em Espera',
-              '6': 'Resolvido',
-              '7': 'Fechado'
+          
+          <!-- Modal JavaScript -->
+          <script>
+            // Ensure closeModal function is available
+            window.closeModal = function() {
+              const modal = document.getElementById('ticketModal');
+              if (modal) {
+                modal.remove();
+              }
             };
             
-            if (confirm(\`Alterar status para "\${statusNames[newStatus] || 'Status desconhecido'}"?\`)) {
-              htmx.ajax('POST', \`/htmx/ticket/\${sysId}/\${table}/status\`, {
-                values: { status: newStatus },
-                target: '#modal-container',
-                swap: 'innerHTML'
-              });
+            // Initialize Lucide icons after modal content loads
+            if (typeof lucide !== 'undefined') {
+              lucide.createIcons();
             }
-          };
-
-          window.closeTicket = function(sysId, table) {
-            const reason = prompt('Motivo do encerramento (opcional):');
-            if (confirm('Deseja realmente encerrar este ticket?')) {
-              htmx.ajax('POST', \`/htmx/ticket/\${sysId}/\${table}/close\`, {
-                values: { reason: reason || '' },
-                target: '#modal-container', 
-                swap: 'innerHTML'
-              });
-            }
-          };
-        </script>
+          </script>
+        </div>
       `;
 
+      // Content negotiation based on Accept header
+      if (acceptedType === 'application/json') {
+        set.headers['content-type'] = 'application/json';
+        return {
+          ticket: {
+            sys_id: ticket.sys_id,
+            number,
+            short_description: shortDescription,
+            description,
+            state,
+            priority,
+            assigned_to: assignedTo,
+            assignment_group: assignmentGroup,
+            caller: caller,
+            created_on: createdOn,
+            updated_on: updatedOn
+          },
+          html: htmlContent
+        };
+      }
+      
+      // Return HTML directly using Response to avoid plugin issues
+      set.headers['content-type'] = 'text/html; charset=utf-8';
+      return new Response(htmlContent, {
+        headers: { 'content-type': 'text/html; charset=utf-8' }
+      });
     } catch (error) {
       console.error('Error loading ticket details:', error);
       console.error('Error details:', error.message);
@@ -3098,7 +3176,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
       console.error('Error data:', error.response?.data);
       console.error('Error config URL:', error.config?.url);
       
-      return `
+      const errorHtml = `
         <div id="ticketModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div class="card-gradient rounded-xl border border-gray-600 p-8 max-w-md w-full">
             <div class="text-center">
@@ -3118,6 +3196,22 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
           };
         </script>
       `;
+      
+      // Use content negotiation for error responses too
+      if (acceptedType === 'application/json' || !acceptedType) {
+        set.headers['content-type'] = 'application/json';
+        return {
+          success: false,
+          error: error.message,
+          html: errorHtml
+        };
+      }
+      
+      // Return HTML error directly using Response to avoid plugin issues
+      set.headers['content-type'] = 'text/html; charset=utf-8';
+      return new Response(errorHtml, {
+        headers: { 'content-type': 'text/html; charset=utf-8' }
+      });
     }
   })
 
@@ -3319,6 +3413,222 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
         <div class="bg-red-500/20 text-red-300 p-3 rounded-lg border border-red-500/30">
           <i data-lucide="alert-triangle" class="w-4 h-4 inline mr-2"></i>
           Falha ao encerrar ticket
+        </div>
+      `;
+    }
+  })
+
+  // GET endpoint for ticket SLA information
+  .get('/ticket-sla/:ticketNumber', async ({ params, serviceNowAuthClient }) => {
+    try {
+      const { ticketNumber } = params;
+      console.log(`🎯 Loading SLA data for ticket: ${ticketNumber}`);
+      
+      // Use ServiceNowService to get SLA data (reuse our enhanced service)
+      const { ServiceNowService } = await import('../services/servicenow.service');
+      const instanceUrl = process.env.SERVICENOW_INSTANCE_URL || process.env.SNC_INSTANCE_URL;
+      const authToken = process.env.SNC_AUTH_TOKEN;
+      
+      if (!instanceUrl || !authToken) {
+        throw new Error('ServiceNow credentials not configured');
+      }
+      
+      const sncService = new ServiceNowService(instanceUrl, authToken);
+      
+      // Get SLA summary for this ticket
+      const slaSummary = await sncService.getTaskSLASummary(ticketNumber);
+      
+      if (slaSummary.total_slas === 0) {
+        return `
+          <div class="text-center py-8 text-gray-400">
+            <i data-lucide="shield-check" class="w-12 h-12 mx-auto mb-3 text-gray-500"></i>
+            <h4 class="text-lg font-medium text-gray-300 mb-2">Nenhum SLA Configurado</h4>
+            <p class="text-sm">Este ticket não possui SLAs ativos no momento</p>
+            <div class="mt-4 text-xs text-gray-500">
+              Ticket: ${ticketNumber}
+            </div>
+          </div>
+        `;
+      }
+      
+      // Render SLA information
+      const breachPercentage = slaSummary.breach_percentage;
+      const breachColor = breachPercentage > 50 ? 'text-red-400' : breachPercentage > 25 ? 'text-yellow-400' : 'text-green-400';
+      
+      return `
+        <!-- SLA Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div class="bg-gray-700 border border-gray-600 rounded-lg p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-gray-400 uppercase tracking-wide">Total SLAs</p>
+                <p class="text-2xl font-bold text-white">${slaSummary.total_slas}</p>
+              </div>
+              <i data-lucide="shield" class="w-8 h-8 text-gray-400"></i>
+            </div>
+          </div>
+          
+          <div class="bg-gray-700 border border-gray-600 rounded-lg p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-gray-400 uppercase tracking-wide">Ativos</p>
+                <p class="text-2xl font-bold text-blue-400">${slaSummary.active_slas}</p>
+              </div>
+              <i data-lucide="clock" class="w-8 h-8 text-blue-400"></i>
+            </div>
+          </div>
+          
+          <div class="bg-gray-700 border border-gray-600 rounded-lg p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-gray-400 uppercase tracking-wide">Violados</p>
+                <p class="text-2xl font-bold text-red-400">${slaSummary.breached_slas}</p>
+              </div>
+              <i data-lucide="alert-triangle" class="w-8 h-8 text-red-400"></i>
+            </div>
+          </div>
+          
+          <div class="bg-gray-700 border border-gray-600 rounded-lg p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-gray-400 uppercase tracking-wide">% Violação</p>
+                <p class="text-2xl font-bold ${breachColor}">${breachPercentage.toFixed(1)}%</p>
+              </div>
+              <i data-lucide="trending-${breachPercentage > 50 ? 'up' : 'down'}" class="w-8 h-8 ${breachColor}"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Individual SLA Details -->
+        <div class="space-y-4">
+          <h4 class="text-lg font-semibold text-white mb-4">Detalhes dos SLAs</h4>
+          
+          ${slaSummary.all_slas.map((sla, index) => {
+            const statusColor = sla.has_breached 
+              ? 'border-red-500 bg-red-500/10' 
+              : sla.business_percentage > 90 
+                ? 'border-yellow-500 bg-yellow-500/10'
+                : 'border-green-500 bg-green-500/10';
+            
+            const statusIcon = sla.has_breached 
+              ? 'alert-circle' 
+              : sla.business_percentage > 90 
+                ? 'clock'
+                : 'check-circle';
+            
+            const statusText = sla.has_breached 
+              ? 'VIOLADO' 
+              : sla.stage === 'completed' 
+                ? 'CUMPRIDO'
+                : 'EM ANDAMENTO';
+            
+            const formatSLADate = (dateStr) => {
+              if (!dateStr) return 'N/A';
+              try {
+                return new Date(dateStr).toLocaleString('pt-BR');
+              } catch (error) {
+                return dateStr;
+              }
+            };
+            
+            return `
+              <div class="border ${statusColor} rounded-lg p-4">
+                <div class="flex items-start justify-between mb-3">
+                  <div class="flex-1">
+                    <h5 class="font-semibold text-white text-lg">${sla.sla_name}</h5>
+                    <p class="text-sm text-gray-300 mt-1">Estágio: ${sla.stage}</p>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <span class="px-3 py-1 rounded-full text-xs font-medium ${
+                      sla.has_breached ? 'bg-red-500 text-white' :
+                      sla.business_percentage > 90 ? 'bg-yellow-500 text-black' :
+                      'bg-green-500 text-white'
+                    }">
+                      ${statusText}
+                    </span>
+                    <i data-lucide="${statusIcon}" class="w-5 h-5 ${
+                      sla.has_breached ? 'text-red-400' :
+                      sla.business_percentage > 90 ? 'text-yellow-400' :
+                      'text-green-400'
+                    }"></i>
+                  </div>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div class="mb-4">
+                  <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm text-gray-300">Progresso</span>
+                    <span class="text-sm font-medium text-white">${sla.business_percentage.toFixed(1)}%</span>
+                  </div>
+                  <div class="w-full bg-gray-700 rounded-full h-2">
+                    <div class="h-2 rounded-full ${
+                      sla.has_breached ? 'bg-red-500' :
+                      sla.business_percentage > 90 ? 'bg-yellow-500' :
+                      'bg-green-500'
+                    }" style="width: ${Math.min(sla.business_percentage, 100)}%"></div>
+                  </div>
+                </div>
+                
+                <!-- SLA Timeline -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span class="text-gray-400">Início:</span>
+                    <span class="text-white ml-2">${formatSLADate(sla.start_time)}</span>
+                  </div>
+                  <div>
+                    <span class="text-gray-400">Fim:</span>
+                    <span class="text-white ml-2">${formatSLADate(sla.end_time)}</span>
+                  </div>
+                  ${sla.breach_time ? `
+                  <div class="md:col-span-2">
+                    <span class="text-gray-400">Violado em:</span>
+                    <span class="text-red-400 ml-2 font-medium">${formatSLADate(sla.breach_time)}</span>
+                  </div>
+                  ` : ''}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        
+        ${slaSummary.worst_sla ? `
+        <!-- Worst SLA Alert -->
+        <div class="mt-6 bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+          <div class="flex items-start space-x-3">
+            <i data-lucide="alert-triangle" class="w-6 h-6 text-red-400 flex-shrink-0 mt-0.5"></i>
+            <div>
+              <h5 class="font-semibold text-red-400 mb-1">SLA Crítico</h5>
+              <p class="text-sm text-gray-300">
+                <strong>${slaSummary.worst_sla.sla_name}</strong> está violado com ${slaSummary.worst_sla.business_percentage.toFixed(1)}% de progresso.
+              </p>
+              ${slaSummary.worst_sla.breach_time ? `
+              <p class="text-xs text-gray-400 mt-2">
+                Violado em: ${new Date(slaSummary.worst_sla.breach_time).toLocaleString('pt-BR')}
+              </p>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+        ` : ''}
+        
+        <script>
+          // Initialize Lucide icons for SLA content
+          lucide.createIcons();
+        </script>
+      `;
+      
+    } catch (error: any) {
+      console.error('Error loading SLA data:', error);
+      return `
+        <div class="text-center py-8 text-red-400">
+          <i data-lucide="alert-triangle" class="w-12 h-12 mx-auto mb-2"></i>
+          <p>Erro ao carregar informações de SLA</p>
+          <p class="text-sm text-gray-400">${error.message}</p>
+          <button onclick="htmx.ajax('GET', '/htmx/ticket-sla/${ticketNumber}', {target: '#sla-content-${ticketNumber}'})" 
+                  class="mt-3 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600">
+            <i data-lucide="refresh-cw" class="w-4 h-4 inline mr-2"></i>
+            Tentar Novamente
+          </button>
         </div>
       `;
     }

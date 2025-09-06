@@ -196,7 +196,7 @@ bun run compile
 ## 🌐 Acessando a Interface Web
 
 ### Dashboard HTMX
-- **URL**: http://localhost:3000/htmx
+- **URL**: http://localhost:3008/htmx
 - **Funcionalidades**:
   - Dashboard em tempo real
   - Filtros avançados de chamados
@@ -204,22 +204,22 @@ bun run compile
   - WebSocket para atualizações instantâneas
 
 ### API REST
-- **Swagger**: http://localhost:3000/swagger
-- **Health Check**: http://localhost:3000/health
-- **Métricas**: http://localhost:3000/htmx/metrics
+- **Swagger**: http://localhost:3008/swagger
+- **Health Check**: http://localhost:3008/health
+- **Métricas**: http://localhost:3008/htmx/metrics
 
 ## 📊 Monitoramento
 
 ### Health Checks
 ```bash
 # Verificar saúde da aplicação
-curl http://localhost:3000/health
+curl http://localhost:3008/health
 
 # Verificar métricas do banco
-curl http://localhost:3000/htmx/health
+curl http://localhost:3008/htmx/health
 
 # Status dos streams
-curl http://localhost:3000/ws/stats
+curl http://localhost:3008/ws/stats
 ```
 
 ### Logs e Debugging
@@ -298,7 +298,7 @@ echo $SERVICENOW_RATE_LIMIT
 echo $SERVICENOW_MAX_CONCURRENT
 
 # Monitorar rate limiter
-curl http://localhost:3000/htmx/health | jq '.details.rateLimitStats'
+curl http://localhost:3008/htmx/health | jq '.details.rateLimitStats'
 ```
 
 #### 4. Dependências TypeScript

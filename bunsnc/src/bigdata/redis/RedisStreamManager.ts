@@ -113,9 +113,12 @@ export class RedisStreamManager extends EventEmitter {
     maxLength?: number
   ): Promise<string> {
     const timerName = 'redis_stream_add';
-    performanceMonitor.startTimer(timerName);
+    let timerStarted = false;
     
     try {
+      // Start timer only if performance monitoring is enabled
+      performanceMonitor.startTimer(timerName);
+      timerStarted = true;
       // Convert data to string values (Redis requirement)
       const stringData: Record<string, string> = {};
       for (const [key, value] of Object.entries(data)) {
@@ -152,7 +155,10 @@ export class RedisStreamManager extends EventEmitter {
       logger.error(`Error adding message to stream ${streamKey}:`, error);
       throw error;
     } finally {
-      performanceMonitor.endTimer(timerName);
+      // Only end timer if it was successfully started
+      if (timerStarted) {
+        performanceMonitor.endTimer(timerName);
+      }
     }
   }
 

@@ -506,6 +506,192 @@ export class ServiceNowEndpointMapper {
     return typeMap[dataType] || 'any';
   }
 
+  /**
+   * Specialized SLA table analysis with relationship mapping
+   * Analyzes task_sla table and its relationships to task tables
+   */
+  async analyzeSLATableRelationships(): Promise<{
+    slaSchema: TableSchema | null;
+    relationships: {
+      incident: number;
+      change_task: number; 
+      sc_task: number;
+      total: number;
+    };
+    slaPatterns: {
+      commonSLAs: Array<{ name: string; count: number }>;
+      breachStats: { total: number; breached: number; percentage: number };
+      stageDistribution: Record<string, number>;
+    };
+  }> {
+    console.log('🔍 Analyzing SLA table relationships...');
+    
+    try {
+      // First get the SLA table schema
+      await this.mapDataStructure('task_sla', 200);
+      const slaSchema = this.schemas.find(s => s.tableName === 'task_sla');
+      
+      if (!slaSchema) {
+        throw new Error('Failed to analyze task_sla table schema');
+      }
+
+      // Analyze relationships by querying SLAs for each task type
+      console.log('📊 Analyzing SLA relationships to task tables...');
+      
+      const relationships = {
+        incident: 0,
+        change_task: 0,
+        sc_task: 0,
+        total: 0
+      };
+
+      // Sample queries to understand relationships
+      const sampleSLAs = await this.serviceNowService.query({
+        table: 'task_sla',
+        limit: 500,
+        fields: [
+          'sys_id',
+          'task.number',
+          'task.sys_class_name', 
+          'sla',
+          'stage',
+          'has_breached',
+          'business_percentage'
+        ]
+      });
+
+      console.log(`📋 Found ${sampleSLAs.length} SLA records for analysis`);
+
+      // Analyze task type relationships
+      const taskTypes: Record<string, number> = {};
+      const slaNames: Record<string, number> = {};
+      const stages: Record<string, number> = {};
+      let breachedCount = 0;
+
+      for (const sla of sampleSLAs) {
+        // Count task types
+        const taskType = this.extractValue(sla['task.sys_class_name']);
+        if (taskType) {
+          taskTypes[taskType] = (taskTypes[taskType] || 0) + 1;
+          
+          // Map to our ticket types
+          if (taskType === 'incident') relationships.incident++;
+          else if (taskType === 'change_task') relationships.change_task++;
+          else if (taskType === 'sc_task') relationships.sc_task++;
+        }
+        
+        // Count SLA names
+        const slaName = this.extractValue(sla.sla);
+        if (slaName) {
+          slaNames[slaName] = (slaNames[slaName] || 0) + 1;
+        }
+        
+        // Count stages
+        const stage = this.extractValue(sla.stage);
+        if (stage) {
+          stages[stage] = (stages[stage] || 0) + 1;
+        }
+        
+        // Count breaches
+        const hasBreached = this.extractValue(sla.has_breached);
+        if (hasBreached === 'true' || hasBreached === '1') {
+          breachedCount++;
+        }
+        
+        relationships.total++;
+      }
+
+      // Get common SLAs sorted by frequency
+      const commonSLAs = Object.entries(slaNames)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+      const result = {
+        slaSchema,
+        relationships,
+        slaPatterns: {
+          commonSLAs,
+          breachStats: {
+            total: relationships.total,
+            breached: breachedCount,
+            percentage: relationships.total > 0 ? (breachedCount / relationships.total) * 100 : 0
+          },
+          stageDistribution: stages
+        }
+      };
+
+      console.log('✅ SLA analysis completed:');
+      console.log(`   Total SLA records: ${relationships.total}`);
+      console.log(`   Incident SLAs: ${relationships.incident}`);
+      console.log(`   Change Task SLAs: ${relationships.change_task}`);
+      console.log(`   SC Task SLAs: ${relationships.sc_task}`);
+      console.log(`   Breach rate: ${result.slaPatterns.breachStats.percentage.toFixed(1)}%`);
+      console.log(`   Common SLAs: ${commonSLAs.slice(0, 3).map(s => s.name).join(', ')}`);
+
+      return result;
+
+    } catch (error) {
+      console.error('❌ Error analyzing SLA relationships:', error);
+      return {
+        slaSchema: null,
+        relationships: { incident: 0, change_task: 0, sc_task: 0, total: 0 },
+        slaPatterns: {
+          commonSLAs: [],
+          breachStats: { total: 0, breached: 0, percentage: 0 },
+          stageDistribution: {}
+        }
+      };
+    }
+  }
+
+  /**
+   * Generate SLA-specific TypeScript interfaces based on analysis
+   */
+  generateSLAInterfaces(): string {
+    const slaSchema = this.schemas.find(s => s.tableName === 'task_sla');
+    if (!slaSchema) {
+      return '// SLA schema not analyzed yet. Run analyzeSLATableRelationships() first.';
+    }
+
+    const fields = slaSchema.fields.map(field => {
+      const isOptional = field.nullCount > 0 || !field.isRequired;
+      const fieldType = this.mapDataTypeToTypeScript(field.dataType);
+      return `  ${field.fieldName}${isOptional ? '?' : ''}: ${fieldType};`;
+    }).join('\n');
+
+    return `/**
+ * Task SLA Interface - Generated from ServiceNow analysis
+ * Based on ${slaSchema.analyzedRecords} records from task_sla table
+ * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
+ */
+export interface TaskSLARecord {
+${fields}
+}
+
+export interface SLARelationshipMap {
+  incident_slas: TaskSLARecord[];
+  change_task_slas: TaskSLARecord[];
+  sc_task_slas: TaskSLARecord[];
+}
+
+export interface SLAAnalyticsSummary {
+  total_slas: number;
+  breached_slas: number;
+  breach_percentage: number;
+  common_sla_types: string[];
+  avg_business_percentage: number;
+}`;
+  }
+
+  private extractValue(field: any): string {
+    if (typeof field === 'string') return field;
+    if (field && typeof field === 'object') {
+      return field.display_value || field.value || '';
+    }
+    return '';
+  }
+
   // Getters for accessing results
   getTestResults(): EndpointTestResult[] {
     return this.testResults;

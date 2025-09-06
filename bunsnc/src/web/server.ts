@@ -11,13 +11,15 @@ import { staticPlugin } from '@elysiajs/static';
 import { cors } from '@elysiajs/cors';
 import { swagger } from '@elysiajs/swagger';
 import { jwt } from '@elysiajs/jwt';
+import { accepts } from 'elysia-accepts';
 // import helmet from 'elysiajs-helmet';
-import { autoroutes } from 'elysia-autoroutes';
-import { tailwind } from '@gtramontina.com/elysia-tailwind';
+// import { autoroutes } from 'elysia-autoroutes';
+// import { tailwind } from '@gtramontina.com/elysia-tailwind'; // Removido por vulnerabilidades
 // import { xss } from 'elysia-xss';
 import { background } from 'elysia-background';
 import { ServiceNowClient } from '../client/ServiceNowClient';
 import { RedisStreamManager } from '../bigdata/redis/RedisStreamManager';
+import { TicketIntegrationService } from '../services/TicketIntegrationService';
 // import { ParquetWriter } from '../bigdata/parquet/ParquetWriter';
 // import { OpenSearchClient } from '../bigdata/opensearch/OpenSearchClient';
 // import { HDFSClient } from '../bigdata/hadoop/HDFSClient';
@@ -58,6 +60,13 @@ export interface WebServerConfig {
     outputPath: string;
     compressionType: 'snappy' | 'gzip' | 'lz4' | 'none';
   };
+  mongodb: {
+    host: string;
+    port: number;
+    username: string;
+    password: string;
+    database: string;
+  };
 }
 
 export class ServiceNowWebServer {
@@ -65,6 +74,7 @@ export class ServiceNowWebServer {
   private config: WebServerConfig;
   private serviceNowClient: ServiceNowClient;
   private redisStreamManager: RedisStreamManager;
+  private ticketIntegrationService: TicketIntegrationService;
   // private parquetWriter: ParquetWriter;
   // private openSearchClient: OpenSearchClient;
   // private hdfsClient: HDFSClient;
@@ -90,6 +100,9 @@ export class ServiceNowWebServer {
       port: this.config.redis.port,
       password: this.config.redis.password,
     });
+
+    // Initialize Ticket Integration Service
+    this.ticketIntegrationService = new TicketIntegrationService(this.serviceNowClient);
 
     // Other big data clients temporarily commented out
     /*
@@ -146,12 +159,13 @@ export class ServiceNowWebServer {
       // }))
       // .use(xss())
       
-      // CORS configuration
+      // CORS configuration - mais permissivo para assets
       .use(cors({
         origin: true,
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
+        allowedHeaders: ['*'],
         credentials: true,
+        maxAge: 86400,
       }))
 
       // JWT authentication
@@ -162,18 +176,30 @@ export class ServiceNowWebServer {
 
       // HTML templating
       .use(html())
+      
+      // Content negotiation support
+      .use(accepts())
 
-      // TailwindCSS integration
-      .use(tailwind({
-        path: "/public/styles.css",
-        source: "./src/web/styles/input.css",
-        config: "./tailwind.config.js"
-      }))
+      // TailwindCSS integration removida - usando CSS compilado diretamente
+      // .use(tailwind({
+      //   path: "/public/styles.css",
+      //   source: "./src/web/styles/input.css",
+      //   config: "./tailwind.config.js"
+      // }))
 
-      // Static file serving
+      // Static file serving - configuração única otimizada
       .use(staticPlugin({
-        assets: "./src/web/public",
+        assets: "public",
         prefix: "/public",
+        staticLimit: 2048,
+        alwaysStatic: true,
+        headers: {
+          'Cache-Control': 'public, max-age=3600',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+          'Access-Control-Allow-Headers': '*'
+        },
+        ignorePatterns: ['.DS_Store', '*.tmp', 'node_modules']
       }))
 
       // Background task processing
@@ -295,8 +321,12 @@ export class ServiceNowWebServer {
         },
       }))
 
-      // Main dashboard route - enhanced dashboard directly
-      .get('/', () => this.renderEnhancedDashboard())
+      // Main dashboard route - redirect to HTMX clean dashboard
+      .get('/', ({ set }) => {
+        set.headers['Location'] = '/htmx/';
+        set.status = 302;
+        return;
+      })
 
       // Basic dashboard routes
       .get('/dashboard/incidents', () => ({ message: 'Incidents dashboard - temporarily simplified', incidents: [] }))
@@ -321,6 +351,12 @@ export class ServiceNowWebServer {
         .post('/process/parquet/:table', ({ params }) => this.processToParquet(params.table))
         .post('/process/pipeline/:pipeline', ({ params }) => this.executePipeline(params.pipeline))
         .get('/analytics/dashboard', () => this.getDashboardAnalytics())
+        
+        // MongoDB Collection Routes
+        .post('/mongodb/sync', () => this.syncCurrentMonthTickets())
+        .get('/mongodb/tickets/:type', ({ params, query }) => this.getTicketsFromMongoDB(params.type, query))
+        .get('/mongodb/stats', () => this.getMongoDBStats())
+        .get('/mongodb/groups', () => this.getTargetGroups())
       )
 
       // Error handling
@@ -1038,6 +1074,116 @@ export class ServiceNowWebServer {
       color: 'text-gray-600', 
       bgColor: 'bg-gray-100' 
     };
+  }
+
+  // MongoDB Integration Methods
+  private async syncCurrentMonthTickets(): Promise<any> {
+    try {
+      console.log('🔄 Starting sync of current month tickets to MongoDB...');
+      const result = await this.ticketIntegrationService.syncCurrentMonthTickets();
+      
+      if (result.success) {
+        console.log('✅ MongoDB sync completed successfully:', result.stats);
+        return {
+          success: true,
+          message: 'Current month tickets synced successfully',
+          stats: result.stats,
+          timestamp: new Date().toISOString()
+        };
+      } else {
+        console.error('❌ MongoDB sync failed');
+        return {
+          success: false,
+          message: 'Failed to sync tickets to MongoDB',
+          timestamp: new Date().toISOString()
+        };
+      }
+    } catch (error) {
+      console.error('❌ Error during MongoDB sync:', error);
+      return {
+        success: false,
+        message: `Error during sync: ${error.message}`,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  private async getTicketsFromMongoDB(ticketType: string, query: any = {}): Promise<any> {
+    try {
+      if (!['incident', 'change_task', 'sc_task'].includes(ticketType)) {
+        throw new Error(`Invalid ticket type: ${ticketType}. Must be incident, change_task, or sc_task`);
+      }
+
+      const filter = {};
+      if (query.state) filter.state = query.state;
+      if (query.group) filter.assignment_group = query.group;
+      
+      const limit = parseInt(query.limit) || 50;
+      
+      const tickets = await this.ticketIntegrationService.getTicketsFromMongoDB(
+        ticketType as 'incident' | 'change_task' | 'sc_task',
+        filter,
+        limit
+      );
+
+      const count = await this.ticketIntegrationService.getTicketCountFromMongoDB(
+        ticketType as 'incident' | 'change_task' | 'sc_task',
+        filter
+      );
+
+      return {
+        success: true,
+        tickets,
+        count,
+        ticketType,
+        filter,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error(`❌ Error getting ${ticketType} from MongoDB:`, error);
+      return {
+        success: false,
+        message: `Error getting ${ticketType}: ${error.message}`,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  private async getMongoDBStats(): Promise<any> {
+    try {
+      const stats = await this.ticketIntegrationService.getCollectionStats();
+      return {
+        success: true,
+        stats,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('❌ Error getting MongoDB stats:', error);
+      return {
+        success: false,
+        message: `Error getting stats: ${error.message}`,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  private async getTargetGroups(): Promise<any> {
+    try {
+      const groups = await this.ticketIntegrationService.getTargetGroups();
+      return {
+        success: true,
+        groups,
+        count: groups.length,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('❌ Error getting target groups:', error);
+      return {
+        success: false,
+        message: `Error getting groups: ${error.message}`,
+        timestamp: new Date().toISOString()
+      };
+    }
   }
 
   // Helper methods

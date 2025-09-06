@@ -5,6 +5,7 @@
  */
 
 import { MongoClient, Collection, Db, CreateCollectionOptions } from 'mongodb';
+import type { SLMRecord, TicketSLASummary } from '../types/servicenow';
 
 // Enhanced type definitions based on endpoint mapping analysis
 export interface BaseTicketDocument {
@@ -28,11 +29,15 @@ export interface BaseTicketDocument {
   active: boolean;
   category?: string;
   subcategory?: string;
-  // Audit and sync fields
+  // SLA/SLM Integration - following Python reference pattern
+  slms: SLMRecord[];
+  sla_summary?: TicketSLASummary;
+  // Audit and sync fields  
   _syncedAt: Date;
   _version?: number;
   _source: 'servicenow' | 'bunsnc';
   _hash?: string; // For change detection
+  _slmsHash?: string; // For SLM change detection
 }
 
 export interface IncidentDocument extends BaseTicketDocument {
@@ -404,7 +409,7 @@ export class EnhancedTicketStorageService {
   /**
    * Advanced upsert with change tracking and validation
    */
-  async upsertTicket(ticketData: any, ticketType: 'incident' | 'change_task' | 'sc_task'): Promise<boolean> {
+  async upsertTicket(ticketData: any, ticketType: 'incident' | 'change_task' | 'sc_task', slmData: SLMRecord[] = []): Promise<boolean> {
     await this.ensureConnected();
     if (!this.ticketsCollection) throw new Error('Tickets collection not initialized');
 
@@ -412,15 +417,24 @@ export class EnhancedTicketStorageService {
       // Normalize and enrich the ticket data
       const normalizedTicket = this.normalizeTicketData(ticketData, ticketType);
       
-      // Calculate hash for change detection
+      // Add SLM data following Python reference pattern
+      normalizedTicket.slms = slmData;
+      
+      // Generate SLA summary from SLM data
+      if (slmData.length > 0) {
+        normalizedTicket.sla_summary = this.generateSLASummary(ticketData.number, slmData);
+      }
+      
+      // Calculate hash for change detection (including ticket + SLM data)
       const currentHash = this.calculateDataHash(normalizedTicket);
+      const currentSlmsHash = this.calculateSLMHash(slmData);
       
       // Check for existing ticket
       const existingTicket = await this.ticketsCollection.findOne({ sys_id: ticketData.sys_id });
       
       if (existingTicket) {
-        // Skip if no changes detected
-        if (existingTicket._hash === currentHash) {
+        // Skip if no changes detected in either ticket or SLM data
+        if (existingTicket._hash === currentHash && existingTicket._slmsHash === currentSlmsHash) {
           return true; // No changes, skip update
         }
         
@@ -432,6 +446,7 @@ export class EnhancedTicketStorageService {
       }
 
       normalizedTicket._hash = currentHash;
+      normalizedTicket._slmsHash = currentSlmsHash;
 
       // Perform upsert
       const result = await this.ticketsCollection.replaceOne(
@@ -725,6 +740,73 @@ export class EnhancedTicketStorageService {
     return hash.toString(36);
   }
 
+  /**
+   * Calculate hash specifically for SLM data to detect changes
+   */
+  private calculateSLMHash(slmData: SLMRecord[]): string {
+    if (!slmData || slmData.length === 0) return '';
+    
+    // Sort SLMs by sys_id for consistent hashing
+    const sortedSLMs = [...slmData].sort((a, b) => a.sys_id.localeCompare(b.sys_id));
+    return this.calculateDataHash(sortedSLMs);
+  }
+
+  /**
+   * Generate SLA summary from SLM data following Python patterns
+   */
+  private generateSLASummary(ticketNumber: string, slmData: SLMRecord[]): TicketSLASummary {
+    const breachedSLAs = slmData.filter(slm => this.parseBoolean(slm.taskslatable_has_breached));
+    const activeSLAs = slmData.filter(slm => slm.taskslatable_stage && slm.taskslatable_stage !== 'completed');
+    
+    // Find the worst breached SLA (highest business percentage)
+    const worstSLA = breachedSLAs
+      .map(slm => ({
+        sla_name: slm.taskslatable_sla || 'Unknown SLA',
+        has_breached: true,
+        business_percentage: this.parsePercentage(slm.taskslatable_business_percentage),
+        start_time: slm.taskslatable_start_time,
+        end_time: slm.taskslatable_end_time,
+        stage: slm.taskslatable_stage || 'unknown',
+        breach_time: slm.taskslatable_end_time
+      }))
+      .sort((a, b) => b.business_percentage - a.business_percentage)[0] || null;
+
+    const allSLAs = slmData.map(slm => ({
+      sla_name: slm.taskslatable_sla || 'Unknown SLA',
+      has_breached: this.parseBoolean(slm.taskslatable_has_breached),
+      business_percentage: this.parsePercentage(slm.taskslatable_business_percentage),
+      start_time: slm.taskslatable_start_time,
+      end_time: slm.taskslatable_end_time,
+      stage: slm.taskslatable_stage || 'unknown',
+      breach_time: this.parseBoolean(slm.taskslatable_has_breached) ? slm.taskslatable_end_time : undefined
+    }));
+
+    return {
+      ticket_number: ticketNumber,
+      total_slas: slmData.length,
+      active_slas: activeSLAs.length,
+      breached_slas: breachedSLAs.length,
+      breach_percentage: slmData.length > 0 ? (breachedSLAs.length / slmData.length) * 100 : 0,
+      worst_sla: worstSLA,
+      all_slas: allSLAs
+    };
+  }
+
+  /**
+   * Helper methods for SLM data processing
+   */
+  private parseBoolean(value: string | boolean): boolean {
+    if (typeof value === 'boolean') return value;
+    return value === 'true' || value === '1';
+  }
+
+  private parsePercentage(value: string | null): number {
+    if (!value) return 0;
+    const cleaned = value.replace('%', '').trim();
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+
   private async recordAuditTrail(oldTicket: TicketDocument, newTicket: TicketDocument): Promise<void> {
     if (!this.db) return;
 
@@ -770,6 +852,120 @@ export class EnhancedTicketStorageService {
     if (oldValue === null || oldValue === undefined) return 'create';
     if (newValue === null || newValue === undefined) return 'delete';
     return 'update';
+  }
+
+  /**
+   * Combined ticket + SLM upsert following Python reference pattern
+   * Stores tickets together with SLM data in unified document structure
+   */
+  async upsertTicketWithSLMs(ticketData: any, ticketType: 'incident' | 'change_task' | 'sc_task', slmData: SLMRecord[]): Promise<boolean> {
+    await this.ensureConnected();
+    if (!this.ticketsCollection) throw new Error('Tickets collection not initialized');
+
+    try {
+      console.log(`📋 Upserting ${ticketType} ${ticketData.number} with ${slmData.length} SLMs`);
+      
+      // Create document following Python JSONB pattern: {"incident|sctask|ctask": data, "slms": slm_data, "sync_timestamp": timestamp}
+      const document = {
+        sys_id: ticketData.sys_id,
+        number: ticketData.number,
+        ticketType: ticketType,
+        
+        // Primary ticket data
+        [ticketType]: ticketData,
+        
+        // SLM data array
+        slms: slmData,
+        
+        // Sync metadata (following Python pattern)
+        sync_timestamp: new Date().toISOString(),
+        collection_version: '1.0',
+        
+        // Enhanced fields for MongoDB optimization
+        short_description: ticketData.short_description,
+        state: ticketData.state,
+        assignment_group: ticketData.assignment_group,
+        priority: ticketData.priority,
+        sys_updated_on: new Date(ticketData.sys_updated_on),
+        _syncedAt: new Date(),
+        _source: 'servicenow',
+        active: ticketData.active !== false,
+        
+        // SLA summary for quick querying
+        sla_summary: slmData.length > 0 ? this.generateSLASummary(ticketData.number, slmData) : null,
+        
+        // Hash-based change detection
+        _hash: this.calculateDataHash(ticketData),
+        _slmsHash: this.calculateSLMHash(slmData)
+      } as any;
+
+      // Perform upsert with MongoDB's replaceOne (same behavior as PostgreSQL upsert)
+      const result = await this.ticketsCollection.replaceOne(
+        { sys_id: ticketData.sys_id },
+        document,
+        { upsert: true }
+      );
+
+      if (result.acknowledged) {
+        const action = result.upsertedId ? 'inserted' : 'updated';
+        console.log(`✅ Successfully ${action} ${ticketType} ${ticketData.number} with ${slmData.length} SLMs`);
+        return true;
+      }
+
+      return false;
+
+    } catch (error) {
+      console.error(`❌ Error upserting ${ticketType} ${ticketData.sys_id} with SLMs:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Get tickets with their SLA information
+   */
+  async getTicketsWithSLAs(query: Partial<TicketQuery> = {}): Promise<QueryResult<TicketDocument>> {
+    await this.ensureConnected();
+    if (!this.ticketsCollection) throw new Error('Tickets collection not initialized');
+
+    try {
+      const filter: any = {};
+      
+      if (query.ticketType) {
+        filter.ticketType = { $in: query.ticketType };
+      }
+      
+      if (query.assignment_group) {
+        filter.assignment_group = { $in: query.assignment_group };
+      }
+
+      // Only return tickets that have SLA data
+      filter['sla_summary'] = { $exists: true, $ne: null };
+
+      const cursor = this.ticketsCollection.find(filter);
+      
+      if (query.limit) {
+        cursor.limit(query.limit);
+      }
+      
+      if (query.skip) {
+        cursor.skip(query.skip);
+      }
+
+      const tickets = await cursor.toArray();
+      const total = await this.ticketsCollection.countDocuments(filter);
+
+      return {
+        data: tickets,
+        total,
+        hasMore: query.skip ? (query.skip + tickets.length) < total : tickets.length < total,
+        page: query.skip && query.limit ? Math.floor(query.skip / query.limit) + 1 : 1,
+        limit: query.limit
+      };
+
+    } catch (error) {
+      console.error('Error querying tickets with SLAs:', error);
+      throw error;
+    }
   }
 
   /**

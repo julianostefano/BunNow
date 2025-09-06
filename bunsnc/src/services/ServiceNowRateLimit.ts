@@ -1,5 +1,5 @@
 /**
- * ServiceNow Rate Limiting Service - 95 req/sec with exponential backoff
+ * ServiceNow Rate Limiting Service - 25 req/sec max (realistic limits)
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
@@ -37,8 +37,8 @@ export class ServiceNowRateLimiter {
 
   constructor(config?: Partial<RateLimitConfig>) {
     this.config = {
-      maxRequestsPerSecond: parseInt(process.env.SERVICENOW_RATE_LIMIT || '10'),
-      maxConcurrentRequests: parseInt(process.env.SERVICENOW_MAX_CONCURRENT || '5'),
+      maxRequestsPerSecond: parseInt(process.env.SERVICENOW_RATE_LIMIT || '35'),
+      maxConcurrentRequests: parseInt(process.env.SERVICENOW_MAX_CONCURRENT || '35'),
       exponentialBackoffBase: 2,
       maxRetries: 3,
       jitterEnabled: true,
@@ -368,7 +368,10 @@ export class ServiceNowRateLimiter {
 }
 
 // Export singleton instance
-export const serviceNowRateLimiter = new ServiceNowRateLimiter();
+export const serviceNowRateLimiter = new ServiceNowRateLimiter({
+  maxRequestsPerSecond: 35,
+  maxConcurrentRequests: 35
+});
 
 // Export convenience function
 export const executeWithRateLimit = <T>(

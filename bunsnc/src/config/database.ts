@@ -3,7 +3,7 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { Database } from "bun:sqlite";
+import { sql } from "bun";
 
 export interface DatabaseConfig {
   host: string;
