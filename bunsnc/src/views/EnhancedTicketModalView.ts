@@ -358,15 +358,100 @@ export class EnhancedTicketModalView {
    * Generate modal action buttons
    */
   private static generateModalActions(ticket: TicketData): string {
+    const canResolve = ['1', '2', '3'].includes(ticket.state); // New, In Progress, On Hold
+    const canClose = ticket.state === '6'; // Resolved
+    const canReopen = ['6', '7'].includes(ticket.state); // Resolved, Closed
+    const canAssign = !['7'].includes(ticket.state); // Not Closed
+
     return `
-      <div class="flex justify-end space-x-3 p-6 border-t border-gray-700 bg-gray-800/30">
-        <button onclick="window.closeModal()" 
-                class="px-4 py-2 text-gray-400 hover:text-white border border-gray-600 hover:border-gray-500 rounded-lg transition-colors">
-          Fechar
-        </button>
-        <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
-          Editar
-        </button>
+      <div class="flex justify-between p-6 border-t border-gray-700 bg-gray-800/30">
+        <!-- Action Buttons -->
+        <div class="flex space-x-2">
+          ${canResolve ? `
+            <button onclick="window.showResolveModal('${ticket.sys_id}', '${ticket.table}')" 
+                    class="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors flex items-center space-x-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              </svg>
+              <span>Resolver</span>
+            </button>
+          ` : ''}
+          
+          ${canClose ? `
+            <button onclick="window.showCloseModal('${ticket.sys_id}', '${ticket.table}')" 
+                    class="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors flex items-center space-x-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+              <span>Fechar</span>
+            </button>
+          ` : ''}
+          
+          ${canReopen ? `
+            <button onclick="window.showReopenModal('${ticket.sys_id}', '${ticket.table}')" 
+                    class="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-sm rounded-lg transition-colors flex items-center space-x-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+              <span>Reabrir</span>
+            </button>
+          ` : ''}
+          
+          ${canAssign ? `
+            <button onclick="window.showAssignModal('${ticket.sys_id}', '${ticket.table}')" 
+                    class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors flex items-center space-x-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+              </svg>
+              <span>Atribuir</span>
+            </button>
+          ` : ''}
+          
+          <div class="relative">
+            <button onclick="window.toggleActionsMenu()" 
+                    class="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg transition-colors flex items-center space-x-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
+              </svg>
+              <span>Mais</span>
+            </button>
+            
+            <!-- Dropdown Menu -->
+            <div id="actionsDropdown" class="hidden absolute bottom-full left-0 mb-2 w-48 bg-gray-800 rounded-lg shadow-xl border border-gray-700 z-10">
+              <div class="py-1">
+                <button onclick="window.showPriorityModal('${ticket.sys_id}', '${ticket.table}')" 
+                        class="w-full text-left px-4 py-2 text-white hover:bg-gray-700 flex items-center space-x-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                  </svg>
+                  <span>Alterar Prioridade</span>
+                </button>
+                <button onclick="window.showCategoryModal('${ticket.sys_id}', '${ticket.table}')" 
+                        class="w-full text-left px-4 py-2 text-white hover:bg-gray-700 flex items-center space-x-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                  </svg>
+                  <span>Alterar Categoria</span>
+                </button>
+                <button onclick="window.showEscalateModal('${ticket.sys_id}', '${ticket.table}')" 
+                        class="w-full text-left px-4 py-2 text-white hover:bg-gray-700 flex items-center space-x-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"/>
+                  </svg>
+                  <span>Escalonar</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Close Button -->
+        <div class="flex space-x-3">
+          <button onclick="window.closeModal()" 
+                  class="px-4 py-2 text-gray-400 hover:text-white border border-gray-600 hover:border-gray-500 rounded-lg transition-colors">
+            Fechar
+          </button>
+        </div>
       </div>
     `;
   }
