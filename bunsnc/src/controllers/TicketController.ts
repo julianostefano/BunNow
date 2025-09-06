@@ -5,9 +5,26 @@
 
 import type { ServiceNowAuthClient } from '../services/ServiceNowAuthClient';
 import type { TicketData, TicketResponse } from '../types/TicketTypes';
+import { HybridDataService } from '../services/HybridDataService';
+import { EnhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
+import { ServiceNowStreams } from '../config/redis-streams';
+import { EnhancedTicketModalView } from '../views/EnhancedTicketModalView';
 
 export class TicketController {
-  constructor(private serviceNowAuthClient: ServiceNowAuthClient) {}
+  private hybridDataService: HybridDataService;
+
+  constructor(
+    private serviceNowAuthClient: ServiceNowAuthClient,
+    private mongoService: EnhancedTicketStorageService,
+    private redisStreams: ServiceNowStreams
+  ) {
+    // Initialize HybridDataService with all dependencies
+    this.hybridDataService = new HybridDataService(
+      this.mongoService,
+      this.serviceNowAuthClient,
+      this.redisStreams
+    );
+  }
 
   /**
    * Retrieve ticket details from ServiceNow

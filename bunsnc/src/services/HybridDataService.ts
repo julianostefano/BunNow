@@ -8,6 +8,7 @@ import { ServiceNowAuthClient } from './ServiceNowAuthClient';
 import { EnhancedTicketStorageService } from './EnhancedTicketStorageService';
 import { ServiceNowStreams, ServiceNowChange } from '../config/redis-streams';
 import { IncidentDocument, ChangeTaskDocument, SCTaskDocument } from '../config/mongodb-collections';
+import { ServiceNowNotesService, ServiceNowNote } from './ServiceNowNotesService';
 
 export interface TicketData {
   sys_id: string;
@@ -19,6 +20,8 @@ export interface TicketData {
   assignment_group?: any;
   sys_created_on: string;
   sys_updated_on: string;
+  slms?: any[];
+  notes?: ServiceNowNote[];
   [key: string]: any;
 }
 
@@ -72,6 +75,7 @@ export class HybridDataService {
   private serviceNowService: ServiceNowAuthClient;
   private redisStreams: ServiceNowStreams;
   private dataStrategy: DataFreshnessStrategy;
+  private notesService: ServiceNowNotesService;
 
   constructor(
     mongoService: EnhancedTicketStorageService,
@@ -83,6 +87,7 @@ export class HybridDataService {
     this.serviceNowService = serviceNowService;
     this.redisStreams = redisStreams;
     this.dataStrategy = dataStrategy || new SmartDataStrategy();
+    this.notesService = new ServiceNowNotesService(serviceNowService);
 
     console.log('🎯 HybridDataService initialized with transparent data sourcing');
   }
@@ -209,6 +214,16 @@ export class HybridDataService {
         }
       }
 
+      // Get Notes if requested
+      let notes = [];
+      if (options.includeNotes) {
+        try {
+          notes = await this.notesService.getTicketNotes(table, sysId);
+        } catch (error) {
+          console.warn(`⚠️ Could not fetch notes for ${sysId}:`, error);
+        }
+      }
+
       // Prepare document for MongoDB
       const documentData = {
         sys_id: sysId,
@@ -216,6 +231,7 @@ export class HybridDataService {
         data: {
           [table]: ticket,
           slms: slms,
+          notes: notes,
           sync_timestamp: new Date().toISOString(),
           collection_version: '2.0.0'
         },
@@ -235,7 +251,7 @@ export class HybridDataService {
       });
 
       console.log(`✅ Fresh data from ServiceNow: ${table}/${sysId}`);
-      return this.formatTicketData({ data: { [table]: ticket, slms } }, table);
+      return this.formatTicketData({ data: { [table]: ticket, slms, notes } }, table);
 
     } catch (error) {
       console.error(`❌ ServiceNow fetch error for ${table}/${sysId}:`, error);
@@ -299,6 +315,7 @@ export class HybridDataService {
   private formatTicketData(document: any, table: string): TicketData {
     const ticketData = document.data[table];
     const slms = document.data.slms || [];
+    const notes = document.data.notes || [];
     
     return {
       sys_id: ticketData.sys_id,
@@ -311,6 +328,7 @@ export class HybridDataService {
       sys_created_on: ticketData.sys_created_on || '',
       sys_updated_on: ticketData.sys_updated_on || '',
       slms: slms,
+      notes: notes,
       // Include all original fields
       ...ticketData
     };
