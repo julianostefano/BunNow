@@ -163,6 +163,17 @@ export class ServiceNowStreams {
   }
 
   /**
+   * Subscribe to specific event types (for SSE integration)
+   */
+  subscribe(
+    eventType: string,
+    handler: (change: ServiceNowChange) => Promise<void>
+  ): void {
+    this.consumers.set(`sse:${eventType}`, handler);
+    console.log(`📡 SSE subscription registered for: ${eventType}`);
+  }
+
+  /**
    * Start consuming messages from the stream
    */
   async startConsumer(): Promise<void> {
@@ -239,7 +250,16 @@ export class ServiceNowStreams {
       
       for (const [consumerKey, handler] of this.consumers) {
         const types = consumerKey.split(',');
-        if (types.some(type => type === changeKey || type === change.type || type === '*')) {
+        
+        // Handle SSE subscriptions
+        if (consumerKey.startsWith('sse:')) {
+          const eventType = consumerKey.replace('sse:', '');
+          if (eventType === 'ticket-updates' || eventType === '*') {
+            await handler(change);
+          }
+        }
+        // Handle regular consumers
+        else if (types.some(type => type === changeKey || type === change.type || type === '*')) {
           await handler(change);
         }
       }

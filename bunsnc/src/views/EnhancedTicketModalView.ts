@@ -378,22 +378,84 @@ export class EnhancedTicketModalView {
     return `
       <script>
         // Real-time updates via Server-Sent Events
-        if (typeof window.ticketEventSource === 'undefined') {
-          window.ticketEventSource = new EventSource('/sse/ticket-updates/${sysId}');
+        (function() {
+          let eventSource = null;
           
-          window.ticketEventSource.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.type === 'ticket-updated') {
-              // Refresh modal content
-              console.log('📡 Ticket updated in real-time:', data);
-              // Could trigger HTMX refresh here
+          function connectSSE() {
+            if (eventSource) {
+              eventSource.close();
+            }
+            
+            console.log('📡 Connecting to SSE for ticket:', '${sysId}');
+            eventSource = new EventSource('/sse/ticket-updates/${sysId}');
+            
+            eventSource.onopen = function(event) {
+              console.log('✅ SSE connection opened for ticket ${sysId}');
+            };
+            
+            eventSource.onmessage = function(event) {
+              const message = JSON.parse(event.data);
+              console.log('📡 Real-time update received:', message);
+              
+              if (message.type === 'ticket-updated') {
+                // Show notification of update
+                showUpdateNotification(message.data);
+                
+                // Optionally refresh modal content
+                if (message.data.changedFields && message.data.changedFields.length > 0) {
+                  refreshModalSection(message.data.changedFields);
+                }
+              }
+            };
+            
+            eventSource.onerror = function(event) {
+              console.warn('❌ SSE connection error:', event);
+              // Retry connection after 5 seconds
+              setTimeout(connectSSE, 5000);
+            };
+          }
+          
+          function showUpdateNotification(data) {
+            // Create simple notification
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300';
+            notification.innerHTML = \`
+              <div class="flex items-center space-x-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span>Ticket \${data.number} foi atualizado</span>
+              </div>
+            \`;
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+              notification.style.opacity = '0';
+              setTimeout(() => {
+                document.body.removeChild(notification);
+              }, 300);
+            }, 5000);
+          }
+          
+          function refreshModalSection(changedFields) {
+            // This could trigger HTMX refresh for specific sections
+            console.log('🔄 Would refresh sections for fields:', changedFields);
+          }
+          
+          // Cleanup function
+          window.cleanupTicketSSE = function() {
+            if (eventSource) {
+              console.log('🧹 Closing SSE connection');
+              eventSource.close();
+              eventSource = null;
             }
           };
           
-          window.ticketEventSource.onerror = (error) => {
-            console.warn('SSE connection error:', error);
-          };
-        }
+          // Start connection
+          connectSSE();
+        })();
       </script>
     `;
   }
