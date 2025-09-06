@@ -51,5 +51,42 @@ export function createTicketDetailsRoutes(serviceNowClient: ServiceNowAuthClient
         sysId: t.String({ minLength: 32, maxLength: 32 }),
         table: t.String({ minLength: 1 })
       })
+    })
+
+    // HTMX endpoint for modal ticket details (MVC pattern)
+    .get('/htmx/ticket-details/:sysId/:table', async ({ params, set }) => {
+      try {
+        const { sysId, table } = params;
+        console.log(`🔍 [MVC] HTMX Ticket details requested: ${sysId} from ${table}`);
+        
+        const ticketController = new TicketController(serviceNowClient);
+        
+        const ticket = await ticketController.getTicketDetails(sysId, table);
+        const statusLabel = ticketController.getStatusLabel(ticket.state);
+        const priorityLabel = ticketController.getPriorityLabel(ticket.priority);
+        
+        const modalProps = { ticket, statusLabel, priorityLabel };
+        const htmlContent = TicketModalView.generateModal(modalProps);
+        
+        set.headers['content-type'] = 'text/html; charset=utf-8';
+        return htmlContent;
+        
+      } catch (error) {
+        ErrorHandler.logError('HTMX Ticket Details', error, { sysId: params.sysId, table: params.table });
+        
+        const errorMessage = error.message?.includes('not found') 
+          ? 'Ticket não encontrado'
+          : 'Erro ao carregar ticket';
+          
+        const errorHtml = TicketModalView.generateErrorModal(errorMessage);
+        
+        set.headers['content-type'] = 'text/html; charset=utf-8';
+        return errorHtml;
+      }
+    }, {
+      params: t.Object({
+        sysId: t.String({ minLength: 32, maxLength: 32 }),
+        table: t.String({ minLength: 1 })
+      })
     });
 }

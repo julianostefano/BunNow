@@ -9,6 +9,8 @@ import { EnhancedTicketStorageService } from './EnhancedTicketStorageService';
 import { ServiceNowStreams, ServiceNowChange } from '../config/redis-streams';
 import { IncidentDocument, ChangeTaskDocument, SCTaskDocument } from '../config/mongodb-collections';
 import { ServiceNowNotesService, ServiceNowNote } from './ServiceNowNotesService';
+import { TicketRepository } from '../repositories/TicketRepository';
+import { TicketSchema } from '../schemas/TicketSchemas';
 
 export interface TicketData {
   sys_id: string;
@@ -76,20 +78,23 @@ export class HybridDataService {
   private redisStreams: ServiceNowStreams;
   private dataStrategy: DataFreshnessStrategy;
   private notesService: ServiceNowNotesService;
+  private ticketRepository: TicketRepository;
 
   constructor(
     mongoService: EnhancedTicketStorageService,
     serviceNowService: ServiceNowAuthClient,
     redisStreams: ServiceNowStreams,
+    ticketRepository: TicketRepository,
     dataStrategy?: DataFreshnessStrategy
   ) {
     this.mongoService = mongoService;
     this.serviceNowService = serviceNowService;
     this.redisStreams = redisStreams;
+    this.ticketRepository = ticketRepository;
     this.dataStrategy = dataStrategy || new SmartDataStrategy();
     this.notesService = new ServiceNowNotesService(serviceNowService);
 
-    console.log('🎯 HybridDataService initialized with transparent data sourcing');
+    console.log('🎯 HybridDataService initialized with transparent data sourcing and TicketRepository');
   }
 
   /**
