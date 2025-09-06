@@ -26,6 +26,13 @@ export class PersistenceService {
     }
   }
 
+  getDatabase() {
+    if (!this.isConnected) {
+      throw new Error('MongoDB not connected. Call initialize() first.');
+    }
+    return mongoClient.getDatabase();
+  }
+
   // Transform ServiceNow ticket to MongoDB document
   private transformTicketToDocument(ticket: any, tableName: string): TicketDocument {
     const now = new Date();

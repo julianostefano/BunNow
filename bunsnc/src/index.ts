@@ -14,7 +14,7 @@ if (isCli) {
     // Sobe o servidor HTTP com notificações integradas
     import('./routes/index').then(({ createMainApp }) => {
         createMainApp().then(app => {
-            const PORT = process.env.PORT || 3008;
+            const PORT = 3008;
             
             console.log('🚀 Starting BunSNC Server...');
             

@@ -6,7 +6,7 @@
 
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
-import app from "./app";
+import { createApp } from "./app";
 import { createNotificationRoutes, getRealtimeRoutes, shutdownNotificationSystem } from "./notifications";
 
 export async function createMainApp(): Promise<Elysia> {
@@ -19,6 +19,7 @@ export async function createMainApp(): Promise<Elysia> {
   }));
 
   // Add main API routes
+  const app = await createApp();
   mainApp.use(app);
 
   // Add notification routes
@@ -37,7 +38,7 @@ export async function createMainApp(): Promise<Elysia> {
     
     console.log(' Real-time notification endpoints added');
   } catch (error) {
-    console.warn('  Failed to add real-time endpoints:', error);
+    console.warn('ï¿½ Failed to add real-time endpoints:', error);
   }
 
   // Health check endpoint

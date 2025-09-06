@@ -514,6 +514,19 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
               document.addEventListener('htmx:afterSwap', function(event) {
                   lucide.createIcons();
               });
+              
+              // Global function to show ticket details from HTMX-loaded content
+              window.showTicketDetailsGlobal = function(ticket) {
+                  console.log('🎯 Showing ticket details:', ticket);
+                  // Find Alpine.js component and call its method
+                  const alpineEl = document.querySelector('[x-data]');
+                  if (alpineEl && alpineEl._x_dataStack) {
+                      const component = alpineEl._x_dataStack[0];
+                      if (component.showTicketDetails) {
+                          component.showTicketDetails(ticket);
+                      }
+                  }
+              };
           </script>
       </body>
       </html>
@@ -579,7 +592,7 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
                     </span>
                   </div>
                   
-                  <button onclick="window.Alpine.store('dashboard').showTicketDetails({
+                  <button onclick="showTicketDetailsGlobal({
                     sys_id: '${ticket.sys_id}',
                     number: '${ticket.number}',
                     short_description: '${ticket.short_description?.replace(/'/g, '\\\'') || ''}',

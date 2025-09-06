@@ -7,11 +7,16 @@ import { ServiceNowAuthClient } from "../services/ServiceNowAuthClient";
 import { createTicketActionsRoutes } from "./TicketActionsRoutes";
 import { createTicketListRoutes } from "./TicketListRoutes";
 import { createTicketDetailsRoutes } from "./TicketDetailsRoutes";
+import { EnhancedTicketStorageService } from "../services/EnhancedTicketStorageService";
+import { ServiceNowStreams } from "../config/redis-streams";
+import { persistenceService } from "../services/PersistenceService";
 
-const app = new Elysia();
+// Create async app initialization function
+async function createApp() {
+  const app = new Elysia();
 
-// CRUD seguro
-app.post("/record/:table",
+  // CRUD seguro
+  app.post("/record/:table",
   async ({ params, body, headers }) => {
     const instanceUrl = headers["x-instance-url"] || Bun.env.SNC_INSTANCE_URL || "";
     const authToken = headers["authorization"] || Bun.env.SNC_AUTH_TOKEN || "";
@@ -86,18 +91,45 @@ app.post("/batch",
       authorization: t.Optional(t.String())
     })
   }
-);
+  );
 
-// Initialize default ServiceNow client for ticket routes
-const defaultServiceNowClient = new ServiceNowAuthClient(
-  Bun.env.SNC_INSTANCE_URL || "",
-  Bun.env.SNC_AUTH_TOKEN || ""
-);
+  // Initialize default ServiceNow client for ticket routes
+  const defaultServiceNowClient = new ServiceNowAuthClient(
+    Bun.env.SNC_INSTANCE_URL || "",
+    Bun.env.SNC_AUTH_TOKEN || ""
+  );
 
-// Add ticket routes
-app.use(createTicketActionsRoutes(defaultServiceNowClient));
-app.use(createTicketListRoutes(defaultServiceNowClient));
-app.use(createTicketDetailsRoutes(defaultServiceNowClient));
+  // Initialize MongoDB and Redis services for enhanced features
+  let mongoService: EnhancedTicketStorageService | undefined;
+  let redisStreams: ServiceNowStreams | undefined;
 
-export default app;
-export { app };
+  try {
+    // Initialize MongoDB persistence service
+    await persistenceService.initialize();
+    mongoService = new EnhancedTicketStorageService(persistenceService.getDatabase());
+    console.log('✅ MongoDB service initialized for enhanced features');
+  } catch (error) {
+    console.warn('⚠️ MongoDB service not available, enhanced features will be limited:', error.message);
+  }
+
+  try {
+    // Initialize Redis Streams
+    redisStreams = new ServiceNowStreams();
+    await redisStreams.initialize();
+    console.log('✅ Redis Streams initialized for real-time features');
+  } catch (error) {
+    console.warn('⚠️ Redis Streams not available, real-time features will be limited:', error.message);
+  }
+
+  // Add ticket routes with enhanced services
+  app.use(createTicketActionsRoutes(defaultServiceNowClient));
+  app.use(createTicketListRoutes(defaultServiceNowClient));
+  app.use(createTicketDetailsRoutes(defaultServiceNowClient, mongoService, redisStreams));
+  
+  return app;
+}
+
+// Initialize and export the app
+const appPromise = createApp();
+export default appPromise;
+export { createApp };
