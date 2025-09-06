@@ -3,6 +3,10 @@ import { BatchService } from "../services/batch.service";
 import { ServiceNowService } from "../services/servicenow.service";
 import { getSchemaForTable } from "../types/schemaRegistry";
 import { AttachmentService } from "../services/attachment.service";
+import { ServiceNowAuthClient } from "../services/ServiceNowAuthClient";
+import { createTicketActionsRoutes } from "./TicketActionsRoutes";
+import { createTicketListRoutes } from "./TicketListRoutes";
+import { createTicketDetailsRoutes } from "./TicketDetailsRoutes";
 
 const app = new Elysia();
 
@@ -83,6 +87,17 @@ app.post("/batch",
     })
   }
 );
+
+// Initialize default ServiceNow client for ticket routes
+const defaultServiceNowClient = new ServiceNowAuthClient(
+  Bun.env.SNC_INSTANCE_URL || "",
+  Bun.env.SNC_AUTH_TOKEN || ""
+);
+
+// Add ticket routes
+app.use(createTicketActionsRoutes(defaultServiceNowClient));
+app.use(createTicketListRoutes(defaultServiceNowClient));
+app.use(createTicketDetailsRoutes(defaultServiceNowClient));
 
 export default app;
 export { app };

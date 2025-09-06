@@ -12,16 +12,17 @@ import { Elysia, t } from 'elysia';
 import { TicketController } from '../controllers/TicketController';
 import { TicketModalView } from '../views/TicketModalView';
 import { ErrorHandler } from '../utils/ErrorHandler';
+import { ServiceNowAuthClient } from '../services/ServiceNowAuthClient';
 
-export function createTicketDetailsRoutes(app: Elysia): Elysia {
-  return app
+export function createTicketDetailsRoutes(serviceNowClient: ServiceNowAuthClient) {
+  return new Elysia({ prefix: '/tickets' })
     // Simple MVC endpoint following guidelines
-    .get('/ticket-details/:sysId/:table', async ({ params, serviceNowAuthClient, set }) => {
+    .get('/ticket-details/:sysId/:table', async ({ params, set }) => {
       try {
         const { sysId, table } = params;
         console.log(`🎯 [MVC] Ticket details requested: ${sysId} from ${table}`);
         
-        const ticketController = new TicketController(serviceNowAuthClient);
+        const ticketController = new TicketController(serviceNowClient);
         
         const ticket = await ticketController.getTicketDetails(sysId, table);
         const statusLabel = ticketController.getStatusLabel(ticket.state);

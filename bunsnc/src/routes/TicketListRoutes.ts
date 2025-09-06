@@ -13,16 +13,17 @@ import { Elysia, t } from 'elysia';
 import { TicketController } from '../controllers/TicketController';
 import { TicketListView } from '../views/TicketListView';
 import { ErrorHandler } from '../utils/ErrorHandler';
+import { ServiceNowAuthClient } from '../services/ServiceNowAuthClient';
 
-export function createTicketListRoutes(app: Elysia): Elysia {
-  return app
+export function createTicketListRoutes(serviceNowClient: ServiceNowAuthClient) {
+  return new Elysia({ prefix: '/tickets' })
     // Simple lazy load endpoint following Elysia patterns
-    .get('/lazy-load/:type/:state', async ({ params, query, serviceNowAuthClient, set }) => {
+    .get('/lazy-load/:type/:state', async ({ params, query, set }) => {
       try {
         const { type, state } = params;
         const { group = 'all', page = '1' } = query;
         
-        const ticketController = new TicketController(serviceNowAuthClient);
+        const ticketController = new TicketController(serviceNowClient);
         const tickets = await ticketController.getLazyLoadTickets(type, state, group, parseInt(page));
         
         const htmlContent = TicketListView.generateTicketCards(tickets);
@@ -54,7 +55,7 @@ export function createTicketListRoutes(app: Elysia): Elysia {
         const { type, state } = params;
         const { group = 'all' } = query;
         
-        const ticketController = new TicketController(serviceNowAuthClient);
+        const ticketController = new TicketController(serviceNowClient);
         const count = await ticketController.getTicketCount(type, state, group);
         
         const htmlContent = TicketListView.generateCountBadge(count);
