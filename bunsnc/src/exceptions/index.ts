@@ -220,7 +220,7 @@ export async function handleServiceNowErrorWithRecovery<T>(
   };
   
   try {
-    return await errorHandler.handleError(error, fullContext, retryOperation);
+    return await ErrorHandler.createErrorResponse(error, fullContext.operation);
   } catch (finalError) {
     // If ErrorHandler couldn't recover, fall back to legacy exception handling
     handleServiceNowError(finalError, operation, context);
@@ -236,7 +236,7 @@ export function createServiceNowError(
   context: ErrorContext,
   response?: Response
 ): ServiceNowError {
-  return errorHandler.createError(statusCode, responseText, context, response);
+  return new ServiceNowError(responseText, statusCode, context, response);
 }
 
 /**
@@ -313,9 +313,7 @@ export function handleErrorsWithRecovery(operation?: string, retryConfig?: any) 
 }
 
 // Export ErrorHandler types and instances for advanced usage
-export { ServiceNowError, type ErrorContext } from '../utils/ErrorHandler';
-import { errorHandler } from '../utils/ErrorHandler';
-export { errorHandler };
+export { ErrorHandler, ServiceNowError, type ErrorContext } from '../utils/ErrorHandler';
 export { performanceMonitor } from '../utils/PerformanceMonitor';
 export { transactionManager, Transaction } from '../utils/TransactionManager';
 

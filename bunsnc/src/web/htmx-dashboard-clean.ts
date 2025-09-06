@@ -8,6 +8,11 @@ import { html } from '@elysiajs/html';
 import { htmx } from '@gtramontina.com/elysia-htmx';
 import { serviceNowAuthClient } from '../services/ServiceNowAuthClient';
 import { serviceNowRateLimiter } from '../services/ServiceNowRateLimit';
+import { TicketController } from '../controllers/TicketController';
+import { TicketModalView } from '../views/TicketModalView';
+import { ErrorHandler } from '../utils/ErrorHandler';
+import { createTicketDetailsRoutes } from '../routes/TicketDetailsRoutes';
+import { createTicketListRoutes } from '../routes/TicketListRoutes';
 import { 
   TICKET_TYPES, 
   getStatusConfig, 
@@ -2681,539 +2686,6 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
     }
   })
 
-  // GET endpoint for ticket modal details - simplified following Elysia best practices  
-  .get('/ticket-details/:sysId/:table', async ({ params, serviceNowAuthClient, set }) => {
-    console.log(`🎯 Ticket details requested: ${params.sysId} from ${params.table}`);
-    
-    try {
-      const { sysId, table } = params;
-      
-      // Fetch ticket data - single API call
-      const ticketResponse = await serviceNowAuthClient.makeRequestFullFields(
-        table,
-        `sys_id=${sysId}`,
-        1
-      );
-      
-      const ticket = ticketResponse?.result?.[0];
-      
-      if (!ticket) {
-        set.headers['content-type'] = 'text/html';
-        return `
-          <div id="ticketModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div class="bg-gray-900 rounded-xl border border-gray-600 p-8 max-w-md w-full">
-              <div class="text-center">
-                <h3 class="text-lg font-medium text-red-400 mb-2">Ticket não encontrado</h3>
-                <button onclick="closeModal()" class="mt-4 px-4 py-2 bg-gray-600 text-white rounded-lg">Fechar</button>
-              </div>
-            </div>
-          </div>`;
-      }
-
-      // Extract basic fields - following Elysia simple pattern
-      const number = ticket.number?.display_value || ticket.number || 'N/A';
-      const shortDescription = ticket.short_description?.display_value || ticket.short_description || 'Sem descrição';
-      const description = ticket.description?.display_value || ticket.description || 'Sem descrição detalhada';
-      const state = ticket.state?.value || ticket.state || '1';
-      const priority = ticket.priority?.value || ticket.priority || '3';
-      let assignedTo = ticket.assigned_to?.display_value || 'Não atribuído';
-      const assignmentGroup = ticket.assignment_group?.display_value || 'Não atribuído';
-      let caller = ticket.caller_id?.display_value || ticket.opened_by?.display_value || 'N/A';
-      const createdOn = ticket.sys_created_on?.display_value || ticket.sys_created_on || '';
-
-      // Simple status mapping
-      const statusMap = { '1': 'Novo', '2': 'Em Progresso', '6': 'Resolvido', '7': 'Fechado' };
-      const statusLabel = statusMap[state] || 'Desconhecido';
-      
-      const priorityMap = { '1': 'Crítica', '2': 'Alta', '3': 'Moderada', '4': 'Baixa', '5': 'Planejamento' };
-      const priorityLabel = priorityMap[priority] || 'N/A';
-      
-      // If display_value is empty, try to lookup users
-      if (assignedTo === 'Não atribuído' && ticket.assigned_to && typeof ticket.assigned_to === 'string') {
-        try {
-          const userResponse = await serviceNowAuthClient.makeRequestPaginated('/sys_user', {
-            sysparm_query: `sys_id=${ticket.assigned_to}`,
-            sysparm_fields: 'name,user_name,first_name,last_name',
-            sysparm_limit: 1
-          });
-          const user = userResponse?.result?.[0];
-          if (user) {
-            assignedTo = user.name || user.user_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Usuário';
-          }
-        } catch (error) {
-          console.warn(`Failed to lookup assigned_to user ${ticket.assigned_to}:`, error);
-        }
-      }
-      
-      if (caller === 'N/A') {
-        const callerId = ticket.caller_id || ticket.opened_by;
-        if (callerId && typeof callerId === 'string') {
-          try {
-            const userResponse = await serviceNowAuthClient.makeRequestPaginated('/sys_user', {
-              sysparm_query: `sys_id=${callerId}`,
-              sysparm_fields: 'name,user_name,first_name,last_name',
-              sysparm_limit: 1
-            });
-            const user = userResponse?.result?.[0];
-            if (user) {
-              caller = user.name || user.user_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Usuário';
-            }
-          } catch (error) {
-            console.warn(`Failed to lookup caller user ${callerId}:`, error);
-          }
-        }
-      }
-      
-      const updatedOn = ticket.sys_updated_on?.display_value || ticket.sys_updated_on;
-
-      // Get status mapping
-      const getStatusInfo = (stateValue) => {
-        const statusMap = {
-          '1': { label: 'Novo', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
-          '2': { label: 'Em Andamento', color: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
-          '18': { label: 'Designado', color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
-          '3': { label: 'Em Espera', color: 'bg-orange-500/20 text-orange-300 border-orange-500/30' },
-          '6': { label: 'Resolvido', color: 'bg-green-500/20 text-green-300 border-green-500/30' },
-          '7': { label: 'Fechado', color: 'bg-gray-500/20 text-gray-300 border-gray-500/30' },
-          '8': { label: 'Cancelado', color: 'bg-red-500/20 text-red-300 border-red-500/30' }
-        };
-        return statusMap[stateValue] || { label: 'Desconhecido', color: 'bg-gray-500/20 text-gray-300 border-gray-500/30' };
-      };
-
-      const getPriorityInfo = (priorityValue) => {
-        const priorityMap = {
-          '1': { label: 'Crítica', color: 'text-red-400' },
-          '2': { label: 'Alta', color: 'text-orange-400' },
-          '3': { label: 'Moderada', color: 'text-yellow-400' },
-          '4': { label: 'Baixa', color: 'text-blue-400' },
-          '5': { label: 'Planejamento', color: 'text-gray-400' }
-        };
-        return priorityMap[priorityValue] || { label: 'N/A', color: 'text-gray-400' };
-      };
-
-      const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
-        try {
-          return new Date(dateString).toLocaleString('pt-BR');
-        } catch (error) {
-          return dateString;
-        }
-      };
-
-      const statusInfo = getStatusInfo(state);
-      const priorityInfo = getPriorityInfo(priority);
-
-      // Helper function to safely extract field value with display_value preference
-      const getFieldValue = (field, defaultValue = 'N/A') => {
-        if (!field) return defaultValue;
-        if (typeof field === 'object' && field.display_value !== undefined) {
-          return field.display_value || field.value || defaultValue;
-        }
-        return field || defaultValue;
-      };
-
-      // Helper function to get field raw value (for sys_id references, etc.)
-      const getRawFieldValue = (field) => {
-        if (!field) return '';
-        if (typeof field === 'object' && field.value !== undefined) {
-          return field.value;
-        }
-        return field;
-      };
-
-      // Organize fields by categories based on our 155 field mapping
-      const fieldCategories = {
-        essential: {
-          title: 'Informações Essenciais',
-          icon: 'info',
-          fields: {
-            'sys_id': 'ID do Sistema',
-            'number': 'Número',
-            'short_description': 'Descrição Curta',
-            'description': 'Descrição Completa',
-            'state': 'Status',
-            'priority': 'Prioridade',
-            'urgency': 'Urgência',
-            'impact': 'Impacto'
-          }
-        },
-        assignment: {
-          title: 'Atribuições',
-          icon: 'users',
-          fields: {
-            'assigned_to': 'Atribuído para',
-            'assignment_group': 'Grupo de Atribuição',
-            'caller_id': 'Solicitante',
-            'opened_by': 'Aberto por',
-            'resolved_by': 'Resolvido por',
-            'closed_by': 'Fechado por'
-          }
-        },
-        notes: {
-          title: 'Anotações e Comentários',
-          icon: 'message-circle',
-          fields: {
-            'comments': 'Comentários',
-            'work_notes': 'Notas de Trabalho',
-            'comments_and_work_notes': 'Todos os Comentários',
-            'work_notes_list': 'Lista de Notas',
-            'close_notes': 'Notas de Fechamento'
-          }
-        },
-        sla: {
-          title: 'SLA e Tempo',
-          icon: 'timer',
-          fields: {
-            'sla_due': 'Vencimento SLA',
-            'business_stc': 'Tempo de Negócio',
-            'calendar_stc': 'Tempo de Calendário',
-            'resolve_time': 'Tempo de Resolução',
-            'response_time': 'Tempo de Resposta'
-          },
-          customRender: true // Flag to use custom SLA rendering
-        },
-        technical: {
-          title: 'Informações Técnicas',
-          icon: 'server',
-          fields: {
-            'cmdb_ci': 'Item de Configuração',
-            'category': 'Categoria',
-            'subcategory': 'Subcategoria',
-            'u_symptom': 'Sintoma',
-            'problem_id': 'Problema Relacionado',
-            'rfc': 'RFC Relacionado'
-          }
-        },
-        location: {
-          title: 'Localização e Empresa',
-          icon: 'map-pin',
-          fields: {
-            'location': 'Localização',
-            'company': 'Empresa',
-            'contact_type': 'Tipo de Contato',
-            'notify': 'Notificar'
-          }
-        },
-        audit: {
-          title: 'Auditoria',
-          icon: 'shield',
-          fields: {
-            'sys_created_on': 'Criado em',
-            'sys_updated_on': 'Atualizado em',
-            'sys_created_by': 'Criado por',
-            'sys_updated_by': 'Atualizado por',
-            'sys_mod_count': 'Modificações'
-          }
-        }
-      };
-
-      // Custom SLA section renderer with comprehensive data
-      const renderCustomSLASection = (slaData) => {
-        let slaHtml = '';
-        
-        // Basic SLA fields from the ticket itself
-        const basicSLAFields = [
-          { key: 'sla_due', label: 'Vencimento SLA' },
-          { key: 'business_stc', label: 'Tempo de Negócio' },
-          { key: 'calendar_stc', label: 'Tempo de Calendário' },
-          { key: 'resolve_time', label: 'Tempo de Resolução' },
-          { key: 'response_time', label: 'Tempo de Resposta' }
-        ];
-        
-        slaHtml += '<div class="space-y-4"><h4 class="text-lg font-semibold text-white mb-4">Campos SLA do Ticket</h4>';
-        
-        basicSLAFields.forEach(field => {
-          const value = getFieldValue(ticket[field.key]);
-          slaHtml += `
-            <div class="border-b border-gray-700 pb-3 mb-3">
-              <span class="text-gray-400 text-sm font-medium">${field.label}:</span>
-              <div class="text-white mt-1">${value}</div>
-            </div>
-          `;
-        });
-        
-        // Task SLA records if available
-        if (slaData.task_slas && slaData.task_slas.length > 0) {
-          slaHtml += '<h4 class="text-lg font-semibold text-white mb-4 mt-6">SLAs de Task</h4>';
-          slaData.task_slas.forEach((sla, index) => {
-            const percentage = sla.percentage?.display_value || sla.percentage || 'N/A';
-            const stage = sla.stage?.display_value || sla.stage || 'N/A';
-            const hasBreached = sla.has_breached?.display_value === 'true' || sla.has_breached === 'true';
-            const slaDefinition = sla.sla?.display_value || 'SLA não especificado';
-            
-            slaHtml += `
-              <div class="bg-gray-800/50 rounded-lg p-4 mb-4">
-                <div class="flex justify-between items-start mb-3">
-                  <h5 class="font-medium text-white">${slaDefinition}</h5>
-                  ${hasBreached ? 
-                    '<span class="px-2 py-1 bg-red-500/20 text-red-300 text-xs rounded-full border border-red-500/30">Violado</span>' :
-                    '<span class="px-2 py-1 bg-green-500/20 text-green-300 text-xs rounded-full border border-green-500/30">Ativo</span>'
-                  }
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                  <div>
-                    <span class="text-gray-400 text-sm">Estágio:</span>
-                    <div class="text-white">${stage}</div>
-                  </div>
-                  <div>
-                    <span class="text-gray-400 text-sm">Progresso:</span>
-                    <div class="text-white">${percentage}%</div>
-                  </div>
-                </div>
-              </div>
-            `;
-          });
-        }
-        
-        // Contract SLA records if available
-        if (slaData.contract_slas && slaData.contract_slas.length > 0) {
-          slaHtml += '<h4 class="text-lg font-semibold text-white mb-4 mt-6">SLAs de Contrato</h4>';
-          slaData.contract_slas.forEach(contractSLA => {
-            slaHtml += `
-              <div class="bg-gray-800/50 rounded-lg p-4 mb-4">
-                <h5 class="font-medium text-white mb-2">${contractSLA.contract?.display_value || 'Contrato não especificado'}</h5>
-                <div class="text-gray-300 text-sm">[Contract SLA Data]</div>
-              </div>
-            `;
-          });
-        }
-        
-        // SLA definitions if available
-        if (slaData.sla_definitions && slaData.sla_definitions.length > 0) {
-          slaHtml += '<h4 class="text-lg font-semibold text-white mb-4 mt-6">Definições de SLA</h4>';
-          slaData.sla_definitions.forEach(definition => {
-            slaHtml += `
-              <div class="bg-gray-800/50 rounded-lg p-4 mb-4">
-                <h5 class="font-medium text-white mb-2">${definition.name?.display_value || 'Definição de SLA'}</h5>
-                <div class="text-gray-300 text-sm">${definition.description?.display_value || 'Sem descrição disponível'}</div>
-              </div>
-            `;
-          });
-        }
-        
-        if (!slaData.task_slas && !slaData.contract_slas && !slaData.sla_definitions) {
-          slaHtml += '<div class="text-center py-8"><div class="text-gray-400">📊 Nenhum dado SLA abrangente disponível</div></div>';
-        }
-        
-        slaHtml += '</div>';
-        
-        return `
-          <div x-show="activeTab === 'sla'" class="space-y-4">
-            <div class="grid grid-cols-1 gap-6">
-              <div class="bg-gray-800/50 rounded-lg p-4">
-                ${slaHtml}
-              </div>
-            </div>
-          </div>
-        `;
-      };
-
-      // Helper to render field section - simplified version
-      const renderFieldSection = (categoryKey, category) => {
-        // Simple SLA rendering without custom data for now
-        if (categoryKey === 'sla' && category.customRender) {
-          return `<div x-show="activeTab === 'sla'" class="space-y-4">
-            <div class="bg-gray-800/50 rounded-lg p-4">
-              <h3 class="text-lg font-semibold text-white mb-4">SLA Information</h3>
-              <p class="text-gray-300">SLA data will be displayed here soon.</p>
-            </div>
-          </div>`;
-        }
-        
-        const fieldsHtml = Object.entries(category.fields)
-          .map(([fieldName, fieldLabel]) => {
-            const value = getFieldValue(ticket[fieldName]);
-            const rawValue = getRawFieldValue(ticket[fieldName]);
-            
-            // Special formatting for certain fields
-            let displayValue = value;
-            if (fieldName.includes('_on') && value !== 'N/A') {
-              displayValue = formatDate(value);
-            } else if (fieldName === 'description' && value && value.length > 200) {
-              displayValue = `<div class="max-h-32 overflow-y-auto text-sm bg-gray-800 p-3 rounded border">${value.replace(/\n/g, '<br>')}</div>`;
-            } else if (fieldName.includes('comments') || fieldName.includes('notes')) {
-              if (value && value !== 'N/A' && value.trim()) {
-                displayValue = `<div class="max-h-32 overflow-y-auto text-sm bg-gray-800 p-3 rounded border">${value.replace(/\n/g, '<br>')}</div>`;
-              } else {
-                displayValue = '<span class="text-gray-500 italic">Nenhuma anotação</span>';
-              }
-            }
-
-            return `
-              <div class="border-b border-gray-700 pb-3 mb-3 last:border-b-0 last:pb-0 last:mb-0">
-                <div class="flex justify-between items-start">
-                  <span class="text-gray-400 text-sm font-medium">${fieldLabel}:</span>
-                  ${rawValue && rawValue !== value && rawValue !== 'N/A' ? 
-                    `<span class="text-xs text-gray-500 cursor-pointer" title="Copiar ID: ${rawValue}">🔗</span>` : 
-                    ''
-                  }
-                </div>
-                <div class="text-white mt-1">${displayValue}</div>
-              </div>
-            `;
-          })
-          .join('');
-
-        return `
-          <div x-show="activeTab === '${categoryKey}'" class="space-y-4">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div class="bg-gray-800/50 rounded-lg p-4">
-                ${fieldsHtml}
-              </div>
-            </div>
-          </div>
-        `;
-      };
-
-      const htmlContent = `
-        <div id="ticketModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div class="bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 rounded-xl border border-gray-600 shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden">
-            
-            <!-- Modal Header -->
-            <div class="border-b border-gray-600 p-6">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                  <div class="p-3 bg-elysia-blue/20 rounded-lg">
-                    <i data-lucide="ticket" class="w-6 h-6 text-elysia-blue"></i>
-                  </div>
-                  <div>
-                    <h2 class="text-2xl font-bold text-white">${number}</h2>
-                    <p class="text-gray-300 max-w-md truncate">${shortDescription}</p>
-                    <div class="flex items-center space-x-4 mt-2">
-                      <span class="px-3 py-1 rounded-full text-xs border ${statusInfo.color}">${statusInfo.label}</span>
-                      <span class="text-xs ${priorityInfo.color}">Prioridade: ${priorityInfo.label}</span>
-                    </div>
-                  </div>
-                </div>
-                <button onclick="closeModal()" class="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
-                  <i data-lucide="x" class="w-6 h-6"></i>
-                </button>
-              </div>
-            </div>
-
-            <!-- Modal Content -->
-            <div class="overflow-y-auto max-h-[calc(90vh-200px)]" x-data="{ activeTab: 'essential' }">
-              
-              <!-- Tab Navigation -->
-              <div class="sticky top-0 bg-gray-900/95 border-b border-gray-700 p-4">
-                <div class="flex flex-wrap gap-1">
-                  ${Object.entries(fieldCategories).map(([key, category]) => `
-                    <button @click="activeTab = '${key}'" 
-                            :class="activeTab === '${key}' ? 'bg-elysia-blue text-white' : 'text-gray-300 hover:text-white hover:bg-gray-700'"
-                            class="px-3 py-2 rounded-md transition-colors flex items-center space-x-2 text-sm">
-                      <i data-lucide="${category.icon}" class="w-4 h-4"></i>
-                      <span>${category.title}</span>
-                    </button>
-                  `).join('')}
-                </div>
-              </div>
-
-              <!-- Tab Content -->
-              <div class="p-6">
-                ${Object.entries(fieldCategories).map(([key, category]) => renderFieldSection(key, category)).join('')}
-                
-                <!-- Raw Data Tab for Debugging -->
-                <div x-show="activeTab === 'raw'" class="space-y-4">
-                  <div class="bg-gray-800 rounded-lg p-4">
-                    <h3 class="text-lg font-semibold text-white mb-4">Dados Brutos (Debug)</h3>
-                    <div class="max-h-96 overflow-auto">
-                      <pre class="text-xs text-gray-300">[DEBUG] Ticket data available</pre>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Modal JavaScript -->
-          <script>
-            // Ensure closeModal function is available
-            window.closeModal = function() {
-              const modal = document.getElementById('ticketModal');
-              if (modal) {
-                modal.remove();
-              }
-            };
-            
-            // Initialize Lucide icons after modal content loads
-            if (typeof lucide !== 'undefined') {
-              lucide.createIcons();
-            }
-          </script>
-        </div>
-      `;
-
-      // Content negotiation based on Accept header
-      if (acceptedType === 'application/json') {
-        set.headers['content-type'] = 'application/json';
-        return {
-          ticket: {
-            sys_id: ticket.sys_id,
-            number,
-            short_description: shortDescription,
-            description,
-            state,
-            priority,
-            assigned_to: assignedTo,
-            assignment_group: assignmentGroup,
-            caller: caller,
-            created_on: createdOn,
-            updated_on: updatedOn
-          },
-          html: htmlContent
-        };
-      }
-      
-      // Return HTML directly using Response to avoid plugin issues
-      set.headers['content-type'] = 'text/html; charset=utf-8';
-      return new Response(htmlContent, {
-        headers: { 'content-type': 'text/html; charset=utf-8' }
-      });
-    } catch (error) {
-      console.error('Error loading ticket details:', error);
-      console.error('Error details:', error.message);
-      console.error('Error status:', error.response?.status);
-      console.error('Error data:', error.response?.data);
-      console.error('Error config URL:', error.config?.url);
-      
-      const errorHtml = `
-        <div id="ticketModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div class="card-gradient rounded-xl border border-gray-600 p-8 max-w-md w-full">
-            <div class="text-center">
-              <i data-lucide="alert-triangle" class="w-16 h-16 mx-auto mb-4 text-red-400"></i>
-              <h3 class="text-lg font-medium text-red-400 mb-2">Erro ao carregar ticket</h3>
-              <p class="text-gray-300 mb-4">Não foi possível carregar os detalhes do ticket.</p>
-              <button onclick="closeModal()" class="mt-4 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
-                Fechar
-              </button>
-            </div>
-          </div>
-        </div>
-        <script>
-          lucide.createIcons();
-          window.closeModal = function() {
-            document.getElementById('ticketModal').remove();
-          };
-        </script>
-      `;
-      
-      // Use content negotiation for error responses too
-      if (acceptedType === 'application/json' || !acceptedType) {
-        set.headers['content-type'] = 'application/json';
-        return {
-          success: false,
-          error: error.message,
-          html: errorHtml
-        };
-      }
-      
-      // Return HTML error directly using Response to avoid plugin issues
-      set.headers['content-type'] = 'text/html; charset=utf-8';
-      return new Response(errorHtml, {
-        headers: { 'content-type': 'text/html; charset=utf-8' }
-      });
-    }
-  })
 
   // POST endpoint for adding notes
   .post('/ticket/:sysId/:table/note', async ({ params, body, serviceNowAuthClient }) => {
@@ -3416,6 +2888,43 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
         </div>
       `;
     }
+  })
+
+  // MVC Ticket Details Endpoint - Fixed compilation errors
+  .get('/htmx/ticket-details/:sysId/:table', async ({ params, serviceNowAuthClient, set }) => {
+    try {
+      const { sysId, table } = params;
+      console.log(`🔍 [MVC] Ticket details requested: ${sysId} from ${table}`);
+      
+      const ticketController = new TicketController(serviceNowAuthClient);
+      
+      const ticket = await ticketController.getTicketDetails(sysId, table);
+      const statusLabel = ticketController.getStatusLabel(ticket.state);
+      const priorityLabel = ticketController.getPriorityLabel(ticket.priority);
+      
+      const modalProps = { ticket, statusLabel, priorityLabel };
+      const htmlContent = TicketModalView.generateModal(modalProps);
+      
+      set.headers['content-type'] = 'text/html; charset=utf-8';
+      return htmlContent;
+      
+    } catch (error) {
+      ErrorHandler.logError('HTMX Ticket Details', error, { sysId: params.sysId, table: params.table });
+      
+      const errorMessage = error.message?.includes('not found') 
+        ? 'Ticket não encontrado'
+        : 'Erro ao carregar ticket';
+        
+      const errorHtml = TicketModalView.generateErrorModal(errorMessage);
+      
+      set.headers['content-type'] = 'text/html; charset=utf-8';
+      return errorHtml;
+    }
+  }, {
+    params: t.Object({
+      sysId: t.String({ minLength: 32, maxLength: 32 }),
+      table: t.String({ minLength: 1 })
+    })
   })
 
   // GET endpoint for ticket SLA information
@@ -3632,6 +3141,10 @@ export const htmxDashboardClean = new Elysia({ prefix: '/htmx' })
         </div>
       `;
     }
-  });
+  })
+  
+  // MVC Modular Routes - following Development Guidelines
+  .use(createTicketDetailsRoutes)
+  .use(createTicketListRoutes);
 
 export default htmxDashboardClean;
