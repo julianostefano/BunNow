@@ -6,6 +6,8 @@
 import { Elysia } from 'elysia';
 import { html } from '@elysiajs/html';
 import { serviceNowAuthClient } from '../services/ServiceNowAuthClient';
+import { EnhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
+import { HybridTicketService } from '../services/HybridTicketService';
 import { 
   TICKET_TYPES, 
   getStatusConfig, 
@@ -14,10 +16,31 @@ import {
   getUserActions,
   STATUS_FILTERS 
 } from '../config/servicenow-status';
+import { safeDisplay, safeGet, safeFormatDate } from '../utils/serialization';
+import { ServiceNowNotesService } from '../services/ServiceNowNotesService';
+
+// Helper function to initialize services safely
+async function initializeServices() {
+  try {
+    const mongoService = new EnhancedTicketStorageService();
+    const hybridService = new HybridTicketService(serviceNowAuthClient);
+    const notesService = new ServiceNowNotesService(serviceNowAuthClient);
+    return { mongoService, hybridService, notesService, error: null };
+  } catch (error) {
+    console.error('❌ Services initialization error:', error);
+    return { mongoService: null, hybridService: null, notesService: null, error };
+  }
+}
 
 const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
   .use(html())
-  .get('/', async ({ html }) => {
+  .get('/', async ({ html, set }) => {
+    try {
+      // Initialize services safely with error handling
+      const services = await initializeServices();
+      if (services.error) {
+        throw services.error;
+      }
     // Import status configuration for frontend
     const ticketTypesJSON = JSON.stringify(TICKET_TYPES);
     const statusFiltersJSON = JSON.stringify(STATUS_FILTERS);
@@ -51,6 +74,36 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
             // Make status configurations available globally
             window.TICKET_TYPES = ${ticketTypesJSON};
             window.STATUS_FILTERS = ${statusFiltersJSON};
+            
+            // Safe date formatting utility - prevents "Data inválida" errors
+            window.formatDate = function(dateValue) {
+              if (!dateValue || dateValue === 'null' || dateValue === '' || dateValue === 'undefined') {
+                return 'Data não informada';
+              }
+              
+              try {
+                // Handle ServiceNow display_value format
+                const dateToFormat = (typeof dateValue === 'object' && dateValue.display_value) 
+                  ? dateValue.display_value 
+                  : dateValue;
+                
+                const date = new Date(dateToFormat);
+                if (isNaN(date.getTime())) {
+                  return 'Data não disponível';
+                }
+                
+                return date.toLocaleString('pt-BR', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                });
+              } catch (error) {
+                console.warn('Date formatting error:', error, 'for value:', dateValue);
+                return 'Data não disponível';
+              }
+            };
           </script>
           <style>
             body { 
@@ -99,6 +152,44 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
                       showModal: false,
                       modalTab: 'details',
                       newNote: '',
+                      
+                      // Seletores especializados por tipo de ticket
+                      ticketTypeStates: {
+                          incident: {
+                              'all': 'Todos Status',
+                              'new': 'Novo',
+                              'in_progress': 'Em Andamento', 
+                              'assigned': 'Designado',
+                              'awaiting': 'Em Espera',
+                              'resolved': 'Resolvido',
+                              'closed': 'Fechado',
+                              'cancelled': 'Cancelado'
+                          },
+                          change_task: {
+                              'all': 'Todos Status',
+                              'new': 'Novo',
+                              'in_progress': 'Em Andamento',
+                              'awaiting': 'Em Espera',
+                              'scheduled': 'Agendado',
+                              'complete': 'Completo',
+                              'closed': 'Fechado',
+                              'cancelled': 'Cancelado'
+                          },
+                          sc_task: {
+                              'all': 'Todos Status',
+                              'new': 'Novo',
+                              'in_progress': 'Em Andamento',
+                              'awaiting': 'Em Espera',
+                              'closed_complete': 'Fechado Completo',
+                              'closed_incomplete': 'Fechado Incompleto',
+                              'closed_skipped': 'Fechado Ignorado'
+                          }
+                      },
+                      
+                      // Getter para status disponíveis do tipo ativo
+                      get availableStates() {
+                          return this.ticketTypeStates[this.activeTab] || {};
+                      },
                       
                       // Get available statuses for current ticket type
                       getAvailableStatuses() {
@@ -149,7 +240,7 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
                       
                       // Load ticket details
                       loadTicketDetails(sysId, table) {
-                          htmx.ajax('GET', \`/enhanced/ticket-details/\${table}/\${sysId}\`, {
+                          htmx.ajax('GET', \`/enhanced/ticket-details/\${sysId}/\${table}\`, {
                               target: '#ticket-details-content',
                               swap: 'innerHTML'
                           });
@@ -238,14 +329,10 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
                                   <label class="block text-sm font-medium text-gray-300 mb-2">Status</label>
                                   <select x-model="state" @change="updateFilters()"
                                           class="w-full appearance-none bg-gray-800/50 border border-gray-600 text-white px-4 py-3 pr-10 rounded-xl text-sm hover:border-elysia-blue focus:border-elysia-blue focus:ring-2 focus:ring-elysia-blue focus:ring-opacity-50 transition-all duration-300 backdrop-blur-sm">
-                                      <option value="active">🔄 Ativos</option>
-                                      <option value="assigned">👤 Designados</option> 
-                                      <option value="in_progress">⚡ Em Andamento</option>
-                                      <option value="pending">⏳ Pendentes</option>
-                                      <option value="new">🆕 Novos</option>
-                                      <option value="resolved">✅ Resolvidos</option>
-                                      <option value="closed">🔒 Fechados</option>
-                                      <option value="all">📋 Todos</option>
+                                      <!-- Seletores especializados por tipo de ticket -->
+                                      <template x-for="(label, value) in availableStates" :key="value">
+                                          <option :value="value" x-text="label"></option>
+                                      </template>
                                   </select>
                                   <div class="absolute inset-y-0 right-0 top-6 flex items-center px-3 pointer-events-none">
                                       <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
@@ -532,9 +619,53 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
       </html>
     `;
     
-    return new Response(htmlContent, {
-      headers: { 'Content-Type': 'text/html; charset=utf-8' }
-    });
+      return new Response(htmlContent, {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' }
+      });
+    } catch (error) {
+      console.error('❌ Enhanced Dashboard Error:', error);
+      
+      // Fallback page when services are not available
+      const fallbackHtml = `
+        <!DOCTYPE html>
+        <html lang="pt-BR" class="h-full">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>ServiceNow Dashboard - Service Unavailable</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+        </head>
+        <body class="h-full bg-gray-100 flex items-center justify-center">
+            <div class="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
+                <div class="text-center">
+                    <div class="text-red-500 text-6xl mb-4">⚠️</div>
+                    <h1 class="text-2xl font-bold text-gray-900 mb-2">Dashboard Temporariamente Indisponível</h1>
+                    <p class="text-gray-600 mb-4">Os serviços MongoDB ou ServiceNow estão indisponíveis.</p>
+                    <div class="text-sm text-gray-500 mb-4">
+                        <p><strong>Erro:</strong> ${error.message}</p>
+                    </div>
+                    <div class="space-y-2">
+                        <a href="/health" class="block w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">
+                            Verificar Status da API
+                        </a>
+                        <a href="/htmx/" class="block w-full bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600">
+                            Tentar Dashboard Alternativo
+                        </a>
+                        <button onclick="window.location.reload()" class="block w-full bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600">
+                            Tentar Novamente
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+      `;
+      
+      set.status = 503;
+      return new Response(fallbackHtml, {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' }
+      });
+    }
   })
 
   // Enhanced tickets lazy loading endpoint with proper status mapping
@@ -548,8 +679,20 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
       const pageNum = parseInt(page);
       const limitNum = parseInt(limit);
       
-      // Get tickets using the enhanced status mapping
-      const result = await serviceNowAuthClient.makeRequestPaginated(ticketType, group, state, pageNum, limitNum);
+      // Initialize services safely
+      const services = await initializeServices();
+      if (services.error) {
+        throw services.error;
+      }
+      
+      // Get tickets using HybridTicketService (MongoDB first, ServiceNow fallback)
+      const result = await services.hybridService.queryTicketsPaginated({
+        table: ticketType,
+        group: group,
+        state: state,
+        page: pageNum,
+        limit: limitNum
+      });
       
       if (!result || !result.data) {
         return `<div class="glass-effect rounded-2xl p-8 text-center">
@@ -562,41 +705,41 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
       const typeConfig = TICKET_TYPES[ticketType];
       const ticketsHtml = result.data.map(ticket => {
         const statusConfig = getStatusConfig(ticketType, ticket.state);
-        const statusLabel = statusConfig?.label || `Status ${ticket.state}`;
-        const statusColor = statusConfig?.color || 'text-gray-600';
-        const statusBg = statusConfig?.bgColor || 'bg-gray-100';
+        const statusLabel = safeDisplay(statusConfig?.label) || `Status ${safeDisplay(ticket.state)}`;
+        const statusColor = safeDisplay(statusConfig?.color) || 'text-gray-600';
+        const statusBg = safeDisplay(statusConfig?.bgColor) || 'bg-gray-100';
         
         return `
           <div class="glass-effect rounded-2xl p-6 border border-gray-700 hover:border-elysia-blue/50 transition-all duration-300 transform hover:scale-[1.02]">
             <div class="flex items-start justify-between">
               <div class="flex-1">
                 <div class="flex items-center space-x-3 mb-3">
-                  <h3 class="text-lg font-semibold text-white">${ticket.number}</h3>
+                  <h3 class="text-lg font-semibold text-white">${safeDisplay(ticket.number)}</h3>
                   <span class="status-badge ${statusColor} ${statusBg}">
                     ${statusLabel}
                   </span>
-                  ${ticket.priority ? `<span class="px-2 py-1 text-xs rounded-full bg-red-500/20 text-red-300 border border-red-500/30">P${ticket.priority}</span>` : ''}
+                  ${ticket.priority ? `<span class="px-2 py-1 text-xs rounded-full bg-red-500/20 text-red-300 border border-red-500/30">P${safeDisplay(ticket.priority)}</span>` : ''}
                 </div>
                 
-                <p class="text-gray-300 text-sm mb-4 line-clamp-2">${ticket.short_description || 'Sem descrição'}</p>
+                <p class="text-gray-300 text-sm mb-4 line-clamp-2">${safeDisplay(ticket.short_description) || 'Sem descrição'}</p>
                 
                 <div class="flex items-center justify-between text-xs text-gray-400">
                   <div class="flex items-center space-x-4">
                     <span class="flex items-center">
                       <i data-lucide="user" class="w-3 h-3 mr-1"></i>
-                      ${ticket.assignment_group_display || 'Não atribuído'}
+                      ${safeGet(ticket, 'assignment_group.display_value', 'Não atribuído')}
                     </span>
                     <span class="flex items-center">
                       <i data-lucide="clock" class="w-3 h-3 mr-1"></i>
-                      ${new Date(ticket.sys_updated_on).toLocaleString('pt-BR')}
+                      ${safeFormatDate(ticket.sys_updated_on)}
                     </span>
                   </div>
                   
                   <button onclick="showTicketDetailsGlobal({
-                    sys_id: '${ticket.sys_id}',
-                    number: '${ticket.number}',
-                    short_description: '${ticket.short_description?.replace(/'/g, '\\\'') || ''}',
-                    state: '${ticket.state}',
+                    sys_id: '${safeDisplay(ticket.sys_id)}',
+                    number: '${safeDisplay(ticket.number)}',
+                    short_description: '${safeDisplay(ticket.short_description).replace(/'/g, '\\\'') || ''}',
+                    state: '${safeDisplay(ticket.state)}',
                     table: '${ticketType}'
                   })"
                           class="px-4 py-2 bg-elysia-blue/20 text-elysia-blue border border-elysia-blue/30 rounded-lg hover:bg-elysia-blue/30 transition-all duration-200">
@@ -643,42 +786,86 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
   })
 
   // Ticket details endpoint
-  .get('/ticket-details/:table/:sysId', async ({ params }) => {
+  .get('/ticket-details/:sysId/:table', async ({ params }) => {
     const { table, sysId } = params;
     
     try {
-      // This would fetch detailed ticket information from ServiceNow
-      // For now, we'll return a placeholder
+      console.log(`📋 [DETAILS] Fetching details for ${table}/${sysId}`);
+      
       const typeConfig = TICKET_TYPES[table];
       if (!typeConfig) {
         return `<div class="text-red-400">Tipo de ticket inválido: ${table}</div>`;
       }
 
+      // Initialize services safely
+      const services = await initializeServices();
+      if (services.error) {
+        throw services.error;
+      }
+
+      // Buscar detalhes usando HybridTicketService (MongoDB → ServiceNow fallback)
+      const result = await services.hybridService.getTicketDetails(table, sysId);
+      
+      if (!result || !result.data) {
+        return `
+          <div class="text-center py-12">
+            <i data-lucide="alert-circle" class="w-12 h-12 mx-auto text-yellow-400 mb-4"></i>
+            <p class="text-yellow-400">Ticket não encontrado</p>
+            <p class="text-xs text-gray-500 mt-2">Sys ID: ${safeDisplay(sysId)}</p>
+          </div>
+        `;
+      }
+
+      const ticket = result.data;
+      const statusConfig = getStatusConfig(table, ticket.state);
+      const statusLabel = safeDisplay(statusConfig?.label) || `Status ${safeDisplay(ticket.state)}`;
+      const statusColor = safeDisplay(statusConfig?.color) || 'text-gray-600';
+      const statusBg = safeDisplay(statusConfig?.bgColor) || 'bg-gray-100';
+
+      // Prioridade
+      const priorityText = ticket.priority ? `P${safeDisplay(ticket.priority)}` : 'Não definido';
+      const priorityClass = ticket.priority <= 2 ? 'bg-red-500/20 text-red-300 border-red-500/30' :
+                           ticket.priority <= 3 ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' :
+                           'bg-green-500/20 text-green-300 border-green-500/30';
+
       return `
         <div class="space-y-6">
+          <!-- Header com origem dos dados -->
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-2">
+              <span class="text-xs px-2 py-1 rounded-full ${result.source === 'mongodb' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}">
+                ${result.source === 'mongodb' ? '📊 MongoDB' : '🌐 ServiceNow'}
+              </span>
+            </div>
+          </div>
+
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="space-y-4">
               <h4 class="text-lg font-semibold text-white">Informações Básicas</h4>
               <div class="space-y-3">
                 <div class="flex justify-between">
                   <span class="text-gray-400">Número:</span>
-                  <span class="text-white font-medium">INC0012345</span>
+                  <span class="text-white font-medium">${safeDisplay(ticket.number)}</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-gray-400">Status:</span>
-                  <span class="status-badge text-yellow-700 bg-yellow-100">Em Andamento</span>
+                  <span class="status-badge ${statusColor} ${statusBg}">${statusLabel}</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-gray-400">Prioridade:</span>
-                  <span class="px-2 py-1 text-xs rounded-full bg-red-500/20 text-red-300">Alta</span>
+                  <span class="px-2 py-1 text-xs rounded-full border ${priorityClass}">${priorityText}</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-gray-400">Grupo:</span>
-                  <span class="text-white">L2-NE-IT APP AND DATABASE</span>
+                  <span class="text-white">${safeGet(ticket, 'assignment_group.display_value', safeDisplay(ticket.assignment_group) || 'Não atribuído')}</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-gray-400">Responsável:</span>
-                  <span class="text-white">João Silva</span>
+                  <span class="text-white">${safeGet(ticket, 'assigned_to.display_value', safeDisplay(ticket.assigned_to) || 'Não atribuído')}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-400">Solicitante:</span>
+                  <span class="text-white">${safeGet(ticket, 'caller_id.display_value', safeDisplay(ticket.caller_id) || 'Não informado')}</span>
                 </div>
               </div>
             </div>
@@ -688,26 +875,84 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
               <div class="space-y-3">
                 <div class="flex justify-between">
                   <span class="text-gray-400">Criado em:</span>
-                  <span class="text-white">${new Date().toLocaleString('pt-BR')}</span>
+                  <span class="text-white">${safeFormatDate(ticket.sys_created_on)}</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-gray-400">Atualizado em:</span>
-                  <span class="text-white">${new Date().toLocaleString('pt-BR')}</span>
+                  <span class="text-white">${safeFormatDate(ticket.sys_updated_on)}</span>
                 </div>
+                ${ticket.opened_at ? `
                 <div class="flex justify-between">
-                  <span class="text-gray-400">Prazo:</span>
-                  <span class="text-white">-</span>
+                  <span class="text-gray-400">Aberto em:</span>
+                  <span class="text-white">${safeFormatDate(ticket.opened_at)}</span>
                 </div>
+                ` : ''}
+                ${ticket.closed_at ? `
+                <div class="flex justify-between">
+                  <span class="text-gray-400">Fechado em:</span>
+                  <span class="text-white">${safeFormatDate(ticket.closed_at)}</span>
+                </div>
+                ` : ''}
               </div>
             </div>
           </div>
           
+          <!-- Campos específicos por tipo -->
+          ${table === 'incident' ? `
+          <div class="space-y-4">
+            <h4 class="text-lg font-semibold text-white">Detalhes do Incident</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="flex justify-between">
+                <span class="text-gray-400">Urgência:</span>
+                <span class="text-white">${ticket.urgency ? `${safeDisplay(ticket.urgency)} - ${safeGet(ticket, 'urgency.display_value', '')}` : 'Não definido'}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-400">Impacto:</span>
+                <span class="text-white">${ticket.impact ? `${safeDisplay(ticket.impact)} - ${safeGet(ticket, 'impact.display_value', '')}` : 'Não definido'}</span>
+              </div>
+              ${ticket.business_service ? `
+              <div class="flex justify-between">
+                <span class="text-gray-400">Serviço:</span>
+                <span class="text-white">${safeGet(ticket, 'business_service.display_value', safeDisplay(ticket.business_service))}</span>
+              </div>
+              ` : ''}
+              ${ticket.cmdb_ci ? `
+              <div class="flex justify-between">
+                <span class="text-gray-400">CI:</span>
+                <span class="text-white">${safeGet(ticket, 'cmdb_ci.display_value', safeDisplay(ticket.cmdb_ci))}</span>
+              </div>
+              ` : ''}
+            </div>
+          </div>
+          ` : ''}
+          
           <div class="space-y-4">
             <h4 class="text-lg font-semibold text-white">Descrição</h4>
             <div class="bg-gray-800 rounded-xl p-4 border border-gray-700">
-              <p class="text-gray-300">Detalhes completos do ticket serão carregados aqui...</p>
+              <p class="text-gray-300 whitespace-pre-wrap">${safeDisplay(ticket.description) || safeDisplay(ticket.short_description) || 'Sem descrição disponível'}</p>
             </div>
           </div>
+
+          <!-- Categoria e Subcategoria -->
+          ${(ticket.category || ticket.subcategory) ? `
+          <div class="space-y-4">
+            <h4 class="text-lg font-semibold text-white">Classificação</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              ${ticket.category ? `
+              <div class="flex justify-between">
+                <span class="text-gray-400">Categoria:</span>
+                <span class="text-white">${safeGet(ticket, 'category.display_value', safeDisplay(ticket.category))}</span>
+              </div>
+              ` : ''}
+              ${ticket.subcategory ? `
+              <div class="flex justify-between">
+                <span class="text-gray-400">Subcategoria:</span>
+                <span class="text-white">${safeGet(ticket, 'subcategory.display_value', safeDisplay(ticket.subcategory))}</span>
+              </div>
+              ` : ''}
+            </div>
+          </div>
+          ` : ''}
         </div>
       `;
       
@@ -722,39 +967,80 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
     const { table, sysId } = params;
     
     try {
-      // This would fetch work notes from ServiceNow
-      // For now, we'll return a placeholder
+      console.log(`📝 [NOTES] Fetching notes for ${table}/${sysId}`);
+      
+      // Buscar notas reais usando ServiceNowNotesService
+      const notes = await notesService.getTicketNotes(table, sysId);
+      
+      if (!notes || notes.length === 0) {
+        return `
+          <div class="text-center py-12">
+            <i data-lucide="message-square" class="w-12 h-12 mx-auto text-gray-500 mb-4"></i>
+            <p class="text-gray-400">Nenhuma anotação encontrada</p>
+            <p class="text-xs text-gray-500 mt-2">Seja o primeiro a adicionar uma nota!</p>
+          </div>
+        `;
+      }
+
+      // Gerar HTML para cada nota
+      const notesHtml = notes.map(note => {
+        // Extrair iniciais do nome do usuário
+        const userDisplayName = safeGet(note, 'sys_created_by.display_value', 'Sistema');
+        const userInitials = userDisplayName
+          .split(' ')
+          .map(name => name.charAt(0))
+          .join('')
+          .substring(0, 2)
+          .toUpperCase();
+
+        // Cor aleatória baseada no nome do usuário
+        const colorClasses = [
+          'from-elysia-blue to-elysia-cyan',
+          'from-green-500 to-green-600',
+          'from-purple-500 to-purple-600',
+          'from-red-500 to-red-600',
+          'from-yellow-500 to-yellow-600',
+          'from-indigo-500 to-indigo-600'
+        ];
+        const colorIndex = userDisplayName.length % colorClasses.length;
+        const colorClass = colorClasses[colorIndex];
+
+        // Determinar tipo de nota
+        const isWorkNote = note.element === 'work_notes';
+        const noteTypeIcon = isWorkNote ? 'wrench' : 'message-circle';
+        const noteTypeLabel = isWorkNote ? 'Work Note' : 'Comment';
+        const noteTypeBg = isWorkNote ? 'bg-orange-500/10 border-orange-500/20' : 'bg-blue-500/10 border-blue-500/20';
+
+        return `
+          <div class="bg-gray-800 rounded-xl p-4 border border-gray-700">
+            <div class="flex items-start space-x-3">
+              <div class="w-8 h-8 rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center text-sm font-semibold text-white">
+                ${userInitials}
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center space-x-2 mb-2">
+                  <span class="text-white font-medium">${safeDisplay(userDisplayName)}</span>
+                  <span class="text-xs px-2 py-1 rounded-full ${noteTypeBg}">
+                    <i data-lucide="${noteTypeIcon}" class="w-3 h-3 inline mr-1"></i>
+                    ${noteTypeLabel}
+                  </span>
+                  <span class="text-xs text-gray-400">${safeFormatDate(note.sys_created_on)}</span>
+                </div>
+                <div class="text-gray-300 text-sm whitespace-pre-wrap">${safeDisplay(note.value) || 'Nota sem conteúdo'}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
       return `
         <div class="space-y-4">
-          <div class="bg-gray-800 rounded-xl p-4 border border-gray-700">
-            <div class="flex items-start space-x-3">
-              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-elysia-blue to-elysia-cyan flex items-center justify-center text-sm font-semibold text-white">
-                JS
-              </div>
-              <div class="flex-1">
-                <div class="flex items-center space-x-2 mb-2">
-                  <span class="text-white font-medium">João Silva</span>
-                  <span class="text-xs text-gray-400">${new Date().toLocaleString('pt-BR')}</span>
-                </div>
-                <p class="text-gray-300 text-sm">Ticket em análise. Identificamos que o problema está relacionado ao banco de dados.</p>
-              </div>
-            </div>
+          <!-- Contador de notas -->
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-sm text-gray-400">${notes.length} anotação${notes.length !== 1 ? 'ões' : ''} encontrada${notes.length !== 1 ? 's' : ''}</span>
           </div>
           
-          <div class="bg-gray-800 rounded-xl p-4 border border-gray-700">
-            <div class="flex items-start space-x-3">
-              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-sm font-semibold text-white">
-                MS
-              </div>
-              <div class="flex-1">
-                <div class="flex items-center space-x-2 mb-2">
-                  <span class="text-white font-medium">Maria Santos</span>
-                  <span class="text-xs text-gray-400">Há 2 horas</span>
-                </div>
-                <p class="text-gray-300 text-sm">Aplicando correção no servidor de produção. ETA: 30 minutos.</p>
-              </div>
-            </div>
-          </div>
+          ${notesHtml}
         </div>
       `;
       
@@ -777,8 +1063,15 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
       
       console.log(`🎯 Ticket Action: ${action} on ${table}:${sysId}`);
       
-      // This would perform the actual action in ServiceNow
-      // For now, we'll return a success message
+      // Initialize services safely
+      const services = await initializeServices();
+      if (services.error) {
+        throw services.error;
+      }
+      
+      // Executar ação usando HybridTicketService (direto no ServiceNow)
+      const result = await services.hybridService.performAction(table, sysId, action, note || undefined);
+      
       return `
         <div class="bg-green-500/20 border border-green-500/30 rounded-xl p-4 mb-4">
           <div class="flex items-center space-x-2">
@@ -788,6 +1081,7 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
           <p class="text-sm text-gray-300 mt-2">
             Ação: <strong>${action}</strong><br>
             ${note ? `Anotação: ${note}` : ''}
+            <br>Ticket atualizado no ServiceNow e sincronizado com MongoDB
           </p>
         </div>
       `;

@@ -18,7 +18,7 @@ import { SysIdSchema, ServiceNowDateTimeSchema } from '../core/base.schemas';
  */
 export const MongoDBConfigSchema = z.object({
   host: z.string().min(1, 'MongoDB host is required'),
-  port: z.number().int().min(1).max(65535).default(27017),
+  port: z.number().int().min(1).max(65535).default(27018),
   database: z.string().min(1, 'Database name is required'),
   username: z.string().optional(),
   password: z.string().optional(),

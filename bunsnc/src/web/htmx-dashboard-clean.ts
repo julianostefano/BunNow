@@ -66,11 +66,23 @@ const UNIFIED_STATUS_MAP: Record<string, StatusConfig> = {
     bgColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
     numericCode: '18'
   },
+  'assigned': { 
+    label: 'Atribuído', 
+    color: 'text-purple-300', 
+    bgColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+    numericCode: '18'  // Same as designated - ServiceNow uses same code
+  },
   'waiting': { 
     label: 'Em Espera', 
     color: 'text-orange-300', 
     bgColor: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
     numericCode: '3'
+  },
+  'awaiting': { 
+    label: 'Aguardando', 
+    color: 'text-amber-300', 
+    bgColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+    numericCode: '3'  // Same as waiting - ServiceNow uses same code
   },
   'resolved': { 
     label: 'Resolvido', 
@@ -191,6 +203,38 @@ function getUnifiedStatusConfig(state: string): StatusConfig {
     };
   }
   return config;
+}
+
+/**
+ * Safely format dates to avoid "Data inválida" errors
+ * @param dateValue - Date value from ServiceNow (can be null/undefined/string/object)
+ * @returns Formatted date string or fallback message
+ */
+function formatSafeDate(dateValue: any): string {
+  if (!dateValue || dateValue === 'null' || dateValue === '' || dateValue === 'undefined') {
+    return 'Data não informada';
+  }
+  
+  try {
+    // Handle ServiceNow object format {display_value: "date", value: "date"}
+    const dateToFormat = (typeof dateValue === 'object' && dateValue.display_value) 
+      ? dateValue.display_value 
+      : dateValue;
+    
+    const date = new Date(dateToFormat);
+    if (isNaN(date.getTime())) {
+      return 'Data não disponível';
+    }
+    
+    return date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  } catch (error) {
+    console.warn('Date formatting error:', error, 'for value:', dateValue);
+    return 'Data não disponível';
+  }
 }
 
 /**
@@ -516,6 +560,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                             'all': 'Todos Status',
                             'new': 'Novo',
                             'in_progress': 'Em Andamento',
+                            'awaiting': 'Em Espera',
                             'closed_complete': 'Fechado Completo',
                             'closed_incomplete': 'Fechado Incompleto',
                             'closed_skipped': 'Fechado Ignorado'
@@ -1257,7 +1302,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                       ` : ''}
                     </div>
                     <div class="text-sm text-gray-400">
-                      ${createdOn ? new Date(createdOn).toLocaleDateString('pt-BR') : 'Data inválida'}
+                      ${formatSafeDate(createdOn)}
                     </div>
                   </div>
                   
@@ -1556,10 +1601,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                           ` : ''}
                         </div>
                         <div class="text-sm text-gray-400">
-                          ${createdOn ? new Date(createdOn).toLocaleDateString('pt-BR', { 
-                            day: '2-digit', 
-                            month: '2-digit'
-                          }) : 'Data inválida'}
+                          ${formatSafeDate(createdOn)}
                         </div>
                       </div>
                       
@@ -2286,7 +2328,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                       <i data-lucide="file-text" class="w-8 h-8 text-blue-400"></i>
                       <div>
                         <p class="font-medium text-white">screenshot_error.png</p>
-                        <p class="text-sm text-gray-400">1.2 MB • Enviado em \${new Date().toLocaleDateString('pt-BR')}</p>
+                        <p class="text-sm text-gray-400">1.2 MB • Enviado em \${formatSafeDate(new Date())}</p>
                       </div>
                     </div>
                     <button class="px-3 py-1 bg-elysia-blue/20 text-elysia-blue rounded hover:bg-elysia-blue/30 transition-colors text-sm">
@@ -2298,7 +2340,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                       <i data-lucide="file" class="w-8 h-8 text-green-400"></i>
                       <div>
                         <p class="font-medium text-white">logs_system.txt</p>
-                        <p class="text-sm text-gray-400">5.8 KB • Enviado em \${new Date().toLocaleDateString('pt-BR')}</p>
+                        <p class="text-sm text-gray-400">5.8 KB • Enviado em \${formatSafeDate(new Date())}</p>
                       </div>
                     </div>
                     <button class="px-3 py-1 bg-elysia-blue/20 text-elysia-blue rounded hover:bg-elysia-blue/30 transition-colors text-sm">
@@ -2779,8 +2821,8 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
             <!-- Timestamps -->
             <div class="flex justify-between items-center text-xs text-gray-400 border-t border-gray-600 pt-3">
               <div class="flex items-center space-x-4">
-                <span><i data-lucide="plus-circle" class="w-3 h-3 inline mr-1"></i>Criado: ${new Date(createdOn).toLocaleDateString('pt-BR')}</span>
-                ${updatedOn && updatedOn !== createdOn ? `<span><i data-lucide="edit-3" class="w-3 h-3 inline mr-1"></i>Atualizado: ${new Date(updatedOn).toLocaleDateString('pt-BR')}</span>` : ''}
+                <span><i data-lucide="plus-circle" class="w-3 h-3 inline mr-1"></i>Criado: ${formatSafeDate(createdOn)}</span>
+                ${updatedOn && updatedOn !== createdOn ? `<span><i data-lucide="edit-3" class="w-3 h-3 inline mr-1"></i>Atualizado: ${formatSafeDate(updatedOn)}</span>` : ''}
               </div>
               <button class="px-3 py-2 bg-elysia-blue/20 text-elysia-blue rounded-lg hover:bg-elysia-blue/30 transition-colors group-hover:scale-105 text-xs font-medium"
                       onclick="event.stopPropagation(); showTicketDetails('${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}', '${ticketType}')">
