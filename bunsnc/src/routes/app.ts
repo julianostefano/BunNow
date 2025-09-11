@@ -7,8 +7,8 @@ import { ServiceNowAuthClient } from "../services/ServiceNowAuthClient";
 import { createTicketActionsRoutes } from "./TicketActionsRoutes";
 import { createTicketListRoutes } from "./TicketListRoutes";
 import { createTicketDetailsRoutes } from "./TicketDetailsRoutes";
-import { EnhancedTicketStorageService } from "../services/EnhancedTicketStorageService";
-import { ServiceNowStreams } from "../config/redis-streams";
+import type { EnhancedTicketStorageService } from "../services/EnhancedTicketStorageService";
+import type { ServiceNowStreams } from "../config/redis-streams";
 import { persistenceService } from "../services/PersistenceService";
 
 // Create async app initialization function
@@ -106,6 +106,7 @@ app.post("/batch",
   try {
     // Initialize MongoDB persistence service
     await persistenceService.initialize();
+    const { EnhancedTicketStorageService } = await import("../services/EnhancedTicketStorageService");
     mongoService = new EnhancedTicketStorageService(persistenceService.getDatabase());
     console.log('✅ MongoDB service initialized for enhanced features');
   } catch (error) {
@@ -113,7 +114,8 @@ app.post("/batch",
   }
 
   try {
-    // Initialize Redis Streams
+    // Initialize Redis Streams with dynamic import to avoid circular deps
+    const { ServiceNowStreams } = await import("../config/redis-streams");
     redisStreams = new ServiceNowStreams();
     await redisStreams.initialize();
     console.log('✅ Redis Streams initialized for real-time features');
@@ -121,7 +123,7 @@ app.post("/batch",
     console.warn('⚠️ Redis Streams not available, real-time features will be limited:', error.message);
   }
 
-  // Add ticket routes with enhanced services
+  // Add ticket routes following Elysia best practices (services, not controllers)
   app.use(createTicketActionsRoutes(defaultServiceNowClient));
   app.use(createTicketListRoutes(defaultServiceNowClient));
   app.use(createTicketDetailsRoutes(defaultServiceNowClient, mongoService, redisStreams));

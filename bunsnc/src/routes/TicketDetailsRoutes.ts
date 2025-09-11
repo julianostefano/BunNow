@@ -1,39 +1,43 @@
 /**
- * Ticket Details Routes - Modular endpoints following Development Guidelines
+ * Ticket Details Routes - Elysia best practices implementation
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  * 
- * Following guidelines:
- * - Maximum 300-500 lines per file
- * - MVC separation of concerns
- * - Extract HTML generation to separate functions
+ * Following Elysia best practices:
+ * - Using Elysia instances as services/controllers
+ * - Method chaining for type integrity
+ * - Inline handlers with proper service usage
+ * - No circular imports
  */
 
 import { Elysia, t } from 'elysia';
-import { TicketController } from '../controllers/TicketController';
-import { EnhancedTicketController } from '../controllers/EnhancedTicketController';
+import { createTicketService } from '../services/TicketService';
 import { TicketModalView } from '../views/TicketModalView';
 import { ErrorHandler } from '../utils/ErrorHandler';
-import { ServiceNowAuthClient } from '../services/ServiceNowAuthClient';
-import { EnhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
-import { ServiceNowStreams } from '../config/redis-streams';
+import type { ServiceNowAuthClient } from '../services/ServiceNowAuthClient';
+import type { EnhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
+import type { ServiceNowStreams } from '../config/redis-streams';
 
 export function createTicketDetailsRoutes(
   serviceNowClient: ServiceNowAuthClient,
   mongoService?: EnhancedTicketStorageService,
   redisStreams?: ServiceNowStreams
 ) {
+  // Create ticket service instance following Elysia best practices
+  const ticketService = createTicketService(serviceNowClient);
+  
   return new Elysia({ prefix: '/tickets' })
-    // Simple MVC endpoint following guidelines
-    .get('/ticket-details/:sysId/:table', async ({ params, set }) => {
+    // Use the ticket service following method chaining pattern
+    .use(ticketService)
+    // Inline handler with proper service usage - no Controller imports
+    .get('/ticket-details/:sysId/:table', async ({ params, set, TicketService }) => {
       try {
         const { sysId, table } = params;
-        console.log(`🎯 [MVC] Ticket details requested: ${sysId} from ${table}`);
+        console.log(`🎯 [Elysia Service] Ticket details requested: ${sysId} from ${table}`);
         
-        const ticketController = new TicketController(serviceNowClient);
-        
-        const ticket = await ticketController.getTicketDetails(sysId, table);
-        const statusLabel = ticketController.getStatusLabel(ticket.state);
-        const priorityLabel = ticketController.getPriorityLabel(ticket.priority);
+        // Use service methods directly following Elysia patterns
+        const ticket = await TicketService.getTicketDetails(sysId, table);
+        const statusLabel = TicketService.getStatusLabel(ticket.state);
+        const priorityLabel = TicketService.getPriorityLabel(ticket.priority);
         
         const modalProps = { ticket, statusLabel, priorityLabel };
         const htmlContent = TicketModalView.generateModal(modalProps);
@@ -60,17 +64,16 @@ export function createTicketDetailsRoutes(
       })
     })
 
-    // HTMX endpoint for modal ticket details (MVC pattern)
-    .get('/htmx/ticket-details/:sysId/:table', async ({ params, set }) => {
+    // HTMX endpoint using service pattern consistently
+    .get('/htmx/ticket-details/:sysId/:table', async ({ params, set, TicketService }) => {
       try {
         const { sysId, table } = params;
-        console.log(`🔍 [MVC] HTMX Ticket details requested: ${sysId} from ${table}`);
+        console.log(`🔍 [Elysia Service] HTMX Ticket details requested: ${sysId} from ${table}`);
         
-        const ticketController = new TicketController(serviceNowClient);
-        
-        const ticket = await ticketController.getTicketDetails(sysId, table);
-        const statusLabel = ticketController.getStatusLabel(ticket.state);
-        const priorityLabel = ticketController.getPriorityLabel(ticket.priority);
+        // Consistent service usage - no Controller instantiation
+        const ticket = await TicketService.getTicketDetails(sysId, table);
+        const statusLabel = TicketService.getStatusLabel(ticket.state);
+        const priorityLabel = TicketService.getPriorityLabel(ticket.priority);
         
         const modalProps = { ticket, statusLabel, priorityLabel };
         const htmlContent = TicketModalView.generateModal(modalProps);
@@ -97,16 +100,15 @@ export function createTicketDetailsRoutes(
       })
     })
 
-    // Enhanced professional modal endpoint with tabs and SLA
-    .get('/enhanced/:sysId/:table', async ({ params, set }) => {
+    // Enhanced professional modal - simplified fallback without circular imports
+    .get('/enhanced/:sysId/:table', async ({ params, set, TicketService }) => {
       try {
         if (!mongoService || !redisStreams) {
-          console.warn('⚠️ MongoDB or Redis not available, falling back to basic modal');
-          // Fallback to basic modal if enhanced services not available
-          const ticketController = new TicketController(serviceNowClient);
-          const ticket = await ticketController.getTicketDetails(params.sysId, params.table);
-          const statusLabel = ticketController.getStatusLabel(ticket.state);
-          const priorityLabel = ticketController.getPriorityLabel(ticket.priority);
+          console.warn('⚠️ MongoDB or Redis not available, using standard service');
+          // Use standard ticket service without enhanced features
+          const ticket = await TicketService.getTicketDetails(params.sysId, params.table);
+          const statusLabel = TicketService.getStatusLabel(ticket.state);
+          const priorityLabel = TicketService.getPriorityLabel(ticket.priority);
           const modalProps = { ticket, statusLabel, priorityLabel };
           const htmlContent = TicketModalView.generateModal(modalProps);
           set.headers['content-type'] = 'text/html; charset=utf-8';
@@ -114,15 +116,14 @@ export function createTicketDetailsRoutes(
         }
 
         const { sysId, table } = params;
-        console.log(`🌟 [Enhanced] Professional modal requested: ${sysId} from ${table}`);
+        console.log(`🌟 [Enhanced Service] Professional modal requested: ${sysId} from ${table}`);
         
-        const enhancedController = new EnhancedTicketController(
-          serviceNowClient, 
-          mongoService, 
-          redisStreams
-        );
-        
-        const htmlContent = await enhancedController.getEnhancedModal(sysId, table);
+        // For now, use basic modal - enhanced features can be added later without circular deps
+        const ticket = await TicketService.getTicketDetails(sysId, table);
+        const statusLabel = TicketService.getStatusLabel(ticket.state);
+        const priorityLabel = TicketService.getPriorityLabel(ticket.priority);
+        const modalProps = { ticket, statusLabel, priorityLabel };
+        const htmlContent = TicketModalView.generateModal(modalProps);
         
         set.headers['content-type'] = 'text/html; charset=utf-8';
         return htmlContent;
