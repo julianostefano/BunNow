@@ -14,6 +14,7 @@ export class StreamingController {
 
   public handleSSEStream(context: any) {
     const { set } = context;
+    const apiController = this.apiController;
     
     set.headers['Content-Type'] = 'text/event-stream';
     set.headers['Cache-Control'] = 'no-cache';
@@ -23,21 +24,21 @@ export class StreamingController {
       start(controller) {
         const interval = setInterval(async () => {
           try {
-            const incidentCount = await this.apiController.getActiveIncidentCount();
-            const problemCount = await this.apiController.getOpenProblemCount();
-            const changeCount = await this.apiController.getPendingChangeCount();
+            const incidentCount = await apiController.getActiveIncidentCount();
+            const problemCount = await apiController.getOpenProblemCount();
+            const changeCount = await apiController.getPendingChangeCount();
             
             controller.enqueue(`event: incident-count\ndata: ${incidentCount}\n\n`);
             controller.enqueue(`event: problem-count\ndata: ${problemCount}\n\n`);
             controller.enqueue(`event: change-count\ndata: ${changeCount}\n\n`);
             
-            const processingStatus = await this.apiController.getProcessingStatus();
+            const processingStatus = await apiController.getProcessingStatus();
             controller.enqueue(`event: processing-status\ndata: ${processingStatus}\n\n`);
             
           } catch (error) {
             console.error('SSE stream error:', error);
           }
-        }.bind(this), 5000);
+        }, 5000);
         
         context.interval = interval;
       },

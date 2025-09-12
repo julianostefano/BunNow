@@ -19,7 +19,7 @@ import { ServiceNowAuthClient } from '../services/ServiceNowAuthClient';
 import { EnhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
 import { ServiceNowStreams } from '../config/redis-streams';
 import { enhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
-import { TicketSyncService } from '../services/TicketSyncService';
+import { HybridDataService } from '../services/HybridDataService';
 import { SLATrackingService } from '../services/SLATrackingService';
 import { mongoCollectionManager } from '../config/mongodb-collections';
 import { TicketRepository } from '../repositories/TicketRepository';
@@ -71,7 +71,7 @@ export class WebServerController {
   private serviceNowAuthClient: ServiceNowAuthClient;
   private enhancedTicketStorageService: EnhancedTicketStorageService | undefined;
   private redisStreams: ServiceNowStreams | undefined;
-  private ticketSyncService: TicketSyncService | undefined;
+  private hybridDataService: HybridDataService | undefined;
   private slaTrackingService: SLATrackingService | undefined;
   private ticketRepository: TicketRepository | undefined;
 
@@ -118,8 +118,12 @@ export class WebServerController {
       this.ticketRepository = new TicketRepository();
       console.log('✅ Ticket Repository initialized');
       
-      this.ticketSyncService = new TicketSyncService(this.ticketRepository, this.serviceNowAuthClient);
-      console.log('✅ Ticket Sync Service initialized');
+      this.hybridDataService = new HybridDataService(
+        this.enhancedTicketStorageService,
+        this.serviceNowAuthClient,
+        this.redisStreams
+      );
+      console.log('✅ Hybrid Data Service with sync capabilities initialized');
       
       this.slaTrackingService = new SLATrackingService();
       console.log('✅ SLA Tracking Service initialized');
@@ -140,17 +144,21 @@ export class WebServerController {
   }
 
   private startBackgroundServices(): void {
-    if (this.ticketSyncService && this.slaTrackingService) {
-      this.ticketSyncService.startAutoSync({
+    if (this.hybridDataService && this.slaTrackingService) {
+      this.hybridDataService.startAutoSync({
         syncInterval: 5 * 60 * 1000,
         batchSize: 50,
         maxRetries: 3,
-        tables: ['incident', 'change_task', 'sc_task']
+        tables: ['incident', 'change_task', 'sc_task'],
+        enableDeltaSync: true,
+        enableRealTimeUpdates: true,
+        enableSLMCollection: true,
+        enableNotesCollection: true
       });
       
       this.slaTrackingService.start();
       
-      console.log('🔄 Background services started (TicketSync + SLA Tracking)');
+      console.log('🔄 Background services started (HybridDataService + SLA Tracking)');
     }
   }
 
@@ -239,8 +247,8 @@ export class WebServerController {
 
   public async stop(): Promise<void> {
     try {
-      if (this.ticketSyncService) {
-        this.ticketSyncService.stopAutoSync();
+      if (this.hybridDataService) {
+        this.hybridDataService.stopAutoSync();
       }
       
       if (this.slaTrackingService) {

@@ -5,7 +5,7 @@
 
 import { MongoClient, Db } from 'mongodb';
 import { TicketRepository } from '../repositories/TicketRepository';
-import { TicketSyncService } from './TicketSyncService';
+import { HybridDataService } from './HybridDataService';
 import { ServiceNowAuthClient } from './ServiceNowAuthClient';
 
 export interface MongoDBConfig {
@@ -22,7 +22,7 @@ export class MongoDBInitService {
   private client: MongoClient | null = null;
   private db: Db | null = null;
   private ticketRepository: TicketRepository | null = null;
-  private ticketSyncService: TicketSyncService | null = null;
+  private hybridDataService: HybridDataService | null = null;
 
   constructor(private config: MongoDBConfig) {}
 

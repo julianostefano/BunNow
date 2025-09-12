@@ -8,7 +8,7 @@ import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { createApp } from "./app";
 import { createNotificationRoutes, getRealtimeRoutes, shutdownNotificationSystem } from "./notifications";
-import { backgroundSyncManager } from "../services/BackgroundSyncManager";
+// BackgroundSyncManager consolidated into HybridDataService
 import { createGroupRoutes } from "./GroupRoutes";
 import { createModalRoutes, createSSERoutes } from "./ModalRoutes";
 import { performanceMonitoringService } from "../services/PerformanceMonitoringService";
@@ -19,12 +19,10 @@ export async function createMainApp(): Promise<Elysia> {
 
   // Add CORS support - Allow all origins
   mainApp.use(cors({
-    origin: '*', // Allow ALL origins
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD', 'PATCH'],
-    allowedHeaders: ['*'],
-    credentials: false, // Important: false when origin is '*'
-    optionsSuccessStatus: 200,
-    maxAge: 86400
+    origin: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
   }));
 
   // Favicon endpoint - return 404 with proper CORS (must be before other routes)
@@ -34,15 +32,8 @@ export async function createMainApp(): Promise<Elysia> {
     return "Favicon not found";
   });
 
-  // Initialize background sync service asynchronously (don't block server startup)
-  backgroundSyncManager.initialize()
-    .then(() => {
-      console.log('✅ Background sync service initialized');
-    })
-    .catch((error) => {
-      console.error('❌ Failed to initialize background sync service:', error);
-      console.warn('⚠️ Server will continue without background sync');
-    });
+  // Background sync functionality consolidated into HybridDataService
+  // Initialized via WebServerController.ts
 
   // Initialize performance monitoring service
   performanceMonitoringService.initialize()
@@ -64,261 +55,166 @@ export async function createMainApp(): Promise<Elysia> {
       console.warn('⚠️ Server will continue without cache optimization');
     });
 
-  // Add main API routes
-  const app = await createApp();
-  mainApp.use(app);
-
-  // Add Groups API routes
-  const groupRoutes = createGroupRoutes();
-  mainApp.use(groupRoutes);
-
-  // Add Modal routes (Enhanced Ticket Modal with SLA Tabs)
-  const modalRoutes = createModalRoutes();
-  mainApp.use(modalRoutes);
-  
-  // Add SSE routes for real-time updates
-  const sseRoutes = createSSERoutes();
-  mainApp.use(sseRoutes);
-
-  // Add HTMX Dashboard routes
+  // Add main application routes with error handling
   try {
-    console.log('🔄 Importing HTMX Dashboard modules...');
-    const htmxDashboardClean = await import('../web/htmx-dashboard-clean');
-    const htmxDashboardEnhanced = await import('../web/htmx-dashboard-enhanced');
-    
-    console.log('📦 Dashboard modules imported successfully');
-    console.log('🔗 Adding clean dashboard routes...');
-    mainApp.use(htmxDashboardClean.default);
-    console.log('✅ Clean dashboard routes added');
-    
-    console.log('🔗 Adding enhanced dashboard routes...');
-    mainApp.use(htmxDashboardEnhanced.default);
-    console.log('✅ Enhanced dashboard routes added');
-    
-    console.log('✅ HTMX Dashboard routes added');
+    const appRoutes = await createApp();
+    mainApp.use(appRoutes);
+    console.log('✅ Main application routes added');
   } catch (error) {
-    console.error('❌ Failed to load HTMX Dashboard routes:', error);
-    console.error('❌ Error stack:', error.stack);
+    console.error('❌ Failed to add main application routes:', error);
+    throw error;
   }
 
-  // Add notification routes
-  const notificationRoutes = createNotificationRoutes();
-  mainApp.use(notificationRoutes);
-
-  // Add real-time routes (WebSocket and SSE)
+  // Add notification routes (SSE, WebSocket) with error handling
   try {
-    const realtimeRoutes = await getRealtimeRoutes();
-    
-    // WebSocket endpoint
-    mainApp.use(realtimeRoutes.websocket);
-    
-    // SSE endpoints
-    mainApp.use(realtimeRoutes.sse);
-    
-    console.log(' Real-time notification endpoints added');
+    const notificationRoutes = createNotificationRoutes();
+    mainApp.use(notificationRoutes);
+    console.log('✅ Notification routes added');
   } catch (error) {
-    console.warn('� Failed to add real-time endpoints:', error);
+    console.error('❌ Failed to add notification routes:', error);
+    console.warn('⚠️ Server will continue without notifications');
   }
 
-  // Background sync management endpoints
+  // Add SSE and Modal routes with error handling
+  try {
+    mainApp.use(createSSERoutes());
+    mainApp.use(createModalRoutes());
+    console.log('✅ SSE and Modal routes added');
+  } catch (error) {
+    console.error('❌ Failed to add SSE/Modal routes:', error);
+    console.warn('⚠️ Server will continue without SSE/Modal functionality');
+  }
+
+  // Add real-time endpoints with error handling
+  try {
+    const realtimeRoutes = getRealtimeRoutes();
+    mainApp.use(realtimeRoutes);
+    console.log('✅ Real-time endpoints added');
+  } catch (error) {
+    console.error('❌ Failed to add real-time endpoints:', error);
+    console.warn('⚠️ Server will continue without real-time functionality');
+  }
+
+  // Background sync management endpoints (deprecated - moved to HybridDataService)
   mainApp.group("/sync", (app) => 
     app
       .get("/status", async () => {
-        try {
-          return await backgroundSyncManager.getStatus();
-        } catch (error) {
-          return { error: error.message };
-        }
+        return { 
+          status: "consolidated", 
+          message: "Sync functionality moved to HybridDataService",
+          deprecated: true
+        };
       })
       .get("/stats", async () => {
-        try {
-          return await backgroundSyncManager.getDetailedStats();
-        } catch (error) {
-          return { error: error.message };
-        }
+        return { 
+          status: "consolidated", 
+          message: "Sync functionality moved to HybridDataService",
+          deprecated: true
+        };
       })
       .post("/start", async () => {
-        try {
-          await backgroundSyncManager.startSync();
-          return { success: true, message: "Background sync started" };
-        } catch (error) {
-          return { success: false, error: error.message };
-        }
+        return { 
+          success: false, 
+          message: "Sync functionality moved to HybridDataService",
+          deprecated: true
+        };
       })
       .post("/stop", async () => {
-        try {
-          await backgroundSyncManager.stopSync();
-          return { success: true, message: "Background sync stopped" };
-        } catch (error) {
-          return { success: false, error: error.message };
-        }
+        return { 
+          success: false, 
+          message: "Sync functionality moved to HybridDataService",
+          deprecated: true
+        };
       })
-      .post("/force", async ({ body }) => {
-        try {
-          const { ticketTypes } = body as any;
-          await backgroundSyncManager.forceSync(ticketTypes);
-          return { success: true, message: "Force sync completed" };
-        } catch (error) {
-          return { success: false, error: error.message };
-        }
+      .post("/force", async () => {
+        return { 
+          success: false, 
+          message: "Sync functionality moved to HybridDataService",
+          deprecated: true
+        };
       })
       .get("/troubleshoot", async () => {
-        try {
-          return await backgroundSyncManager.troubleshoot();
-        } catch (error) {
-          return { error: error.message };
-        }
+        return { 
+          status: "consolidated", 
+          message: "Sync functionality moved to HybridDataService",
+          deprecated: true
+        };
       })
       .post("/optimize", async () => {
-        try {
-          await backgroundSyncManager.optimizePerformance();
-          return { success: true, message: "Performance optimization completed" };
-        } catch (error) {
-          return { success: false, error: error.message };
-        }
+        return { 
+          success: false, 
+          message: "Sync functionality moved to HybridDataService",
+          deprecated: true
+        };
       })
   );
 
   // Performance monitoring endpoints
-  mainApp.group("/performance", (app) =>
+  mainApp.group("/monitoring", (app) =>
     app
-      .get("/stats", async ({ query }) => {
+      .get("/performance", async () => {
         try {
-          const timeRange = query.hours ? parseInt(query.hours as string) : 24;
-          return await performanceMonitoringService.getPerformanceStats(timeRange);
+          return await performanceMonitoringService.getCurrentMetrics();
         } catch (error) {
           return { error: error.message };
         }
       })
-      .get("/memory", () => {
-        return performanceMonitoringService.getMemoryUsage();
-      })
-      .post("/thresholds", async ({ body }) => {
+      .get("/performance/detailed", async () => {
         try {
-          performanceMonitoringService.updateThresholds(body);
-          return { status: "Thresholds updated successfully" };
+          return await performanceMonitoringService.getDetailedReport();
         } catch (error) {
           return { error: error.message };
         }
       })
-  );
-
-  // Cache optimization endpoints
-  mainApp.group("/cache", (app) =>
-    app
-      .get("/stats", () => {
-        return cacheOptimizationService.getCacheStats();
-      })
-      .post("/warmup", async ({ body }) => {
+      .get("/cache", async () => {
         try {
-          const strategy = body?.strategy || 'medium';
-          await cacheOptimizationService.triggerWarmup(strategy);
-          return { status: `Cache warmup initiated with ${strategy} strategy` };
+          return await cacheOptimizationService.getCacheStats();
         } catch (error) {
           return { error: error.message };
         }
       })
-      .post("/invalidate", async ({ body }) => {
+      .post("/cache/optimize", async () => {
         try {
-          await cacheOptimizationService.invalidatePattern(body.pattern);
-          return { status: `Cache pattern ${body.pattern} invalidated` };
+          await cacheOptimizationService.optimizeCache();
+          return { success: true, message: "Cache optimization completed" };
         } catch (error) {
-          return { error: error.message };
+          return { success: false, error: error.message };
         }
       })
-      .post("/preload/:table/:sysId", async ({ params, body }) => {
+      .post("/cache/clear", async () => {
         try {
-          const priority = body?.priority || 'medium';
-          await cacheOptimizationService.preloadTicketWithStrategy(
-            params.sysId, 
-            params.table, 
-            priority
-          );
-          return { status: `Preload initiated for ${params.table}/${params.sysId}` };
+          await cacheOptimizationService.clearCache();
+          return { success: true, message: "Cache cleared successfully" };
         } catch (error) {
-          return { error: error.message };
+          return { success: false, error: error.message };
         }
       })
   );
 
   // Health check endpoint
   mainApp.get("/health", async () => {
-    const syncStatus = await backgroundSyncManager.getStatus();
     return {
       status: "healthy",
       timestamp: new Date().toISOString(),
       services: {
         api: "ready",
         notifications: "ready",
-        background_sync: syncStatus.initialized ? (syncStatus.running ? "running" : "ready") : "disabled"
+        background_sync: "consolidated_into_hybrid_data_service"
       }
     };
   });
 
-  // Root endpoint - redirect to enhanced dashboard
-  mainApp.get("/", ({ set }) => {
-    set.status = 302;
-    set.headers['location'] = '/enhanced/';
-    return;
-  });
+  // Add group management routes with error handling
+  try {
+    const groupRoutes = await createGroupRoutes();
+    mainApp.use(groupRoutes);
+    console.log('✅ Group management routes added');
+  } catch (error) {
+    console.error('❌ Failed to add group routes:', error);
+    console.warn('⚠️ Server will continue without group management');
+  }
 
-  // Dashboard redirect
-  mainApp.get("/dashboard", ({ set }) => {
-    set.redirect = "/enhanced/";
-    return;
-  });
-
-  // API info endpoint
-  mainApp.get("/api", () => ({
-    name: "BunSNC API",
-    version: "1.0.0",
-    description: "ServiceNow Integration API with Real-time Notifications and Background Sync",
-    endpoints: {
-      records: "/record/:table",
-      batch: "/batch",
-      attachments: "/attachment/:table/:sysId",
-      groups: "/api/groups",
-      notifications: "/notifications/*",
-      websocket: "/ws",
-      sse: "/events/*",
-      sync: "/sync/*",
-      health: "/health"
-    },
-    background_sync: {
-      status: "/sync/status",
-      stats: "/sync/stats",
-      start: "POST /sync/start",
-      stop: "POST /sync/stop",
-      force: "POST /sync/force",
-      troubleshoot: "/sync/troubleshoot",
-      optimize: "POST /sync/optimize"
-    },
-    dashboard: {
-      enhanced: "/enhanced/",
-      clean: "/clean/",
-      redirect: "/dashboard"
-    },
-    author: "Juliano Stefano <jsdealencar@ayesa.com> [2025]"
-  }));
-
-  // Error handler
-  mainApp.onError(({ error, code, set }) => {
-    console.error('API Error:', error);
-    
-    if (code === 'VALIDATION') {
-      set.status = 400;
-      return { error: 'Validation failed', details: error.message };
-    }
-    
-    if (code === 'NOT_FOUND') {
-      set.status = 404;
-      return { error: 'Endpoint not found' };
-    }
-    
-    set.status = 500;
-    return { error: 'Internal server error', message: error.message };
-  });
-
+  console.log('🎯 BunSNC main application initialized successfully');
   return mainApp;
 }
 
@@ -327,10 +223,8 @@ export async function gracefulShutdown(): Promise<void> {
   console.log("🛑 Shutting down BunSNC server...");
   
   try {
-    // Stop background sync first
-    console.log("🔄 Stopping background sync service...");
-    await backgroundSyncManager.stopSync();
-    console.log("✅ Background sync service stopped");
+    // Sync functionality moved to HybridDataService (handled by WebServerController)
+    console.log("✅ Background sync handled by HybridDataService");
 
     // Stop notification system
     await shutdownNotificationSystem();
@@ -338,10 +232,4 @@ export async function gracefulShutdown(): Promise<void> {
   } catch (error) {
     console.error("❌ Error during shutdown:", error);
   }
-  
-  process.exit(0);
 }
-
-// Handle shutdown signals
-process.on('SIGTERM', gracefulShutdown);
-process.on('SIGINT', gracefulShutdown);
