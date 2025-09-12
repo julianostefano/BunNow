@@ -5,25 +5,37 @@
 
 import type { ServiceNowAuthClient } from '../services/ServiceNowAuthClient';
 import type { TicketData, TicketResponse } from '../types/TicketTypes';
-import { HybridDataService } from '../services/HybridDataService';
-import { EnhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
-import { ServiceNowStreams } from '../config/redis-streams';
-import { EnhancedTicketModalView } from '../views/EnhancedTicketModalView';
+import type { HybridDataService } from '../services/HybridDataService';
+import type { EnhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
+import type { ServiceNowStreams } from '../config/redis-streams';
 
 export class TicketController {
-  private hybridDataService: HybridDataService;
+  private hybridDataService?: HybridDataService;
 
   constructor(
     private serviceNowAuthClient: ServiceNowAuthClient,
-    private mongoService: EnhancedTicketStorageService,
-    private redisStreams: ServiceNowStreams
+    private mongoService?: EnhancedTicketStorageService,
+    private redisStreams?: ServiceNowStreams
   ) {
-    // Initialize HybridDataService with all dependencies
-    this.hybridDataService = new HybridDataService(
-      this.mongoService,
-      this.serviceNowAuthClient,
-      this.redisStreams
-    );
+    // Initialize HybridDataService only if all dependencies are available
+    if (this.mongoService && this.redisStreams) {
+      this.initializeHybridDataService();
+    }
+  }
+
+  private async initializeHybridDataService() {
+    try {
+      const { HybridDataService } = await import('../services/HybridDataService');
+      if (this.mongoService && this.redisStreams) {
+        this.hybridDataService = new HybridDataService(
+          this.mongoService,
+          this.serviceNowAuthClient,
+          this.redisStreams
+        );
+      }
+    } catch (error) {
+      console.warn('Could not initialize HybridDataService:', error.message);
+    }
   }
 
   /**
