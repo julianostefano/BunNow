@@ -144,6 +144,14 @@ class MongoDBClient {
     }
   }
 
+  // Get database instance
+  getDatabase() {
+    if (!this.db) {
+      throw new Error('MongoDB not connected. Call connect() first.');
+    }
+    return this.db;
+  }
+
   // Ticket operations
   async saveTicket(ticket: TicketDocument): Promise<void> {
     const collection = this.db.collection('tickets');

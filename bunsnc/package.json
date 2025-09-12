@@ -55,7 +55,7 @@
     "access": "public"
   },
   "scripts": {
-    "start": "bun src/web/app.ts",
+    "start": "bun src/index.ts",
     "dev": "bun --watch src/web/app.ts",
     "build": "bun build",
     "compile": "bun compile src/cli/index.ts --out dist/bunsnc",

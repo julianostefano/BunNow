@@ -89,7 +89,7 @@ export class RedisCache extends EventEmitter {
       this.startMetricsCollection();
     }
 
-    logger.info('RedisCache initialized with options:', {
+    logger.info('RedisCache initialized with options:', 'RedisCache', {
       defaultTtl: this.options.defaultTtl,
       keyPrefix: this.options.keyPrefix,
       serialization: this.options.serialization,

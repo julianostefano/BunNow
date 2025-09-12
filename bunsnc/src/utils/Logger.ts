@@ -183,7 +183,7 @@ export class Logger {
         const cleanMetadata = { ...entry.metadata };
         delete cleanMetadata.error; // Already handled above
         if (Object.keys(cleanMetadata).length > 0) {
-          console.log('  Metadata:', cleanMetadata);
+          console.log('  Metadata:', JSON.stringify(cleanMetadata, null, 2));
         }
       }
     }

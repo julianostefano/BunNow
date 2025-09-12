@@ -11,8 +11,8 @@ export interface StreamMessage {
 }
 
 export interface ServiceNowChange {
-  type: 'incident' | 'ctask' | 'sctask';
-  action: 'created' | 'updated' | 'resolved' | 'completed';
+  type: 'incident' | 'ctask' | 'sctask' | 'change_task' | 'sc_task' | 'problem' | 'change_request' | 'sc_request' | 'task' | 'incident_task' | 'problem_task';
+  action: 'created' | 'updated' | 'resolved' | 'completed' | 'synced' | 'slm_updated';
   sys_id: string;
   number: string;
   state: string;
@@ -20,6 +20,9 @@ export interface ServiceNowChange {
   short_description?: string;
   timestamp: string;
   data: any;
+  sync_type?: 'full' | 'incremental';
+  slm_count?: number;
+  notes_count?: number;
 }
 
 export interface RedisStreamConfig {

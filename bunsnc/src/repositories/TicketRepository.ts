@@ -412,3 +412,7 @@ export class TicketRepository {
     return stats;
   }
 }
+
+// Export singleton instance (initialized when needed)
+import { mongoClient } from '../config/mongodb';
+export const ticketRepository = new TicketRepository(mongoClient);
