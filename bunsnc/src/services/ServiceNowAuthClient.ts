@@ -964,6 +964,109 @@ export class ServiceNowAuthClient {
       console.error('❌ Cache pre-warming failed:', error);
     }
   }
+
+  /**
+   * Create a new record in ServiceNow
+   */
+  async createRecord(table: string, data: any): Promise<any> {
+    await this.authenticate();
+    
+    return serviceNowRateLimiter.executeRequest(async () => {
+      try {
+        const url = `${this.SERVICENOW_BASE_URL}/api/now/table/${table}`;
+        const response = await this.axiosClient({
+          method: 'post',
+          url,
+          data,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log(`✅ Created ${table} record: ${response.data?.result?.sys_id}`);
+        return response.data?.result;
+      } catch (error) {
+        console.error(`❌ ServiceNow CREATE ${table} error:`, error);
+        throw error;
+      }
+    });
+  }
+
+  /**
+   * Update an existing record in ServiceNow
+   */
+  async updateRecord(table: string, sysId: string, data: any): Promise<any> {
+    await this.authenticate();
+    
+    return serviceNowRateLimiter.executeRequest(async () => {
+      try {
+        const url = `${this.SERVICENOW_BASE_URL}/api/now/table/${table}/${sysId}`;
+        const response = await this.axiosClient({
+          method: 'put',
+          url,
+          data,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log(`✅ Updated ${table} record: ${sysId}`);
+        return response.data?.result;
+      } catch (error) {
+        console.error(`❌ ServiceNow UPDATE ${table}/${sysId} error:`, error);
+        throw error;
+      }
+    });
+  }
+
+  /**
+   * Delete a record from ServiceNow
+   */
+  async deleteRecord(table: string, sysId: string): Promise<any> {
+    await this.authenticate();
+    
+    return serviceNowRateLimiter.executeRequest(async () => {
+      try {
+        const url = `${this.SERVICENOW_BASE_URL}/api/now/table/${table}/${sysId}`;
+        const response = await this.axiosClient({
+          method: 'delete',
+          url
+        });
+        
+        console.log(`✅ Deleted ${table} record: ${sysId}`);
+        return { success: true, sys_id: sysId };
+      } catch (error) {
+        console.error(`❌ ServiceNow DELETE ${table}/${sysId} error:`, error);
+        throw error;
+      }
+    });
+  }
+
+  /**
+   * Get a specific record by sys_id
+   */
+  async getRecord(table: string, sysId: string): Promise<any> {
+    await this.authenticate();
+    
+    return serviceNowRateLimiter.executeRequest(async () => {
+      try {
+        const url = `${this.SERVICENOW_BASE_URL}/api/now/table/${table}/${sysId}`;
+        const response = await this.axiosClient({
+          method: 'get',
+          url,
+          params: {
+            sysparm_display_value: 'all',
+            sysparm_exclude_reference_link: 'true'
+          }
+        });
+        
+        return response.data?.result;
+      } catch (error) {
+        console.error(`❌ ServiceNow GET ${table}/${sysId} error:`, error);
+        throw error;
+      }
+    });
+  }
 }
 
 // Export singleton instance

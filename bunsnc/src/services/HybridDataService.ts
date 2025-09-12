@@ -7,10 +7,11 @@
 import { ServiceNowAuthClient } from './ServiceNowAuthClient';
 import { EnhancedTicketStorageService } from './EnhancedTicketStorageService';
 import { ServiceNowStreams, ServiceNowChange } from '../config/redis-streams';
-import { IncidentDocument, ChangeTaskDocument, SCTaskDocument } from '../config/mongodb-collections';
+import { IncidentDocument, ChangeTaskDocument, SCTaskDocument, GroupDocument, GroupData, COLLECTION_NAMES } from '../config/mongodb-collections';
 import { ServiceNowNotesService, ServiceNowNote } from './ServiceNowNotesService';
-import { TicketRepository } from '../repositories/TicketRepository';
+// import { TicketRepository } from '../repositories/TicketRepository'; // Removed to avoid circular dependency
 import { TicketSchema } from '../schemas/TicketSchemas';
+import { Collection } from 'mongodb';
 
 export interface TicketData {
   sys_id: string;
@@ -25,6 +26,24 @@ export interface TicketData {
   slms?: any[];
   notes?: ServiceNowNote[];
   [key: string]: any;
+}
+
+export interface GroupFilter {
+  nome?: string;
+  tags?: string[];
+  responsavel?: string;
+  temperatura?: number;
+  temperaturaMin?: number;
+  temperaturaMax?: number;
+}
+
+export interface GroupListItem {
+  id: number;
+  nome: string;
+  descricao: string;
+  responsavel: string;
+  temperatura: number;
+  tags: string[];
 }
 
 export interface DataFreshnessStrategy {
@@ -78,23 +97,41 @@ export class HybridDataService {
   private redisStreams: ServiceNowStreams;
   private dataStrategy: DataFreshnessStrategy;
   private notesService: ServiceNowNotesService;
-  private ticketRepository: TicketRepository;
+  private groupsCollection: Collection<GroupDocument> | null = null;
+  // private ticketRepository: TicketRepository; // Removed to avoid circular dependency
 
   constructor(
     mongoService: EnhancedTicketStorageService,
     serviceNowService: ServiceNowAuthClient,
     redisStreams: ServiceNowStreams,
-    ticketRepository: TicketRepository,
     dataStrategy?: DataFreshnessStrategy
   ) {
     this.mongoService = mongoService;
     this.serviceNowService = serviceNowService;
     this.redisStreams = redisStreams;
-    this.ticketRepository = ticketRepository;
+    // this.ticketRepository = ticketRepository; // Removed to avoid circular dependency
     this.dataStrategy = dataStrategy || new SmartDataStrategy();
     this.notesService = new ServiceNowNotesService(serviceNowService);
 
     console.log('🎯 HybridDataService initialized with transparent data sourcing and TicketRepository');
+  }
+
+  /**
+   * Initialize Groups collection with lazy loading
+   */
+  private async initializeGroupsCollection(): Promise<Collection<GroupDocument>> {
+    if (!this.groupsCollection) {
+      const db = this.mongoService.getDatabase();
+      this.groupsCollection = db.collection<GroupDocument>(COLLECTION_NAMES.GROUPS);
+      
+      // Create indexes for groups collection
+      await this.groupsCollection.createIndex({ id: 1 }, { unique: true });
+      await this.groupsCollection.createIndex({ 'data.nome': 1 });
+      await this.groupsCollection.createIndex({ 'data.tags': 1 });
+      await this.groupsCollection.createIndex({ 'data.responsavel': 1 });
+      await this.groupsCollection.createIndex({ 'data.temperatura': 1 });
+    }
+    return this.groupsCollection;
   }
 
   /**
@@ -469,4 +506,243 @@ export class HybridDataService {
       };
     }
   }
+
+  // ========================================
+  // GROUPS MANAGEMENT METHODS (consolidated from GroupService)
+  // ========================================
+
+  /**
+   * Get all groups with optional filtering
+   */
+  async getAllGroups(filter?: GroupFilter): Promise<GroupListItem[]> {
+    try {
+      const collection = await this.initializeGroupsCollection();
+      
+      const query: any = {};
+      
+      if (filter?.nome) {
+        query['data.nome'] = { $regex: filter.nome, $options: 'i' };
+      }
+      
+      if (filter?.responsavel) {
+        query['data.responsavel'] = { $regex: filter.responsavel, $options: 'i' };
+      }
+      
+      if (filter?.tags && filter.tags.length > 0) {
+        query['data.tags'] = { $in: filter.tags };
+      }
+      
+      if (filter?.temperatura !== undefined) {
+        query['data.temperatura'] = filter.temperatura;
+      }
+      
+      if (filter?.temperaturaMin !== undefined && filter?.temperaturaMax !== undefined) {
+        query['data.temperatura'] = { 
+          $gte: filter.temperaturaMin,
+          $lte: filter.temperaturaMax 
+        };
+      } else if (filter?.temperaturaMin !== undefined) {
+        query['data.temperatura'] = { $gte: filter.temperaturaMin };
+      } else if (filter?.temperaturaMax !== undefined) {
+        query['data.temperatura'] = { $lte: filter.temperaturaMax };
+      }
+
+      const groups = await collection.find(query).sort({ 'data.nome': 1 }).toArray();
+      
+      return groups.map(group => ({
+        id: group.id,
+        nome: group.data.nome,
+        descricao: group.data.descricao,
+        responsavel: group.data.responsavel,
+        temperatura: group.data.temperatura,
+        tags: group.data.tags || []
+      }));
+      
+    } catch (error) {
+      console.error('❌ Error getting all groups:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get group by ID
+   */
+  async getGroupById(id: number): Promise<GroupDocument | null> {
+    try {
+      const collection = await this.initializeGroupsCollection();
+      return await collection.findOne({ id });
+    } catch (error) {
+      console.error(`❌ Error getting group by ID ${id}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Create a new group
+   */
+  async createGroup(groupData: GroupData): Promise<GroupDocument> {
+    try {
+      const collection = await this.initializeGroupsCollection();
+      
+      // Find the next available ID
+      const lastGroup = await collection.findOne({}, { sort: { id: -1 } });
+      const nextId = (lastGroup?.id || 0) + 1;
+      
+      const document: GroupDocument = {
+        id: nextId,
+        data: groupData,
+        raw_data: JSON.stringify(groupData),
+        created_at: new Date(),
+        updated_at: new Date()
+      };
+      
+      await collection.insertOne(document);
+      console.log(`✅ Group created: ${groupData.nome} (ID: ${nextId})`);
+      
+      return document;
+    } catch (error) {
+      console.error('❌ Error creating group:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update group by ID
+   */
+  async updateGroup(id: number, groupData: Partial<GroupData>): Promise<boolean> {
+    try {
+      const collection = await this.initializeGroupsCollection();
+      
+      const existingGroup = await collection.findOne({ id });
+      if (!existingGroup) {
+        console.warn(`⚠️ Group with ID ${id} not found for update`);
+        return false;
+      }
+      
+      const updatedData = { ...existingGroup.data, ...groupData };
+      
+      const result = await collection.updateOne(
+        { id },
+        {
+          $set: {
+            data: updatedData,
+            raw_data: JSON.stringify(updatedData),
+            updated_at: new Date()
+          }
+        }
+      );
+      
+      if (result.modifiedCount > 0) {
+        console.log(`✅ Group updated: ${updatedData.nome} (ID: ${id})`);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error(`❌ Error updating group ID ${id}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Delete group by ID
+   */
+  async deleteGroup(id: number): Promise<boolean> {
+    try {
+      const collection = await this.initializeGroupsCollection();
+      
+      const result = await collection.deleteOne({ id });
+      
+      if (result.deletedCount > 0) {
+        console.log(`✅ Group deleted: ID ${id}`);
+        return true;
+      }
+      
+      console.warn(`⚠️ Group with ID ${id} not found for deletion`);
+      return false;
+    } catch (error) {
+      console.error(`❌ Error deleting group ID ${id}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Get groups statistics
+   */
+  async getGroupsStats(): Promise<{
+    total: number;
+    by_temperatura: Record<number, number>;
+    by_responsavel: Record<string, number>;
+    tags_count: Record<string, number>;
+  }> {
+    try {
+      const collection = await this.initializeGroupsCollection();
+      
+      const groups = await collection.find({}).toArray();
+      
+      const stats = {
+        total: groups.length,
+        by_temperatura: {} as Record<number, number>,
+        by_responsavel: {} as Record<string, number>,
+        tags_count: {} as Record<string, number>
+      };
+      
+      groups.forEach(group => {
+        // Count by temperatura
+        const temp = group.data.temperatura;
+        stats.by_temperatura[temp] = (stats.by_temperatura[temp] || 0) + 1;
+        
+        // Count by responsavel
+        const resp = group.data.responsavel;
+        stats.by_responsavel[resp] = (stats.by_responsavel[resp] || 0) + 1;
+        
+        // Count tags
+        if (group.data.tags) {
+          group.data.tags.forEach(tag => {
+            stats.tags_count[tag] = (stats.tags_count[tag] || 0) + 1;
+          });
+        }
+      });
+      
+      return stats;
+    } catch (error) {
+      console.error('❌ Error getting groups stats:', error);
+      return {
+        total: 0,
+        by_temperatura: {},
+        by_responsavel: {},
+        tags_count: {}
+      };
+    }
+  }
 }
+
+// Lazy singleton instance to avoid initialization issues
+let _hybridDataService: HybridDataService | null = null;
+
+export function getHybridDataService(): HybridDataService {
+  if (!_hybridDataService) {
+    const { serviceNowAuthClient } = require('./ServiceNowAuthClient');
+    const { enhancedTicketStorageService } = require('./EnhancedTicketStorageService');
+    const { serviceNowStreams } = require('../config/redis-streams');
+    // const { ticketRepository } = require('../repositories/TicketRepository'); // Removed to avoid circular dependency
+    
+    _hybridDataService = new HybridDataService(
+      enhancedTicketStorageService,
+      serviceNowAuthClient,
+      serviceNowStreams
+    );
+  }
+  
+  return _hybridDataService;
+}
+
+// Export singleton property for backward compatibility
+export const hybridDataService = new Proxy({} as HybridDataService, {
+  get(target, prop) {
+    const service = getHybridDataService();
+    return typeof service[prop as keyof HybridDataService] === 'function' 
+      ? (service[prop as keyof HybridDataService] as Function).bind(service)
+      : service[prop as keyof HybridDataService];
+  }
+});

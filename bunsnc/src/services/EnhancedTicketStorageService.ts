@@ -304,61 +304,78 @@ export class EnhancedTicketStorageService {
 
     console.log('📊 Creating optimized indexes...');
 
+    // Helper function to create indexes with error handling
+    const createIndexSafe = async (collection: any, indexSpec: any, options: any) => {
+      try {
+        await collection.createIndex(indexSpec, options);
+        console.log(`   ✅ Created index: ${options.name || 'unnamed'}`);
+      } catch (error: any) {
+        if (error.message?.includes('already exists') || 
+            error.message?.includes('IndexOptionsConflict') ||
+            error.codeName === 'IndexOptionsConflict' ||
+            error.code === 85) {
+          console.log(`   ℹ️ Index already exists: ${options.name || 'unnamed'}`);
+        } else {
+          console.warn(`   ⚠️ Failed to create index ${options.name || 'unnamed'}:`, error.message);
+        }
+      }
+    };
+
     // Primary and unique indexes
-    await ticketsCollection.createIndex({ "sys_id": 1 }, { unique: true, name: "idx_sys_id" });
-    await ticketsCollection.createIndex({ "number": 1 }, { unique: true, name: "idx_number" });
+    await createIndexSafe(ticketsCollection, { "sys_id": 1 }, { unique: true, name: "idx_sys_id" });
+    await createIndexSafe(ticketsCollection, { "number": 1 }, { unique: true, name: "idx_number" });
 
     // Dashboard query optimization indexes
-    await ticketsCollection.createIndex(
+    await createIndexSafe(ticketsCollection, 
       { "ticketType": 1, "state": 1, "priority": -1 },
       { name: "idx_dashboard_type_state_priority" }
     );
 
-    await ticketsCollection.createIndex(
+    await createIndexSafe(ticketsCollection, 
       { "assignment_group": 1, "state": 1, "sys_created_on": -1 },
       { name: "idx_assignment_state_created" }
     );
 
-    await ticketsCollection.createIndex(
+    await createIndexSafe(ticketsCollection, 
       { "assigned_to": 1, "state": 1, "priority": -1 },
       { name: "idx_assignee_state_priority" }
     );
 
     // Time-based queries
-    await ticketsCollection.createIndex(
+    await createIndexSafe(ticketsCollection, 
       { "sys_created_on": -1 },
       { name: "idx_created_desc" }
     );
 
-    await ticketsCollection.createIndex(
+    await createIndexSafe(ticketsCollection, 
       { "sys_updated_on": -1 },
       { name: "idx_updated_desc" }
     );
 
-    await ticketsCollection.createIndex(
+    await createIndexSafe(ticketsCollection, 
       { "opened_at": -1 },
       { name: "idx_opened_desc" }
     );
 
     // SLA and performance tracking
-    await ticketsCollection.createIndex(
+    await createIndexSafe(ticketsCollection, 
       { "sla_due": 1, "state": 1 },
       { name: "idx_sla_monitoring", sparse: true }
     );
 
     // Sync and audit indexes
-    await ticketsCollection.createIndex(
+    await createIndexSafe(ticketsCollection, 
       { "_syncedAt": -1, "ticketType": 1 },
       { name: "idx_sync_tracking" }
     );
 
-    await ticketsCollection.createIndex(
+    await createIndexSafe(ticketsCollection, 
       { "_source": 1, "_version": 1 },
       { name: "idx_source_version" }
     );
 
     // Text search index
-    await ticketsCollection.createIndex(
+    await createIndexSafe(ticketsCollection, 
       { 
         "short_description": "text", 
         "description": "text",
@@ -371,34 +388,34 @@ export class EnhancedTicketStorageService {
     );
 
     // Type-specific indexes
-    await ticketsCollection.createIndex(
+    await createIndexSafe(ticketsCollection, 
       { "ticketType": 1, "change_request": 1 },
       { name: "idx_change_task_parent", sparse: true }
     );
 
-    await ticketsCollection.createIndex(
+    await createIndexSafe(ticketsCollection, 
       { "ticketType": 1, "request": 1 },
       { name: "idx_sc_task_request", sparse: true }
     );
 
     // Caller and company tracking
-    await ticketsCollection.createIndex(
+    await createIndexSafe(ticketsCollection, 
       { "caller_id": 1, "sys_created_on": -1 },
       { name: "idx_caller_tracking", sparse: true }
     );
 
-    await ticketsCollection.createIndex(
+    await createIndexSafe(ticketsCollection, 
       { "company": 1, "state": 1 },
       { name: "idx_company_state", sparse: true }
     );
 
     // Audit collection indexes
-    await auditCollection.createIndex(
+    await createIndexSafe(auditCollection, 
       { "ticketId": 1, "changedAt": -1 },
       { name: "idx_audit_ticket_time" }
     );
 
-    await auditCollection.createIndex(
+    await createIndexSafe(auditCollection, 
       { "changedAt": -1 },
       { name: "idx_audit_time", expireAfterSeconds: 7776000 } // 90 days retention
     );
@@ -964,6 +981,51 @@ export class EnhancedTicketStorageService {
 
     } catch (error) {
       console.error('Error querying tickets with SLAs:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Compatibility methods for PersistenceService migration
+   * These methods provide the same interface as PersistenceService
+   */
+  
+  /**
+   * Get database instance - compatibility with PersistenceService
+   * @returns Database instance
+   */
+  getDatabase() {
+    if (!this.isConnected || !this.db) {
+      throw new Error('Database not connected. Call initialize() first.');
+    }
+    return this.db;
+  }
+
+  /**
+   * Get MongoDB client - compatibility with PersistenceService
+   * @returns MongoClient instance
+   */
+  getClient() {
+    if (!this.isConnected || !this.client) {
+      throw new Error('MongoDB not connected. Call initialize() first.');
+    }
+    return this.client;
+  }
+
+  /**
+   * Health check method - compatibility with PersistenceService
+   * @returns Promise<void> if connection is healthy
+   */
+  async ping(): Promise<void> {
+    if (!this.isConnected || !this.db) {
+      throw new Error('Database not connected. Call initialize() first.');
+    }
+    
+    try {
+      await this.db.admin().ping();
+      console.log('📡 Enhanced Ticket Storage Service ping successful');
+    } catch (error) {
+      console.error('❌ Enhanced Ticket Storage Service ping failed:', error);
       throw error;
     }
   }

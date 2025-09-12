@@ -27,6 +27,18 @@ import { TicketIntegrationService } from '../services/TicketIntegrationService';
 import htmxDashboardClean from './htmx-dashboard-clean';
 import htmxDashboardEnhanced from './htmx-dashboard-enhanced';
 import waitingAnalysisHtmx from './waiting-analysis-htmx';
+import { createTicketDetailsRoutes } from '../routes/TicketDetailsRoutes';
+import { createTicketActionsRoutes } from '../routes/TicketActionsRoutes';
+import { createTicketListRoutes } from '../routes/TicketListRoutes';
+import { createIncidentNotesRoutes } from '../routes/IncidentNotesRoutes';
+import { ServiceNowAuthClient } from '../services/ServiceNowAuthClient';
+import { EnhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
+import { ServiceNowStreams } from '../config/redis-streams';
+import { enhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
+import { TicketSyncService } from '../services/TicketSyncService';
+import { SLATrackingService } from '../services/SLATrackingService';
+import { mongoCollectionManager } from '../config/mongodb-collections';
+import { TicketRepository } from '../repositories/TicketRepository';
 // import { db } from '../config/database';
 // import { serviceNowStreams } from '../config/redis-streams';
 // import { createWebSocketPlugin } from './websocket-handler';
@@ -75,6 +87,12 @@ export class ServiceNowWebServer {
   private serviceNowClient: ServiceNowClient;
   private redisStreamManager: RedisStreamManager;
   private ticketIntegrationService: TicketIntegrationService;
+  private serviceNowAuthClient: ServiceNowAuthClient;
+  private enhancedTicketStorageService: EnhancedTicketStorageService | undefined;
+  private redisStreams: ServiceNowStreams | undefined;
+  private ticketSyncService: TicketSyncService | undefined;
+  private slaTrackingService: SLATrackingService | undefined;
+  private ticketRepository: TicketRepository | undefined;
   // private parquetWriter: ParquetWriter;
   // private openSearchClient: OpenSearchClient;
   // private hdfsClient: HDFSClient;
@@ -103,6 +121,12 @@ export class ServiceNowWebServer {
 
     // Initialize Ticket Integration Service
     this.ticketIntegrationService = new TicketIntegrationService(this.serviceNowClient);
+
+    // Initialize ServiceNow Auth Client for API routes
+    this.serviceNowAuthClient = new ServiceNowAuthClient(
+      this.config.serviceNow.instanceUrl,
+      '' // Will use environment auth
+    );
 
     // Other big data clients temporarily commented out
     /*
@@ -141,6 +165,64 @@ export class ServiceNowWebServer {
       hdfs: this.hdfsClient,
     });
     */
+  }
+
+  private async initializeEnhancedServices(): Promise<void> {
+    // Initialize MongoDB and Redis services for enhanced features
+    try {
+      // Initialize MongoDB persistence service  
+      await enhancedTicketStorageService.initialize();
+      
+      // Initialize MongoDB collections with indexes
+      await mongoCollectionManager.initializeCollections();
+      
+      this.enhancedTicketStorageService = enhancedTicketStorageService;
+      console.log('✅ MongoDB service initialized for enhanced features');
+      
+      // Initialize Ticket Repository
+      this.ticketRepository = new TicketRepository();
+      console.log('✅ Ticket Repository initialized');
+      
+      // Initialize Ticket Sync Service
+      this.ticketSyncService = new TicketSyncService(this.ticketRepository, this.serviceNowAuthClient);
+      console.log('✅ Ticket Sync Service initialized');
+      
+      // Initialize SLA Tracking Service
+      this.slaTrackingService = new SLATrackingService();
+      console.log('✅ SLA Tracking Service initialized');
+      
+      // Start background services
+      this.startBackgroundServices();
+      
+    } catch (error) {
+      console.warn('⚠️ MongoDB service not available, enhanced features will be limited:', error);
+    }
+
+    try {
+      // Initialize Redis Streams
+      this.redisStreams = new ServiceNowStreams();
+      await this.redisStreams.initialize();
+      console.log('✅ Redis Streams initialized for real-time features');
+    } catch (error) {
+      console.warn('⚠️ Redis Streams not available, real-time features will be limited:', error);
+    }
+  }
+
+  private startBackgroundServices(): void {
+    if (this.ticketSyncService && this.slaTrackingService) {
+      // Start automatic ticket synchronization (every 5 minutes)
+      this.ticketSyncService.startAutoSync({
+        syncInterval: 5 * 60 * 1000, // 5 minutes
+        batchSize: 50,
+        maxRetries: 3,
+        tables: ['incident', 'change_task', 'sc_task']
+      });
+      
+      // Start SLA monitoring (every 15 minutes)
+      this.slaTrackingService.start();
+      
+      console.log('🔄 Background services started (TicketSync + SLA Tracking)');
+    }
   }
 
   private setupServer(): void {
@@ -211,6 +293,12 @@ export class ServiceNowWebServer {
 
       // HTMX Waiting Analysis Integration  
       .use(waitingAnalysisHtmx)
+
+      // API Routes - ServiceNow Integration
+      .use(createTicketActionsRoutes(this.serviceNowAuthClient))
+      .use(createTicketListRoutes(this.serviceNowAuthClient))
+      .use(createTicketDetailsRoutes(this.serviceNowAuthClient, this.enhancedTicketStorageService, this.redisStreams))
+      .use(createIncidentNotesRoutes(this.serviceNowAuthClient, this.slaTrackingService))
 
       // WebSocket Integration - temporarily disabled
       // .use(createWebSocketPlugin())
@@ -1150,6 +1238,9 @@ export class ServiceNowWebServer {
 
   public async start(): Promise<void> {
     try {
+      // Initialize enhanced services before starting server
+      await this.initializeEnhancedServices();
+      
       await this.app.listen(this.config.port);
       console.log(`🚀 ServiceNow Web Interface running on port ${this.config.port}`);
       console.log(`📊 Dashboard: http://localhost:${this.config.port}`);
@@ -1162,6 +1253,17 @@ export class ServiceNowWebServer {
 
   public async stop(): Promise<void> {
     try {
+      // Stop background services first
+      if (this.ticketSyncService) {
+        this.ticketSyncService.stopAutoSync();
+      }
+      
+      if (this.slaTrackingService) {
+        this.slaTrackingService.stop();
+      }
+      
+      console.log('🛑 Background services stopped');
+      
       await this.app.stop();
       console.log('🛑 ServiceNow Web Interface stopped');
     } catch (error) {

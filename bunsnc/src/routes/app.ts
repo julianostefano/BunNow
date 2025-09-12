@@ -9,7 +9,7 @@ import { createTicketListRoutes } from "./TicketListRoutes";
 import { createTicketDetailsRoutes } from "./TicketDetailsRoutes";
 import type { EnhancedTicketStorageService } from "../services/EnhancedTicketStorageService";
 import type { ServiceNowStreams } from "../config/redis-streams";
-import { persistenceService } from "../services/PersistenceService";
+import { enhancedTicketStorageService } from "../services/EnhancedTicketStorageService";
 
 // Create async app initialization function
 async function createApp() {
@@ -105,9 +105,8 @@ app.post("/batch",
 
   try {
     // Initialize MongoDB persistence service
-    await persistenceService.initialize();
-    const { EnhancedTicketStorageService } = await import("../services/EnhancedTicketStorageService");
-    mongoService = new EnhancedTicketStorageService(persistenceService.getDatabase());
+    await enhancedTicketStorageService.initialize();
+    mongoService = enhancedTicketStorageService;
     console.log('✅ MongoDB service initialized for enhanced features');
   } catch (error) {
     console.warn('⚠️ MongoDB service not available, enhanced features will be limited:', error.message);

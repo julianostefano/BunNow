@@ -35,7 +35,8 @@ class TicketCollectionService {
       // Dynamic import for MongoDB client (will be installed separately)
       const { MongoClient } = await import('mongodb');
       
-      const connectionString = `mongodb://admin:Logica2011_@10.219.8.210:27018/bunsnc?authSource=admin`;
+      const connectionString = process.env.MONGODB_URL || 
+        `mongodb://${process.env.MONGODB_USERNAME}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}:${process.env.MONGODB_PORT}/${process.env.MONGODB_DATABASE}?authSource=${process.env.MONGODB_AUTH_SOURCE}`;
       
       this.client = new MongoClient(connectionString, {
         maxPoolSize: 10,

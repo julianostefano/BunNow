@@ -18,7 +18,7 @@ import { createTicketListRoutes } from "./TicketListRoutes";
 import { createTicketDetailsRoutes } from "./TicketDetailsRoutes";
 import { EnhancedTicketStorageService } from "../services/EnhancedTicketStorageService";
 import { ServiceNowStreams } from "../config/redis-streams";
-import { persistenceService } from "../services/PersistenceService";
+import { enhancedTicketStorageService } from "../services/EnhancedTicketStorageService";
 
 // Import unified schema registry and API schemas
 import { 
@@ -121,7 +121,7 @@ async function createEnhancedApp() {
 
       // Test database connection
       try {
-        await persistenceService.ping();
+        await enhancedTicketStorageService.ping();
       } catch (error) {
         checks.database = 'error';
       }
@@ -414,8 +414,8 @@ async function createEnhancedApp() {
   let redisStreams: ServiceNowStreams | undefined;
 
   try {
-    await persistenceService.initialize();
-    mongoService = new EnhancedTicketStorageService(persistenceService.getDatabase());
+    await enhancedTicketStorageService.initialize();
+    mongoService = enhancedTicketStorageService;
     console.log('✅ Enhanced app: MongoDB service initialized');
   } catch (error) {
     console.warn('⚠️ Enhanced app: MongoDB service not available:', error.message);

@@ -4,7 +4,7 @@
  */
 
 import { ServiceNowWebServer, WebServerConfig } from './server';
-import { persistenceService } from '../services/PersistenceService';
+import { enhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
 
 const config: WebServerConfig = {
   port: 3008,
@@ -64,7 +64,7 @@ async function startWebInterface() {
     
     // Initialize MongoDB persistence
     console.log('🍃 Initializing MongoDB persistence...');
-    await persistenceService.initialize();
+    await enhancedTicketStorageService.initialize();
     
     const server = new ServiceNowWebServer(config);
     await server.start();
@@ -95,7 +95,7 @@ async function gracefulShutdown(signal: string) {
   
   try {
     // Shutdown persistence service
-    await persistenceService.shutdown();
+    await enhancedTicketStorageService.shutdown();
     console.log('🍃 MongoDB persistence shut down gracefully');
   } catch (error) {
     console.error('❌ Error during MongoDB shutdown:', error);

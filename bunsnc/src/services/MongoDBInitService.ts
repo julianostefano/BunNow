@@ -215,7 +215,7 @@ export class MongoDBInitService {
   static createDefaultConfig(): MongoDBConfig {
     const connectionString = process.env.MONGODB_URL || 
                            process.env.MONGO_URL || 
-                           'mongodb://localhost:27017';
+                           `mongodb://${process.env.MONGODB_USERNAME}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}:${process.env.MONGODB_PORT}/${process.env.MONGODB_DATABASE}?authSource=${process.env.MONGODB_AUTH_SOURCE}`;
 
     return {
       connectionString,

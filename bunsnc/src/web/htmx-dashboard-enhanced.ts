@@ -18,13 +18,21 @@ import {
 } from '../config/servicenow-status';
 import { safeDisplay, safeGet, safeFormatDate } from '../utils/serialization';
 import { ServiceNowNotesService } from '../services/ServiceNowNotesService';
+import { enhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
 
 // Helper function to initialize services safely
 async function initializeServices() {
   try {
+    // Initialize persistence service first
+    await enhancedTicketStorageService.initialize();
+    
     const mongoService = new EnhancedTicketStorageService();
     const hybridService = new HybridTicketService(serviceNowAuthClient);
     const notesService = new ServiceNowNotesService(serviceNowAuthClient);
+    
+    // Initialize hybrid service
+    await hybridService.initialize();
+    
     return { mongoService, hybridService, notesService, error: null };
   } catch (error) {
     console.error('❌ Services initialization error:', error);
@@ -152,6 +160,8 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
                       showModal: false,
                       modalTab: 'details',
                       newNote: '',
+                      availableGroups: [],
+                      groupsLoaded: false,
                       
                       // Seletores especializados por tipo de ticket
                       ticketTypeStates: {
@@ -283,8 +293,57 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
                           this.showModal = false;
                           this.selectedTicket = null;
                           this.newNote = '';
+                      },
+                      
+                      // Load groups dynamically from MongoDB
+                      async loadGroups() {
+                          try {
+                              console.log('📋 Loading groups dynamically from MongoDB...');
+                              const response = await fetch('/enhanced/groups-dropdown');
+                              const data = await response.json();
+                              
+                              if (data.success && data.data) {
+                                  this.availableGroups = [
+                                      { value: 'all', label: '🌐 Todos os Grupos', emoji: '🌐' },
+                                      ...data.data
+                                  ];
+                                  this.groupsLoaded = true;
+                                  console.log(\`✅ Loaded \${data.data.length} groups dynamically\`);
+                              } else {
+                                  throw new Error(data.error || 'Failed to load groups');
+                              }
+                          } catch (error) {
+                              console.error('❌ Error loading groups:', error);
+                              // Fallback to static groups if dynamic loading fails
+                              this.loadFallbackGroups();
+                          }
+                      },
+                      
+                      // Fallback to static groups if dynamic loading fails
+                      loadFallbackGroups() {
+                          console.log('⚠️ Using fallback static groups');
+                          this.availableGroups = [
+                              { value: 'all', label: '🌐 Todos os Grupos', emoji: '🌐' },
+                              { value: 'L2-NE-IT APP AND DATABASE', label: '💾 App & Database', emoji: '💾' },
+                              { value: 'L2-NE-IT SAP BASIS', label: '🏢 SAP Basis', emoji: '🏢' },
+                              { value: 'L2-NE-IT APP AND SERVICES', label: '⚙️ App & Services', emoji: '⚙️' },
+                              { value: 'L2-NE-IT PROCESSING', label: '🔄 Processing', emoji: '🔄' },
+                              { value: 'L2-NE-IT NETWORK SECURITY', label: '🔐 Network Security', emoji: '🔐' },
+                              { value: 'L2-NE-IT NETWORK', label: '🌐 Network', emoji: '🌐' },
+                              { value: 'L2-NE-CLOUDSERVICES', label: '☁️ Cloud Services', emoji: '☁️' },
+                              { value: 'L2-NE-IT MONITORY', label: '📊 Monitoring', emoji: '📊' },
+                              { value: 'L2-NE-IT SO UNIX', label: '🐧 Unix Systems', emoji: '🐧' },
+                              { value: 'L2-NE-IT BOC', label: '📋 BOC', emoji: '📋' },
+                              { value: 'L2-NE-IT MIDDLEWARE', label: '🔗 Middleware', emoji: '🔗' },
+                              { value: 'L2-NE-IT BACKUP', label: '💿 Backup', emoji: '💿' },
+                              { value: 'L2-NE-IT STORAGE', label: '🗄️ Storage', emoji: '🗄️' },
+                              { value: 'L2-NE-IT VOIP', label: '📞 VoIP', emoji: '📞' },
+                              { value: 'L2-NE-IT NOC', label: '🖥️ NOC', emoji: '🖥️' },
+                              { value: 'L2-NE-IT PCP PRODUCTION', label: '🏭 PCP Production', emoji: '🏭' }
+                          ];
+                          this.groupsLoaded = true;
                       }
-                  }" x-init="loadTabContent()">
+                  }" x-init="loadGroups(); loadTabContent()">
                   
                       <!-- Filters Section -->
                       <div class="glass-effect rounded-2xl p-6 mb-8 border-gray-700">
@@ -301,23 +360,12 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
                                   <label class="block text-sm font-medium text-gray-300 mb-2">Grupo de Atribuição</label>
                                   <select x-model="group" @change="updateFilters()"
                                           class="w-full appearance-none bg-gray-800/50 border border-gray-600 text-white px-4 py-3 pr-10 rounded-xl text-sm hover:border-elysia-blue focus:border-elysia-blue focus:ring-2 focus:ring-elysia-blue focus:ring-opacity-50 transition-all duration-300 backdrop-blur-sm">
-                                      <option value="all">🌐 Todos os Grupos</option>
-                                      <option value="L2-NE-IT APP AND DATABASE">💾 App & Database</option>
-                                      <option value="L2-NE-IT SAP BASIS">🏢 SAP Basis</option>
-                                      <option value="L2-NE-IT APP AND SERVICES">⚙️ App & Services</option>
-                                      <option value="L2-NE-IT PROCESSING">🔄 Processing</option>
-                                      <option value="L2-NE-IT NETWORK SECURITY">🔐 Network Security</option>
-                                      <option value="L2-NE-IT NETWORK">🌐 Network</option>
-                                      <option value="L2-NE-CLOUDSERVICES">☁️ Cloud Services</option>
-                                      <option value="L2-NE-IT MONITORY">📊 Monitoring</option>
-                                      <option value="L2-NE-IT SO UNIX">🐧 Unix Systems</option>
-                                      <option value="L2-NE-IT BOC">📋 BOC</option>
-                                      <option value="L2-NE-IT MIDDLEWARE">🔗 Middleware</option>
-                                      <option value="L2-NE-IT BACKUP">💿 Backup</option>
-                                      <option value="L2-NE-IT STORAGE">🗄️ Storage</option>
-                                      <option value="L2-NE-IT VOIP">📞 VoIP</option>
-                                      <option value="L2-NE-IT NOC">🖥️ NOC</option>
-                                      <option value="L2-NE-IT PCP PRODUCTION">🏭 PCP Production</option>
+                                      <template x-if="!groupsLoaded">
+                                          <option value="all">🔄 Carregando grupos...</option>
+                                      </template>
+                                      <template x-if="groupsLoaded" x-for="groupOption in availableGroups" :key="groupOption.value">
+                                          <option :value="groupOption.value" x-text="`${groupOption.emoji} ${groupOption.label.replace(/^[^\s]*\s/, '')}`"></option>
+                                      </template>
                                   </select>
                                   <div class="absolute inset-y-0 right-0 top-6 flex items-center px-3 pointer-events-none">
                                       <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
@@ -1097,6 +1145,34 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
           <p class="text-sm text-gray-300 mt-2">${error.message}</p>
         </div>
       `;
+    }
+  })
+
+  // Dynamic groups endpoint for dropdown
+  .get('/groups-dropdown', async ({ set }) => {
+    try {
+      console.log('📋 [GROUPS] Fetching groups for dropdown');
+      
+      const { hybridService } = await initializeServices();
+      if (!hybridService) {
+        throw new Error('Services not available');
+      }
+
+      await hybridService.initialize();
+      const groups = await hybridService.getAvailableGroups();
+      
+      set.headers['content-type'] = 'application/json';
+      return {
+        success: true,
+        data: groups
+      };
+    } catch (error) {
+      console.error('❌ [GROUPS] Error fetching groups:', error);
+      set.status = 500;
+      return {
+        success: false,
+        error: error.message
+      };
     }
   });
 
