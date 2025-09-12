@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia";
-import { AuthService } from "../services/AuthService.pure";
+import { serviceNowAuthClient } from "../services/ServiceNowAuthClient";
 
 // const authService = new AuthService();
 
@@ -8,7 +8,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
     "/login",
     async ({ body }) => {
       const { username, password } = body;
-  return AuthService.login(username, password);
+  return await serviceNowAuthClient.authenticate(username, password);
     },
     {
       body: t.Object({ username: t.String(), password: t.String() })
@@ -18,6 +18,6 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
     "/logout",
     async ({ headers }) => {
       const token = headers["authorization"] || "";
-  return AuthService.logout(token);
+  return await serviceNowAuthClient.logout();
     }
   );

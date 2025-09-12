@@ -3,7 +3,7 @@
 import { Command } from "commander";
 import { ServiceNowService } from "./services/servicenow.service";
 import { BatchService } from "./services/batch.service";
-import { AuthService } from "./services/AuthService.pure";
+import { serviceNowAuthClient } from "./services/ServiceNowAuthClient";
 import { AttachmentService } from "./services/attachment.service";
 import * as dotenv from "dotenv";
 
@@ -21,7 +21,7 @@ program
   .requiredOption("-p, --password <password>")
   .action(async (opts) => {
     const { username, password } = opts;
-    const result = await AuthService.login(username, password);
+    const result = await serviceNowAuthClient.authenticate(username, password);
     console.log(result);
   });
 
