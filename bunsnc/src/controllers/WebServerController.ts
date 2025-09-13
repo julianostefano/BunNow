@@ -14,7 +14,7 @@ import { background } from 'elysia-background';
 
 import { ServiceNowClient } from '../client/ServiceNowClient';
 import { RedisStreamManager } from '../bigdata/redis/RedisStreamManager';
-import { TicketIntegrationService } from '../services/TicketIntegrationService';
+import { ConsolidatedTicketService } from '../services/ConsolidatedTicketService';
 import { ServiceNowAuthClient } from '../services/ServiceNowAuthClient';
 import { EnhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
 import { ServiceNowStreams } from '../config/redis-streams';
@@ -67,7 +67,7 @@ export class WebServerController {
   private config: WebServerConfig;
   private serviceNowClient: ServiceNowClient;
   private redisStreamManager: RedisStreamManager;
-  private ticketIntegrationService: TicketIntegrationService;
+  private consolidatedTicketService: ConsolidatedTicketService;
   private serviceNowAuthClient: ServiceNowAuthClient;
   private enhancedTicketStorageService: EnhancedTicketStorageService | undefined;
   private redisStreams: ServiceNowStreams | undefined;
@@ -95,12 +95,12 @@ export class WebServerController {
       password: this.config.redis.password,
     });
 
-    this.ticketIntegrationService = new TicketIntegrationService(this.serviceNowClient);
-
     this.serviceNowAuthClient = new ServiceNowAuthClient(
       this.config.serviceNow.instanceUrl,
       ''
     );
+
+    this.consolidatedTicketService = new ConsolidatedTicketService(this.serviceNowAuthClient);
 
     console.log('✅ ServiceNow clients initialized');
   }
@@ -270,8 +270,8 @@ export class WebServerController {
     return this.serviceNowClient;
   }
 
-  public getTicketIntegrationService(): TicketIntegrationService {
-    return this.ticketIntegrationService;
+  public getConsolidatedTicketService(): ConsolidatedTicketService {
+    return this.consolidatedTicketService;
   }
 
   public getServiceNowAuthClient(): ServiceNowAuthClient {

@@ -1,10 +1,10 @@
 /**
- * SSE Service Simple Tests
+ * Unified Streaming Service Simple Tests
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { SSEService } from '../services/SSEService';
+import { unifiedStreamingService } from '../services/UnifiedStreamingService';
 import { ServiceNowStreams } from '../config/redis-streams';
 
 // Mock Redis Streams
@@ -20,24 +20,22 @@ const mockRedisStreams = {
   healthCheck: () => Promise.resolve({ status: 'healthy' })
 } as any;
 
-describe('SSE Service Simple Tests', () => {
-  let sseService: SSEService;
-
+describe('Unified Streaming Service Simple Tests', () => {
   beforeEach(() => {
-    sseService = new SSEService(mockRedisStreams);
+    unifiedStreamingService.initialize(mockRedisStreams);
   });
 
   afterEach(() => {
-    sseService.cleanup();
+    unifiedStreamingService.cleanup();
   });
 
-  it('should create SSE service successfully', () => {
-    expect(sseService).toBeDefined();
+  it('should create unified streaming service successfully', () => {
+    expect(unifiedStreamingService).toBeDefined();
   });
 
   it('should create SSE connection for ticket', () => {
     const ticketSysId = 'test-ticket-123';
-    const response = sseService.createTicketSSEConnection(ticketSysId);
+    const response = unifiedStreamingService.createTicketSSEConnection(ticketSysId);
     
     expect(response).toBeInstanceOf(Response);
     expect(response.headers.get('Content-Type')).toBe('text/event-stream');
@@ -46,44 +44,47 @@ describe('SSE Service Simple Tests', () => {
   });
 
   it('should return connection stats', () => {
-    const stats = sseService.getConnectionStats();
+    const stats = unifiedStreamingService.getConnectionStats();
     
     expect(stats).toBeDefined();
     expect(stats.totalConnections).toBe(0);
     expect(stats.ticketConnections).toBeInstanceOf(Map);
+    expect(stats.connectionsByType).toBeDefined();
   });
 
   it('should broadcast message to specific ticket', () => {
     const ticketSysId = 'test-ticket-456';
     const message = {
-      type: 'ticket-updated' as const,
+      event: 'ticket-updated' as const,
       data: {
         sysId: ticketSysId,
         number: 'INC0012345',
-        action: 'updated',
-        state: '2'
+        ticketType: 'incident' as const,
+        action: 'update' as const,
+        state: '2',
+        timestamp: new Date().toISOString()
       },
       timestamp: new Date().toISOString()
     };
 
     // This should not throw even with no active connections
     expect(() => {
-      sseService.broadcastToTicket(ticketSysId, message);
+      unifiedStreamingService.broadcastToTicket(ticketSysId, message);
     }).not.toThrow();
   });
 
   it('should cleanup connections properly', () => {
     expect(() => {
-      sseService.cleanup();
+      unifiedStreamingService.cleanup();
     }).not.toThrow();
   });
 
   it('should handle multiple connection stats correctly', () => {
     // Create a couple of mock connections
-    sseService.createTicketSSEConnection('ticket-1');
-    sseService.createTicketSSEConnection('ticket-2');
+    unifiedStreamingService.createTicketSSEConnection('ticket-1');
+    unifiedStreamingService.createTicketSSEConnection('ticket-2');
     
-    const stats = sseService.getConnectionStats();
+    const stats = unifiedStreamingService.getConnectionStats();
     expect(stats.totalConnections).toBe(2);
   });
 });
