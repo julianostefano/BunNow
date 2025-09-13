@@ -1,382 +1,53 @@
 /**
- * ServiceNow Authentication Client - Real API Integration
- * Based on Python scripts pattern with auth service and tokens
+ * ServiceNow Authentication Client - Unified interface with modular architecture
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
-import { serviceNowRateLimiter } from './ServiceNowRateLimit';
-import Redis from 'ioredis';
-import { RedisCache } from '../bigdata/redis/RedisCache';
-import { RedisStreamManager } from '../bigdata/redis/RedisStreamManager';
-
-export interface AuthServiceResponse {
-  cookies: Array<{
-    name: string;
-    value: string;
-    domain?: string;
-    path?: string;
-  }>;
-  headers: Record<string, string>;
-}
-
-export interface ServiceNowRecord {
-  sys_id: string;
-  number: string;
-  state: string;
-  short_description?: string;
-  assignment_group?: {
-    display_value: string;
-    link: string;
-  };
-  priority?: string;
-  opened_by?: {
-    display_value: string;
-    link: string;
-  };
-  sys_created_on?: string;
-  sys_updated_on?: string;
-  [key: string]: any;
-}
-
-export interface ServiceNowQueryResult {
-  records: ServiceNowRecord[];
-  total: number;
-}
+import { ServiceNowAuthCore, ServiceNowRecord, ServiceNowQueryResult } from './auth/ServiceNowAuthCore';
+import { ServiceNowSLAService } from './auth/ServiceNowSLAService';
+import { ServiceNowQueryService } from './auth/ServiceNowQueryService';
 
 export class ServiceNowAuthClient {
-  private axiosClient: AxiosInstance;
-  private authData: AuthServiceResponse | null = null;
-  private isAuthenticated = false;
-  private lastAuthTime = 0;
-  private authTTL = 30 * 60 * 1000; // 30 minutes
-  private redisCache: RedisCache;
-  private redisStreamManager: RedisStreamManager;
-
-  private readonly AUTH_SERVICE_URL = 'http://10.219.8.210:8000/auth';
-  private readonly SERVICENOW_INSTANCE = 'iberdrola';
-  private readonly SERVICENOW_BASE_URL = `https://${this.SERVICENOW_INSTANCE}.service-now.com`;
-  
-  // Corporate proxy from Python scripts (with authentication for ServiceNow)
-  private readonly PROXY_CONFIG = {
-    host: '10.219.77.12',
-    port: 8080,
-    auth: {
-      username: 'AMER%5CE966380',
-      password: 'Neoenergia%402026'
-    }
-  };
+  private authCore: ServiceNowAuthCore;
+  private slaService: ServiceNowSLAService;
+  private queryService: ServiceNowQueryService;
 
   constructor() {
-    // Set environment variables like Python scripts
-    process.env.http_proxy = 'http://AMER%5CE966380:Neoenergia%402026@10.219.77.12:8080';
-    process.env.https_proxy = 'http://AMER%5CE966380:Neoenergia%402026@10.219.77.12:8080';
-    process.env.no_proxy = '10.219.8.210,localhost,127.0.0.1,ibfs.iberdrola.com,10.219.0.41';
-
-    this.axiosClient = axios.create({
-      baseURL: this.SERVICENOW_BASE_URL,
-      timeout: 240000, // 240 seconds timeout (4 minutes)
-      httpsAgent: new (require('https').Agent)({
-        rejectUnauthorized: false // verify=False from Python
-      }),
-      headers: {
-        'User-Agent': 'BunSNC-ServiceNow-Client/1.0'
-      }
-      // Remove proxy config - let axios use environment variables
-    });
-
-    // Initialize Redis cache
-    const redis = new Redis({
-      host: process.env.REDIS_HOST || '10.219.8.210',
-      port: parseInt(process.env.REDIS_PORT || '6380'),
-      password: process.env.REDIS_PASSWORD || 'nexcdc2025',
-      db: parseInt(process.env.REDIS_DB || '1'),
-      retryDelayOnFailover: 100,
-      enableReadyCheck: false,
-      maxRetriesPerRequest: null,
-    });
-
-    this.redisCache = new RedisCache(redis, {
-      keyPrefix: 'servicenow:cache:',
-      defaultTtl: 120, // 2 minutes for faster refresh
-      enableMetrics: true
-    });
-
-    // Initialize Redis Stream Manager for real-time updates
-    this.redisStreamManager = new RedisStreamManager({
-      host: process.env.REDIS_HOST || '10.219.8.210',
-      port: parseInt(process.env.REDIS_PORT || '6380'),
-      password: process.env.REDIS_PASSWORD || 'nexcdc2025',
-    });
-
-    console.log('🔐 ServiceNow Auth Client initialized with Redis Streams');
-    console.log(`🌐 ServiceNow URL: ${this.SERVICENOW_BASE_URL}`);
-    console.log(`🔄 Using environment proxy variables`);
-    console.log('📦 Redis cache enabled');
+    // Initialize all specialized services
+    this.authCore = new ServiceNowAuthCore();
+    this.slaService = new ServiceNowSLAService();
+    this.queryService = new ServiceNowQueryService();
     
     // Pre-warm cache for critical data on startup
-    this.preWarmCache().catch(error => {
+    this.queryService.preWarmCache().catch(error => {
       console.warn('⚠️ Cache pre-warming failed:', error.message);
     });
+
+    console.log('🚀 ServiceNowAuthClient initialized with modular architecture');
   }
 
-  /**
-   * Authenticate with ServiceNow using auth service pattern from Python scripts
-   */
-  private async authenticate(): Promise<void> {
-    const now = Date.now();
-    
-    // Check if we have valid auth
-    if (this.isAuthenticated && (now - this.lastAuthTime) < this.authTTL) {
-      return;
-    }
-
-    try {
-      console.log('🔑 Authenticating with ServiceNow auth service...');
-      
-      // Get auth data from service (NO_PROXY includes 10.219.8.210)
-      const authResponse = await axios.get(this.AUTH_SERVICE_URL, {
-        timeout: 15000,
-        httpsAgent: new (require('https').Agent)({
-          rejectUnauthorized: false
-        })
-        // No proxy for auth service - it's in NO_PROXY list
-      });
-
-      this.authData = authResponse.data as AuthServiceResponse;
-      
-      if (!this.authData.cookies || !Array.isArray(this.authData.cookies)) {
-        throw new Error('Invalid auth response: missing cookies');
-      }
-
-      // Configure axios client with auth data (like Python session setup)
-      this.configureAxiosWithAuth();
-      
-      this.isAuthenticated = true;
-      this.lastAuthTime = now;
-      
-      console.log(`✅ ServiceNow authentication successful (${this.authData.cookies.length} cookies)`);
-
-    } catch (error: any) {
-      console.error('❌ ServiceNow authentication failed:', error.message);
-      this.isAuthenticated = false;
-      throw new Error(`ServiceNow authentication failed: ${error.message}`);
-    }
+  // === Authentication Methods ===
+  public isAuthValid(): boolean {
+    return this.authCore.isAuthValid();
   }
 
-  /**
-   * Configure axios client with cookies and headers from auth service
-   */
-  private configureAxiosWithAuth(): void {
-    if (!this.authData) return;
-
-    // Set cookies (like Python session.cookies.set)
-    const cookieString = this.authData.cookies
-      .map(cookie => `${cookie.name}=${cookie.value}`)
-      .join('; ');
-
-    this.axiosClient.defaults.headers.common['Cookie'] = cookieString;
-
-    // Set custom headers (like Python session.headers.update)
-    Object.entries(this.authData.headers).forEach(([key, value]) => {
-      this.axiosClient.defaults.headers.common[key] = value;
-    });
-
-    console.log('🔧 Axios configured with ServiceNow auth data');
+  public getBaseUrl(): string {
+    return this.authCore.getBaseUrl();
   }
 
-  /**
-   * Make request with ALL fields (no sysparm_fields limitation)
-   * Used for complete field mapping and analysis
-   */
-  async makeRequestFullFields(table: string, query: string, limit: number = 1): Promise<any> {
-    await this.authenticate();
-    
-    return serviceNowRateLimiter.executeRequest(async () => {
-      try {
-        const url = `${this.SERVICENOW_BASE_URL}/api/now/table/${table}`;
-        const response = await this.axiosClient({
-          method: 'get',
-          url,
-          params: {
-            sysparm_query: query,
-            sysparm_display_value: 'all', // Get both display_value and value for references
-            sysparm_exclude_reference_link: 'true',
-            sysparm_limit: limit
-            // NO sysparm_fields - this captures ALL available fields
-          }
-        });
-        
-        return response.data;
-      } catch (error) {
-        console.error(`ServiceNow full fields ${table} error:`, error);
-        throw error;
-      }
-    });
+  public getCache() {
+    return this.authCore.getCache();
   }
 
-  /**
-   * Get comprehensive SLA data for a specific task/incident
-   * Fetches data from task_sla, contract_sla, and sla_definition tables
-   */
-  async getSLADataForTask(taskSysId: string): Promise<any> {
-    await this.authenticate();
-    
-    return serviceNowRateLimiter.executeRequest(async () => {
-      try {
-        const slaData: any = {
-          task_slas: [],
-          contract_slas: [],
-          sla_definitions: []
-        };
-
-        // Get task_sla records for this specific task
-        const taskSLAUrl = `${this.SERVICENOW_BASE_URL}/api/now/table/task_sla`;
-        const taskSLAResponse = await this.axiosClient({
-          method: 'get',
-          url: taskSLAUrl,
-          params: {
-            sysparm_query: `task=${taskSysId}`,
-            sysparm_display_value: 'all',
-            sysparm_exclude_reference_link: 'true',
-            sysparm_limit: 50
-          }
-        });
-        slaData.task_slas = taskSLAResponse.data.result || [];
-
-        // Get SLA definitions referenced by task_slas
-        const slaDefinitionIds = slaData.task_slas
-          .map((sla: any) => sla.sla?.value)
-          .filter((id: string) => id);
-        
-        if (slaDefinitionIds.length > 0) {
-          const slaDefUrl = `${this.SERVICENOW_BASE_URL}/api/now/table/sla_definition`;
-          const slaDefResponse = await this.axiosClient({
-            method: 'get',
-            url: slaDefUrl,
-            params: {
-              sysparm_query: `sys_idIN${slaDefinitionIds.join(',')}`,
-              sysparm_display_value: 'all',
-              sysparm_exclude_reference_link: 'true'
-            }
-          });
-          slaData.sla_definitions = slaDefResponse.data.result || [];
-        }
-
-        return slaData;
-      } catch (error) {
-        console.error(`ServiceNow SLA data error:`, error);
-        throw error;
-      }
-    });
+  public getStreamManager() {
+    return this.authCore.getStreamManager();
   }
 
-  /**
-   * Get contract SLA data for a company/location
-   */
-  async getContractSLAData(company?: string, location?: string): Promise<any> {
-    await this.authenticate();
-    
-    return serviceNowRateLimiter.executeRequest(async () => {
-      try {
-        let query = 'active=true';
-        
-        if (company) {
-          query += `^company=${company}`;
-        } else if (location) {
-          query += `^location=${location}`;
-        }
-
-        const url = `${this.SERVICENOW_BASE_URL}/api/now/table/contract_sla`;
-        const response = await this.axiosClient({
-          method: 'get',
-          url,
-          params: {
-            sysparm_query: query,
-            sysparm_display_value: 'all',
-            sysparm_exclude_reference_link: 'true',
-            sysparm_limit: 20
-          }
-        });
-        
-        return response.data;
-      } catch (error) {
-        console.error(`ServiceNow contract SLA error:`, error);
-        throw error;
-      }
-    });
-  }
-
-  /**
-   * Get SLA breakdown data for a specific ticket (combines all SLA sources)
-   */
-  async getTicketSLABreakdown(ticketSysId: string): Promise<any> {
-    await this.authenticate();
-    
-    try {
-      // Get basic ticket info first
-      const ticketResponse = await this.makeRequestFullFields('incident', `sys_id=${ticketSysId}`, 1);
-      const ticket = ticketResponse?.result?.[0];
-      
-      if (!ticket) {
-        throw new Error(`Ticket ${ticketSysId} not found`);
-      }
-
-      // Run SLA queries in parallel for better performance
-      const [slaData, contractSLAData] = await Promise.all([
-        this.getSLADataForTask(ticketSysId),
-        this.getContractSLAData(ticket.company?.value, ticket.location?.value)
-      ]);
-
-      return {
-        ticket: {
-          sys_id: ticketSysId,
-          number: ticket.number?.display_value || ticket.number,
-          priority: ticket.priority?.display_value || ticket.priority,
-          urgency: ticket.urgency?.display_value || ticket.urgency,
-          impact: ticket.impact?.display_value || ticket.impact
-        },
-        sla_data: slaData,
-        contract_sla_data: contractSLAData?.result || [],
-        summary: {
-          active_slas: slaData.task_slas?.length || 0,
-          breached_slas: slaData.task_slas?.filter((sla: any) => sla.has_breached?.display_value === 'true').length || 0,
-          contract_slas: contractSLAData?.result?.length || 0
-        }
-      };
-    } catch (error) {
-      console.error(`ServiceNow ticket SLA breakdown error:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Generic method to make ServiceNow API requests (similar to makeRequest pattern)
-   */
+  // === Query Methods ===
   async makeRequest(table: string, method: string = 'GET', params: Record<string, any> = {}): Promise<any> {
-    await this.authenticate();
-    
-    return serviceNowRateLimiter.executeRequest(async () => {
-      try {
-        const url = `${this.SERVICENOW_BASE_URL}/api/now/table/${table}`;
-        const response = await this.axiosClient({
-          method: method.toLowerCase(),
-          url,
-          params
-        });
-        
-        return response.data;
-      } catch (error) {
-        console.error(`ServiceNow ${method} ${table} error:`, error);
-        throw error;
-      }
-    });
+    return this.queryService.makeRequest(table, method, params);
   }
 
-  /**
-   * Paginated request with cache optimization for lazy loading
-   * Always filters by current month
-   */
   async makeRequestPaginated(
     table: string, 
     group: string, 
@@ -390,684 +61,62 @@ export class ServiceNowAuthClient {
     currentPage: number;
     totalPages: number;
   }> {
-    await this.authenticate();
-    
-    // Generate current month filter dynamically
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
-    const monthStart = `${currentYear}-${currentMonth}-01`;
-    const monthEnd = `${currentYear}-${currentMonth}-31`;
-    
-    // Build cache key
-    const cacheKey = `tickets_paginated:${table}:${group}:${state}:${currentMonth}:${page}:${limit}`;
-    
-    try {
-      // Try cache first
-      const cached = await this.redisCache.get(cacheKey);
-      if (cached) {
-        console.log(`🎯 Cache hit for paginated ${table} - page ${page}`);
-        return cached;
-      }
-
-      console.log(`🔍 Getting paginated ${table} - group: ${group}, state: ${state}, page: ${page}`);
-
-      return serviceNowRateLimiter.executeRequest(async () => {
-        try {
-          const offset = (page - 1) * limit;
-          
-          // Build query with current month filter
-          let query = `sys_created_onBETWEEN${monthStart}@${monthEnd}`;
-          
-          // Add state filter if not 'all'
-          if (state !== 'all') {
-            query += `^state=${state}`;
-          }
-          
-          // Add group filter if not 'all'
-          if (group !== 'all') {
-            query += `^assignment_group.nameCONTAINS${group}`;
-          }
-
-          const params = {
-            sysparm_query: query,
-            sysparm_fields: 'sys_id,number,short_description,description,state,priority,urgency,impact,category,subcategory,assignment_group,assigned_to,caller_id,opened_by,sys_created_on,sys_updated_on',
-            sysparm_display_value: 'all',
-            sysparm_exclude_reference_link: 'true',
-            sysparm_limit: limit,
-            sysparm_offset: offset
-          };
-
-          const url = `${this.SERVICENOW_BASE_URL}/api/now/table/${table}`;
-          const response = await this.axiosClient({
-            method: 'get',
-            url,
-            params
-          });
-
-          const data = response.data.result || [];
-          const total = parseInt(response.headers['x-total-count'] || '0') || data.length;
-          const totalPages = Math.ceil(total / limit);
-          const hasMore = page < totalPages;
-
-          const result = {
-            data: data.map(ticket => ({
-              ...ticket,
-              table_name: table,
-              target_group: group
-            })),
-            hasMore,
-            total,
-            currentPage: page,
-            totalPages
-          };
-
-          // Cache result for 2 minutes (aggressive TTL for real-time data)
-          await this.redisCache.set(cacheKey, result, 120);
-          
-          // Stream the data to Redis Streams for real-time updates
-          try {
-            const streamKey = `servicenow:stream:${table}:${currentMonth}`;
-            await this.redisStreamManager.addMessage(streamKey, {
-              table,
-              group,
-              state,
-              page: page.toString(),
-              limit: limit.toString(),
-              total: total.toString(),
-              timestamp: new Date().toISOString(),
-              data_count: result.data.length.toString(),
-              cache_key: cacheKey
-            }, '*', 1000); // Max 1000 messages in stream
-            console.log(`📡 Streamed ${result.data.length} ${table} records to Redis Stream`);
-          } catch (streamError) {
-            console.warn('⚠️ Redis Stream failed, continuing with cache only:', streamError);
-          }
-          
-          return result;
-
-        } catch (error) {
-          console.error(`ServiceNow paginated ${table} error:`, error);
-          throw error;
-        }
-      });
-
-    } catch (error) {
-      console.error(`Error in makeRequestPaginated:`, error);
-      // Return empty result on error
-      return {
-        data: [],
-        hasMore: false,
-        total: 0,
-        currentPage: page,
-        totalPages: 0
-      };
-    }
+    return this.queryService.makeRequestPaginated(table, group, state, page, limit);
   }
 
-  /**
-   * Execute ServiceNow API query with rate limiting
-   */
-  private async executeQuery<T>(
-    table: string, 
-    query: string, 
-    fields?: string
-  ): Promise<T> {
-    await this.authenticate();
-
-    const queryParams: Record<string, string> = {
-      sysparm_query: query,
-      sysparm_display_value: 'all', // Same as Python default
-      sysparm_exclude_reference_link: 'true',
-      sysparm_limit: '1000' // Reasonable limit
-    };
-
-    if (fields) {
-      queryParams.sysparm_fields = fields;
-    }
-
-    const url = `${this.SERVICENOW_BASE_URL}/api/now/table/${table}`;
-
-    return serviceNowRateLimiter.executeRequest(async () => {
-      console.log(`🔍 ServiceNow query: ${table} - ${query.substring(0, 100)}...`);
-      
-      const response = await this.axiosClient.get(url, {
-        params: queryParams
-      });
-
-      if (response.status !== 200) {
-        throw new Error(`ServiceNow API error: ${response.status} ${response.statusText}`);
-      }
-
-      return response.data;
-    }, 'high');
-  }
-
-  /**
-   * Get incidents in waiting state (state = 3) for specific assignment group
-   */
   async getWaitingIncidents(assignmentGroup: string): Promise<ServiceNowRecord[]> {
-    const cacheKey = `waiting_incidents:${assignmentGroup}`;
-    
-    try {
-      // Try cache first
-      const cached = await this.redisCache.get<ServiceNowRecord[]>(cacheKey);
-      if (cached) {
-        console.log(`🎯 Cache hit for waiting incidents: ${assignmentGroup}`);
-        return cached;
-      }
-
-      const query = `assignment_group.nameCONTAINS${assignmentGroup}^state=3`;
-      
-      const result = await this.executeQuery<{ result: ServiceNowRecord[] }>(
-        'incident', 
-        query,
-        'sys_id,number,state,short_description,assignment_group,priority,opened_by,sys_created_on,sys_updated_on'
-      );
-
-      const incidents = result.result || [];
-      
-      // Cache for 5 minutes
-      await this.redisCache.set(cacheKey, incidents, 300);
-      console.log(`📦 Cached ${incidents.length} waiting incidents for: ${assignmentGroup}`);
-
-      return incidents;
-
-    } catch (error: any) {
-      console.error(`❌ Error getting waiting incidents for ${assignmentGroup}:`, error.message);
-      return [];
-    }
+    return this.queryService.getWaitingIncidents(assignmentGroup);
   }
 
-  /**
-   * Get change tasks in work in progress state (state = 3) for specific assignment group
-   */
   async getWaitingChangeTasks(assignmentGroup: string): Promise<ServiceNowRecord[]> {
-    const cacheKey = `waiting_ctasks:${assignmentGroup}`;
-    
-    try {
-      // Try cache first
-      const cached = await this.redisCache.get<ServiceNowRecord[]>(cacheKey);
-      if (cached) {
-        console.log(`🎯 Cache hit for waiting change tasks: ${assignmentGroup}`);
-        return cached;
-      }
-
-      const query = `assignment_group.nameCONTAINS${assignmentGroup}^state=3`;
-      
-      const result = await this.executeQuery<{ result: ServiceNowRecord[] }>(
-        'change_task', 
-        query,
-        'sys_id,number,state,short_description,assignment_group,priority,opened_by,sys_created_on,sys_updated_on'
-      );
-
-      const changeTasks = result.result || [];
-      
-      // Cache for 5 minutes
-      await this.redisCache.set(cacheKey, changeTasks, 300);
-      console.log(`📦 Cached ${changeTasks.length} waiting change tasks for: ${assignmentGroup}`);
-
-      return changeTasks;
-
-    } catch (error: any) {
-      console.error(`❌ Error getting waiting change tasks for ${assignmentGroup}:`, error.message);
-      return [];
-    }
+    return this.queryService.getWaitingChangeTasks(assignmentGroup);
   }
 
-  /**
-   * Get service catalog tasks in work in progress state (state = 3) for specific assignment group
-   */
   async getWaitingServiceCatalogTasks(assignmentGroup: string): Promise<ServiceNowRecord[]> {
-    const cacheKey = `waiting_sctasks:${assignmentGroup}`;
-    
-    try {
-      // Try cache first
-      const cached = await this.redisCache.get<ServiceNowRecord[]>(cacheKey);
-      if (cached) {
-        console.log(`🎯 Cache hit for waiting SC tasks: ${assignmentGroup}`);
-        return cached;
-      }
-
-      const query = `assignment_group.nameCONTAINS${assignmentGroup}^state=3`;
-      
-      const result = await this.executeQuery<{ result: ServiceNowRecord[] }>(
-        'sc_task', 
-        query,
-        'sys_id,number,state,short_description,assignment_group,priority,opened_by,sys_created_on,sys_updated_on'
-      );
-
-      const scTasks = result.result || [];
-      
-      // Cache for 5 minutes
-      await this.redisCache.set(cacheKey, scTasks, 300);
-      console.log(`📦 Cached ${scTasks.length} waiting SC tasks for: ${assignmentGroup}`);
-
-      return scTasks;
-
-    } catch (error: any) {
-      console.error(`❌ Error getting waiting SC tasks for ${assignmentGroup}:`, error.message);
-      return [];
-    }
+    return this.queryService.getWaitingServiceCatalogTasks(assignmentGroup);
   }
 
-  /**
-   * Get all waiting tickets for an assignment group (incidents + change tasks + SC tasks)
-   */
-  async getAllWaitingTickets(assignmentGroup: string): Promise<{
-    incidents: ServiceNowRecord[];
-    changeTasks: ServiceNowRecord[];
-    serviceCatalogTasks: ServiceNowRecord[];
-    total: number;
-  }> {
-    console.log(`📊 Getting all waiting tickets for: ${assignmentGroup}`);
-
-    try {
-      // Execute all queries in parallel (with rate limiting)
-      const [incidents, changeTasks, serviceCatalogTasks] = await Promise.all([
-        this.getWaitingIncidents(assignmentGroup),
-        this.getWaitingChangeTasks(assignmentGroup),
-        this.getWaitingServiceCatalogTasks(assignmentGroup)
-      ]);
-
-      const total = incidents.length + changeTasks.length + serviceCatalogTasks.length;
-
-      console.log(`📈 Results for ${assignmentGroup}: ${incidents.length} incidents, ${changeTasks.length} change tasks, ${serviceCatalogTasks.length} SC tasks (Total: ${total})`);
-
-      return {
-        incidents,
-        changeTasks,
-        serviceCatalogTasks,
-        total
-      };
-
-    } catch (error: any) {
-      console.error(`❌ Error getting all waiting tickets for ${assignmentGroup}:`, error.message);
-      return {
-        incidents: [],
-        changeTasks: [],
-        serviceCatalogTasks: [],
-        total: 0
-      };
-    }
+  async searchTickets(
+    searchTerm: string, 
+    tables: string[] = ['incident', 'change_task', 'sc_task'],
+    limit: number = 50
+  ): Promise<ServiceNowRecord[]> {
+    return this.queryService.searchTickets(searchTerm, tables, limit);
   }
 
-  /**
-   * Get waiting tickets summary for multiple groups
-   */
-  async getWaitingTicketsSummary(assignmentGroups: string[]): Promise<Array<{
-    grupo: string;
-    incidents_waiting: number;
-    ctasks_waiting: number;
-    sctasks_waiting: number;
-    total_waiting: number;
-  }>> {
-    const cacheKey = `waiting_summary:${assignmentGroups.join('|')}`;
-    
-    try {
-      // Try cache first
-      const cached = await this.redisCache.get(cacheKey);
-      if (cached) {
-        console.log(`🎯 Cache hit for waiting tickets summary`);
-        return cached;
-      }
-
-      console.log(`🔍 Getting waiting tickets summary for ${assignmentGroups.length} groups...`);
-
-      const results = [];
-
-      for (const group of assignmentGroups) {
-        try {
-          const data = await this.getAllWaitingTickets(group);
-          
-          results.push({
-            grupo: group,
-            incidents_waiting: data.incidents.length,
-            ctasks_waiting: data.changeTasks.length,
-            sctasks_waiting: data.serviceCatalogTasks.length,
-            total_waiting: data.total
-          });
-
-        } catch (error: any) {
-          console.error(`❌ Error processing group ${group}:`, error.message);
-          
-          results.push({
-            grupo: group,
-            incidents_waiting: 0,
-            ctasks_waiting: 0,
-            sctasks_waiting: 0,
-            total_waiting: 0
-          });
-        }
-      }
-
-      // Cache summary for 3 minutes (shorter TTL for aggregated data)
-      await this.redisCache.set(cacheKey, results, 180);
-      console.log(`📦 Cached waiting tickets summary for ${assignmentGroups.length} groups`);
-
-      return results;
-
-    } catch (error: any) {
-      console.error(`❌ Error getting waiting tickets summary:`, error.message);
-      return assignmentGroups.map(grupo => ({
-        grupo,
-        incidents_waiting: 0,
-        ctasks_waiting: 0,
-        sctasks_waiting: 0,
-        total_waiting: 0
-      }));
-    }
+  // === SLA Methods ===
+  async makeRequestFullFields(table: string, query: string, limit: number = 1): Promise<any> {
+    return this.slaService.makeRequestFullFields(table, query, limit);
   }
 
-  /**
-   * Get detailed waiting tickets for specific groups
-   */
-  async getWaitingTicketsDetails(assignmentGroups: string[]): Promise<any[]> {
-    console.log(`📋 Getting detailed waiting tickets for ${assignmentGroups.length} groups...`);
-
-    const allTickets = [];
-
-    for (const group of assignmentGroups) {
-      try {
-        const data = await this.getAllWaitingTickets(group);
-
-        // Add incidents
-        data.incidents.forEach(incident => {
-          allTickets.push({
-            tipo_chamado: 'incident',
-            numero: incident.number,
-            estado_numero: incident.state,
-            status_portugues: 'Em Espera',
-            descricao: incident.short_description || '',
-            grupo_atribuicao: incident.assignment_group?.display_value || '',
-            data_criacao: incident.sys_created_on || '',
-            data_atualizacao: incident.sys_updated_on || '',
-            sys_id: incident.sys_id,
-            prioridade: incident.priority || '',
-            opened_by: incident.opened_by?.display_value || ''
-          });
-        });
-
-        // Add change tasks
-        data.changeTasks.forEach(ctask => {
-          allTickets.push({
-            tipo_chamado: 'change_task',
-            numero: ctask.number,
-            estado_numero: ctask.state,
-            status_portugues: 'Work in Progress',
-            descricao: ctask.short_description || '',
-            grupo_atribuicao: ctask.assignment_group?.display_value || '',
-            data_criacao: ctask.sys_created_on || '',
-            data_atualizacao: ctask.sys_updated_on || '',
-            sys_id: ctask.sys_id,
-            prioridade: ctask.priority || '',
-            opened_by: ctask.opened_by?.display_value || ''
-          });
-        });
-
-        // Add service catalog tasks
-        data.serviceCatalogTasks.forEach(sctask => {
-          allTickets.push({
-            tipo_chamado: 'sc_task',
-            numero: sctask.number,
-            estado_numero: sctask.state,
-            status_portugues: 'Work in Progress',
-            descricao: sctask.short_description || '',
-            grupo_atribuicao: sctask.assignment_group?.display_value || '',
-            data_criacao: sctask.sys_created_on || '',
-            data_atualizacao: sctask.sys_updated_on || '',
-            sys_id: sctask.sys_id,
-            prioridade: sctask.priority || '',
-            opened_by: sctask.opened_by?.display_value || ''
-          });
-        });
-
-      } catch (error: any) {
-        console.error(`❌ Error getting details for group ${group}:`, error.message);
-      }
-    }
-
-    // Sort by creation date (newest first)
-    allTickets.sort((a, b) => {
-      const dateA = new Date(a.data_criacao || 0).getTime();
-      const dateB = new Date(b.data_criacao || 0).getTime();
-      return dateB - dateA;
-    });
-
-    return allTickets;
+  async getSLADataForTask(taskSysId: string): Promise<any> {
+    return this.slaService.getSLADataForTask(taskSysId);
   }
 
-  /**
-   * Get cache metrics
-   */
-  getCacheMetrics() {
-    return this.redisCache.getMetrics();
+  async getContractSLAData(company?: string, location?: string): Promise<any> {
+    return this.slaService.getContractSLAData(company, location);
   }
 
-  /**
-   * Invalidate cache for specific group
-   */
-  async invalidateGroupCache(assignmentGroup: string): Promise<void> {
-    try {
-      await Promise.all([
-        this.redisCache.del(`waiting_incidents:${assignmentGroup}`),
-        this.redisCache.del(`waiting_ctasks:${assignmentGroup}`),
-        this.redisCache.del(`waiting_sctasks:${assignmentGroup}`)
-      ]);
-      
-      // Invalidate summary caches that might include this group
-      await this.redisCache.invalidatePattern('waiting_summary:*');
-      
-      console.log(`🗑️ Cache invalidated for group: ${assignmentGroup}`);
-    } catch (error: any) {
-      console.error(`❌ Error invalidating cache for ${assignmentGroup}:`, error.message);
-    }
+  async getTicketSLABreakdown(ticketSysId: string): Promise<any> {
+    return this.slaService.getTicketSLABreakdown(ticketSysId);
   }
 
-  /**
-   * Clear all waiting tickets cache
-   */
-  async clearCache(): Promise<void> {
-    try {
-      await this.redisCache.invalidatePattern('waiting_*');
-      console.log(`🗑️ All waiting tickets cache cleared`);
-    } catch (error: any) {
-      console.error(`❌ Error clearing cache:`, error.message);
-    }
+  async getSLAPerformanceMetrics(
+    startDate: string, 
+    endDate: string, 
+    slaType?: string
+  ): Promise<any> {
+    return this.slaService.getSLAPerformanceMetrics(startDate, endDate, slaType);
   }
 
-  /**
-   * Get health status of ServiceNow connection
-   */
-  async getHealthStatus(): Promise<{
-    status: 'healthy' | 'unhealthy';
-    details: any;
-  }> {
-    try {
-      await this.authenticate();
-      
-      const testQuery = 'sys_idISNOTEMPTY';
-      const startTime = Date.now();
-      
-      await this.executeQuery('incident', testQuery);
-      
-      const duration = Date.now() - startTime;
-      
-      return {
-        status: 'healthy',
-        details: {
-          instance: this.SERVICENOW_INSTANCE,
-          authService: this.AUTH_SERVICE_URL,
-          authenticated: this.isAuthenticated,
-          lastAuthTime: new Date(this.lastAuthTime).toISOString(),
-          testQueryDuration: duration,
-          cookiesCount: this.authData?.cookies?.length || 0
-        }
-      };
-
-    } catch (error: any) {
-      return {
-        status: 'unhealthy',
-        details: {
-          error: error.message,
-          authenticated: this.isAuthenticated,
-          lastAuthTime: this.lastAuthTime ? new Date(this.lastAuthTime).toISOString() : null
-        }
-      };
-    }
-  }
-
-  /**
-   * Pre-warm cache with critical data for faster initial loading
-   */
-  private async preWarmCache(): Promise<void> {
-    console.log('🔥 Starting cache pre-warming...');
-    
-    try {
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
-      
-      // Pre-warm most common queries
-      const preWarmQueries = [
-        // Critical incident tickets (highest priority)
-        { table: 'incident', group: 'all', state: 'in_progress', page: 1, limit: 10 },
-        { table: 'incident', group: 'L2-NE-IT NETWORK', state: 'in_progress', page: 1, limit: 10 },
-        
-        // Change tasks
-        { table: 'change_task', group: 'all', state: 'in_progress', page: 1, limit: 10 },
-        
-        // Service catalog tasks
-        { table: 'sc_task', group: 'all', state: 'in_progress', page: 1, limit: 10 },
-      ];
-
-      // Execute pre-warming in parallel with limited concurrency
-      const concurrentLimit = 3;
-      for (let i = 0; i < preWarmQueries.length; i += concurrentLimit) {
-        const batch = preWarmQueries.slice(i, i + concurrentLimit);
-        await Promise.allSettled(
-          batch.map(query => 
-            this.makeRequestPaginated(query.table, query.group, query.state, query.page, query.limit)
-              .catch(error => console.warn(`Pre-warm failed for ${query.table}:`, error.message))
-          )
-        );
-        
-        // Small delay between batches to avoid overwhelming the API
-        if (i + concurrentLimit < preWarmQueries.length) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-      }
-
-      console.log(`✅ Cache pre-warming completed for month ${currentYear}-${currentMonth}`);
-      
-    } catch (error) {
-      console.error('❌ Cache pre-warming failed:', error);
-    }
-  }
-
-  /**
-   * Create a new record in ServiceNow
-   */
-  async createRecord(table: string, data: any): Promise<any> {
-    await this.authenticate();
-    
-    return serviceNowRateLimiter.executeRequest(async () => {
-      try {
-        const url = `${this.SERVICENOW_BASE_URL}/api/now/table/${table}`;
-        const response = await this.axiosClient({
-          method: 'post',
-          url,
-          data,
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        console.log(`✅ Created ${table} record: ${response.data?.result?.sys_id}`);
-        return response.data?.result;
-      } catch (error) {
-        console.error(`❌ ServiceNow CREATE ${table} error:`, error);
-        throw error;
-      }
-    });
-  }
-
-  /**
-   * Update an existing record in ServiceNow
-   */
-  async updateRecord(table: string, sysId: string, data: any): Promise<any> {
-    await this.authenticate();
-    
-    return serviceNowRateLimiter.executeRequest(async () => {
-      try {
-        const url = `${this.SERVICENOW_BASE_URL}/api/now/table/${table}/${sysId}`;
-        const response = await this.axiosClient({
-          method: 'put',
-          url,
-          data,
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        console.log(`✅ Updated ${table} record: ${sysId}`);
-        return response.data?.result;
-      } catch (error) {
-        console.error(`❌ ServiceNow UPDATE ${table}/${sysId} error:`, error);
-        throw error;
-      }
-    });
-  }
-
-  /**
-   * Delete a record from ServiceNow
-   */
-  async deleteRecord(table: string, sysId: string): Promise<any> {
-    await this.authenticate();
-    
-    return serviceNowRateLimiter.executeRequest(async () => {
-      try {
-        const url = `${this.SERVICENOW_BASE_URL}/api/now/table/${table}/${sysId}`;
-        const response = await this.axiosClient({
-          method: 'delete',
-          url
-        });
-        
-        console.log(`✅ Deleted ${table} record: ${sysId}`);
-        return { success: true, sys_id: sysId };
-      } catch (error) {
-        console.error(`❌ ServiceNow DELETE ${table}/${sysId} error:`, error);
-        throw error;
-      }
-    });
-  }
-
-  /**
-   * Get a specific record by sys_id
-   */
-  async getRecord(table: string, sysId: string): Promise<any> {
-    await this.authenticate();
-    
-    return serviceNowRateLimiter.executeRequest(async () => {
-      try {
-        const url = `${this.SERVICENOW_BASE_URL}/api/now/table/${table}/${sysId}`;
-        const response = await this.axiosClient({
-          method: 'get',
-          url,
-          params: {
-            sysparm_display_value: 'all',
-            sysparm_exclude_reference_link: 'true'
-          }
-        });
-        
-        return response.data?.result;
-      } catch (error) {
-        console.error(`❌ ServiceNow GET ${table}/${sysId} error:`, error);
-        throw error;
-      }
-    });
+  // === Legacy compatibility methods ===
+  async preWarmCache(): Promise<void> {
+    return this.queryService.preWarmCache();
   }
 }
 
-// Export singleton instance
+// Create singleton instance for global use
 export const serviceNowAuthClient = new ServiceNowAuthClient();
+
+// Export types for compatibility
+export type { ServiceNowRecord, ServiceNowQueryResult };

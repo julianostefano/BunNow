@@ -1,0 +1,293 @@
+/**
+ * HTMX Dashboard Styles - ElysiaJS Theme
+ * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
+ */
+
+/* ElysiaJS Theme - Dark Background with Modern Gradients */
+:root {
+    --elysia-primary: #3b82f6;
+    --elysia-primary-dark: #1d4ed8;
+    --elysia-secondary: #8b5cf6;
+    --elysia-accent: #06b6d4;
+    --elysia-bg-primary: #0f172a;
+    --elysia-bg-secondary: #1e293b;
+    --elysia-bg-tertiary: #334155;
+    --elysia-text-primary: #f8fafc;
+    --elysia-text-secondary: #cbd5e1;
+    --elysia-text-muted: #64748b;
+    --elysia-border: #475569;
+    --elysia-border-light: #64748b;
+}
+
+/* Base Styles and Transitions */
+.htmx-request { 
+    opacity: 0.7; 
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+    position: relative;
+}
+.htmx-request::after { 
+    content: ""; 
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--elysia-primary);
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: 8px;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Status Badges - ElysiaJS Style */
+.status-badge { 
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    backdrop-filter: blur(8px);
+}
+.status-novo { 
+    background: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+.status-andamento { 
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.status-resolvido { 
+    background: rgba(16, 185, 129, 0.2);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.status-fechado { 
+    background: rgba(107, 114, 128, 0.2);
+    color: #d1d5db;
+    border: 1px solid rgba(107, 114, 128, 0.3);
+}
+.status-cancelado { 
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Metric Cards - ElysiaJS Glass Morphism */
+.metric-card { 
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.6) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+}
+.metric-card:hover {
+    background: linear-gradient(135deg, rgba(51, 65, 85, 0.9) 0%, rgba(71, 85, 105, 0.7) 100%);
+    transform: translateY(-2px);
+    border-color: var(--elysia-primary);
+}
+
+/* Ticket Cards - Enhanced Glass Effect */
+.ticket-card { 
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(51, 65, 85, 0.5) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(8px);
+}
+.ticket-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    border-color: var(--elysia-primary);
+    background: linear-gradient(135deg, var(--elysia-bg-tertiary) 0%, rgba(51, 65, 85, 0.9) 100%);
+}
+
+/* Loading Animation */
+.loading-skeleton { 
+    background: linear-gradient(90deg, var(--elysia-bg-secondary) 25%, var(--elysia-bg-tertiary) 50%, var(--elysia-bg-secondary) 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+    backdrop-filter: blur(8px);
+}
+
+/* Loading Input - Enhanced Elysia Style */
+.loading-input { 
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+    border: 1px solid var(--elysia-border);
+}
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.pulse-loading { 
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .5; }
+}
+
+/* Fade In Animation */
+.fade-in { 
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Modal Backdrop - ElysiaJS Enhanced */
+.modal-backdrop { 
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(12px);
+    animation: backdropFadeIn 0.3s ease-out;
+    backdrop-filter: blur(8px);
+}
+@keyframes backdropFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Modal Content - Elysia Glass Effect */
+.modal-content { 
+    background: linear-gradient(135deg, var(--elysia-bg-secondary) 0%, var(--elysia-bg-tertiary) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(16px);
+    animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--elysia-text-primary);
+}
+@keyframes modalSlideIn {
+    from { 
+        opacity: 0; 
+        transform: scale(0.8) translateY(-20px);
+    }
+    to { 
+        opacity: 1; 
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Search Input - Enhanced ElysiaJS Style */
+.search-input { 
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(51, 65, 85, 0.6) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--elysia-text-primary);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(8px);
+}
+.search-input:focus {
+    outline: none;
+    border-color: var(--elysia-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    background: rgba(30, 41, 59, 0.8);
+}
+.search-input::placeholder {
+    color: var(--elysia-text-muted);
+}
+
+/* Animated Button - ElysiaJS Style */
+.btn-animated { 
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, var(--elysia-primary) 0%, var(--elysia-primary-dark) 100%);
+}
+.btn-animated:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+}
+.btn-animated:active {
+    transform: translateY(0);
+}
+
+/* Notification - Enhanced Glass Effect */
+.notification { 
+    background: linear-gradient(135deg, var(--elysia-bg-secondary) 0%, var(--elysia-bg-tertiary) 100%);
+    backdrop-filter: blur(16px);
+    animation: notificationSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+@keyframes notificationSlideIn {
+    from { 
+        opacity: 0; 
+        transform: translateX(100%) translateY(-50%);
+    }
+    to { 
+        opacity: 1; 
+        transform: translateX(0) translateY(0);
+    }
+}
+
+/* Status Classes */
+.status-1 { 
+    background: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+.status-2 { 
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.status-3 { 
+    background: rgba(251, 146, 60, 0.2);
+    color: #fdba74;
+    border: 1px solid rgba(251, 146, 60, 0.3);
+}
+.status-6 { 
+    background: rgba(16, 185, 129, 0.2);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.status-7 { 
+    background: rgba(107, 114, 128, 0.2);
+    color: #d1d5db;
+    border: 1px solid rgba(107, 114, 128, 0.3);
+}
+.status-8 { 
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Priority Classes */
+.priority-1 { 
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+.priority-2 { 
+    background: rgba(251, 146, 60, 0.2);
+    color: #fdba74;
+    border: 1px solid rgba(251, 146, 60, 0.3);
+}
+.priority-3 { 
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.priority-4 { 
+    background: rgba(16, 185, 129, 0.2);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.priority-5 { 
+    background: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+/* Table Responsive */
+.table-responsive {
+    overflow-x: auto;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Header Gradient */
+.header-gradient {
+    background: linear-gradient(135deg, var(--elysia-primary) 0%, var(--elysia-secondary) 100%);
+}
