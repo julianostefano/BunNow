@@ -1,0 +1,167 @@
+{
+  "name": "bunsnc-e2e-tests",
+  "version": "3.0.0",
+  "description": "End-to-End Testing Configuration for BunSNC Phase 3",
+  "author": "Juliano Stefano <jsdealencar@ayesa.com> [2025]",
+  "scripts": {
+    "test:e2e": "bun test src/tests/e2e/ --timeout 120000",
+    "test:e2e:critical": "bun test src/tests/e2e/critical-flows.e2e.test.ts --timeout 180000",
+    "test:e2e:workflows": "bun test src/tests/e2e/workflow-scenarios.e2e.test.ts --timeout 180000",
+    "test:e2e:runner": "bun test src/tests/e2e/test-runner.e2e.ts --timeout 300000",
+    "test:e2e:watch": "bun test src/tests/e2e/ --watch",
+    "test:e2e:coverage": "bun test src/tests/e2e/ --coverage",
+    "test:e2e:report": "bun test src/tests/e2e/ --reporter=json > e2e-test-results.json"
+  },
+  "test": {
+    "timeout": 120000,
+    "bail": false,
+    "verbose": true,
+    "coverage": {
+      "enabled": true,
+      "include": [
+        "src/services/**/*.ts",
+        "src/controllers/**/*.ts",
+        "src/routes/**/*.ts"
+      ],
+      "exclude": [
+        "src/tests/**/*.ts",
+        "src/**/*.test.ts",
+        "src/**/*.spec.ts"
+      ],
+      "threshold": {
+        "lines": 80,
+        "functions": 75,
+        "branches": 70,
+        "statements": 80
+      }
+    },
+    "setupFiles": [
+      "src/tests/e2e/e2e.config.ts"
+    ],
+    "testNamePattern": ".*\\.e2e\\.(test|spec)\\.(js|ts)$"
+  },
+  "env": {
+    "NODE_ENV": "test",
+    "E2E_TEST_MODE": "true",
+    "MOCK_SERVICES": "true",
+    "LOG_LEVEL": "info",
+    "E2E_CLEANUP": "true",
+    "SNC_INSTANCE_URL": "https://dev-instance.service-now.com",
+    "MONGODB_URL": "mongodb://localhost:27017/bunsnc_e2e_test",
+    "REDIS_HOST": "localhost",
+    "REDIS_PORT": "6379",
+    "MOCK_SNC_DELAY": "100",
+    "MOCK_SNC_FAILURE_RATE": "0.01",
+    "MOCK_SNC_FAILURES": "false",
+    "MOCK_MONGO_DELAY": "50",
+    "MOCK_MONGO_QUERY_DELAY": "75",
+    "MOCK_MONGO_SLOW_QUERIES": "false",
+    "MOCK_REDIS_DELAY": "25",
+    "MOCK_REDIS_DROP_RATE": "0.005",
+    "MOCK_REDIS_LATENCY": "false"
+  },
+  "performance": {
+    "benchmarks": {
+      "ticketCreation": 2000,
+      "ticketRetrieval": 1000,
+      "streamingLatency": 500,
+      "hybridQuery": 3000,
+      "batchProcessing": 5000
+    },
+    "thresholds": {
+      "responseTime": 5000,
+      "throughput": 100,
+      "concurrentConnections": 500,
+      "memoryUsage": 512,
+      "errorRate": 1.0
+    },
+    "load": {
+      "concurrentUsers": 50,
+      "rampUpTime": 30,
+      "testDuration": 300,
+      "operationsPerUser": 20
+    }
+  },
+  "reporting": {
+    "formats": ["console", "json", "html"],
+    "outputDirectory": "test-results/e2e",
+    "includeMetrics": true,
+    "includeLogs": true,
+    "includeScreenshots": false,
+    "retentionDays": 30
+  },
+  "testCategories": {
+    "critical": {
+      "description": "Critical system functionality tests",
+      "timeout": 180000,
+      "retries": 2,
+      "priority": "high"
+    },
+    "workflow": {
+      "description": "Business workflow scenario tests",
+      "timeout": 180000,
+      "retries": 1,
+      "priority": "high"
+    },
+    "performance": {
+      "description": "Performance and load testing",
+      "timeout": 300000,
+      "retries": 0,
+      "priority": "medium"
+    },
+    "integration": {
+      "description": "Service integration tests",
+      "timeout": 120000,
+      "retries": 1,
+      "priority": "medium"
+    },
+    "regression": {
+      "description": "Regression testing suite",
+      "timeout": 60000,
+      "retries": 1,
+      "priority": "low"
+    }
+  },
+  "hooks": {
+    "beforeAll": [
+      "Initialize test environment",
+      "Setup mock services",
+      "Validate service health"
+    ],
+    "beforeEach": [
+      "Reset test state",
+      "Clear cache",
+      "Initialize test data"
+    ],
+    "afterEach": [
+      "Cleanup test data",
+      "Close connections",
+      "Collect metrics"
+    ],
+    "afterAll": [
+      "Generate test report",
+      "Cleanup environment",
+      "Archive test results"
+    ]
+  },
+  "monitoring": {
+    "metrics": [
+      "executionTime",
+      "memoryUsage",
+      "connectionCount",
+      "errorRate",
+      "throughput",
+      "latency"
+    ],
+    "alerts": {
+      "performanceThreshold": 5000,
+      "errorRateThreshold": 5.0,
+      "memoryThreshold": 1024
+    },
+    "logging": {
+      "level": "info",
+      "includeTimestamps": true,
+      "includeStackTraces": true
+    }
+  }
+}
