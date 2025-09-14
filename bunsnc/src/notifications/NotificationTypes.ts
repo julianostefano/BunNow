@@ -81,7 +81,7 @@ export interface TaskNotification extends BaseNotification {
     taskType: string;
     status: string;
     progress?: number;
-    result?: any;
+    result?: Record<string, unknown>;
     error?: string;
     estimatedCompletion?: Date;
     duration?: number;
@@ -94,7 +94,7 @@ export interface SystemNotification extends BaseNotification {
   data: {
     component: string;
     message: string;
-    details?: any;
+    details?: Record<string, unknown>;
     metrics?: {
       cpu: number;
       memory: number;
@@ -113,7 +113,7 @@ export interface ServiceNowNotification extends BaseNotification {
     recordNumber?: string;
     tableName: string;
     action: 'created' | 'updated' | 'deleted' | 'connected' | 'disconnected';
-    recordData?: any;
+    recordData?: Record<string, unknown>;
     connectionStatus?: 'connected' | 'disconnected' | 'error';
     instance?: string;
   };
@@ -178,7 +178,7 @@ export interface WebSocketMessage {
   type: 'subscribe' | 'unsubscribe' | 'ping' | 'pong' | 'notification' | 'error';
   channel?: string;
   channels?: string[];
-  data?: any;
+  data?: Record<string, unknown>;
   timestamp?: Date;
   clientId?: string;
 }

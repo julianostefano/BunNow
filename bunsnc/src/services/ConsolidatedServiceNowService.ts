@@ -87,7 +87,7 @@ export interface CreateNoteRequest {
 export interface BatchOperation {
   op: 'create' | 'read' | 'update' | 'delete';
   table: string;
-  data?: any;
+  data?: Record<string, any>;
   sys_id?: string;
 }
 
@@ -293,7 +293,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
       const previousState = currentTicket.state;
 
       // Prepare update data
-      const updateData: any = {
+      const updateData: Record<string, string> = {
         state: '6', // Resolved
         resolution_code: request.resolutionCode,
         resolved_at: new Date().toISOString(),
@@ -435,7 +435,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
     try {
       logger.info(`👤 [ServiceNow] Assigning ticket ${request.table}/${request.sysId}`);
 
-      const updateData: any = {};
+      const updateData: Record<string, string> = {};
 
       if (request.assignedTo) {
         updateData.assigned_to = request.assignedTo;
@@ -489,7 +489,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         limit: 100
       });
 
-      const notes: ServiceNowNote[] = response.map((note: any) => ({
+      const notes: ServiceNowNote[] = response.map((note: ServiceNowRecord) => ({
         sys_id: this.extractValue(note.sys_id),
         value: this.extractValue(note.value),
         sys_created_on: this.extractValue(note.sys_created_on),
@@ -632,7 +632,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
     try {
       logger.info(`🔄 [ServiceNow] Executing batch of ${operations.length} operations`);
 
-      const results: any[] = [];
+      const results: Array<{ success: boolean; operation: BatchOperation; result?: any; error?: string }> = [];
 
       for (let i = 0; i < operations.length; i++) {
         const operation = operations[i];
@@ -664,7 +664,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
             data: result
           });
 
-        } catch (error: any) {
+        } catch (error: unknown) {
           logger.error(`❌ [ServiceNow] Batch operation failed:`, operation, error);
           results.push({
             success: false,
@@ -869,7 +869,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
 
   // ==================== UTILITY METHODS ====================
 
-  private extractValue(field: any): string {
+  private extractValue(field: unknown): string {
     if (typeof field === 'string') return field;
     if (field && typeof field === 'object') {
       return field.display_value || field.value || '';
