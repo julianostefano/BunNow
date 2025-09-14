@@ -702,7 +702,47 @@ export class NotificationManager extends EventEmitter {
       };
 
       console.log(`Push notification prepared for ${notification.id}:`, pushPayload);
-      // TODO: Send to Web Push service using vapid keys
+
+      // Send to Web Push service using vapid keys
+      if (this.config.push.vapidKeys) {
+        try {
+          const webpush = await import('web-push');
+
+          webpush.setVapidDetails(
+            'mailto:notifications@company.com',
+            this.config.push.vapidKeys.publicKey,
+            this.config.push.vapidKeys.privateKey
+          );
+
+          // Get push subscriptions from storage (would be stored in database)
+          const subscriptions = await this.getPushSubscriptions(notification);
+
+          if (subscriptions.length > 0) {
+            const pushPromises = subscriptions.slice(0, this.config.push.maxSubscriptions).map(async (subscription) => {
+              try {
+                await webpush.sendNotification(subscription, JSON.stringify(pushPayload));
+                console.log(`✓ Push notification sent successfully to subscription ${subscription.endpoint.substr(-20)}...`);
+              } catch (error) {
+                console.error(`❌ Push notification failed for subscription ${subscription.endpoint.substr(-20)}...:`, error);
+                // Remove invalid subscriptions
+                if (error.statusCode === 410 || error.statusCode === 404) {
+                  await this.removePushSubscription(subscription.endpoint);
+                }
+              }
+            });
+
+            await Promise.allSettled(pushPromises);
+            console.log(`✓ Push notification batch completed for ${notification.id}`);
+          } else {
+            console.log(`⚠️  No push subscriptions found for notification ${notification.id}`);
+          }
+        } catch (importError) {
+          console.error('web-push module not available, installing with: bun add web-push');
+          console.log(`⚠️  Push notification ${notification.id} logged only - web-push module required`);
+        }
+      } else {
+        console.log(`⚠️  VAPID keys not configured, push notification ${notification.id} logged only`);
+      }
       
     } catch (error) {
       console.error('Push notification delivery failed:', error);
@@ -732,7 +772,23 @@ export class NotificationManager extends EventEmitter {
         to: emailContent.to,
         subject: emailContent.subject
       });
-      // TODO: Send using SMTP configuration
+
+      // Send using SMTP configuration
+      if (this.config.email.smtp) {
+        const nodemailer = await import('nodemailer');
+
+        const transporter = nodemailer.createTransporter({
+          host: this.config.email.smtp.host,
+          port: this.config.email.smtp.port,
+          secure: this.config.email.smtp.secure,
+          auth: this.config.email.smtp.auth
+        });
+
+        await transporter.sendMail(emailContent);
+        console.log(`✓ Email notification sent successfully for ${notification.id}`);
+      } else {
+        console.log(`⚠️  Email SMTP configuration not provided, notification ${notification.id} logged only`);
+      }
       
     } catch (error) {
       console.error('Email notification delivery failed:', error);
@@ -761,18 +817,42 @@ export class NotificationManager extends EventEmitter {
       
       for (const url of webhookUrls) {
         console.log(`Webhook notification prepared for ${url}:`, webhookPayload);
-        // TODO: Implement HTTP POST with retry logic
-        /*
-        await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Notification-ID': notification.id,
-            'X-Notification-Signature': this.generateWebhookSignature(webhookPayload)
-          },
-          body: JSON.stringify(webhookPayload)
-        });
-        */
+
+        // Implement HTTP POST with retry logic
+        let retryCount = 0;
+        const maxRetries = this.config.webhook.maxRetries;
+
+        while (retryCount <= maxRetries) {
+          try {
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Notification-ID': notification.id,
+                'X-Notification-Type': notification.type,
+                'User-Agent': 'BunSNC-Notification-Service/1.0'
+              },
+              body: JSON.stringify(webhookPayload)
+            });
+
+            if (response.ok) {
+              console.log(`✓ Webhook notification sent successfully to ${url} for ${notification.id}`);
+              break;
+            } else {
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+          } catch (error) {
+            retryCount++;
+            if (retryCount > maxRetries) {
+              console.error(`❌ Webhook delivery failed after ${maxRetries} retries to ${url}:`, error);
+              throw error;
+            } else {
+              const backoffMs = Math.min(1000 * Math.pow(2, retryCount - 1), 10000); // Exponential backoff, max 10s
+              console.warn(`⚠️  Webhook attempt ${retryCount} failed for ${url}, retrying in ${backoffMs}ms:`, error.message);
+              await new Promise(resolve => setTimeout(resolve, backoffMs));
+            }
+          }
+        }
       }
       
     } catch (error) {
@@ -798,10 +878,19 @@ export class NotificationManager extends EventEmitter {
       };
 
       console.log(`Database notification record prepared for ${notification.id}:`, dbRecord);
-      // TODO: Insert into database table 'notifications'
-      /*
-      await db.insert('notifications', dbRecord);
-      */
+
+      // Insert into database table 'notifications'
+      try {
+        const mongodb = await import('../config/mongodb');
+        const client = await mongodb.getMongoClient();
+        const db = client.db();
+
+        const result = await db.collection('notifications').insertOne(dbRecord);
+        console.log(`✓ Database notification stored successfully with ID ${result.insertedId} for ${notification.id}`);
+      } catch (dbError) {
+        console.error(`❌ Database storage failed for notification ${notification.id}:`, dbError);
+        console.log(`⚠️  Database notification ${notification.id} logged only - MongoDB connection required`);
+      }
       
     } catch (error) {
       console.error('Database notification storage failed:', error);
@@ -971,5 +1060,58 @@ export class NotificationManager extends EventEmitter {
     }
     
     return urls.filter((url, index, self) => self.indexOf(url) === index); // Remove duplicates
+  }
+
+  /**
+   * Get push subscriptions for a notification
+   * In production, this would query a database table of user subscriptions
+   */
+  private async getPushSubscriptions(notification: Notification): Promise<any[]> {
+    try {
+      const mongodb = await import('../config/mongodb');
+      const client = await mongodb.getMongoClient();
+      const db = client.db();
+
+      // Query subscriptions based on notification priority and type
+      const filter: any = { active: true };
+
+      // For critical notifications, send to all subscriptions
+      if (notification.priority !== NotificationPriority.CRITICAL) {
+        filter.types = { $in: [notification.type, 'all'] };
+      }
+
+      const subscriptions = await db.collection('push_subscriptions')
+        .find(filter)
+        .limit(this.config.push.maxSubscriptions)
+        .toArray();
+
+      return subscriptions.map(sub => ({
+        endpoint: sub.endpoint,
+        keys: sub.keys
+      }));
+    } catch (error) {
+      console.error('Failed to get push subscriptions:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Remove invalid push subscription
+   */
+  private async removePushSubscription(endpoint: string): Promise<void> {
+    try {
+      const mongodb = await import('../config/mongodb');
+      const client = await mongodb.getMongoClient();
+      const db = client.db();
+
+      await db.collection('push_subscriptions').updateOne(
+        { endpoint },
+        { $set: { active: false, removed_at: new Date() } }
+      );
+
+      console.log(`✓ Removed invalid push subscription: ${endpoint.substr(-20)}...`);
+    } catch (error) {
+      console.error('Failed to remove push subscription:', error);
+    }
   }
 }
