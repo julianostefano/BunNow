@@ -60,6 +60,77 @@ export interface SystemHealth {
   timestamp: string;
 }
 
+// Additional interfaces for system operations
+export interface PerformanceStats {
+  timeRange: number;
+  metrics: {
+    avgResponseTime: number;
+    peakResponseTime: number;
+    totalRequests: number;
+    errorRate: number;
+    memoryUsage: {
+      used: number;
+      total: number;
+      percentage: number;
+    };
+    cpuUsage: number;
+  };
+  alerts: Array<{
+    type: 'warning' | 'critical';
+    message: string;
+    timestamp: string;
+  }>;
+}
+
+export interface TaskData {
+  id: string;
+  type: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  priority: number;
+  createdAt: Date;
+  updatedAt: Date;
+  data: Record<string, unknown>;
+  result?: Record<string, unknown>;
+  error?: string;
+  retryCount: number;
+}
+
+export interface TaskOptions {
+  priority?: number;
+  timeout?: number;
+  retries?: number;
+}
+
+export interface TaskStats {
+  total: number;
+  pending: number;
+  running: number;
+  completed: number;
+  failed: number;
+  avgExecutionTime: number;
+}
+
+export interface SystemGroup {
+  id: string;
+  name: string;
+  description?: string;
+  members: string[];
+  permissions: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  metadata: Record<string, unknown>;
+}
+
+export interface GroupFilters {
+  name?: string;
+  active?: boolean;
+  permissions?: string[];
+  memberCount?: {
+    min?: number;
+    max?: number;
+  };
+}
+
 export class SystemService extends EventEmitter {
   private static instance: SystemService;
   private performanceMonitor: SystemPerformanceMonitor;
@@ -219,7 +290,7 @@ export class SystemService extends EventEmitter {
     return this.performanceMonitor.recordMetric(metric);
   }
 
-  async getPerformanceStats(timeRange: number = 24): Promise<any> {
+  async getPerformanceStats(timeRange: number = 24): Promise<PerformanceStats> {
     return this.performanceMonitor.getStats(timeRange);
   }
 
@@ -232,7 +303,7 @@ export class SystemService extends EventEmitter {
   }
 
   // === Task Management Methods ===
-  async addTask(type: string, data: Record<string, any>, options?: {
+  async addTask(type: string, data: Record<string, unknown>, options?: TaskOptions): Promise<string> {
     priority?: 'low' | 'normal' | 'high' | 'critical';
     maxRetries?: number;
     tags?: string[];
@@ -240,7 +311,7 @@ export class SystemService extends EventEmitter {
     return this.taskManager.addTask(type, data, options);
   }
 
-  async getTask(taskId: string): Promise<any> {
+  async getTask(taskId: string): Promise<TaskData | null> {
     return this.taskManager.getTask(taskId);
   }
 
@@ -248,7 +319,7 @@ export class SystemService extends EventEmitter {
     return this.taskManager.cancelTask(taskId, reason);
   }
 
-  async getTaskStats(): Promise<any> {
+  async getTaskStats(): Promise<TaskStats> {
     return this.taskManager.getStats();
   }
 
@@ -256,26 +327,26 @@ export class SystemService extends EventEmitter {
     name: string;
     cronExpression: string;
     taskType: string;
-    taskData: Record<string, any>;
+    taskData: Record<string, unknown>;
     enabled?: boolean;
   }): Promise<string> {
     return this.taskManager.scheduleTask(options);
   }
 
   // === Group Management Methods ===
-  async getGroups(filters?: any): Promise<any[]> {
+  async getGroups(filters?: GroupFilters): Promise<SystemGroup[]> {
     return this.groupManager.getGroups(filters);
   }
 
-  async getGroup(groupId: string): Promise<any> {
+  async getGroup(groupId: string): Promise<SystemGroup | null> {
     return this.groupManager.getGroup(groupId);
   }
 
-  async createGroup(groupData: any): Promise<string> {
+  async createGroup(groupData: Omit<SystemGroup, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
     return this.groupManager.createGroup(groupData);
   }
 
-  async updateGroup(groupId: string, updates: any): Promise<boolean> {
+  async updateGroup(groupId: string, updates: Partial<SystemGroup>): Promise<boolean> {
     return this.groupManager.updateGroup(groupId, updates);
   }
 
@@ -304,7 +375,7 @@ export class SystemService extends EventEmitter {
   }
 
   // === Legacy Service Bridge Methods ===
-  async handleLegacyAttachment(operation: string, data: any): Promise<any> {
+  async handleLegacyAttachment(operation: string, data: Record<string, unknown>): Promise<Record<string, unknown>> {
     return this.legacyBridge.handleAttachment(operation, data);
   }
 

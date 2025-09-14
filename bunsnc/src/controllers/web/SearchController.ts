@@ -37,7 +37,7 @@ interface SearchResult {
 /**
  * Validate and parse search query
  */
-function parseSearchQuery(queryParams: any): SearchQuery {
+function parseSearchQuery(queryParams: Record<string, unknown>): SearchQuery {
   const { query } = queryParams;
   
   if (!query || typeof query !== 'string') {
@@ -301,7 +301,7 @@ export async function handleSearchRequest(context: Context): Promise<string> {
     // Generate results HTML
     return generateSearchResultsHTML(results, searchQuery.query);
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in search handler:', error);
     const query = context.query?.query || 'unknown';
     return generateSearchErrorHTML(error.message, query);

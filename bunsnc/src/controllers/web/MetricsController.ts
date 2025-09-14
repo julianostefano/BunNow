@@ -218,7 +218,7 @@ export async function handleMetricsRequest(context: Context): Promise<string> {
   try {
     const metrics = await getSystemMetrics();
     return generateMetricsHTML(metrics);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in metrics handler:', error);
     return generateMetricsErrorHTML(error.message);
   }

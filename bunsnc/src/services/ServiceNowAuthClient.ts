@@ -44,7 +44,7 @@ export class ServiceNowAuthClient {
   }
 
   // === Query Methods ===
-  async makeRequest(table: string, method: string = 'GET', params: Record<string, any> = {}): Promise<any> {
+  async makeRequest(table: string, method: string = 'GET', params: Record<string, unknown> = {}): Promise<ServiceNowQueryResult> {
     return this.queryService.makeRequest(table, method, params);
   }
 
@@ -55,7 +55,7 @@ export class ServiceNowAuthClient {
     page: number = 1, 
     limit: number = 10
   ): Promise<{
-    data: any[];
+    data: ServiceNowRecord[];
     hasMore: boolean;
     total: number;
     currentPage: number;
@@ -85,19 +85,19 @@ export class ServiceNowAuthClient {
   }
 
   // === SLA Methods ===
-  async makeRequestFullFields(table: string, query: string, limit: number = 1): Promise<any> {
+  async makeRequestFullFields(table: string, query: string, limit: number = 1): Promise<ServiceNowQueryResult> {
     return this.slaService.makeRequestFullFields(table, query, limit);
   }
 
-  async getSLADataForTask(taskSysId: string): Promise<any> {
+  async getSLADataForTask(taskSysId: string): Promise<ServiceNowRecord[]> {
     return this.slaService.getSLADataForTask(taskSysId);
   }
 
-  async getContractSLAData(company?: string, location?: string): Promise<any> {
+  async getContractSLAData(company?: string, location?: string): Promise<ServiceNowRecord[]> {
     return this.slaService.getContractSLAData(company, location);
   }
 
-  async getTicketSLABreakdown(ticketSysId: string): Promise<any> {
+  async getTicketSLABreakdown(ticketSysId: string): Promise<ServiceNowRecord[]> {
     return this.slaService.getTicketSLABreakdown(ticketSysId);
   }
 
@@ -105,7 +105,7 @@ export class ServiceNowAuthClient {
     startDate: string, 
     endDate: string, 
     slaType?: string
-  ): Promise<any> {
+  ): Promise<ServiceNowRecord[]> {
     return this.slaService.getSLAPerformanceMetrics(startDate, endDate, slaType);
   }
 

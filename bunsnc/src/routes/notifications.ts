@@ -340,7 +340,7 @@ export function createNotificationRoutes(): Elysia {
 }
 
 // Function to integrate WebSocket and SSE routes
-export async function getRealtimeRoutes(): Promise<{ websocket: any; sse: any }> {
+export async function getRealtimeRoutes(): Promise<{ websocket: unknown; sse: unknown }> {
   const manager = await getNotificationManager();
   return manager.getElysiaRoutes();
 }
