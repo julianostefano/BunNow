@@ -20,13 +20,13 @@ export interface TicketDocument {
   short_description: string;
   state: string;
   priority: string;
-  assignment_group?: any;
-  assigned_to?: any;
-  caller_id?: any;
-  opened_by?: any;
+  assignment_group?: string | { display_value: string; value: string };
+  assigned_to?: string | { display_value: string; value: string };
+  caller_id?: string | { display_value: string; value: string };
+  opened_by?: string | { display_value: string; value: string };
   sys_created_on: string;
   sys_updated_on: string;
-  raw_data: any;
+  raw_data: Record<string, unknown>;
   cached_at: Date;
   expires_at: Date;
 }
@@ -34,7 +34,7 @@ export interface TicketDocument {
 export interface ConfigDocument {
   _id?: string;
   key: string;
-  value: any;
+  value: unknown;
   description?: string;
   created_at: Date;
   updated_at: Date;
@@ -59,7 +59,7 @@ export interface ErrorLogDocument {
   level: 'error' | 'warning' | 'info';
   message: string;
   stack_trace?: string;
-  context?: any;
+  context?: Record<string, unknown>;
   endpoint?: string;
   user_id?: string;
   session_id?: string;
@@ -67,8 +67,8 @@ export interface ErrorLogDocument {
 
 class MongoDBClient {
   private config: MongoDBConfig;
-  private client: any = null;
-  private db: any = null;
+  private client: any = null; // MongoDB client from dynamic import
+  private db: any = null; // MongoDB database instance
 
   constructor(config: MongoDBConfig) {
     this.config = config;
@@ -182,20 +182,20 @@ class MongoDBClient {
     return await collection.findOne({ sys_id });
   }
 
-  async getTickets(filter: any = {}): Promise<TicketDocument[]> {
+  async getTickets(filter: Record<string, unknown> = {}): Promise<TicketDocument[]> {
     const collection = this.db.collection('tickets');
     return await collection.find(filter).toArray();
   }
 
   async getTicketCounts(table_name: string, state?: string): Promise<number> {
     const collection = this.db.collection('tickets');
-    const filter: any = { table_name };
+    const filter: Record<string, unknown> = { table_name };
     if (state) filter.state = state;
     return await collection.countDocuments(filter);
   }
 
   // Config operations
-  async setConfig(key: string, value: any, description?: string): Promise<void> {
+  async setConfig(key: string, value: unknown, description?: string): Promise<void> {
     const collection = this.db.collection('configs');
     await collection.replaceOne(
       { key },
@@ -210,7 +210,7 @@ class MongoDBClient {
     );
   }
 
-  async getConfig(key: string): Promise<any> {
+  async getConfig(key: string): Promise<unknown> {
     const collection = this.db.collection('configs');
     const doc = await collection.findOne({ key });
     return doc?.value;
@@ -227,7 +227,7 @@ class MongoDBClient {
     await collection.insertOne(log);
   }
 
-  async getAccessLogs(filter: any = {}, limit: number = 1000): Promise<AccessLogDocument[]> {
+  async getAccessLogs(filter: Record<string, unknown> = {}, limit: number = 1000): Promise<AccessLogDocument[]> {
     const collection = this.db.collection('access_logs');
     return await collection.find(filter).sort({ timestamp: -1 }).limit(limit).toArray();
   }
@@ -238,7 +238,7 @@ class MongoDBClient {
     await collection.insertOne(log);
   }
 
-  async getErrorLogs(filter: any = {}, limit: number = 1000): Promise<ErrorLogDocument[]> {
+  async getErrorLogs(filter: Record<string, unknown> = {}, limit: number = 1000): Promise<ErrorLogDocument[]> {
     const collection = this.db.collection('error_logs');
     return await collection.find(filter).sort({ timestamp: -1 }).limit(limit).toArray();
   }

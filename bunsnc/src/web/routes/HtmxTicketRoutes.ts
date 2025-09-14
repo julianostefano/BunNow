@@ -498,7 +498,352 @@ export const htmxTicketRoutes = new Elysia()
         </div>
       `;
     }
+  })
+
+  /**
+   * Glass Design Templates for Different Ticket Types
+   */
+
+  // Incident Glass Template
+  .get('/glass/incident/:sys_id', async ({ params }) => {
+    const { sys_id } = params;
+
+    try {
+      const ticket = await serviceNowAuthClient.getRecord('incident', sys_id);
+
+      return `
+        <div class="ticket-template ticket-template--incident glass-card" data-type="incident" data-sys-id="${sys_id}">
+          <!-- Glass Incident Header -->
+          <div class="ticket-template__header">
+            <div class="ticket-severity ticket-severity--incident">
+              <div class="ticket-severity__icon">🚨</div>
+              <div class="ticket-severity__info">
+                <span class="ticket-severity__label">INCIDENT</span>
+                <span class="ticket-severity__sublabel">Service Disruption</span>
+              </div>
+            </div>
+
+            <div class="ticket-number ticket-number--incident">${ticket.number}</div>
+          </div>
+
+          <!-- Incident Details -->
+          <div class="ticket-details">
+            <h2 class="ticket-title">${ticket.short_description}</h2>
+            <div class="ticket-meta">
+              <div class="ticket-meta-item">
+                <span class="ticket-meta-label">Status</span>
+                <span class="ticket-status ticket-status--${getStatusClass(ticket.state)}">${getStatusLabel(ticket.state)}</span>
+              </div>
+              <div class="ticket-meta-item">
+                <span class="ticket-meta-label">Priority</span>
+                <span class="ticket-priority ticket-priority--${ticket.priority}">${getPriorityLabel(ticket.priority)}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Incident Actions -->
+          <div class="ticket-actions">
+            <button class="action-btn action-btn--escalate" hx-post="/tickets/action/escalate/${sys_id}">
+              <div class="action-btn__icon">📈</div>
+              <div class="action-btn__content">
+                <span class="action-btn__title">Escalate</span>
+                <span class="action-btn__subtitle">Move to higher tier</span>
+              </div>
+            </button>
+
+            <button class="action-btn action-btn--resolve" hx-post="/tickets/action/resolve/${sys_id}">
+              <div class="action-btn__icon">✅</div>
+              <div class="action-btn__content">
+                <span class="action-btn__title">Resolve</span>
+                <span class="action-btn__subtitle">Mark as resolved</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      `;
+    } catch (error) {
+      return renderGlassError('Failed to load incident template');
+    }
+  })
+
+  // Problem Glass Template
+  .get('/glass/problem/:sys_id', async ({ params }) => {
+    const { sys_id } = params;
+
+    try {
+      const ticket = await serviceNowAuthClient.getRecord('problem', sys_id);
+
+      return `
+        <div class="ticket-template ticket-template--problem glass-card" data-type="problem" data-sys-id="${sys_id}">
+          <!-- Glass Problem Header -->
+          <div class="ticket-template__header">
+            <div class="ticket-severity ticket-severity--problem">
+              <div class="ticket-severity__icon">🔍</div>
+              <div class="ticket-severity__info">
+                <span class="ticket-severity__label">PROBLEM</span>
+                <span class="ticket-severity__sublabel">Root Cause Analysis</span>
+              </div>
+            </div>
+
+            <div class="ticket-number ticket-number--problem">${ticket.number}</div>
+          </div>
+
+          <!-- Problem Details -->
+          <div class="ticket-details">
+            <h2 class="ticket-title">${ticket.short_description}</h2>
+            <div class="ticket-meta">
+              <div class="ticket-meta-item">
+                <span class="ticket-meta-label">Status</span>
+                <span class="ticket-status ticket-status--${getStatusClass(ticket.state)}">${getStatusLabel(ticket.state)}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- RCA Tools -->
+          <div class="rca-tools glass-card">
+            <h3>Root Cause Analysis</h3>
+            <div class="tools-grid">
+              <div class="tool-card" hx-get="/tickets/rca/fishbone/${sys_id}">
+                <div class="tool-card__icon">🐟</div>
+                <div class="tool-card__content">
+                  <span class="tool-card__title">Fishbone Diagram</span>
+                  <span class="tool-card__description">Cause & effect analysis</span>
+                </div>
+              </div>
+
+              <div class="tool-card" hx-get="/tickets/rca/five-whys/${sys_id}">
+                <div class="tool-card__icon">❓</div>
+                <div class="tool-card__content">
+                  <span class="tool-card__title">5 Whys Analysis</span>
+                  <span class="tool-card__description">Iterative questioning</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Problem Actions -->
+          <div class="ticket-actions">
+            <button class="action-btn action-btn--investigate" hx-get="/tickets/action/investigate/${sys_id}">
+              <div class="action-btn__icon">🔍</div>
+              <div class="action-btn__content">
+                <span class="action-btn__title">Start Investigation</span>
+                <span class="action-btn__subtitle">Begin analysis</span>
+              </div>
+            </button>
+
+            <button class="action-btn action-btn--workaround" hx-post="/tickets/action/workaround/${sys_id}">
+              <div class="action-btn__icon">🔧</div>
+              <div class="action-btn__content">
+                <span class="action-btn__title">Implement Workaround</span>
+                <span class="action-btn__subtitle">Temporary solution</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      `;
+    } catch (error) {
+      return renderGlassError('Failed to load problem template');
+    }
+  })
+
+  // Change Request Glass Template
+  .get('/glass/change/:sys_id', async ({ params }) => {
+    const { sys_id } = params;
+
+    try {
+      const ticket = await serviceNowAuthClient.getRecord('change_request', sys_id);
+
+      return `
+        <div class="ticket-template ticket-template--change glass-card" data-type="change" data-sys-id="${sys_id}">
+          <!-- Glass Change Header -->
+          <div class="ticket-template__header">
+            <div class="ticket-severity ticket-severity--change">
+              <div class="ticket-severity__icon">🔄</div>
+              <div class="ticket-severity__info">
+                <span class="ticket-severity__label">CHANGE REQUEST</span>
+                <span class="ticket-severity__sublabel">Controlled Modification</span>
+              </div>
+            </div>
+
+            <div class="ticket-number ticket-number--change">${ticket.number}</div>
+          </div>
+
+          <!-- Change Details -->
+          <div class="ticket-details">
+            <h2 class="ticket-title">${ticket.short_description}</h2>
+            <div class="ticket-meta">
+              <div class="ticket-meta-item">
+                <span class="ticket-meta-label">Status</span>
+                <span class="ticket-status ticket-status--${getStatusClass(ticket.state)}">${getStatusLabel(ticket.state)}</span>
+              </div>
+              <div class="ticket-meta-item">
+                <span class="ticket-meta-label">Risk</span>
+                <span class="ticket-risk ticket-risk--${ticket.risk || 'medium'}">${formatRisk(ticket.risk)}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Change Approval Workflow -->
+          <div class="approval-workflow glass-card">
+            <h3>Approval Workflow</h3>
+            <div class="workflow-steps">
+              <div class="workflow-step workflow-step--completed">
+                <div class="workflow-step__icon">✅</div>
+                <span class="workflow-step__title">Technical Review</span>
+              </div>
+              <div class="workflow-step workflow-step--current">
+                <div class="workflow-step__icon">⏳</div>
+                <span class="workflow-step__title">CAB Approval</span>
+              </div>
+              <div class="workflow-step workflow-step--pending">
+                <div class="workflow-step__icon">📅</div>
+                <span class="workflow-step__title">Implementation</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Change Actions -->
+          <div class="ticket-actions">
+            <button class="action-btn action-btn--approve" hx-post="/tickets/action/approve/${sys_id}">
+              <div class="action-btn__icon">✅</div>
+              <div class="action-btn__content">
+                <span class="action-btn__title">Approve Change</span>
+                <span class="action-btn__subtitle">Move to implementation</span>
+              </div>
+            </button>
+
+            <button class="action-btn action-btn--schedule" hx-get="/tickets/action/schedule/${sys_id}">
+              <div class="action-btn__icon">📅</div>
+              <div class="action-btn__content">
+                <span class="action-btn__title">Schedule</span>
+                <span class="action-btn__subtitle">Set maintenance window</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      `;
+    } catch (error) {
+      return renderGlassError('Failed to load change request template');
+    }
+  })
+
+  // Service Request Glass Template
+  .get('/glass/request/:sys_id', async ({ params }) => {
+    const { sys_id } = params;
+
+    try {
+      const ticket = await serviceNowAuthClient.getRecord('sc_request', sys_id);
+
+      return `
+        <div class="ticket-template ticket-template--request glass-card" data-type="request" data-sys-id="${sys_id}">
+          <!-- Glass Request Header -->
+          <div class="ticket-template__header">
+            <div class="ticket-severity ticket-severity--request">
+              <div class="ticket-severity__icon">🎫</div>
+              <div class="ticket-severity__info">
+                <span class="ticket-severity__label">SERVICE REQUEST</span>
+                <span class="ticket-severity__sublabel">User Request</span>
+              </div>
+            </div>
+
+            <div class="ticket-number ticket-number--request">${ticket.number}</div>
+          </div>
+
+          <!-- Request Details -->
+          <div class="ticket-details">
+            <h2 class="ticket-title">${ticket.short_description}</h2>
+            <div class="ticket-meta">
+              <div class="ticket-meta-item">
+                <span class="ticket-meta-label">Status</span>
+                <span class="ticket-status ticket-status--${getStatusClass(ticket.stage)}">${getStatusLabel(ticket.stage)}</span>
+              </div>
+              <div class="ticket-meta-item">
+                <span class="ticket-meta-label">Requested For</span>
+                <span class="ticket-meta-value">${ticket.requested_for?.display_value || 'N/A'}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fulfillment Progress -->
+          <div class="fulfillment-progress glass-card">
+            <h3>Fulfillment Progress</h3>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: ${calculateProgress(ticket.stage)}%"></div>
+            </div>
+            <div class="progress-labels">
+              <span class="progress-label">Submitted</span>
+              <span class="progress-label">Approved</span>
+              <span class="progress-label">In Progress</span>
+              <span class="progress-label">Fulfilled</span>
+            </div>
+          </div>
+
+          <!-- Request Actions -->
+          <div class="ticket-actions">
+            <button class="action-btn action-btn--fulfill" hx-post="/tickets/action/fulfill/${sys_id}">
+              <div class="action-btn__icon">⚡</div>
+              <div class="action-btn__content">
+                <span class="action-btn__title">Fulfill Request</span>
+                <span class="action-btn__subtitle">Complete service delivery</span>
+              </div>
+            </button>
+
+            <button class="action-btn action-btn--communicate" hx-get="/tickets/action/notify/${sys_id}">
+              <div class="action-btn__icon">💬</div>
+              <div class="action-btn__content">
+                <span class="action-btn__title">Update Requester</span>
+                <span class="action-btn__subtitle">Send status notification</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      `;
+    } catch (error) {
+      return renderGlassError('Failed to load service request template');
+    }
   });
+
+// Glass Helper Functions
+function renderGlassError(message: string): string {
+  return `
+    <div class="error-message glass-card">
+      <div class="error-icon">⚠️</div>
+      <h3>Error</h3>
+      <p>${message}</p>
+    </div>
+  `;
+}
+
+function getPriorityLabel(priority: string): string {
+  const labels: Record<string, string> = {
+    '1': 'Critical',
+    '2': 'High',
+    '3': 'Moderate',
+    '4': 'Low',
+    '5': 'Planning'
+  };
+  return labels[priority] || 'Unknown';
+}
+
+function formatRisk(risk: string): string {
+  const riskLabels: Record<string, string> = {
+    'high': 'High Risk',
+    'medium': 'Medium Risk',
+    'low': 'Low Risk'
+  };
+  return riskLabels[risk] || 'Moderate Risk';
+}
+
+function calculateProgress(stage: string): number {
+  const stageProgress: Record<string, number> = {
+    '1': 25,  // Submitted
+    '2': 50,  // Approved
+    '3': 75,  // In Progress
+    '4': 100, // Fulfilled
+    '6': 100  // Closed Complete
+  };
+  return stageProgress[stage] || 0;
+}
 
 // Helper functions
 function getStatusClass(state: string): string {

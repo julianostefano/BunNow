@@ -28,6 +28,75 @@ export interface AttachmentResponse {
   created_on: string;
 }
 
+export interface AttachmentParams {
+  table_name: string;
+  table_sys_id: string;
+}
+
+export interface AttachmentIdParams {
+  attachment_id: string;
+}
+
+export interface ServiceNowAttachmentRecord {
+  sys_id: string;
+  file_name: string;
+  content_type: string;
+  size_bytes: string;
+  size_compressed: string;
+  table_name: string;
+  table_sys_id: string;
+  sys_created_on: string;
+  sys_created_by: string;
+}
+
+export interface AttachmentUploadResponse {
+  success: boolean;
+  data?: AttachmentResponse;
+  message?: string;
+  error?: string;
+  code?: string;
+}
+
+export interface AttachmentListResponse {
+  success: boolean;
+  data?: AttachmentResponse[];
+  count?: number;
+  table_name?: string;
+  table_sys_id?: string;
+  error?: string;
+  code?: string;
+}
+
+export interface AttachmentDeleteResponse {
+  success: boolean;
+  message?: string;
+  attachment_id?: string;
+  file_name?: string;
+  error?: string;
+  code?: string;
+}
+
+export interface AttachmentInfoResponse {
+  success: boolean;
+  data?: AttachmentResponse;
+  error?: string;
+  code?: string;
+}
+
+export interface StorageStatsResponse {
+  success: boolean;
+  data?: {
+    total_files: number;
+    total_size_bytes: number;
+    total_size_mb: number;
+    upload_directory: string;
+    max_file_size_mb: number;
+    allowed_extensions: string[];
+  };
+  error?: string;
+  code?: string;
+}
+
 export class AttachmentController {
   private readonly uploadDir: string;
   private readonly maxFileSize: number = 50 * 1024 * 1024; // 50MB
@@ -54,9 +123,9 @@ export class AttachmentController {
   /**
    * Upload attachment to ServiceNow record
    */
-  async uploadAttachment(context: Context): Promise<any> {
+  async uploadAttachment(context: Context): Promise<AttachmentUploadResponse> {
     try {
-      const { table_name, table_sys_id } = context.params as any;
+      const { table_name, table_sys_id } = context.params as AttachmentParams;
       const body = await context.request.formData();
 
       const file = body.get('file') as File;
@@ -151,9 +220,9 @@ export class AttachmentController {
   /**
    * Download attachment from ServiceNow
    */
-  async downloadAttachment(context: Context): Promise<any> {
+  async downloadAttachment(context: Context): Promise<Response> {
     try {
-      const { attachment_id } = context.params as any;
+      const { attachment_id } = context.params as AttachmentIdParams;
 
       // Get attachment metadata from ServiceNow
       const attachmentRecord = await consolidatedServiceNowService.getRecord('sys_attachment', attachment_id);
@@ -204,9 +273,9 @@ export class AttachmentController {
   /**
    * List attachments for a ServiceNow record
    */
-  async listAttachments(context: Context): Promise<any> {
+  async listAttachments(context: Context): Promise<AttachmentListResponse> {
     try {
-      const { table_name, table_sys_id } = context.params as any;
+      const { table_name, table_sys_id } = context.params as AttachmentParams;
 
       const attachments = await consolidatedServiceNowService.queryRecords(
         'sys_attachment',
@@ -214,7 +283,7 @@ export class AttachmentController {
         { order: 'sys_created_on DESC' }
       );
 
-      const response = attachments.map((attachment: any) => ({
+      const response = attachments.map((attachment: ServiceNowAttachmentRecord) => ({
         sys_id: attachment.sys_id,
         file_name: attachment.file_name,
         content_type: attachment.content_type,
@@ -248,9 +317,9 @@ export class AttachmentController {
   /**
    * Delete attachment from ServiceNow
    */
-  async deleteAttachment(context: Context): Promise<any> {
+  async deleteAttachment(context: Context): Promise<AttachmentDeleteResponse> {
     try {
-      const { attachment_id } = context.params as any;
+      const { attachment_id } = context.params as AttachmentIdParams;
 
       // Get attachment metadata before deletion
       const attachmentRecord = await consolidatedServiceNowService.getRecord('sys_attachment', attachment_id);
@@ -297,9 +366,9 @@ export class AttachmentController {
   /**
    * Get attachment metadata
    */
-  async getAttachmentInfo(context: Context): Promise<any> {
+  async getAttachmentInfo(context: Context): Promise<AttachmentInfoResponse> {
     try {
-      const { attachment_id } = context.params as any;
+      const { attachment_id } = context.params as AttachmentIdParams;
 
       const attachmentRecord = await consolidatedServiceNowService.getRecord('sys_attachment', attachment_id);
 
@@ -372,7 +441,7 @@ export class AttachmentController {
   /**
    * Get storage statistics
    */
-  async getStorageStats(): Promise<any> {
+  async getStorageStats(): Promise<StorageStatsResponse> {
     try {
       const files = await fs.readdir(this.uploadDir);
       let totalSize = 0;

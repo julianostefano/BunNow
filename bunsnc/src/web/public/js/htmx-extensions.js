@@ -741,6 +741,176 @@ async function performNeuralSearch(query) {
   }
 }
 
+// ========== Tickets Page Functions ==========
+
+window.initializeTicketsPage = function() {
+  console.log('🎫 Initializing tickets page...');
+
+  // Set default active tab
+  setActiveTicketTab('incident');
+
+  // Initialize state tracking
+  window.currentTicketType = 'incident';
+  window.activeTicketStates = ['novo', 'em_progresso', 'pendente'];
+
+  showNotification('Tickets page initialized', 'success', 2000, 'Tickets');
+};
+
+window.loadInitialTickets = function() {
+  const currentStates = window.activeTicketStates?.join(',') || 'novo,em_progresso,pendente';
+  loadTicketsForType('incident', currentStates);
+};
+
+window.setActiveTicketTab = function(type) {
+  console.log(`🎯 Setting active ticket tab: ${type}`);
+
+  // Update current type
+  window.currentTicketType = type;
+
+  // Update tab visual states
+  document.querySelectorAll('.filter-tab').forEach(tab => {
+    tab.classList.remove('filter-tab--active');
+    if (tab.dataset.type === type) {
+      tab.classList.add('filter-tab--active');
+    }
+  });
+
+  // Update tab indicator
+  const indicator = document.querySelector('.filter-tab-indicator');
+  if (indicator) {
+    indicator.className = `filter-tab-indicator filter-tab-indicator--${type}`;
+  }
+
+  // Load tickets for new type
+  const currentStates = window.activeTicketStates?.join(',') || 'novo,em_progresso,pendente';
+  loadTicketsForType(type, currentStates);
+
+  // Update loading text
+  const loadingText = document.querySelector('.glass-loading__text');
+  if (loadingText) {
+    const typeLabels = {
+      'incident': 'incidents',
+      'problem': 'problems',
+      'change_request': 'changes'
+    };
+    loadingText.textContent = `Loading ${typeLabels[type] || type}...`;
+  }
+
+  showNotification(`Switched to ${type} view`, 'info', 1500, 'Tickets');
+};
+
+window.toggleTicketState = function(state) {
+  console.log(`🔘 Toggling ticket state: ${state}`);
+
+  const stateButton = document.querySelector(`[data-state="${state}"]`);
+  if (!stateButton) return;
+
+  // Initialize active states array if not exists
+  if (!window.activeTicketStates) {
+    window.activeTicketStates = ['novo', 'em_progresso', 'pendente'];
+  }
+
+  // Toggle state
+  const isActive = stateButton.classList.contains('filter-state--active');
+  if (isActive) {
+    stateButton.classList.remove('filter-state--active');
+    window.activeTicketStates = window.activeTicketStates.filter(s => s !== state);
+  } else {
+    stateButton.classList.add('filter-state--active');
+    if (!window.activeTicketStates.includes(state)) {
+      window.activeTicketStates.push(state);
+    }
+  }
+
+  // Reload tickets with new state filter
+  const currentType = window.currentTicketType || 'incident';
+  const statesParam = window.activeTicketStates.join(',');
+
+  if (window.activeTicketStates.length > 0) {
+    loadTicketsForType(currentType, statesParam);
+  } else {
+    // Show empty state if no states selected
+    const ticketsContent = document.getElementById('tickets-content');
+    if (ticketsContent) {
+      ticketsContent.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">🎫</div>
+          <div class="empty-state-title">No filters selected</div>
+          <div class="empty-state-message">Please select at least one state to view tickets</div>
+        </div>
+      `;
+    }
+  }
+
+  console.log(`Active states: ${window.activeTicketStates.join(', ')}`);
+};
+
+async function loadTicketsForType(type, states) {
+  console.log(`📋 Loading tickets for type: ${type}, states: ${states}`);
+
+  const ticketsContent = document.getElementById('tickets-content');
+  if (!ticketsContent) return;
+
+  // Show loading state
+  ticketsContent.innerHTML = `
+    <div class="loading-container">
+      <div class="glass-loading glass-loading--visible">
+        <div class="glass-loading__spinner"></div>
+        <span class="glass-loading__text">Loading ${type}...</span>
+      </div>
+    </div>
+  `;
+
+  try {
+    const response = await fetch(`/api/tickets-content/${type}?states=${encodeURIComponent(states)}`);
+    const ticketCards = await response.text();
+
+    // Add fade-in animation
+    ticketsContent.innerHTML = `<div class="fade-in">${ticketCards}</div>`;
+
+    // Show success notification
+    const ticketCount = (ticketCards.match(/ticket-card/g) || []).length;
+    showNotification(`Loaded ${ticketCount} ${type} tickets`, 'success', 2000, 'Tickets');
+
+  } catch (error) {
+    console.error('Error loading tickets:', error);
+    ticketsContent.innerHTML = `
+      <div class="error-state">
+        <div class="error-state-icon">❌</div>
+        <div class="error-state-title">Failed to load tickets</div>
+        <div class="error-state-message">${error.message}</div>
+        <button class="glass-btn" onclick="loadTicketsForType('${type}', '${states}')">
+          Try Again
+        </button>
+      </div>
+    `;
+
+    showNotification('Failed to load tickets', 'error', 3000, 'Tickets');
+  }
+}
+
+// Ticket action functions
+window.viewTicket = function(ticketId) {
+  console.log(`👁️ Viewing ticket: ${ticketId}`);
+  showNotification(`Opening ticket ${ticketId}`, 'info', 2000, 'Tickets');
+
+  // In a real implementation, this would open a modal or navigate to ticket details
+  // For now, just show a notification
+  setTimeout(() => {
+    showNotification(`Ticket ${ticketId} details would open here`, 'info', 3000, 'View Ticket');
+  }, 500);
+};
+
+window.editTicket = function(ticketId) {
+  console.log(`✏️ Editing ticket: ${ticketId}`);
+  showNotification(`Opening editor for ${ticketId}`, 'info', 2000, 'Tickets');
+
+  // In a real implementation, this would open edit modal or form
+  setTimeout(() => {
+    showNotification(`Edit form for ${ticketId} would open here`, 'info', 3000, 'Edit Ticket');
+  }, 500);
+};
+
 // ========== Filter Bar Functions ==========
 
 window.initializeFilterBar = function() {

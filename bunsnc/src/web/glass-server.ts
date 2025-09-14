@@ -72,6 +72,31 @@ interface NotificationData {
   number?: string;
 }
 
+interface SearchQuery {
+  q?: string;
+}
+
+interface TicketFilters {
+  states?: string;
+  priority?: string;
+  assignedTo?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+interface TicketParams {
+  type: string;
+  sys_id?: string;
+}
+
+interface BulkUpdateData {
+  tickets: Array<{
+    sys_id: string;
+    table: string;
+    data: Record<string, unknown>;
+  }>;
+}
+
 /**
  * Main server class with glass design and HTMX integration
  */
@@ -182,7 +207,7 @@ export class GlassDesignServer {
 
       // API Routes
       .get("/api/search", ({ query }) => {
-        const searchQuery = (query as any)?.q || '';
+        const searchQuery = (query as SearchQuery)?.q || '';
         return this.createSearchResults(searchQuery);
       })
 
@@ -195,19 +220,19 @@ export class GlassDesignServer {
       })
 
       .get("/api/neural-search", async ({ query }) => {
-        const searchQuery = (query as any)?.q || '';
+        const searchQuery = (query as SearchQuery)?.q || '';
         return await this.executeNeuralSearch(searchQuery);
       })
 
       .get("/api/tickets/:type", async ({ params, query }) => {
         const type = params.type;
-        const states = (query as any)?.states || '';
+        const states = (query as TicketFilters)?.states || '';
         return await this.createTicketList(type, states);
       })
 
       .get("/api/tickets-content/:type", async ({ params, query }) => {
         const type = params.type;
-        const states = (query as any)?.states || '';
+        const states = (query as TicketFilters)?.states || '';
         return await this.createTicketCards(type, states);
       })
 
@@ -225,7 +250,7 @@ export class GlassDesignServer {
       .put("/api/ticket/:sys_id", async ({ params, body }) => {
         try {
           const updateData = await body;
-          const updatedTicket = await this.consolidatedService.updateRecord('incident', params.sys_id, updateData as any);
+          const updatedTicket = await this.consolidatedService.updateRecord('incident', params.sys_id, updateData as Record<string, unknown>);
           return this.renderTicketCard(updatedTicket, 'incident');
         } catch (error) {
           console.error('❌ [CRUD] Error updating ticket:', error);
@@ -236,7 +261,7 @@ export class GlassDesignServer {
       .post("/api/ticket/:type", async ({ params, body }) => {
         try {
           const ticketData = await body;
-          const newTicket = await this.consolidatedService.createRecord(params.type, ticketData as any);
+          const newTicket = await this.consolidatedService.createRecord(params.type, ticketData as Record<string, unknown>);
           return this.renderTicketCard(newTicket, params.type);
         } catch (error) {
           console.error('❌ [CRUD] Error creating ticket:', error);
@@ -248,7 +273,7 @@ export class GlassDesignServer {
       .get("/api/tickets-filter/:type", async ({ params, query }) => {
         try {
           const type = params.type;
-          const filters = query as any;
+          const filters = query as TicketFilters;
 
           // Advanced filtering with priority, assignment group, date range
           const results = await this.getAdvancedTicketFilter(type, filters);
@@ -263,7 +288,7 @@ export class GlassDesignServer {
       .post("/api/tickets-bulk/:action", async ({ params, body }) => {
         try {
           const action = params.action; // 'update', 'assign', 'close'
-          const bulkData = await body as any;
+          const bulkData = await body as BulkUpdateData;
 
           const results = await this.performBulkOperation(action, bulkData.ticket_ids, bulkData.data);
           return this.renderBulkOperationResult(results);
@@ -309,7 +334,7 @@ export class GlassDesignServer {
           'Access-Control-Allow-Headers': 'Cache-Control'
         };
 
-        const searchQuery = (query as any)?.q || '';
+        const searchQuery = (query as SearchQuery)?.q || '';
         return this.createNeuralSearchStream(searchQuery);
       })
 
@@ -1132,7 +1157,7 @@ export class GlassDesignServer {
       if (!acc[stat.tipo_chamado]) acc[stat.tipo_chamado] = [];
       acc[stat.tipo_chamado].push(stat);
       return acc;
-    }, {} as Record<string, any[]>);
+    }, {} as Record<string, ServiceNowRecord[]>);
 
     const getStatusClass = (state: string): string => {
       const classes: Record<string, string> = {
@@ -1522,7 +1547,7 @@ export class GlassDesignServer {
     return Math.min(0.99, Math.max(0.1, score * tableWeight));
   }
 
-  private mapServiceNowState(state: any, table: string): string {
+  private mapServiceNowState(state: string | number, table: string): string {
     const stateValue = this.extractValue(state);
 
     // Common ServiceNow state mappings
@@ -1538,7 +1563,7 @@ export class GlassDesignServer {
     return stateMap[stateValue] || stateValue || 'Desconhecido';
   }
 
-  private mapServiceNowPriority(priority: any): string {
+  private mapServiceNowPriority(priority: string | number): string {
     const priorityValue = this.extractValue(priority);
 
     const priorityMap: { [key: string]: string } = {
@@ -1552,7 +1577,7 @@ export class GlassDesignServer {
     return priorityMap[priorityValue] || priorityValue || 'Não definida';
   }
 
-  private extractValue(field: any): string {
+  private extractValue(field: string | { display_value: string; value: string }): string {
     if (typeof field === 'string') return field;
     if (field && typeof field === 'object') {
       return field.display_value || field.value || '';
@@ -1682,7 +1707,7 @@ export class GlassDesignServer {
     }
   }
 
-  private async getServiceNowTickets(type: string, states: string[]): Promise<any[]> {
+  private async getServiceNowTickets(type: string, states: string[]): Promise<ServiceNowRecord[]> {
     try {
       // Map states to ServiceNow values
       const stateMap: { [key: string]: string } = {
@@ -1714,7 +1739,7 @@ export class GlassDesignServer {
     }
   }
 
-  private renderTicketCards(tickets: any[], type: string): string {
+  private renderTicketCards(tickets: ServiceNowRecord[], type: string): string {
     if (!tickets || tickets.length === 0) {
       return `
         <div class="empty-state">
@@ -1740,7 +1765,7 @@ export class GlassDesignServer {
     `;
   }
 
-  private createTicketCard(ticket: any, type: string): string {
+  private createTicketCard(ticket: ServiceNowRecord, type: string): string {
     const title = ticket.short_description || ticket.title || 'No title';
     const description = ticket.description || 'No description available';
     const state = this.mapServiceNowState(ticket.state, type);
@@ -1830,7 +1855,7 @@ export class GlassDesignServer {
     }
   }
 
-  private getDemoTickets(type: string, states: string[]): any[] {
+  private getDemoTickets(type: string, states: string[]): ServiceNowRecord[] {
     const demoData = {
       incident: [
         {
@@ -2119,7 +2144,7 @@ export class GlassDesignServer {
 
   // Enhanced CRUD Helper Methods
 
-  private renderTicketDetails(ticket: any): string {
+  private renderTicketDetails(ticket: ServiceNowRecord): string {
     return `
       <div class="ticket-details glass-card">
         <div class="ticket-details__header">
@@ -2171,7 +2196,7 @@ export class GlassDesignServer {
     `;
   }
 
-  private async getAdvancedTicketFilter(type: string, filters: any): Promise<any[]> {
+  private async getAdvancedTicketFilter(type: string, filters: TicketFilters): Promise<ServiceNowRecord[]> {
     try {
       // Prepare ServiceNow query with advanced filters
       const queryParams = [];
