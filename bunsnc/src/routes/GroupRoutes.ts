@@ -4,7 +4,7 @@
  */
 
 import { Elysia, t } from 'elysia';
-import { getHybridDataService, GroupFilter } from '../services/HybridDataService';
+import { dataService, GroupFilter } from '../services/ConsolidatedDataService';
 import { GroupData } from '../config/mongodb-collections';
 import { logger } from '../utils/Logger';
 import {
@@ -17,7 +17,7 @@ import {
 } from '../utils/GroupsErrors';
 
 export const createGroupRoutes = () => {
-  const hybridDataService = getHybridDataService();
+  const hybridDataService = dataService();
   
   return new Elysia({ prefix: '/api/groups' })
     // Register custom error types
@@ -126,7 +126,7 @@ export const createGroupRoutes = () => {
           logger.info('✅ [GROUP-API] MongoDB connected successfully');
         }
         
-        // HybridDataService initialization handled internally
+        // ConsolidatedDataService initialization handled internally
         logger.debug('✅ [GROUP-API] GroupService initialized for request:', `${request.method} ${path}`);
       } catch (error) {
         logger.error('❌ [GROUP-API] Failed to initialize:', error);

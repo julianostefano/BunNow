@@ -1,11 +1,11 @@
 /**
- * Comprehensive Tests for ConsolidatedTicketService
+ * Comprehensive Tests for ConsolidatedServiceNowService
  * Testing all consolidation features from Phase 2
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'bun:test';
-import { ConsolidatedTicketService } from '../../services/ConsolidatedTicketService';
+import { ConsolidatedServiceNowService } from '../../services/ConsolidatedServiceNowService';
 import type { ServiceNowAuthClient } from '../../services/ServiceNowAuthClient';
 import type { TicketData } from '../../types/TicketTypes';
 
@@ -48,7 +48,7 @@ jest.mock('../../config/mongodb-collections', () => ({
 }));
 
 // Mock enhanced ticket storage service
-jest.mock('../../services/EnhancedTicketStorageService', () => ({
+jest.mock('../../services/ConsolidatedDataService', () => ({
   enhancedTicketStorageService: {
     getClient: () => mockMongoClient
   }
@@ -77,8 +77,8 @@ const mockServiceNowResponse = {
   result: [mockTicketData]
 };
 
-describe('ConsolidatedTicketService - Comprehensive Test Suite', () => {
-  let consolidatedService: ConsolidatedTicketService;
+describe('ConsolidatedServiceNowService - Comprehensive Test Suite', () => {
+  let consolidatedService: ConsolidatedServiceNowService;
 
   beforeAll(() => {
     // Setup mock implementations
@@ -86,7 +86,7 @@ describe('ConsolidatedTicketService - Comprehensive Test Suite', () => {
   });
 
   beforeEach(async () => {
-    consolidatedService = new ConsolidatedTicketService(mockServiceNowClient);
+    consolidatedService = new ConsolidatedServiceNowService(mockServiceNowClient);
     
     // Mock MongoDB module to avoid actual connections during testing
     jest.doMock('mongodb', () => ({
@@ -104,7 +104,7 @@ describe('ConsolidatedTicketService - Comprehensive Test Suite', () => {
   describe('Service Initialization', () => {
     it('should initialize consolidated service successfully', async () => {
       expect(consolidatedService).toBeDefined();
-      expect(consolidatedService).toBeInstanceOf(ConsolidatedTicketService);
+      expect(consolidatedService).toBeInstanceOf(ConsolidatedServiceNowService);
     });
 
     it('should create Elysia service instance', () => {
@@ -115,7 +115,7 @@ describe('ConsolidatedTicketService - Comprehensive Test Suite', () => {
 
     it('should handle initialization with null client gracefully', () => {
       expect(() => {
-        new ConsolidatedTicketService(null as any);
+        new ConsolidatedServiceNowService(null as any);
       }).not.toThrow();
     });
   });
@@ -396,7 +396,7 @@ describe('ConsolidatedTicketService - Comprehensive Test Suite', () => {
     it('should handle MongoDB connection failures gracefully', async () => {
       mockMongoClient.connect.mockRejectedValueOnce(new Error('Connection failed'));
       
-      const newService = new ConsolidatedTicketService(mockServiceNowClient);
+      const newService = new ConsolidatedServiceNowService(mockServiceNowClient);
       
       // Should still work with ServiceNow fallback
       const result = await newService.getTicketDetails('test-id', 'incident');

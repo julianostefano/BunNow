@@ -7,7 +7,7 @@ import { websocket } from '@elysiajs/websocket';
 import { Elysia } from 'elysia';
 import { serviceNowStreams, type ServiceNowChange } from '../config/redis-streams';
 import { serviceNowRepository } from '../repositories/ServiceNowRepository';
-import { serviceNowRateLimiter } from '../services/ServiceNowRateLimit';
+
 
 interface WebSocketClient {
   id: string;
@@ -46,7 +46,7 @@ export class WebSocketManager {
   private startHealthCheck(): void {
     setInterval(async () => {
       const metrics = await serviceNowRepository.getServiceNowMetrics();
-      const rateLimitStats = serviceNowRateLimiter.getMetrics();
+      const rateLimitStats = // Rate limiting now handled internally: getMetrics();
 
       await this.broadcastUpdate({
         type: 'metrics_updated',
@@ -212,7 +212,7 @@ export class WebSocketManager {
   private async handleMetricsRequest(ws: any): Promise<void> {
     try {
       const metrics = await serviceNowRepository.getServiceNowMetrics();
-      const rateLimitStats = serviceNowRateLimiter.getMetrics();
+      const rateLimitStats = // Rate limiting now handled internally: getMetrics();
       const streamStats = await serviceNowStreams.getStreamStats();
 
       this.sendToClient(ws, {

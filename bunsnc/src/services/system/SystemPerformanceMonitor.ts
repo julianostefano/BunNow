@@ -1,6 +1,6 @@
 /**
  * System Performance Monitor - Consolidated performance monitoring
- * Integrates functionality from PerformanceMonitoringService
+ * Integrates functionality from SystemService
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 

@@ -1,24 +1,24 @@
 /**
- * Enhanced Ticket Controller - Professional Modal with HybridDataService
+ * Enhanced Ticket Controller - Professional Modal with ConsolidatedDataService
  * Simple, clean implementation following dev guidelines
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { HybridDataService } from '../services/HybridDataService';
-import { EnhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
+import { ConsolidatedDataService } from '../services/ConsolidatedDataService';
+import { ConsolidatedDataService } from '../services/ConsolidatedDataService';
 import { ServiceNowAuthClient } from '../services/ServiceNowAuthClient';
 import { ServiceNowStreams } from '../config/redis-streams';
 import { EnhancedTicketModalView } from '../views/EnhancedTicketModalView';
 
 export class EnhancedTicketController {
-  private hybridDataService: HybridDataService;
+  private hybridDataService: ConsolidatedDataService;
 
   constructor(
     serviceNowAuthClient: ServiceNowAuthClient,
-    mongoService: EnhancedTicketStorageService,
+    mongoService: ConsolidatedDataService,
     redisStreams: ServiceNowStreams
   ) {
-    this.hybridDataService = new HybridDataService(
+    this.hybridDataService = new ConsolidatedDataService(
       mongoService,
       serviceNowAuthClient,
       redisStreams
@@ -27,13 +27,13 @@ export class EnhancedTicketController {
 
   /**
    * Get enhanced modal HTML with tabs and SLA data
-   * Uses HybridDataService for transparent data access
+   * Uses ConsolidatedDataService for transparent data access
    */
   async getEnhancedModal(sysId: string, table: string): Promise<string> {
     try {
       console.log(`🎯 Getting enhanced modal for ${table}/${sysId}`);
 
-      // Get ticket data with SLMs and Notes using HybridDataService
+      // Get ticket data with SLMs and Notes using ConsolidatedDataService
       const ticketData = await this.hybridDataService.getTicketDetails(sysId, table, {
         includeSLMs: true,
         includeNotes: true

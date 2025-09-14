@@ -1,6 +1,6 @@
 /**
  * System Service - Consolidated infrastructure and system management
- * Consolidates PerformanceMonitoringService, TaskManager, TransactionManager, GroupService, and legacy services
+ * Consolidates SystemService, TaskManager, TransactionManager, GroupService, and legacy services
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 

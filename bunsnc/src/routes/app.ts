@@ -1,15 +1,10 @@
 import { Elysia, t } from "elysia";
-import { BatchService } from "../services/batch.service";
-import { ServiceNowService } from "../services/servicenow.service";
+import { serviceNowService, authService, dataService } from "../services";
 import { getSchemaForTable } from "../types/schemaRegistry";
-import { AttachmentService } from "../services/attachment.service";
-import { ServiceNowAuthClient } from "../services/ServiceNowAuthClient";
 import { createTicketActionsRoutes } from "./TicketActionsRoutes";
 import { createTicketListRoutes } from "./TicketListRoutes";
 import { createTicketDetailsRoutes } from "./TicketDetailsRoutes";
-import type { EnhancedTicketStorageService } from "../services/EnhancedTicketStorageService";
 import type { ServiceNowStreams } from "../config/redis-streams";
-import { enhancedTicketStorageService } from "../services/EnhancedTicketStorageService";
 
 // Create async app initialization function
 async function createApp() {
@@ -18,10 +13,7 @@ async function createApp() {
   // CRUD seguro
   app.post("/record/:table",
   async ({ params, body, headers }) => {
-    const instanceUrl = headers["x-instance-url"] || Bun.env.SNC_INSTANCE_URL || "";
-    const authToken = headers["authorization"] || Bun.env.SNC_AUTH_TOKEN || "";
-    const service = new ServiceNowService(instanceUrl, authToken);
-    return service.create(params.table, body);
+    return serviceNowService.create(params.table, body);
   },
   {
     params: t.Object({ table: t.String() }),
@@ -36,14 +28,16 @@ async function createApp() {
 // Upload de anexo
 app.post("/attachment/:table/:sysId",
   async ({ params, body, headers }) => {
-    const instanceUrl = headers["x-instance-url"] || Bun.env.SNC_INSTANCE_URL || "";
-    const authToken = headers["authorization"] || Bun.env.SNC_AUTH_TOKEN || "";
-    const service = new AttachmentService(instanceUrl, authToken);
-    return service.upload(params.table, params.sysId, body.file);
+    return serviceNowService.uploadAttachment({
+      table: params.table,
+      sysId: params.sysId,
+      file: body.file,
+      fileName: body.fileName || 'uploaded-file'
+    });
   },
   {
     params: t.Object({ table: t.String(), sysId: t.String() }),
-    body: t.Object({ file: t.Any() }),
+    body: t.Object({ file: t.Any(), fileName: t.Optional(t.String()) }),
     headers: t.Object({
       "x-instance-url": t.Optional(t.String()),
       authorization: t.Optional(t.String())
@@ -54,10 +48,7 @@ app.post("/attachment/:table/:sysId",
 // Download de anexo
 app.get("/attachment/:attachmentId",
   async ({ params, headers }) => {
-    const instanceUrl = headers["x-instance-url"] || Bun.env.SNC_INSTANCE_URL || "";
-    const authToken = headers["authorization"] || Bun.env.SNC_AUTH_TOKEN || "";
-    const service = new AttachmentService(instanceUrl, authToken);
-    return service.download(params.attachmentId);
+    return serviceNowService.downloadAttachment(params.attachmentId);
   },
   {
     params: t.Object({ attachmentId: t.String() }),
@@ -71,14 +62,12 @@ app.get("/attachment/:attachmentId",
 // Batch real
 app.post("/batch",
   async ({ body, headers }) => {
-    const instanceUrl = headers["x-instance-url"] || Bun.env.SNC_INSTANCE_URL || "";
-    const authToken = headers["authorization"] || Bun.env.SNC_AUTH_TOKEN || "";
     if (!body || body.operations == null || !Array.isArray(body.operations)) {
       console.error("Batch endpoint: invalid operations value", body && body.operations);
       return Response.json({ error: "operations deve ser um array" }, { status: 400 });
     }
     try {
-      const results = await BatchService.executeBatch(instanceUrl, authToken, body.operations);
+      const results = await serviceNowService.executeBatch(body.operations);
       return Response.json(results, { status: 200 });
     } catch (err) {
       return Response.json({ error: String(err) }, { status: 500 });
@@ -93,20 +82,16 @@ app.post("/batch",
   }
   );
 
-  // Initialize default ServiceNow client for ticket routes
-  const defaultServiceNowClient = new ServiceNowAuthClient(
-    Bun.env.SNC_INSTANCE_URL || "",
-    Bun.env.SNC_AUTH_TOKEN || ""
-  );
+  // Use consolidated auth service
+  const defaultServiceNowClient = authService;
 
   // Initialize MongoDB and Redis services for enhanced features
-  let mongoService: EnhancedTicketStorageService | undefined;
+  let mongoService = dataService;
   let redisStreams: ServiceNowStreams | undefined;
 
   try {
     // Initialize MongoDB persistence service
-    await enhancedTicketStorageService.initialize();
-    mongoService = enhancedTicketStorageService;
+    await dataService.initialize();
     console.log('✅ MongoDB service initialized for enhanced features');
   } catch (error) {
     console.warn('⚠️ MongoDB service not available, enhanced features will be limited:', error.message);

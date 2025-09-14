@@ -6,7 +6,7 @@
 import { Elysia } from 'elysia';
 import { html } from '@elysiajs/html';
 import { serviceNowAuthClient } from '../services/ServiceNowAuthClient';
-import { EnhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
+import { ConsolidatedDataService } from '../services/ConsolidatedDataService';
 import { HybridTicketService } from '../services/HybridTicketService';
 import { 
   TICKET_TYPES, 
@@ -17,8 +17,8 @@ import {
   STATUS_FILTERS 
 } from '../config/servicenow-status';
 import { safeDisplay, safeGet, safeFormatDate } from '../utils/serialization';
-import { ServiceNowNotesService } from '../services/ServiceNowNotesService';
-import { enhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
+import { ConsolidatedServiceNowService } from '../services/ConsolidatedServiceNowService';
+import { enhancedTicketStorageService } from '../services/ConsolidatedDataService';
 
 // Helper function to initialize services safely
 async function initializeServices() {
@@ -26,9 +26,9 @@ async function initializeServices() {
     // Initialize persistence service first
     await enhancedTicketStorageService.initialize();
     
-    const mongoService = new EnhancedTicketStorageService();
+    const mongoService = new ConsolidatedDataService();
     const hybridService = new HybridTicketService(serviceNowAuthClient);
-    const notesService = new ServiceNowNotesService(serviceNowAuthClient);
+    const notesService = new ConsolidatedServiceNowService(serviceNowAuthClient);
     
     // Initialize hybrid service
     await hybridService.initialize();
@@ -1017,7 +1017,7 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
     try {
       console.log(`📝 [NOTES] Fetching notes for ${table}/${sysId}`);
       
-      // Buscar notas reais usando ServiceNowNotesService
+      // Buscar notas reais usando ConsolidatedServiceNowService
       const notes = await notesService.getTicketNotes(table, sysId);
       
       if (!notes || notes.length === 0) {

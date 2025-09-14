@@ -6,9 +6,9 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import { E2E_CONFIG, E2E_SCENARIOS, testRunner, type TestScenario } from './e2e.config';
-import { ConsolidatedTicketService } from '../../services/ConsolidatedTicketService';
+import { ConsolidatedServiceNowService } from '../../services/ConsolidatedServiceNowService';
 import { unifiedStreamingService, UnifiedStreamingService } from '../../services/UnifiedStreamingService';
-import { HybridDataService } from '../../services/HybridDataService';
+import { ConsolidatedDataService } from '../../services/ConsolidatedDataService';
 
 // Test Execution Statistics
 interface TestExecutionStats {
@@ -37,9 +37,9 @@ interface TestScenarioResult {
 
 describe('E2E Test Runner - Comprehensive Test Orchestration', () => {
   let executionStats: TestExecutionStats;
-  let consolidatedTicketService: ConsolidatedTicketService;
+  let consolidatedTicketService: ConsolidatedServiceNowService;
   let streamingService: UnifiedStreamingService;
-  let hybridDataService: HybridDataService;
+  let hybridDataService: ConsolidatedDataService;
 
   beforeAll(async () => {
     console.log('🚀 E2E Test Framework Initialization');
@@ -132,9 +132,9 @@ describe('E2E Test Runner - Comprehensive Test Orchestration', () => {
     } as any;
 
     // Initialize services
-    consolidatedTicketService = new ConsolidatedTicketService(enhancedMockServiceNow);
+    consolidatedTicketService = new ConsolidatedServiceNowService(enhancedMockServiceNow);
     streamingService = UnifiedStreamingService.getInstance();
-    hybridDataService = new HybridDataService();
+    hybridDataService = new ConsolidatedDataService();
 
     // Initialize streaming service with enhanced Redis mock
     const enhancedRedisStreams = {

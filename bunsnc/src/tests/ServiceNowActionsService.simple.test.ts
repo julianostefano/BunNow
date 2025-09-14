@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { ServiceNowActionsService } from '../services/ServiceNowActionsService';
-import { ServiceNowNotesService } from '../services/ServiceNowNotesService';
+import { ConsolidatedServiceNowService } from '../services/ConsolidatedServiceNowService';
+import { ConsolidatedServiceNowService } from '../services/ConsolidatedServiceNowService';
 
 // Mock ServiceNow client
 const mockServiceNowClient = {
@@ -40,10 +40,10 @@ const mockNotesService = {
 } as any;
 
 describe('ServiceNow Actions Service Simple Tests', () => {
-  let actionsService: ServiceNowActionsService;
+  let actionsService: ConsolidatedServiceNowService;
 
   beforeEach(() => {
-    actionsService = new ServiceNowActionsService(mockServiceNowClient, mockNotesService);
+    actionsService = new ConsolidatedServiceNowService(mockServiceNowClient, mockNotesService);
   });
 
   it('should create actions service successfully', () => {

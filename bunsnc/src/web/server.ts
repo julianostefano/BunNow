@@ -55,7 +55,7 @@ export class ServiceNowWebServer {
       .use(createTicketListRoutes(this.webServerController.getServiceNowAuthClient()))
       .use(createTicketDetailsRoutes(
         this.webServerController.getServiceNowAuthClient(),
-        this.webServerController.getEnhancedTicketStorageService(),
+        this.webServerController.getConsolidatedDataService(),
         this.webServerController.getRedisStreams()
       ))
       .use(createIncidentNotesRoutes(

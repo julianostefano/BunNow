@@ -4,7 +4,7 @@
  */
 
 import { ServiceNowWebServer, WebServerConfig } from './server';
-import { enhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
+import { enhancedTicketStorageService } from '../services/ConsolidatedDataService';
 
 const config: WebServerConfig = {
   port: 3008,

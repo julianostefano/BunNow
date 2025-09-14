@@ -2,15 +2,15 @@
  * Record controller with QueryBuilder integration
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
-import { ServiceNowService } from "../services/servicenow.service";
+import { consolidatedServiceNowService } from "../services/ConsolidatedServiceNowService";
 import { QueryBuilder } from "../query/QueryBuilder";
 import type { QueryOptions, ServiceNowRecord } from "../types/servicenow";
 
 export class RecordController {
-  private service: ServiceNowService;
+  private service = consolidatedServiceNowService;
 
-  constructor(instanceUrl: string, authToken: string) {
-    this.service = new ServiceNowService(instanceUrl, authToken);
+  constructor(instanceUrl?: string, authToken?: string) {
+    // Using consolidated service singleton - parameters kept for compatibility
   }
 
   async create(table: string, data: ServiceNowRecord) {
@@ -47,7 +47,7 @@ export class RecordController {
     const encodedQuery = queryBuilder.generateQuery();
     return this.service.query({
       table,
-      query: encodedQuery
+      filter: encodedQuery
     });
   }
 }

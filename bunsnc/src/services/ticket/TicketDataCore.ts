@@ -4,8 +4,8 @@
  */
 
 import { mongoCollectionManager, IncidentDocument, ChangeTaskDocument, SCTaskDocument } from '../../config/mongodb-collections';
-import { GroupService } from '../GroupService';
-import { enhancedTicketStorageService } from '../EnhancedTicketStorageService';
+import { systemService } from '../SystemService';
+import { enhancedTicketStorageService } from '../ConsolidatedDataService';
 import { logger } from '../../utils/Logger';
 import type { TicketData } from '../../types/TicketTypes';
 
@@ -13,11 +13,11 @@ export class TicketDataCore {
   protected client: any = null;
   protected db: any = null;
   protected isConnected = false;
-  protected groupService: GroupService;
+  protected groupService = systemService.getGroupManager();
   private initPromise: Promise<void> | null = null;
 
   constructor() {
-    this.groupService = new GroupService(enhancedTicketStorageService.getClient(), 'bunsnc');
+    // Using systemService group manager
     this.initPromise = this.initialize();
   }
 

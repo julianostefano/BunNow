@@ -1,13 +1,13 @@
 /**
- * Integration Tests for HybridDataService - Real-world Scenarios
+ * Integration Tests for ConsolidatedDataService - Real-world Scenarios
  * Tests complex integration patterns and user transparency
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
-import { HybridDataService, HybridDataOptions } from '../services/HybridDataService';
+import { ConsolidatedDataService, HybridDataOptions } from '../services/ConsolidatedDataService';
 import { ServiceNowAuthClient } from '../services/ServiceNowAuthClient';
-import { EnhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
+import { ConsolidatedDataService } from '../services/ConsolidatedDataService';
 import { ServiceNowStreams } from '../config/redis-streams';
 
 // Mock implementations for integration testing
@@ -21,7 +21,7 @@ const mockMongoService = {
   deleteTicket: mock(),
   getCollectionStats: mock(),
   healthCheck: mock()
-} as unknown as EnhancedTicketStorageService;
+} as unknown as ConsolidatedDataService;
 
 const mockServiceNowService = {
   makeRequestFullFields: mock(),
@@ -34,15 +34,15 @@ const mockRedisStreams = {
   healthCheck: mock()
 } as unknown as ServiceNowStreams;
 
-describe('HybridDataService - Integration Scenarios', () => {
-  let hybridService: HybridDataService;
+describe('ConsolidatedDataService - Integration Scenarios', () => {
+  let hybridService: ConsolidatedDataService;
 
   beforeEach(() => {
     mockMongoService.findIncidentBySysId = mock(() => null);
     mockServiceNowService.makeRequestFullFields = mock(() => Promise.resolve(null));
     mockRedisStreams.publishChange = mock(() => Promise.resolve('test-message-id'));
     
-    hybridService = new HybridDataService(
+    hybridService = new ConsolidatedDataService(
       mockMongoService,
       mockServiceNowService,
       mockRedisStreams

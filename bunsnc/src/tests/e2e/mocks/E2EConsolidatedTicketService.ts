@@ -1,12 +1,12 @@
 /**
  * E2E Mock-Aware Consolidated Ticket Service
- * Provides ConsolidatedTicketService functionality without MongoDB dependencies
+ * Provides ConsolidatedServiceNowService functionality without MongoDB dependencies
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
 import type { ServiceNowClient } from '../../../types/servicenow';
 
-// Mock interfaces that match the original ConsolidatedTicketService
+// Mock interfaces that match the original ConsolidatedServiceNowService
 export interface HybridQueryParams {
   table: string;
   query?: string;
@@ -68,7 +68,7 @@ export interface TicketCollectionResult {
   };
 }
 
-export class E2EConsolidatedTicketService {
+export class E2EConsolidatedServiceNowService {
   private serviceNowClient: ServiceNowClient;
 
   constructor(serviceNowClient: ServiceNowClient) {

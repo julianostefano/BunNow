@@ -1,10 +1,10 @@
 /**
  * Enhanced Ticket Modal View - Professional Layout with SLA Tabs
- * Restored from commit e476e9b and enhanced with HybridDataService
+ * Restored from commit e476e9b and enhanced with ConsolidatedDataService
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { TicketData } from '../services/HybridDataService';
+import { TicketData } from '../services/ConsolidatedDataService';
 
 export interface EnhancedModalProps {
   ticket: TicketData;

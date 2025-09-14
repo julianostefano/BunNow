@@ -1,10 +1,7 @@
 #!/usr/bin/env bun
 // bunsnc/src/cli.ts
 import { Command } from "commander";
-import { ServiceNowService } from "./services/servicenow.service";
-import { BatchService } from "./services/batch.service";
-import { serviceNowAuthClient } from "./services/ServiceNowAuthClient";
-import { AttachmentService } from "./services/attachment.service";
+import { serviceNowService, authService } from "./services";
 import * as dotenv from "dotenv";
 
 dotenv.config();
@@ -21,7 +18,7 @@ program
   .requiredOption("-p, --password <password>")
   .action(async (opts) => {
     const { username, password } = opts;
-    const result = await serviceNowAuthClient.authenticate(username, password);
+    const result = await authService.authenticate(username, password);
     console.log(result);
   });
 
@@ -33,7 +30,7 @@ program
     const instanceUrl = getEnv("SNC_INSTANCE_URL");
     const token = getEnv("SNC_AUTH_TOKEN");
     const data = JSON.parse(opts.data);
-    const service = new ServiceNowService(instanceUrl, token);
+    const service = serviceNowService;
     const result = await service.create(table, data);
     console.log(result);
   });
@@ -46,7 +43,7 @@ program
     const instanceUrl = getEnv("SNC_INSTANCE_URL");
     const token = getEnv("SNC_AUTH_TOKEN");
     const operations = JSON.parse(opts.operations);
-    const result = await BatchService.executeBatch(instanceUrl, token, operations);
+    const result = await serviceNowService.executeBatch(operations);
     console.log(result);
   });
 
@@ -57,7 +54,7 @@ program
   .action(async (table, sysId) => {
     const instanceUrl = getEnv("SNC_INSTANCE_URL");
     const token = getEnv("SNC_AUTH_TOKEN");
-    const service = new ServiceNowService(instanceUrl, token);
+    const service = consolidatedServiceNowService;
     const result = await service.read(table, sysId);
     console.log(result);
   });
@@ -70,7 +67,7 @@ program
     const instanceUrl = getEnv("SNC_INSTANCE_URL");
     const token = getEnv("SNC_AUTH_TOKEN");
     const data = JSON.parse(opts.data);
-    const service = new ServiceNowService(instanceUrl, token);
+    const service = consolidatedServiceNowService;
     const result = await service.update(table, sysId, data);
     console.log(result);
   });
@@ -81,7 +78,7 @@ program
   .action(async (table, sysId) => {
     const instanceUrl = getEnv("SNC_INSTANCE_URL");
     const token = getEnv("SNC_AUTH_TOKEN");
-    const service = new ServiceNowService(instanceUrl, token);
+    const service = consolidatedServiceNowService;
     const result = await service.delete(table, sysId);
     console.log(result);
   });
@@ -94,7 +91,7 @@ program
   .action(async (table, sysId, file) => {
     const instanceUrl = getEnv("SNC_INSTANCE_URL");
     const token = getEnv("SNC_AUTH_TOKEN");
-    const attachmentService = new AttachmentService(instanceUrl, token);
+    const attachmentService = consolidatedServiceNowService;
     const fs = await import("fs/promises");
   const fileBuffer = await fs.readFile(file);
   // Converter Buffer para Uint8Array para o construtor File
@@ -113,7 +110,7 @@ program
   .action(async (attachmentId, dest) => {
     const instanceUrl = getEnv("SNC_INSTANCE_URL");
     const token = getEnv("SNC_AUTH_TOKEN");
-    const attachmentService = new AttachmentService(instanceUrl, token);
+    const attachmentService = consolidatedServiceNowService;
     const data = await attachmentService.download(attachmentId);
     const fs = await import("fs/promises");
     await fs.writeFile(dest, data);

@@ -8,7 +8,7 @@
 
 import { Context } from 'elysia';
 import { serviceNowAuthClient } from '../../services/ServiceNowAuthClient';
-import { serviceNowRateLimiter } from '../../services/ServiceNowRateLimit';
+
 
 /**
  * Interface for system metrics
@@ -32,7 +32,7 @@ interface SystemMetrics {
 export async function getSystemMetrics(): Promise<SystemMetrics> {
   try {
     // Get rate limiter statistics
-    const rateLimiterStats = serviceNowRateLimiter.getStats();
+    const rateLimiterStats = // Rate limiting now handled internally: getStats();
     const currentRate = rateLimiterStats.current || 0;
     const maxRate = 25; // ServiceNow API limit
     

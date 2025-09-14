@@ -93,11 +93,11 @@ function buildSearchFilter(searchQuery: SearchQuery): string {
 
 /**
  * Mock search function - replace with actual ServiceNow API call
- * TODO: Integrate with HybridDataService when circular dependency is resolved
+ * TODO: Integrate with ConsolidatedDataService when circular dependency is resolved
  */
 async function performSearch(searchQuery: SearchQuery): Promise<SearchResult[]> {
   try {
-    // This would normally call the ServiceNow API through HybridDataService
+    // This would normally call the ServiceNow API through ConsolidatedDataService
     // For now, return mock data to avoid circular dependency
     
     console.log(`🔍 Searching for: "${searchQuery.query}"`);

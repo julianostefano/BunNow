@@ -4,11 +4,11 @@
  */
 
 import { Elysia, t } from 'elysia';
-import { hybridDataService } from '../services/HybridDataService';
+import { dataService } from '../services/ConsolidatedDataService';
 import { EnhancedTicketModalView } from '../web/EnhancedTicketModal';
 import { serviceNowStreams } from '../config/redis-streams';
 import { logger } from '../utils/Logger';
-import { performanceMonitoringService } from '../services/PerformanceMonitoringService';
+import { systemService } from '../services/SystemService';
 
 export const createModalRoutes = () => {
   return new Elysia({ prefix: '/modal' })
@@ -20,7 +20,7 @@ export const createModalRoutes = () => {
         logger.info(`📋 Loading modal for ${params.table}/${params.sysId}`);
 
         // Get ticket details with SLA and notes
-        const ticket = await hybridDataService.getTicketDetails(params.sysId, params.table, {
+        const ticket = await dataService.getTicketDetails(params.sysId, params.table, {
           includeSLMs: true,
           includeNotes: true
         });
@@ -39,7 +39,7 @@ export const createModalRoutes = () => {
           showRealTime: query.realtime !== 'false'
         });
 
-        await performanceMonitoringService.recordMetric({
+        await systemService.recordMetric({
           operation: 'modal_load',
           endpoint: `/modal/ticket/${params.table}/${params.sysId}`,
           response_time_ms: Date.now() - startTime
@@ -70,7 +70,7 @@ export const createModalRoutes = () => {
       try {
         logger.info(`📊 Loading modal data for ${params.table}/${params.sysId}`);
 
-        const ticket = await hybridDataService.getTicketDetails(params.sysId, params.table, {
+        const ticket = await dataService.getTicketDetails(params.sysId, params.table, {
           includeSLMs: query.includeSLA === 'true',
           includeNotes: query.includeNotes === 'true'
         });
@@ -79,7 +79,7 @@ export const createModalRoutes = () => {
           return { error: 'Ticket not found' };
         }
 
-        await performanceMonitoringService.recordMetric({
+        await systemService.recordMetric({
           operation: 'modal_data',
           endpoint: `/modal/data/${params.table}/${params.sysId}`,
           response_time_ms: Date.now() - startTime
@@ -116,7 +116,7 @@ export const createModalRoutes = () => {
       try {
         logger.info(`🔄 Refreshing ${params.section} for ${params.table}/${params.sysId}`);
 
-        const ticket = await hybridDataService.getTicketDetails(params.sysId, params.table, {
+        const ticket = await dataService.getTicketDetails(params.sysId, params.table, {
           forceServiceNow: true, // Force fresh data
           includeSLMs: params.section === 'sla',
           includeNotes: params.section === 'notes'
@@ -298,8 +298,8 @@ export const createSSERoutes = () => {
               }
 
               try {
-                const stats = await performanceMonitoringService.getPerformanceStats(1);
-                const memoryUsage = performanceMonitoringService.getMemoryUsage();
+                const stats = await systemService.getPerformanceStats(1);
+                const memoryUsage = systemService.getMemoryUsage();
                 
                 const message = `data: ${JSON.stringify({
                   type: 'performance-update',

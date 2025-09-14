@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
 import { performance } from 'perf_hooks';
 import { unifiedStreamingService } from '../../services/UnifiedStreamingService';
-import { ConsolidatedTicketService } from '../../services/ConsolidatedTicketService';
+import { ConsolidatedServiceNowService } from '../../services/ConsolidatedServiceNowService';
 import type { ServiceNowAuthClient } from '../../services/ServiceNowAuthClient';
 import type { ServiceNowStreams } from '../../config/redis-streams';
 
@@ -128,7 +128,7 @@ const createBenchmarkMockRedis = (): ServiceNowStreams => ({
 } as any);
 
 describe('Phase 2 Consolidation - Performance Benchmarks', () => {
-  let consolidatedTicketService: ConsolidatedTicketService;
+  let consolidatedTicketService: ConsolidatedServiceNowService;
   let mockServiceNowClient: ServiceNowAuthClient;
   let mockRedisStreams: ServiceNowStreams;
   
@@ -149,7 +149,7 @@ describe('Phase 2 Consolidation - Performance Benchmarks', () => {
     // Warmup phase
     console.log(`🔥 Warming up with ${BENCHMARK_CONFIG.warmupIterations} iterations...`);
     for (let i = 0; i < BENCHMARK_CONFIG.warmupIterations; i++) {
-      const warmupService = new ConsolidatedTicketService(mockServiceNowClient);
+      const warmupService = new ConsolidatedServiceNowService(mockServiceNowClient);
       await warmupService.getTicketDetails(`warmup-${i}`, 'incident');
       await warmupService.cleanup();
     }
@@ -158,7 +158,7 @@ describe('Phase 2 Consolidation - Performance Benchmarks', () => {
   });
 
   beforeEach(() => {
-    consolidatedTicketService = new ConsolidatedTicketService(mockServiceNowClient);
+    consolidatedTicketService = new ConsolidatedServiceNowService(mockServiceNowClient);
   });
 
   afterEach(async () => {
@@ -471,7 +471,7 @@ describe('Phase 2 Consolidation - Performance Benchmarks', () => {
       
       // Create load: multiple services, connections, and operations
       const services = Array.from({ length: 10 }, () => 
-        new ConsolidatedTicketService(mockServiceNowClient)
+        new ConsolidatedServiceNowService(mockServiceNowClient)
       );
       
       const connections = Array.from({ length: 100 }, (_, i) =>
@@ -537,7 +537,7 @@ describe('Phase 2 Consolidation - Performance Benchmarks', () => {
       const initialStats = unifiedStreamingService.getConnectionStats();
       
       // Create resources
-      const service = new ConsolidatedTicketService(mockServiceNowClient);
+      const service = new ConsolidatedServiceNowService(mockServiceNowClient);
       const connections = Array.from({ length: 50 }, (_, i) =>
         unifiedStreamingService.createTicketSSEConnection(`cleanup-test-${i}`)
       );
@@ -582,7 +582,7 @@ describe('Phase 2 Consolidation - Performance Benchmarks', () => {
       
       // Simulate multiple separate services (as they were before Phase 2)
       const separateServices = Array.from({ length: 4 }, () => 
-        new ConsolidatedTicketService(mockServiceNowClient)
+        new ConsolidatedServiceNowService(mockServiceNowClient)
       );
       
       // Perform operations using separate services
@@ -604,7 +604,7 @@ describe('Phase 2 Consolidation - Performance Benchmarks', () => {
       // Post-consolidation pattern (single consolidated service)
       const postConsolidationStartTime = performance.now();
       
-      const consolidatedService = new ConsolidatedTicketService(mockServiceNowClient);
+      const consolidatedService = new ConsolidatedServiceNowService(mockServiceNowClient);
       
       // Perform same operations using consolidated service
       const consolidatedResults = await Promise.all([

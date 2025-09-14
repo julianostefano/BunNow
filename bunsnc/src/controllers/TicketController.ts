@@ -5,36 +5,36 @@
 
 import type { ServiceNowAuthClient } from '../services/ServiceNowAuthClient';
 import type { TicketData, TicketResponse } from '../types/TicketTypes';
-import type { HybridDataService } from '../services/HybridDataService';
-import type { EnhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
+import type { ConsolidatedDataService } from '../services/ConsolidatedDataService';
+import type { ConsolidatedDataService } from '../services/ConsolidatedDataService';
 import type { ServiceNowStreams } from '../config/redis-streams';
 
 export class TicketController {
-  private hybridDataService?: HybridDataService;
+  private hybridDataService?: ConsolidatedDataService;
 
   constructor(
     private serviceNowAuthClient: ServiceNowAuthClient,
-    private mongoService?: EnhancedTicketStorageService,
+    private mongoService?: ConsolidatedDataService,
     private redisStreams?: ServiceNowStreams
   ) {
-    // Initialize HybridDataService only if all dependencies are available
+    // Initialize ConsolidatedDataService only if all dependencies are available
     if (this.mongoService && this.redisStreams) {
-      this.initializeHybridDataService();
+      this.initializeConsolidatedDataService();
     }
   }
 
-  private async initializeHybridDataService() {
+  private async initializeConsolidatedDataService() {
     try {
-      const { HybridDataService } = await import('../services/HybridDataService');
+      const { ConsolidatedDataService } = await import('../services/ConsolidatedDataService');
       if (this.mongoService && this.redisStreams) {
-        this.hybridDataService = new HybridDataService(
+        this.hybridDataService = new ConsolidatedDataService(
           this.mongoService,
           this.serviceNowAuthClient,
           this.redisStreams
         );
       }
     } catch (error) {
-      console.warn('Could not initialize HybridDataService:', error.message);
+      console.warn('Could not initialize ConsolidatedDataService:', error.message);
     }
   }
 

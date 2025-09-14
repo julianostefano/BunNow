@@ -1,13 +1,13 @@
 /**
- * Unit Tests for HybridDataService - Core Functionality
+ * Unit Tests for ConsolidatedDataService - Core Functionality
  * Tests transparent data sourcing and caching strategies
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
 import { describe, it, expect, beforeEach, afterEach, mock, spyOn } from 'bun:test';
-import { HybridDataService, SmartDataStrategy, TicketData } from '../services/HybridDataService';
+import { ConsolidatedDataService, SmartDataStrategy, TicketData } from '../services/ConsolidatedDataService';
 import { ServiceNowAuthClient } from '../services/ServiceNowAuthClient';
-import { EnhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
+import { ConsolidatedDataService } from '../services/ConsolidatedDataService';
 import { ServiceNowStreams } from '../config/redis-streams';
 
 // Mock implementations
@@ -21,7 +21,7 @@ const mockMongoService = {
   deleteTicket: mock(),
   getCollectionStats: mock(),
   healthCheck: mock()
-} as unknown as EnhancedTicketStorageService;
+} as unknown as ConsolidatedDataService;
 
 const mockServiceNowService = {
   makeRequestFullFields: mock(),
@@ -164,8 +164,8 @@ describe('SmartDataStrategy', () => {
   });
 });
 
-describe('HybridDataService - Core Functions', () => {
-  let hybridService: HybridDataService;
+describe('ConsolidatedDataService - Core Functions', () => {
+  let hybridService: ConsolidatedDataService;
   let mockStrategy: SmartDataStrategy;
 
   beforeEach(() => {
@@ -177,7 +177,7 @@ describe('HybridDataService - Core Functions', () => {
     mockStrategy = new SmartDataStrategy();
     spyOn(mockStrategy, 'shouldRefresh').mockReturnValue(false);
     
-    hybridService = new HybridDataService(
+    hybridService = new ConsolidatedDataService(
       mockMongoService,
       mockServiceNowService,
       mockRedisStreams,

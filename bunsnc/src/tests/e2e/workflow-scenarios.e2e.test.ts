@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
-import { ConsolidatedTicketService } from '../../services/ConsolidatedTicketService';
+import { ConsolidatedServiceNowService } from '../../services/ConsolidatedServiceNowService';
 import { unifiedStreamingService, UnifiedStreamingService } from '../../services/UnifiedStreamingService';
 import type { ServiceNowClient } from '../../types/servicenow';
 
@@ -146,11 +146,11 @@ const workflowServiceNowClient: ServiceNowClient = {
 };
 
 describe('Workflow Scenarios - End-to-End Testing', () => {
-  let consolidatedTicketService: ConsolidatedTicketService;
+  let consolidatedTicketService: ConsolidatedServiceNowService;
   let streamingService: UnifiedStreamingService;
 
   beforeAll(async () => {
-    consolidatedTicketService = new ConsolidatedTicketService(workflowServiceNowClient);
+    consolidatedTicketService = new ConsolidatedServiceNowService(workflowServiceNowClient);
     streamingService = UnifiedStreamingService.getInstance();
 
     // Initialize streaming with workflow support

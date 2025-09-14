@@ -1,6 +1,6 @@
 /**
  * Consolidated Business Logic Service - Complete Business Operations
- * Consolidates: ConsolidatedTicketService, SLATrackingService, TicketCollectionService, business workflow logic
+ * Consolidates: ConsolidatedServiceNowService, SLATrackingService, TicketCollectionService, business workflow logic
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 

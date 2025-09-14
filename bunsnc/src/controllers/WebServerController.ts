@@ -14,13 +14,8 @@ import { background } from 'elysia-background';
 
 import { ServiceNowClient } from '../client/ServiceNowClient';
 import { RedisStreamManager } from '../bigdata/redis/RedisStreamManager';
-import { ConsolidatedTicketService } from '../services/ConsolidatedTicketService';
-import { ServiceNowAuthClient } from '../services/ServiceNowAuthClient';
-import { EnhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
+import { serviceNowService, dataService, ticketService, authService } from '../services';
 import { ServiceNowStreams } from '../config/redis-streams';
-import { enhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
-import { HybridDataService } from '../services/HybridDataService';
-import { SLATrackingService } from '../services/SLATrackingService';
 import { mongoCollectionManager } from '../config/mongodb-collections';
 import { TicketRepository } from '../repositories/TicketRepository';
 
@@ -67,12 +62,12 @@ export class WebServerController {
   private config: WebServerConfig;
   private serviceNowClient: ServiceNowClient;
   private redisStreamManager: RedisStreamManager;
-  private consolidatedTicketService: ConsolidatedTicketService;
-  private serviceNowAuthClient: ServiceNowAuthClient;
-  private enhancedTicketStorageService: EnhancedTicketStorageService | undefined;
+  private consolidatedTicketService: typeof serviceNowService;
+  private serviceNowAuthClient: typeof authService;
+  private enhancedTicketStorageService: typeof dataService | undefined;
   private redisStreams: ServiceNowStreams | undefined;
-  private hybridDataService: HybridDataService | undefined;
-  private slaTrackingService: SLATrackingService | undefined;
+  private hybridDataService: typeof dataService | undefined;
+  private slaTrackingService: typeof ticketService | undefined;
   private ticketRepository: TicketRepository | undefined;
 
   constructor(config: WebServerConfig) {
@@ -95,12 +90,8 @@ export class WebServerController {
       password: this.config.redis.password,
     });
 
-    this.serviceNowAuthClient = new ServiceNowAuthClient(
-      this.config.serviceNow.instanceUrl,
-      ''
-    );
-
-    this.consolidatedTicketService = new ConsolidatedTicketService(this.serviceNowAuthClient);
+    this.serviceNowAuthClient = authService;
+    this.consolidatedTicketService = serviceNowService;
 
     console.log('✅ ServiceNow clients initialized');
   }
@@ -109,23 +100,19 @@ export class WebServerController {
     console.log('🚀 Initializing enhanced services...');
 
     try {
-      await enhancedTicketStorageService.initialize();
+      await dataService.initialize();
       await mongoCollectionManager.initializeCollections();
-      
-      this.enhancedTicketStorageService = enhancedTicketStorageService;
+
+      this.enhancedTicketStorageService = dataService;
       console.log('✅ MongoDB service initialized for enhanced features');
       
       this.ticketRepository = new TicketRepository();
       console.log('✅ Ticket Repository initialized');
       
-      this.hybridDataService = new HybridDataService(
-        this.enhancedTicketStorageService,
-        this.serviceNowAuthClient,
-        this.redisStreams
-      );
+      this.hybridDataService = dataService;
       console.log('✅ Hybrid Data Service with sync capabilities initialized');
-      
-      this.slaTrackingService = new SLATrackingService();
+
+      this.slaTrackingService = ticketService;
       console.log('✅ SLA Tracking Service initialized');
       
       this.startBackgroundServices();
@@ -158,7 +145,7 @@ export class WebServerController {
       
       this.slaTrackingService.start();
       
-      console.log('🔄 Background services started (HybridDataService + SLA Tracking)');
+      console.log('🔄 Background services started (ConsolidatedDataService + SLA Tracking)');
     }
   }
 
@@ -270,15 +257,15 @@ export class WebServerController {
     return this.serviceNowClient;
   }
 
-  public getConsolidatedTicketService(): ConsolidatedTicketService {
+  public getConsolidatedServiceNowService(): typeof serviceNowService {
     return this.consolidatedTicketService;
   }
 
-  public getServiceNowAuthClient(): ServiceNowAuthClient {
+  public getServiceNowAuthClient(): typeof authService {
     return this.serviceNowAuthClient;
   }
 
-  public getEnhancedTicketStorageService(): EnhancedTicketStorageService | undefined {
+  public getConsolidatedDataService(): typeof dataService | undefined {
     return this.enhancedTicketStorageService;
   }
 
@@ -286,7 +273,7 @@ export class WebServerController {
     return this.redisStreams;
   }
 
-  public getSLATrackingService(): SLATrackingService | undefined {
+  public getSLATrackingService(): typeof ticketService | undefined {
     return this.slaTrackingService;
   }
 

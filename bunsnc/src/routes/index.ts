@@ -8,11 +8,10 @@ import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { createApp } from "./app";
 import { createNotificationRoutes, getRealtimeRoutes, shutdownNotificationSystem } from "./notifications";
-// BackgroundSyncManager consolidated into HybridDataService
+// BackgroundSyncManager consolidated into ConsolidatedDataService
 import { createGroupRoutes } from "./GroupRoutes";
 import { createModalRoutes, createSSERoutes } from "./ModalRoutes";
-import { performanceMonitoringService } from "../services/PerformanceMonitoringService";
-import { cacheOptimizationService } from "../services/CacheOptimizationService";
+import { systemService } from "../services/SystemService";
 
 export async function createMainApp(): Promise<Elysia> {
   const mainApp = new Elysia();
@@ -32,27 +31,17 @@ export async function createMainApp(): Promise<Elysia> {
     return "Favicon not found";
   });
 
-  // Background sync functionality consolidated into HybridDataService
+  // Background sync functionality consolidated into ConsolidatedDataService
   // Initialized via WebServerController.ts
 
-  // Initialize performance monitoring service
-  performanceMonitoringService.initialize()
+  // Initialize system service (includes performance monitoring and cache optimization)
+  systemService.initialize()
     .then(() => {
-      console.log('📊 Performance monitoring service initialized');
+      console.log('🚀 System service initialized (performance monitoring + cache optimization)');
     })
     .catch((error) => {
-      console.error('❌ Failed to initialize performance monitoring:', error);
-      console.warn('⚠️ Server will continue without performance monitoring');
-    });
-
-  // Initialize cache optimization service
-  cacheOptimizationService.initialize()
-    .then(() => {
-      console.log('🚀 Cache optimization service initialized');
-    })
-    .catch((error) => {
-      console.error('❌ Failed to initialize cache optimization:', error);
-      console.warn('⚠️ Server will continue without cache optimization');
+      console.error('❌ Failed to initialize system service:', error);
+      console.warn('⚠️ Server will continue without system monitoring');
     });
 
   // Add main application routes with error handling
@@ -95,55 +84,55 @@ export async function createMainApp(): Promise<Elysia> {
     console.warn('⚠️ Server will continue without real-time functionality');
   }
 
-  // Background sync management endpoints (deprecated - moved to HybridDataService)
+  // Background sync management endpoints (deprecated - moved to ConsolidatedDataService)
   mainApp.group("/sync", (app) => 
     app
       .get("/status", async () => {
         return { 
           status: "consolidated", 
-          message: "Sync functionality moved to HybridDataService",
+          message: "Sync functionality moved to ConsolidatedDataService",
           deprecated: true
         };
       })
       .get("/stats", async () => {
         return { 
           status: "consolidated", 
-          message: "Sync functionality moved to HybridDataService",
+          message: "Sync functionality moved to ConsolidatedDataService",
           deprecated: true
         };
       })
       .post("/start", async () => {
         return { 
           success: false, 
-          message: "Sync functionality moved to HybridDataService",
+          message: "Sync functionality moved to ConsolidatedDataService",
           deprecated: true
         };
       })
       .post("/stop", async () => {
         return { 
           success: false, 
-          message: "Sync functionality moved to HybridDataService",
+          message: "Sync functionality moved to ConsolidatedDataService",
           deprecated: true
         };
       })
       .post("/force", async () => {
         return { 
           success: false, 
-          message: "Sync functionality moved to HybridDataService",
+          message: "Sync functionality moved to ConsolidatedDataService",
           deprecated: true
         };
       })
       .get("/troubleshoot", async () => {
         return { 
           status: "consolidated", 
-          message: "Sync functionality moved to HybridDataService",
+          message: "Sync functionality moved to ConsolidatedDataService",
           deprecated: true
         };
       })
       .post("/optimize", async () => {
         return { 
           success: false, 
-          message: "Sync functionality moved to HybridDataService",
+          message: "Sync functionality moved to ConsolidatedDataService",
           deprecated: true
         };
       })
@@ -154,21 +143,21 @@ export async function createMainApp(): Promise<Elysia> {
     app
       .get("/performance", async () => {
         try {
-          return await performanceMonitoringService.getCurrentMetrics();
+          return await systemService.getCurrentMetrics();
         } catch (error) {
           return { error: error.message };
         }
       })
       .get("/performance/detailed", async () => {
         try {
-          return await performanceMonitoringService.getDetailedReport();
+          return await systemService.getDetailedReport();
         } catch (error) {
           return { error: error.message };
         }
       })
       .get("/cache", async () => {
         try {
-          return await cacheOptimizationService.getCacheStats();
+          return await systemService.getCacheStats();
         } catch (error) {
           return { error: error.message };
         }
@@ -223,8 +212,8 @@ export async function gracefulShutdown(): Promise<void> {
   console.log("🛑 Shutting down BunSNC server...");
   
   try {
-    // Sync functionality moved to HybridDataService (handled by WebServerController)
-    console.log("✅ Background sync handled by HybridDataService");
+    // Sync functionality moved to ConsolidatedDataService (handled by WebServerController)
+    console.log("✅ Background sync handled by ConsolidatedDataService");
 
     // Stop notification system
     await shutdownNotificationSystem();

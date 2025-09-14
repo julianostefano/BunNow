@@ -91,7 +91,7 @@ export const COLLECTION_NAMES = {
 export type CollectionName = typeof COLLECTION_NAMES[keyof typeof COLLECTION_NAMES];
 
 import { MongoClient, Db, Collection, IndexSpecification } from 'mongodb';
-import { enhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
+import { dataService } from '../services/ConsolidatedDataService';
 
 export interface CollectionConfig {
   name: string;
@@ -263,7 +263,7 @@ export class MongoDBCollectionManager {
 
   private getDatabase(): Db {
     if (!this.db) {
-      this.db = enhancedTicketStorageService.getDatabase();
+      this.db = dataService.getDatabase();
     }
     return this.db;
   }

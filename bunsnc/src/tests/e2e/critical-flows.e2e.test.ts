@@ -5,9 +5,9 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'bun:test';
-import { E2EConsolidatedTicketService } from './mocks/E2EConsolidatedTicketService';
+import { E2EConsolidatedServiceNowService } from './mocks/E2EConsolidatedServiceNowService';
 import { unifiedStreamingService, UnifiedStreamingService } from '../../services/UnifiedStreamingService';
-import { HybridDataService } from '../../services/HybridDataService';
+import { ConsolidatedDataService } from '../../services/ConsolidatedDataService';
 import type { ServiceNowClient } from '../../types/servicenow';
 
 // E2E Test Environment Configuration
@@ -157,15 +157,15 @@ const mockE2EServiceNowClient: ServiceNowClient = {
 };
 
 describe('Critical Flows - End-to-End Testing', () => {
-  let consolidatedTicketService: E2EConsolidatedTicketService;
+  let consolidatedTicketService: E2EConsolidatedServiceNowService;
   let streamingService: UnifiedStreamingService;
-  let hybridDataService: HybridDataService;
+  let hybridDataService: ConsolidatedDataService;
 
   beforeAll(async () => {
     // Initialize E2E services without MongoDB dependencies
-    consolidatedTicketService = new E2EConsolidatedTicketService(mockE2EServiceNowClient);
+    consolidatedTicketService = new E2EConsolidatedServiceNowService(mockE2EServiceNowClient);
     streamingService = UnifiedStreamingService.getInstance();
-    hybridDataService = new HybridDataService();
+    hybridDataService = new ConsolidatedDataService();
 
     // Initialize streaming service
     const mockRedisStreams = {
@@ -516,7 +516,7 @@ describe('Critical Flows - End-to-End Testing', () => {
         }
       } as ServiceNowClient;
 
-      const resilientTicketService = new E2EConsolidatedTicketService(failingServiceNowClient);
+      const resilientTicketService = new E2EConsolidatedServiceNowService(failingServiceNowClient);
 
       // Test error handling
       try {
@@ -629,12 +629,12 @@ describe('Critical Flows - End-to-End Testing', () => {
         hybridDataService: false
       };
 
-      // Test ConsolidatedTicketService health
+      // Test ConsolidatedServiceNowService health
       try {
         const testTicket = await consolidatedTicketService.getTicketDetails('health-check', 'incident');
         healthChecks.consolidatedTicketService = true;
       } catch (error) {
-        console.log('ConsolidatedTicketService health check noted:', error);
+        console.log('ConsolidatedServiceNowService health check noted:', error);
         healthChecks.consolidatedTicketService = true; // Mock service expected to work
       }
 
@@ -647,11 +647,11 @@ describe('Critical Flows - End-to-End Testing', () => {
         console.log('UnifiedStreamingService health check error:', error);
       }
 
-      // Test HybridDataService health
+      // Test ConsolidatedDataService health
       try {
-        healthChecks.hybridDataService = hybridDataService instanceof HybridDataService;
+        healthChecks.hybridDataService = hybridDataService instanceof ConsolidatedDataService;
       } catch (error) {
-        console.log('HybridDataService health check error:', error);
+        console.log('ConsolidatedDataService health check error:', error);
       }
 
       // All services should be healthy

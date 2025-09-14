@@ -1,6 +1,5 @@
 import { RecordController } from "../controllers/recordController";
-import { BatchService } from "../services/batch.service";
-import { AttachmentService } from "../services/attachment.service";
+import { consolidatedServiceNowService } from "../services/ConsolidatedServiceNowService";
 import * as fs from "fs";
 
 // Mocks para ambiente de teste
@@ -27,8 +26,8 @@ const [, , command, ...args] = process.argv;
 const instanceUrl = process.env.SNC_INSTANCE_URL || args[0];
 const authToken = process.env.SNC_AUTH_TOKEN || args[1];
 const controller = isMock ? mockRecordController : new RecordController(instanceUrl, authToken);
-const attachmentService = isMock ? mockAttachmentService : new AttachmentService(instanceUrl, authToken);
-const batchService = isMock ? mockBatchService : BatchService;
+const attachmentService = isMock ? mockAttachmentService : consolidatedServiceNowService;
+const batchService = isMock ? mockBatchService : consolidatedServiceNowService;
 
 export async function main() {
 		switch (command) {
@@ -95,7 +94,7 @@ export async function main() {
 			const batchArg = args[0];
 			try {
 				const operations = batchArg ? JSON.parse(batchArg) : [];
-				const result = await batchService.executeBatch(instanceUrl, authToken, operations);
+				const result = await batchService.executeBatch(operations);
 				console.log(result);
 			} catch (e) {
 				console.log("Erro ao processar batch. Verifique o JSON de entrada.");
@@ -115,7 +114,12 @@ export async function main() {
 				  const fileBuffer = fs.readFileSync(filePath);
 				  fileObj = new File([fileBuffer], filePath.split("/").pop() || "upload.bin");
 				}
-				const result = await attachmentService.upload(table, sysId, fileObj);
+				const result = await attachmentService.uploadAttachment({
+				table,
+				sysId,
+				file: fileObj,
+				fileName: filePath ? filePath.split("/").pop() || "upload.bin" : "mock.bin"
+			});
 				console.log("Upload realizado com sucesso:", result);
 			} catch (e) {
 				if (e instanceof Error) {
@@ -131,7 +135,7 @@ export async function main() {
 			const attachmentId = args[0];
 			const dest = args[1];
 			try {
-				const data = await attachmentService.download(attachmentId);
+				const data = await attachmentService.downloadAttachment(attachmentId);
 				fs.writeFileSync(dest, data);
 				console.log(`Download salvo em ${dest}`);
 			} catch (e) {

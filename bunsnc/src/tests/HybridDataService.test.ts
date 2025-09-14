@@ -1,13 +1,13 @@
 /**
- * Comprehensive Unit Tests for HybridDataService
+ * Comprehensive Unit Tests for ConsolidatedDataService
  * Tests transparent data sourcing, caching strategies, and fallback scenarios
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
 import { describe, it, expect, beforeEach, afterEach, mock, spyOn } from 'bun:test';
-import { HybridDataService, SmartDataStrategy, TicketData, HybridDataOptions } from '../services/HybridDataService';
+import { ConsolidatedDataService, SmartDataStrategy, TicketData, HybridDataOptions } from '../services/ConsolidatedDataService';
 import { ServiceNowAuthClient } from '../services/ServiceNowAuthClient';
-import { EnhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
+import { ConsolidatedDataService } from '../services/ConsolidatedDataService';
 import { ServiceNowStreams } from '../config/redis-streams';
 
 // Mock implementations
@@ -21,7 +21,7 @@ const mockMongoService = {
   deleteTicket: mock(),
   getCollectionStats: mock(),
   healthCheck: mock()
-} as unknown as EnhancedTicketStorageService;
+} as unknown as ConsolidatedDataService;
 
 const mockServiceNowService = {
   makeRequestFullFields: mock(),
@@ -164,8 +164,8 @@ describe('SmartDataStrategy', () => {
   });
 });
 
-describe('HybridDataService', () => {
-  let hybridService: HybridDataService;
+describe('ConsolidatedDataService', () => {
+  let hybridService: ConsolidatedDataService;
   let mockStrategy: SmartDataStrategy;
 
   beforeEach(() => {
@@ -177,7 +177,7 @@ describe('HybridDataService', () => {
     mockStrategy = new SmartDataStrategy();
     spyOn(mockStrategy, 'shouldRefresh').mockReturnValue(false);
     
-    hybridService = new HybridDataService(
+    hybridService = new ConsolidatedDataService(
       mockMongoService,
       mockServiceNowService,
       mockRedisStreams,
@@ -538,7 +538,7 @@ describe('HybridDataService', () => {
 });
 
 describe('Integration scenarios', () => {
-  let hybridService: HybridDataService;
+  let hybridService: ConsolidatedDataService;
 
   beforeEach(() => {
     // Reset mocks
@@ -546,7 +546,7 @@ describe('Integration scenarios', () => {
     mockServiceNowService.makeRequestFullFields = mock(() => Promise.resolve(null));
     mockRedisStreams.publishChange = mock(() => Promise.resolve('test-message-id'));
     
-    hybridService = new HybridDataService(
+    hybridService = new ConsolidatedDataService(
       mockMongoService,
       mockServiceNowService,
       mockRedisStreams

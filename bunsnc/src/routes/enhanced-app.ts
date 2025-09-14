@@ -9,16 +9,13 @@
  */
 
 import { Elysia, t } from "elysia";
-import { BatchService } from "../services/batch.service";
-import { ServiceNowService } from "../services/servicenow.service";
-import { AttachmentService } from "../services/attachment.service";
+import { consolidatedServiceNowService } from "../services/ConsolidatedServiceNowService";
 import { ServiceNowAuthClient } from "../services/ServiceNowAuthClient";
 import { createTicketActionsRoutes } from "./TicketActionsRoutes";
 import { createTicketListRoutes } from "./TicketListRoutes";
 import { createTicketDetailsRoutes } from "./TicketDetailsRoutes";
-import { EnhancedTicketStorageService } from "../services/EnhancedTicketStorageService";
 import { ServiceNowStreams } from "../config/redis-streams";
-import { enhancedTicketStorageService } from "../services/EnhancedTicketStorageService";
+import { dataService } from "../services/ConsolidatedDataService";
 
 // Import unified schema registry and API schemas
 import { 
@@ -128,11 +125,10 @@ async function createEnhancedApp() {
 
       // Test ServiceNow connection
       try {
-        const service = new ServiceNowService(
-          Bun.env.SNC_INSTANCE_URL || "",
-          Bun.env.SNC_AUTH_TOKEN || ""
-        );
-        await service.testConnection();
+        const healthCheck = await consolidatedServiceNowService.healthCheck();
+        if (!healthCheck) {
+          checks.servicenow = 'error';
+        }
       } catch (error) {
         checks.servicenow = 'error';
       }
@@ -176,8 +172,7 @@ async function createEnhancedApp() {
           console.log(`Using schema validation for table: ${params.table}`);
         }
 
-        const service = new ServiceNowService(instanceUrl, authToken);
-        const record = await service.create(params.table, body.data);
+        const record = await consolidatedServiceNowService.create(params.table, body.data);
 
         return createSuccessResponse({
           record,
@@ -229,8 +224,7 @@ async function createEnhancedApp() {
           return createErrorResponse('AUTH_ERROR', 'Missing instance URL or auth token');
         }
 
-        const service = new ServiceNowService(instanceUrl, authToken);
-        const record = await service.get(params.table, params.sysId, query);
+        const record = await consolidatedServiceNowService.read(params.table, params.sysId);
 
         return createSuccessResponse({
           record,
@@ -287,7 +281,7 @@ async function createEnhancedApp() {
           return createErrorResponse('VALIDATION_ERROR', 'Operations array is required and cannot be empty');
         }
 
-        const results = await BatchService.executeBatch(instanceUrl, authToken, body.operations);
+        const results = await consolidatedServiceNowService.executeBatch(body.operations);
         
         const summary = {
           total_operations: body.operations.length,
@@ -336,8 +330,12 @@ async function createEnhancedApp() {
           return createErrorResponse('AUTH_ERROR', 'Missing instance URL or auth token');
         }
 
-        const service = new AttachmentService(instanceUrl, authToken);
-        const attachment = await service.upload(params.table, params.sysId, body.file);
+        const attachment = await consolidatedServiceNowService.uploadAttachment({
+          table: params.table,
+          sysId: params.sysId,
+          file: body.file,
+          fileName: body.file_name || 'uploaded-file'
+        });
 
         return createSuccessResponse({
           attachment,
@@ -410,7 +408,7 @@ async function createEnhancedApp() {
     Bun.env.SNC_AUTH_TOKEN || ""
   );
 
-  let mongoService: EnhancedTicketStorageService | undefined;
+  let mongoService = dataService;
   let redisStreams: ServiceNowStreams | undefined;
 
   try {

@@ -81,9 +81,9 @@ export class LegacyServiceBridge extends EventEmitter {
       }
     });
 
-    // PerformanceMonitoringService -> SystemService
-    this.serviceMappings.set('PerformanceMonitoringService', {
-      legacyService: 'PerformanceMonitoringService',
+    // SystemService -> SystemService
+    this.serviceMappings.set('SystemService', {
+      legacyService: 'SystemService',
       newService: 'SystemService',
       methodMapping: {
         'recordMetric': 'recordPerformanceMetric',

@@ -1,11 +1,11 @@
 /**
- * Simplified Tests for HybridDataService - Following Development Guidelines
+ * Simplified Tests for ConsolidatedDataService - Following Development Guidelines
  * Keep tests simple, focused, and maintainable
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { HybridDataService, SmartDataStrategy } from '../services/HybridDataService';
+import { ConsolidatedDataService, SmartDataStrategy } from '../services/ConsolidatedDataService';
 
 // Simple mock objects following dev guidelines
 const mockMongo = {
@@ -26,15 +26,15 @@ const mockRedis = {
   healthCheck: mock(() => Promise.resolve({ status: 'healthy' }))
 } as any;
 
-describe('HybridDataService - Simple Tests', () => {
-  let service: HybridDataService;
+describe('ConsolidatedDataService - Simple Tests', () => {
+  let service: ConsolidatedDataService;
 
   beforeEach(() => {
     // Reset mocks
     mockMongo.findIncidentBySysId = mock(() => Promise.resolve(null));
     mockServiceNow.makeRequestFullFields = mock(() => Promise.resolve({ result: [] }));
     
-    service = new HybridDataService(mockMongo, mockServiceNow, mockRedis);
+    service = new ConsolidatedDataService(mockMongo, mockServiceNow, mockRedis);
   });
 
   describe('Basic Operations', () => {

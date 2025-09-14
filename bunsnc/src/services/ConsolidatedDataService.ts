@@ -1,6 +1,6 @@
 /**
  * Consolidated Data Service - Complete Data Management Solution
- * Consolidates: HybridDataService, MongoDBInitService, CacheOptimizationService, MongoDBIndexService
+ * Consolidates: ConsolidatedDataService, MongoDBInitService, CacheOptimizationService, MongoDBIndexService
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
@@ -8,7 +8,7 @@ import { EventEmitter } from 'events';
 import { MongoClient, Db, Collection } from 'mongodb';
 import { logger } from '../utils/Logger';
 import { ServiceNowAuthClient } from './ServiceNowAuthClient';
-import { EnhancedTicketStorageService } from './EnhancedTicketStorageService';
+import { ConsolidatedDataService } from './ConsolidatedDataService';
 import { ServiceNowStreams, ServiceNowChange } from '../config/redis-streams';
 import { IncidentDocument, ChangeTaskDocument, SCTaskDocument, GroupDocument, GroupData, COLLECTION_NAMES } from '../config/mongodb-collections';
 
@@ -458,7 +458,7 @@ export class ConsolidatedDataService extends EventEmitter {
   private static instance: ConsolidatedDataService;
   private mongoManager: MongoDBManager;
   private cacheManager: CacheManager;
-  private ticketStorageService: EnhancedTicketStorageService;
+  private ticketStorageService: ConsolidatedDataService;
   private serviceNowStreams: ServiceNowStreams;
   private dataStrategy: SmartDataStrategy;
   private config: DataServiceConfig;
@@ -507,7 +507,7 @@ export class ConsolidatedDataService extends EventEmitter {
       await this.mongoManager.initialize();
 
       // Initialize Enhanced Ticket Storage Service
-      this.ticketStorageService = new EnhancedTicketStorageService(
+      this.ticketStorageService = new ConsolidatedDataService(
         this.mongoManager.getClient(),
         this.config.mongodb.databaseName || 'bunsnc'
       );

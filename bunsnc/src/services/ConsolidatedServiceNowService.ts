@@ -1,6 +1,6 @@
 /**
  * Consolidated ServiceNow Service - Complete ServiceNow operations
- * Consolidates: servicenow.service, ServiceNowActionsService, ServiceNowNotesService, AttachmentService, BatchService
+ * Consolidates: servicenow.service, ConsolidatedServiceNowService, ConsolidatedServiceNowService, AttachmentService, BatchService
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
@@ -930,3 +930,29 @@ export class ConsolidatedServiceNowService extends EventEmitter {
     logger.info('🧹 [ServiceNow] Cleanup completed');
   }
 }
+
+// ==================== SINGLETON INSTANCE ====================
+
+const instanceUrl = process.env.SERVICENOW_INSTANCE_URL || 'https://iberdrola.service-now.com';
+const authToken = process.env.SNC_AUTH_TOKEN || process.env.AUTH_SERVICE_URL;
+
+if (!authToken) {
+  throw new Error('ServiceNow authentication token is required. Set SNC_AUTH_TOKEN or AUTH_SERVICE_URL environment variable.');
+}
+
+const consolidatedServiceNowService = new ConsolidatedServiceNowService({
+  instanceUrl,
+  authToken,
+  rateLimiting: {
+    enabled: true,
+    maxRequests: parseInt(process.env.SERVICENOW_RATE_LIMIT || '95'),
+    timeWindow: 60000 // 1 minute
+  },
+  retryPolicy: {
+    enabled: true,
+    maxRetries: 3,
+    baseDelay: 1000
+  }
+});
+
+export { consolidatedServiceNowService };

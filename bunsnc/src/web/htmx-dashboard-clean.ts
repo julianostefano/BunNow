@@ -7,10 +7,10 @@ import { Elysia, t } from 'elysia';
 import { html } from '@elysiajs/html';
 import { htmx } from '@gtramontina.com/elysia-htmx';
 import { serviceNowAuthClient } from '../services/ServiceNowAuthClient';
-import { serviceNowRateLimiter } from '../services/ServiceNowRateLimit';
+
 // Temporarily commenting out problematic imports to isolate circular dependency issue
 // import { HybridTicketService } from '../services/HybridTicketService';
-// import { EnhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
+// import { ConsolidatedDataService } from '../services/ConsolidatedDataService';
 // Note: TicketDetailsRoutes handled by main app to avoid circular dependency
 // import { createTicketListRoutes } from '../routes/TicketListRoutes';
 // import { 
@@ -25,7 +25,7 @@ import { serviceNowRateLimiter } from '../services/ServiceNowRateLimit';
 // Helper function to initialize services safely - temporarily disabled for circular dependency fix
 async function initializeCleanServices() {
   try {
-    // const mongoService = new EnhancedTicketStorageService();
+    // const mongoService = new ConsolidatedDataService();
     // const hybridService = new HybridTicketService(mongoService, serviceNowAuthClient);
     return { mongoService: null, hybridService: null, error: null };
   } catch (error) {
@@ -963,7 +963,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
    */
   .get('/metrics', async () => {
     try {
-      const rateLimitMetrics = serviceNowRateLimiter.getHealthStatus();
+      const rateLimitMetrics = // Rate limiting now handled internally: getHealthStatus();
       
       // Provide default values if metrics are undefined
       const totalRequests = rateLimitMetrics.totalRequests || 0;

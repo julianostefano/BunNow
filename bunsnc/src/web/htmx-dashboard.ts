@@ -7,7 +7,7 @@ import { Elysia, t } from 'elysia';
 import { html } from '@elysiajs/html';
 import { htmx } from '@gtramontina.com/elysia-htmx';
 import { serviceNowAuthClient } from '../services/ServiceNowAuthClient';
-import { serviceNowRateLimiter } from '../services/ServiceNowRateLimit';
+
 import { htmxSearchRoutes } from './routes/HtmxSearchRoutes';
 import { htmxTicketRoutes } from './routes/HtmxTicketRoutes';
 import { htmxStatisticsRoutes } from './routes/HtmxStatisticsRoutes';
@@ -235,7 +235,7 @@ export const htmxDashboard = new Elysia({ prefix: '/htmx' })
   .get('/health', async () => {
     const dbHealth = { connected: true, queries: 0, performance: 'good' };
     const streamHealth = { status: 'connected', streams: ['incident', 'problem', 'change'] };
-    const rateLimitHealth = serviceNowRateLimiter.getHealthStatus();
+    const rateLimitHealth = // Rate limiting now handled internally: getHealthStatus();
 
     const overallStatus = 
       streamHealth.status === 'healthy' && 

@@ -6,7 +6,7 @@
 import { Elysia, t } from 'elysia';
 import { html } from '@elysiajs/html';
 import { htmx } from '@gtramontina.com/elysia-htmx';
-import { serviceNowRateLimiter } from '../../services/ServiceNowRateLimit';
+
 
 export const htmxStatisticsRoutes = new Elysia()
   .use(html())
@@ -27,7 +27,8 @@ export const htmxStatisticsRoutes = new Elysia()
         service_catalog_tasks: 850
       }
     };
-    const rateLimitMetrics = serviceNowRateLimiter.getMetrics();
+    // Rate limiting now handled internally
+    const rateLimitMetrics = null;
 
     return `
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -166,7 +167,8 @@ export const htmxStatisticsRoutes = new Elysia()
       }
     ];
     
-    const rateLimitStats = serviceNowRateLimiter.getHealthStatus();
+    // Rate limiting now handled internally
+    const rateLimitStats = null;
     
     const groupedStats = stats.reduce((acc, stat) => {
       if (!acc[stat.tipo_chamado]) acc[stat.tipo_chamado] = [];

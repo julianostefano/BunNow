@@ -6,7 +6,7 @@
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
 import { unifiedStreamingService } from '../../services/UnifiedStreamingService';
-import { ConsolidatedTicketService } from '../../services/ConsolidatedTicketService';
+import { ConsolidatedServiceNowService } from '../../services/ConsolidatedServiceNowService';
 import type { ServiceNowAuthClient } from '../../services/ServiceNowAuthClient';
 import type { ServiceNowStreams } from '../../config/redis-streams';
 
@@ -79,7 +79,7 @@ const createMockRedisStreams = (): ServiceNowStreams => ({
 } as any);
 
 describe('Phase 2 Consolidation - Integration Tests', () => {
-  let consolidatedTicketService: ConsolidatedTicketService;
+  let consolidatedTicketService: ConsolidatedServiceNowService;
   let mockServiceNowClient: ServiceNowAuthClient;
   let mockRedisStreams: ServiceNowStreams;
 
@@ -100,7 +100,7 @@ describe('Phase 2 Consolidation - Integration Tests', () => {
   });
 
   beforeEach(async () => {
-    consolidatedTicketService = new ConsolidatedTicketService(mockServiceNowClient);
+    consolidatedTicketService = new ConsolidatedServiceNowService(mockServiceNowClient);
   });
 
   afterEach(async () => {
@@ -116,7 +116,7 @@ describe('Phase 2 Consolidation - Integration Tests', () => {
   });
 
   describe('Consolidated Services Integration', () => {
-    it('should integrate UnifiedStreamingService and ConsolidatedTicketService', async () => {
+    it('should integrate UnifiedStreamingService and ConsolidatedServiceNowService', async () => {
       // Create a ticket stream
       const ticketStream = unifiedStreamingService.createTicketSSEConnection('integration-test-123');
       expect(ticketStream).toBeInstanceOf(Response);

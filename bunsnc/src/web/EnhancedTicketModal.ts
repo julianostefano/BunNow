@@ -4,8 +4,8 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { TicketData } from '../services/HybridDataService';
-import { ServiceNowNote } from '../services/ServiceNowNotesService';
+import { TicketData } from '../services/ConsolidatedDataService';
+import { ServiceNowNote } from '../services/ConsolidatedServiceNowService';
 
 export interface SLAData {
   sys_id: string;

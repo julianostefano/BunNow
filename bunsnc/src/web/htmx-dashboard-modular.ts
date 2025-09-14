@@ -10,7 +10,7 @@ import { Elysia, t } from 'elysia';
 import { html } from '@elysiajs/html';
 import { htmx } from '@gtramontina.com/elysia-htmx';
 import { serviceNowAuthClient } from '../services/ServiceNowAuthClient';
-import { serviceNowRateLimiter } from '../services/ServiceNowRateLimit';
+
 
 // Import modular components following MVC architecture
 import { generateDashboardLayout } from '../views/templates/DashboardLayout';
@@ -176,7 +176,7 @@ export const htmxDashboardModular = new Elysia({ prefix: '/modular' })
 
   /**
    * Tickets lazy loading endpoint
-   * TODO: Implement with HybridDataService when circular dependency is resolved
+   * TODO: Implement with ConsolidatedDataService when circular dependency is resolved
    */
   .get('/tickets-lazy', async ({ query }) => {
     const { ticketType, group, state, page, limit } = query as any;
@@ -190,7 +190,7 @@ export const htmxDashboardModular = new Elysia({ prefix: '/modular' })
         <p>Carregando ${ticketType} tickets...</p>
         <p class="text-sm mt-2">Group: ${group}, State: ${state}</p>
         <div class="mt-4 text-xs text-gray-500">
-          <p>🚧 Integration with HybridDataService pending</p>
+          <p>🚧 Integration with ConsolidatedDataService pending</p>
           <p>📝 Modular architecture implementation in progress</p>
         </div>
       </div>

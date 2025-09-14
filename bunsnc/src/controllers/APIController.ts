@@ -4,21 +4,20 @@
  */
 
 import { ServiceNowClient } from '../client/ServiceNowClient';
-import { TicketIntegrationService } from '../services/TicketIntegrationService';
+import { ticketService } from '../services';
 import { WebServerConfig } from './WebServerController';
 
 export class APIController {
   private serviceNowClient: ServiceNowClient;
-  private ticketIntegrationService: TicketIntegrationService;
+  private ticketIntegrationService: typeof ticketService;
   private config: WebServerConfig;
 
   constructor(
     serviceNowClient: ServiceNowClient,
-    ticketIntegrationService: TicketIntegrationService,
     config: WebServerConfig
   ) {
     this.serviceNowClient = serviceNowClient;
-    this.ticketIntegrationService = ticketIntegrationService;
+    this.ticketIntegrationService = ticketService;
     this.config = config;
   }
 

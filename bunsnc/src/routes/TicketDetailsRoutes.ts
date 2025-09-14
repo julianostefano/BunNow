@@ -10,20 +10,20 @@
  */
 
 import { Elysia, t } from 'elysia';
-import { createConsolidatedTicketService } from '../services/ConsolidatedTicketService';
+import { consolidatedServiceNowService } from '../services/ConsolidatedServiceNowService';
 import { TicketModalView } from '../views/TicketModalView';
 import { ErrorHandler } from '../utils/ErrorHandler';
 import type { ServiceNowAuthClient } from '../services/ServiceNowAuthClient';
-import type { EnhancedTicketStorageService } from '../services/EnhancedTicketStorageService';
+import type { ConsolidatedDataService } from '../services/ConsolidatedDataService';
 import type { ServiceNowStreams } from '../config/redis-streams';
 
 export function createTicketDetailsRoutes(
   serviceNowClient: ServiceNowAuthClient,
-  mongoService?: EnhancedTicketStorageService,
+  mongoService?: ConsolidatedDataService,
   redisStreams?: ServiceNowStreams
 ) {
   // Create ticket service instance following Elysia best practices
-  const ticketService = createConsolidatedTicketService(serviceNowClient);
+  const ticketService = consolidatedServiceNowService(serviceNowClient);
   
   return new Elysia({ prefix: '/tickets' })
     // Use the ticket service following method chaining pattern

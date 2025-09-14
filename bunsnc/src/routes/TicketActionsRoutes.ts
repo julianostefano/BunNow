@@ -4,13 +4,13 @@
  */
 
 import { Elysia, t } from 'elysia';
-import { ServiceNowActionsService } from '../services/ServiceNowActionsService';
+import { ConsolidatedServiceNowService } from '../services/ConsolidatedServiceNowService';
 import { ServiceNowAuthClient } from '../services/ServiceNowAuthClient';
-import { ServiceNowNotesService } from '../services/ServiceNowNotesService';
+import { ConsolidatedServiceNowService } from '../services/ConsolidatedServiceNowService';
 
 export const createTicketActionsRoutes = (serviceNowClient: ServiceNowAuthClient) => {
-  const notesService = new ServiceNowNotesService(serviceNowClient);
-  const actionsService = new ServiceNowActionsService(serviceNowClient, notesService);
+  const notesService = new ConsolidatedServiceNowService(serviceNowClient);
+  const actionsService = new ConsolidatedServiceNowService(serviceNowClient, notesService);
 
   return new Elysia({ prefix: '/tickets/actions' })
     /**
