@@ -5,6 +5,36 @@
 
 import { APIController } from './APIController';
 
+// Context interface for SSE handling
+interface SSEContext {
+  set: {
+    headers: Record<string, string>;
+  };
+}
+
+// WebSocket interface
+interface WebSocket {
+  send(data: string): void;
+  close(): void;
+  readyState: number;
+  id?: string;
+}
+
+// WebSocket message interface
+interface WebSocketMessage {
+  type?: string;
+  data?: unknown;
+  timestamp?: string;
+}
+
+// Broadcast data interface
+interface BroadcastData {
+  type: string;
+  payload: unknown;
+  timestamp?: string;
+  source?: string;
+}
+
 export class StreamingController {
   private apiController: APIController;
 
@@ -12,7 +42,7 @@ export class StreamingController {
     this.apiController = apiController;
   }
 
-  public handleSSEStream(context: any) {
+  public handleSSEStream(context: SSEContext) {
     const { set } = context;
     const apiController = this.apiController;
     
@@ -50,7 +80,7 @@ export class StreamingController {
     });
   }
 
-  public handleWebSocketMessage(ws: any, message: any): void {
+  public handleWebSocketMessage(ws: WebSocket, message: WebSocketMessage): void {
     try {
       const data = typeof message === 'string' ? JSON.parse(message) : message;
       
@@ -69,7 +99,7 @@ export class StreamingController {
     }
   }
 
-  public handleWebSocketOpen(ws: any): void {
+  public handleWebSocketOpen(ws: WebSocket): void {
     console.log('WebSocket client connected');
     ws.send(JSON.stringify({ 
       type: 'welcome', 
@@ -78,19 +108,19 @@ export class StreamingController {
     }));
   }
 
-  public handleWebSocketClose(ws: any): void {
+  public handleWebSocketClose(ws: WebSocket): void {
     console.log('WebSocket client disconnected');
   }
 
-  public handleWebSocketError(ws: any, error: any): void {
+  public handleWebSocketError(ws: WebSocket, error: Error): void {
     console.error('WebSocket error:', error);
   }
 
-  public broadcastUpdate(data: any): void {
+  public broadcastUpdate(data: BroadcastData): void {
     console.log('Broadcasting update to WebSocket clients:', data);
   }
 
-  public createSSEEventData(eventType: string, data: any): string {
+  public createSSEEventData(eventType: string, data: unknown): string {
     return `event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`;
   }
 

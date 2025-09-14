@@ -3,10 +3,26 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-export class DashboardController {
-  private config: any;
+interface DashboardConfig {
+  title?: string;
+  version?: string;
+  apiBaseUrl?: string;
+  features?: {
+    realTimeUpdates?: boolean;
+    notifications?: boolean;
+    analytics?: boolean;
+  };
+  theme?: {
+    primaryColor?: string;
+    darkMode?: boolean;
+  };
+  [key: string]: unknown;
+}
 
-  constructor(config: any) {
+export class DashboardController {
+  private config: DashboardConfig;
+
+  constructor(config: DashboardConfig) {
     this.config = config;
   }
 

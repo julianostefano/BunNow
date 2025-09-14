@@ -6,8 +6,15 @@
 import type { ServiceNowAuthClient } from '../services/ServiceNowAuthClient';
 import type { TicketData, TicketResponse } from '../types/TicketTypes';
 import type { ConsolidatedDataService } from '../services/ConsolidatedDataService';
-import type { ConsolidatedDataService } from '../services/ConsolidatedDataService';
 import type { ServiceNowStreams } from '../config/redis-streams';
+
+// ServiceNow field type for proper typing
+type ServiceNowField = string | number | { display_value: string; value: string } | null | undefined;
+
+// Raw ServiceNow record interface
+interface RawServiceNowRecord {
+  [key: string]: ServiceNowField;
+}
 
 export class TicketController {
   private hybridDataService?: ConsolidatedDataService;
@@ -74,7 +81,7 @@ export class TicketController {
    * @param field - ServiceNow field data
    * @returns Normalized string value
    */
-  private extractValue(field: any): string {
+  private extractValue(field: ServiceNowField): string {
     if (!field) return 'N/A';
     if (typeof field === 'string') return field;
     if (typeof field === 'object' && field.display_value !== undefined) 
@@ -89,7 +96,7 @@ export class TicketController {
    * @param rawTicket - Raw ticket data from API
    * @returns Processed ticket data
    */
-  private processTicketData(rawTicket: any): TicketData {
+  private processTicketData(rawTicket: RawServiceNowRecord): TicketData {
     // Format created date
     let formattedCreatedOn = 'N/A';
     const createdOnRaw = rawTicket.sys_created_on?.display_value || rawTicket.sys_created_on || '';

@@ -7,6 +7,55 @@ import { ServiceNowClient } from '../client/ServiceNowClient';
 import { ticketService } from '../services';
 import { WebServerConfig } from './WebServerController';
 
+// Response interfaces
+interface SyncResponse {
+  success: boolean;
+  message: string;
+  stats?: {
+    incidents: number;
+    problems: number;
+    changes: number;
+    errors: number;
+  };
+  error?: string;
+}
+
+interface MongoStatsResponse {
+  success: boolean;
+  collections: {
+    [collectionName: string]: {
+      count: number;
+      size: number;
+      indexes: number;
+    };
+  };
+  total_documents: number;
+  database_size: number;
+  error?: string;
+}
+
+interface TargetGroupsResponse {
+  success: boolean;
+  groups: Array<{
+    sys_id: string;
+    name: string;
+    description?: string;
+    manager?: string;
+    email?: string;
+    active: boolean;
+  }>;
+  count: number;
+  error?: string;
+}
+
+interface TicketQueryOptions {
+  limit?: number;
+  offset?: number;
+  sort?: string;
+  fields?: string[];
+  filters?: Record<string, unknown>;
+}
+
 export class APIController {
   private serviceNowClient: ServiceNowClient;
   private ticketIntegrationService: typeof ticketService;
@@ -172,7 +221,7 @@ export class APIController {
     }
   }
 
-  public async syncCurrentMonthTickets(): Promise<any> {
+  public async syncCurrentMonthTickets(): Promise<SyncResponse> {
     try {
       console.log('🔄 Starting sync of current month tickets to MongoDB...');
       const result = await this.ticketIntegrationService.syncCurrentMonthTickets();
@@ -203,7 +252,7 @@ export class APIController {
     }
   }
 
-  public async getTicketsFromMongoDB(ticketType: string, query: any = {}): Promise<any> {
+  public async getTicketsFromMongoDB(ticketType: string, query: TicketQueryOptions = {}): Promise<Record<string, unknown>[]> {
     try {
       if (!['incident', 'change_task', 'sc_task'].includes(ticketType)) {
         throw new Error(`Invalid ticket type: ${ticketType}. Must be incident, change_task, or sc_task`);
@@ -244,7 +293,7 @@ export class APIController {
     }
   }
 
-  public async getMongoDBStats(): Promise<any> {
+  public async getMongoDBStats(): Promise<MongoStatsResponse> {
     try {
       const stats = await this.ticketIntegrationService.getCollectionStats();
       return {
@@ -262,7 +311,7 @@ export class APIController {
     }
   }
 
-  public async getTargetGroups(): Promise<any> {
+  public async getTargetGroups(): Promise<TargetGroupsResponse> {
     try {
       const groups = await this.ticketIntegrationService.getTargetGroups();
       return {
