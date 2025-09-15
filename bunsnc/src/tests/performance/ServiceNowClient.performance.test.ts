@@ -487,7 +487,7 @@ describe('ServiceNowClient Performance Tests', () => {
       console.log('Performance Baseline Results:');
       Object.entries(results).forEach(([operation, duration]) => {
         const baseline = baselines[operation as keyof typeof baselines];
-        const status = duration <= baseline ? '✅' : '❌';
+        const status = duration <= baseline ? '' : '';
         console.log(`  ${operation}: ${duration.toFixed(2)}ms (baseline: ${baseline}ms) ${status}`);
         
         // Allow some variance for CI environments

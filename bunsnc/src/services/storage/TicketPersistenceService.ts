@@ -60,7 +60,7 @@ export class TicketPersistenceService extends TicketStorageCore {
       return result.acknowledged;
 
     } catch (error) {
-      console.error(`❌ Error upserting ${ticketType} ticket ${ticketData.sys_id}:`, error);
+      console.error(` Error upserting ${ticketType} ticket ${ticketData.sys_id}:`, error);
       return false;
     }
   }
@@ -296,7 +296,7 @@ export class TicketPersistenceService extends TicketStorageCore {
       }
 
     } catch (error) {
-      console.error('❌ Error recording audit trail:', error);
+      console.error(' Error recording audit trail:', error);
       // Don't throw - audit failure shouldn't break sync
     }
   }
@@ -355,7 +355,7 @@ export class TicketPersistenceService extends TicketStorageCore {
       const result = await this.ticketsCollection.deleteOne({ sys_id: sysId });
       return result.deletedCount > 0;
     } catch (error) {
-      console.error(`❌ Error deleting ticket ${sysId}:`, error);
+      console.error(` Error deleting ticket ${sysId}:`, error);
       return false;
     }
   }
@@ -370,7 +370,7 @@ export class TicketPersistenceService extends TicketStorageCore {
     try {
       return await this.ticketsCollection.findOne({ sys_id: sysId });
     } catch (error) {
-      console.error(`❌ Error getting ticket ${sysId}:`, error);
+      console.error(` Error getting ticket ${sysId}:`, error);
       return null;
     }
   }

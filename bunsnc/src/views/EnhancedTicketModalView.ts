@@ -475,7 +475,7 @@ export class EnhancedTicketModalView {
             eventSource = new EventSource('/sse/ticket-updates/${sysId}');
             
             eventSource.onopen = function(event) {
-              console.log('✅ SSE connection opened for ticket ${sysId}');
+              console.log(' SSE connection opened for ticket ${sysId}');
             };
             
             eventSource.onmessage = function(event) {
@@ -494,7 +494,7 @@ export class EnhancedTicketModalView {
             };
             
             eventSource.onerror = function(event) {
-              console.warn('❌ SSE connection error:', event);
+              console.warn(' SSE connection error:', event);
               // Retry connection after 5 seconds
               setTimeout(connectSSE, 5000);
             };
@@ -526,7 +526,7 @@ export class EnhancedTicketModalView {
           
           function refreshModalSection(changedFields) {
             // This could trigger HTMX refresh for specific sections
-            console.log('🔄 Would refresh sections for fields:', changedFields);
+            console.log(' Would refresh sections for fields:', changedFields);
           }
           
           // Cleanup function

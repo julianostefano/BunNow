@@ -29,7 +29,7 @@ export class UnifiedStreamingService extends StreamingCore {
     // Initialize modular components with shared state
     this.handlers = new StreamHandlers();
     this.notifications = new StreamNotifications(this.connections, this.eventHistory);
-    console.log('🚀 UnifiedStreamingService initialized with modular architecture');
+    console.log(' UnifiedStreamingService initialized with modular architecture');
   }
 
   static getInstance(): UnifiedStreamingService {
@@ -45,7 +45,7 @@ export class UnifiedStreamingService extends StreamingCore {
   initialize(redisStreams: ServiceNowStreams): void {
     super.initialize(redisStreams);
     this.notifications.initializeRedisStreams(redisStreams);
-    console.log('✅ All streaming modules initialized');
+    console.log(' All streaming modules initialized');
   }
 
   // === Stream Handler Methods ===

@@ -60,7 +60,7 @@ export class DocumentIntelligenceService extends AIService {
     if (this.initialized) return;
 
     try {
-      logger.info('🔧 [DocumentIntelligence] Initializing service...');
+      logger.info(' [DocumentIntelligence] Initializing service...');
 
       const tikaHealthy = await this.tikaClient.healthCheck();
       if (!tikaHealthy) {
@@ -73,10 +73,10 @@ export class DocumentIntelligenceService extends AIService {
       }
 
       this.initialized = true;
-      logger.info('✅ [DocumentIntelligence] Service initialized successfully');
+      logger.info(' [DocumentIntelligence] Service initialized successfully');
 
     } catch (error) {
-      logger.error('❌ [DocumentIntelligence] Failed to initialize:', error);
+      logger.error(' [DocumentIntelligence] Failed to initialize:', error);
       throw error;
     }
   }
@@ -105,7 +105,7 @@ export class DocumentIntelligenceService extends AIService {
       const openSearchHealthy = await this.openSearchClient.healthCheck();
       return tikaHealthy && openSearchHealthy;
     } catch (error) {
-      logger.error('❌ [DocumentIntelligence] Health check failed:', error);
+      logger.error(' [DocumentIntelligence] Health check failed:', error);
       return false;
     }
   }
@@ -152,7 +152,7 @@ export class DocumentIntelligenceService extends AIService {
       };
 
     } catch (error) {
-      logger.error('❌ [DocumentIntelligence] Document processing failed:', error);
+      logger.error(' [DocumentIntelligence] Document processing failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error)
@@ -198,7 +198,7 @@ export class DocumentIntelligenceService extends AIService {
       };
 
     } catch (error) {
-      logger.error('❌ [DocumentIntelligence] Document classification failed:', error);
+      logger.error(' [DocumentIntelligence] Document classification failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error)
@@ -264,7 +264,7 @@ export class DocumentIntelligenceService extends AIService {
       };
 
     } catch (error) {
-      logger.error('❌ [DocumentIntelligence] Document search failed:', error);
+      logger.error(' [DocumentIntelligence] Document search failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error)
@@ -305,7 +305,7 @@ export class DocumentIntelligenceService extends AIService {
       };
 
     } catch (error) {
-      logger.error('❌ [DocumentIntelligence] Chunk extraction failed:', error);
+      logger.error(' [DocumentIntelligence] Chunk extraction failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error)
@@ -465,12 +465,12 @@ export class DocumentIntelligenceService extends AIService {
 
   private async indexDocument(doc: ProcessedDocument): Promise<void> {
     // This would implement OpenSearch indexing
-    logger.debug(`📝 [DocumentIntelligence] Would index document: ${doc.id}`);
+    logger.debug(` [DocumentIntelligence] Would index document: ${doc.id}`);
   }
 
   private async getDocumentById(documentId: string): Promise<ProcessedDocument | null> {
     // This would implement OpenSearch document retrieval
-    logger.debug(`🔍 [DocumentIntelligence] Would retrieve document: ${documentId}`);
+    logger.debug(` [DocumentIntelligence] Would retrieve document: ${documentId}`);
     return null;
   }
 }

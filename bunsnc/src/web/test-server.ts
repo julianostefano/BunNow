@@ -35,6 +35,6 @@ const app = new Elysia()
 
   .listen(3009);
 
-console.log("🌐 Test server running on http://localhost:3009");
-console.log("📊 Dashboard: http://localhost:3009");
-console.log("🔍 Health: http://localhost:3009/health");
+console.log(" Test server running on http://localhost:3009");
+console.log(" Dashboard: http://localhost:3009");
+console.log(" Health: http://localhost:3009/health");

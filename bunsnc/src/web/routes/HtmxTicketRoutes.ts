@@ -552,7 +552,7 @@ export const htmxTicketRoutes = new Elysia()
             </button>
 
             <button class="action-btn action-btn--resolve" hx-post="/tickets/action/resolve/${sys_id}">
-              <div class="action-btn__icon">✅</div>
+              <div class="action-btn__icon"></div>
               <div class="action-btn__content">
                 <span class="action-btn__title">Resolve</span>
                 <span class="action-btn__subtitle">Mark as resolved</span>
@@ -578,7 +578,7 @@ export const htmxTicketRoutes = new Elysia()
           <!-- Glass Problem Header -->
           <div class="ticket-template__header">
             <div class="ticket-severity ticket-severity--problem">
-              <div class="ticket-severity__icon">🔍</div>
+              <div class="ticket-severity__icon"></div>
               <div class="ticket-severity__info">
                 <span class="ticket-severity__label">PROBLEM</span>
                 <span class="ticket-severity__sublabel">Root Cause Analysis</span>
@@ -624,7 +624,7 @@ export const htmxTicketRoutes = new Elysia()
           <!-- Problem Actions -->
           <div class="ticket-actions">
             <button class="action-btn action-btn--investigate" hx-get="/tickets/action/investigate/${sys_id}">
-              <div class="action-btn__icon">🔍</div>
+              <div class="action-btn__icon"></div>
               <div class="action-btn__content">
                 <span class="action-btn__title">Start Investigation</span>
                 <span class="action-btn__subtitle">Begin analysis</span>
@@ -632,7 +632,7 @@ export const htmxTicketRoutes = new Elysia()
             </button>
 
             <button class="action-btn action-btn--workaround" hx-post="/tickets/action/workaround/${sys_id}">
-              <div class="action-btn__icon">🔧</div>
+              <div class="action-btn__icon"></div>
               <div class="action-btn__content">
                 <span class="action-btn__title">Implement Workaround</span>
                 <span class="action-btn__subtitle">Temporary solution</span>
@@ -658,7 +658,7 @@ export const htmxTicketRoutes = new Elysia()
           <!-- Glass Change Header -->
           <div class="ticket-template__header">
             <div class="ticket-severity ticket-severity--change">
-              <div class="ticket-severity__icon">🔄</div>
+              <div class="ticket-severity__icon"></div>
               <div class="ticket-severity__info">
                 <span class="ticket-severity__label">CHANGE REQUEST</span>
                 <span class="ticket-severity__sublabel">Controlled Modification</span>
@@ -688,7 +688,7 @@ export const htmxTicketRoutes = new Elysia()
             <h3>Approval Workflow</h3>
             <div class="workflow-steps">
               <div class="workflow-step workflow-step--completed">
-                <div class="workflow-step__icon">✅</div>
+                <div class="workflow-step__icon"></div>
                 <span class="workflow-step__title">Technical Review</span>
               </div>
               <div class="workflow-step workflow-step--current">
@@ -705,7 +705,7 @@ export const htmxTicketRoutes = new Elysia()
           <!-- Change Actions -->
           <div class="ticket-actions">
             <button class="action-btn action-btn--approve" hx-post="/tickets/action/approve/${sys_id}">
-              <div class="action-btn__icon">✅</div>
+              <div class="action-btn__icon"></div>
               <div class="action-btn__content">
                 <span class="action-btn__title">Approve Change</span>
                 <span class="action-btn__subtitle">Move to implementation</span>
@@ -781,7 +781,7 @@ export const htmxTicketRoutes = new Elysia()
           <!-- Request Actions -->
           <div class="ticket-actions">
             <button class="action-btn action-btn--fulfill" hx-post="/tickets/action/fulfill/${sys_id}">
-              <div class="action-btn__icon">⚡</div>
+              <div class="action-btn__icon"></div>
               <div class="action-btn__content">
                 <span class="action-btn__title">Fulfill Request</span>
                 <span class="action-btn__subtitle">Complete service delivery</span>
@@ -807,7 +807,7 @@ export const htmxTicketRoutes = new Elysia()
 function renderGlassError(message: string): string {
   return `
     <div class="error-message glass-card">
-      <div class="error-icon">⚠️</div>
+      <div class="error-icon"></div>
       <h3>Error</h3>
       <p>${message}</p>
     </div>

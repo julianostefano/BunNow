@@ -86,10 +86,10 @@ export class AgentAssistantService extends AIService {
       }
 
       this.initialized = true;
-      logger.info('✅ [AgentAssistant] Service initialized successfully');
+      logger.info(' [AgentAssistant] Service initialized successfully');
 
     } catch (error) {
-      logger.error('❌ [AgentAssistant] Failed to initialize:', error);
+      logger.error(' [AgentAssistant] Failed to initialize:', error);
       throw error;
     }
   }
@@ -120,7 +120,7 @@ export class AgentAssistantService extends AIService {
       const ticketHealthy = await this.ticketIntelligence.healthCheck();
       return docHealthy && ticketHealthy;
     } catch (error) {
-      logger.error('❌ [AgentAssistant] Health check failed:', error);
+      logger.error(' [AgentAssistant] Health check failed:', error);
       return false;
     }
   }
@@ -170,7 +170,7 @@ export class AgentAssistantService extends AIService {
       };
 
     } catch (error) {
-      logger.error('❌ [AgentAssistant] Chat query failed:', error);
+      logger.error(' [AgentAssistant] Chat query failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error)
@@ -198,7 +198,7 @@ export class AgentAssistantService extends AIService {
       };
 
     } catch (error) {
-      logger.error('❌ [AgentAssistant] Workflow guidance failed:', error);
+      logger.error(' [AgentAssistant] Workflow guidance failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error)
@@ -236,7 +236,7 @@ export class AgentAssistantService extends AIService {
       };
 
     } catch (error) {
-      logger.error('❌ [AgentAssistant] Context help failed:', error);
+      logger.error(' [AgentAssistant] Context help failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error)
@@ -280,7 +280,7 @@ export class AgentAssistantService extends AIService {
       };
 
     } catch (error) {
-      logger.error('❌ [AgentAssistant] Quick search failed:', error);
+      logger.error(' [AgentAssistant] Quick search failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error)
@@ -308,7 +308,7 @@ export class AgentAssistantService extends AIService {
       };
 
     } catch (error) {
-      logger.error('❌ [AgentAssistant] Auto complete failed:', error);
+      logger.error(' [AgentAssistant] Auto complete failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error)

@@ -16,17 +16,17 @@ if (isCli) {
         createMainApp().then(app => {
             const PORT = 3008;
             
-            console.log('🚀 Starting BunSNC Server...');
+            console.log(' Starting BunSNC Server...');
             
             app.listen(PORT, () => {
-                console.log(`✅ BunSNC Server running on http://localhost:${PORT}`);
+                console.log(` BunSNC Server running on http://localhost:${PORT}`);
                 console.log('📡 Real-time notifications enabled');
                 console.log('🔗 WebSocket endpoint: ws://localhost:${PORT}/ws');
-                console.log('📊 SSE endpoints: http://localhost:${PORT}/events/*');
-                console.log('🔧 API documentation: http://localhost:${PORT}/');
+                console.log(' SSE endpoints: http://localhost:${PORT}/events/*');
+                console.log(' API documentation: http://localhost:${PORT}/');
             });
         }).catch(error => {
-            console.error('❌ Failed to start server:', error);
+            console.error(' Failed to start server:', error);
             process.exit(1);
         });
     });

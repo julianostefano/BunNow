@@ -169,7 +169,7 @@ export class SystemService extends EventEmitter {
     // Set up cross-component event listeners
     this.setupEventListeners();
 
-    logger.info('🚀 SystemService components initialized');
+    logger.info(' SystemService components initialized');
   }
 
   /**
@@ -205,7 +205,7 @@ export class SystemService extends EventEmitter {
     if (this.isInitialized) return;
 
     try {
-      logger.info('🚀 Initializing SystemService...');
+      logger.info(' Initializing SystemService...');
 
       // Initialize all components in parallel
       await Promise.all([
@@ -217,10 +217,10 @@ export class SystemService extends EventEmitter {
       ]);
 
       this.isInitialized = true;
-      logger.info('✅ SystemService initialized successfully');
+      logger.info(' SystemService initialized successfully');
 
     } catch (error) {
-      logger.error('❌ Failed to initialize SystemService:', error);
+      logger.error(' Failed to initialize SystemService:', error);
       throw error;
     }
   }
@@ -236,7 +236,7 @@ export class SystemService extends EventEmitter {
     if (this.isRunning) return;
 
     try {
-      logger.info('🚀 Starting SystemService...');
+      logger.info(' Starting SystemService...');
 
       // Start all components
       await Promise.all([
@@ -246,10 +246,10 @@ export class SystemService extends EventEmitter {
 
       this.isRunning = true;
       this.emit('started');
-      logger.info('✅ SystemService started successfully');
+      logger.info(' SystemService started successfully');
 
     } catch (error) {
-      logger.error('❌ Failed to start SystemService:', error);
+      logger.error(' Failed to start SystemService:', error);
       throw error;
     }
   }
@@ -261,7 +261,7 @@ export class SystemService extends EventEmitter {
     if (!this.isRunning) return;
 
     try {
-      logger.info('🛑 Stopping SystemService...');
+      logger.info(' Stopping SystemService...');
 
       // Stop all components
       await Promise.all([
@@ -271,10 +271,10 @@ export class SystemService extends EventEmitter {
 
       this.isRunning = false;
       this.emit('stopped');
-      logger.info('✅ SystemService stopped successfully');
+      logger.info(' SystemService stopped successfully');
 
     } catch (error) {
-      logger.error('❌ Failed to stop SystemService:', error);
+      logger.error(' Failed to stop SystemService:', error);
       throw error;
     }
   }
@@ -424,7 +424,7 @@ export class SystemService extends EventEmitter {
       };
 
     } catch (error) {
-      logger.error('❌ Failed to get system health:', error);
+      logger.error(' Failed to get system health:', error);
       return {
         status: 'unhealthy',
         services: {
@@ -487,7 +487,7 @@ export class SystemService extends EventEmitter {
 
       logger.info('🧹 SystemService cleanup completed');
     } catch (error) {
-      logger.error('❌ SystemService cleanup failed:', error);
+      logger.error(' SystemService cleanup failed:', error);
       throw error;
     }
   }

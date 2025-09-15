@@ -223,11 +223,11 @@ export class APIController {
 
   public async syncCurrentMonthTickets(): Promise<SyncResponse> {
     try {
-      console.log('🔄 Starting sync of current month tickets to MongoDB...');
+      console.log(' Starting sync of current month tickets to MongoDB...');
       const result = await this.ticketIntegrationService.syncCurrentMonthTickets();
       
       if (result.success) {
-        console.log('✅ MongoDB sync completed successfully:', result.stats);
+        console.log(' MongoDB sync completed successfully:', result.stats);
         return {
           success: true,
           message: 'Current month tickets synced successfully',
@@ -235,7 +235,7 @@ export class APIController {
           timestamp: new Date().toISOString()
         };
       } else {
-        console.error('❌ MongoDB sync failed');
+        console.error(' MongoDB sync failed');
         return {
           success: false,
           message: 'Failed to sync tickets to MongoDB',
@@ -243,7 +243,7 @@ export class APIController {
         };
       }
     } catch (error) {
-      console.error('❌ Error during MongoDB sync:', error);
+      console.error(' Error during MongoDB sync:', error);
       return {
         success: false,
         message: `Error during sync: ${error.message}`,
@@ -284,7 +284,7 @@ export class APIController {
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error(`❌ Error getting ${ticketType} from MongoDB:`, error);
+      console.error(` Error getting ${ticketType} from MongoDB:`, error);
       return {
         success: false,
         message: `Error getting ${ticketType}: ${error.message}`,
@@ -302,7 +302,7 @@ export class APIController {
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error('❌ Error getting MongoDB stats:', error);
+      console.error(' Error getting MongoDB stats:', error);
       return {
         success: false,
         message: `Error getting stats: ${error.message}`,
@@ -321,7 +321,7 @@ export class APIController {
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error('❌ Error getting target groups:', error);
+      console.error(' Error getting target groups:', error);
       return {
         success: false,
         message: `Error getting groups: ${error.message}`,

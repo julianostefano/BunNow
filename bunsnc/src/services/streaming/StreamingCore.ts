@@ -120,7 +120,7 @@ export class StreamingCore {
   initialize(redisStreams: ServiceNowStreams): void {
     this.redisStreams = redisStreams;
     this.subscribeToRedisStreams();
-    console.log('🚀 StreamingCore initialized with Redis Streams');
+    console.log(' StreamingCore initialized with Redis Streams');
   }
 
   /**
@@ -142,7 +142,7 @@ export class StreamingCore {
    */
   protected addConnection(connection: StreamConnection): void {
     this.connections.set(connection.id, connection);
-    console.log(`✅ Connection added: ${connection.id} (${connection.streamType})`);
+    console.log(` Connection added: ${connection.id} (${connection.streamType})`);
   }
 
   /**
@@ -185,7 +185,7 @@ export class StreamingCore {
       this.addToEventHistory(connection.streamType, event);
 
     } catch (error) {
-      console.error(`❌ Error sending SSE message to ${connection.id}:`, error);
+      console.error(` Error sending SSE message to ${connection.id}:`, error);
       connection.isAlive = false;
       this.removeConnection(connection.id);
     }

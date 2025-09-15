@@ -37,20 +37,20 @@ export async function createMainApp(): Promise<Elysia> {
   // Initialize system service (includes performance monitoring and cache optimization)
   systemService.initialize()
     .then(() => {
-      console.log('🚀 System service initialized (performance monitoring + cache optimization)');
+      console.log(' System service initialized (performance monitoring + cache optimization)');
     })
     .catch((error) => {
-      console.error('❌ Failed to initialize system service:', error);
-      console.warn('⚠️ Server will continue without system monitoring');
+      console.error(' Failed to initialize system service:', error);
+      console.warn(' Server will continue without system monitoring');
     });
 
   // Add main application routes with error handling
   try {
     const appRoutes = await createApp();
     mainApp.use(appRoutes);
-    console.log('✅ Main application routes added');
+    console.log(' Main application routes added');
   } catch (error) {
-    console.error('❌ Failed to add main application routes:', error);
+    console.error(' Failed to add main application routes:', error);
     throw error;
   }
 
@@ -58,30 +58,30 @@ export async function createMainApp(): Promise<Elysia> {
   try {
     const notificationRoutes = createNotificationRoutes();
     mainApp.use(notificationRoutes);
-    console.log('✅ Notification routes added');
+    console.log(' Notification routes added');
   } catch (error) {
-    console.error('❌ Failed to add notification routes:', error);
-    console.warn('⚠️ Server will continue without notifications');
+    console.error(' Failed to add notification routes:', error);
+    console.warn(' Server will continue without notifications');
   }
 
   // Add SSE and Modal routes with error handling
   try {
     mainApp.use(createSSERoutes());
     mainApp.use(createModalRoutes());
-    console.log('✅ SSE and Modal routes added');
+    console.log(' SSE and Modal routes added');
   } catch (error) {
-    console.error('❌ Failed to add SSE/Modal routes:', error);
-    console.warn('⚠️ Server will continue without SSE/Modal functionality');
+    console.error(' Failed to add SSE/Modal routes:', error);
+    console.warn(' Server will continue without SSE/Modal functionality');
   }
 
   // Add real-time endpoints with error handling
   try {
     const realtimeRoutes = getRealtimeRoutes();
     mainApp.use(realtimeRoutes);
-    console.log('✅ Real-time endpoints added');
+    console.log(' Real-time endpoints added');
   } catch (error) {
-    console.error('❌ Failed to add real-time endpoints:', error);
-    console.warn('⚠️ Server will continue without real-time functionality');
+    console.error(' Failed to add real-time endpoints:', error);
+    console.warn(' Server will continue without real-time functionality');
   }
 
   // Background sync management endpoints (deprecated - moved to ConsolidatedDataService)
@@ -197,10 +197,10 @@ export async function createMainApp(): Promise<Elysia> {
   try {
     const groupRoutes = await createGroupRoutes();
     mainApp.use(groupRoutes);
-    console.log('✅ Group management routes added');
+    console.log(' Group management routes added');
   } catch (error) {
-    console.error('❌ Failed to add group routes:', error);
-    console.warn('⚠️ Server will continue without group management');
+    console.error(' Failed to add group routes:', error);
+    console.warn(' Server will continue without group management');
   }
 
   console.log('🎯 BunSNC main application initialized successfully');
@@ -209,16 +209,16 @@ export async function createMainApp(): Promise<Elysia> {
 
 // Graceful shutdown handler
 export async function gracefulShutdown(): Promise<void> {
-  console.log("🛑 Shutting down BunSNC server...");
+  console.log(" Shutting down BunSNC server...");
   
   try {
     // Sync functionality moved to ConsolidatedDataService (handled by WebServerController)
-    console.log("✅ Background sync handled by ConsolidatedDataService");
+    console.log(" Background sync handled by ConsolidatedDataService");
 
     // Stop notification system
     await shutdownNotificationSystem();
-    console.log("✅ Graceful shutdown completed");
+    console.log(" Graceful shutdown completed");
   } catch (error) {
-    console.error("❌ Error during shutdown:", error);
+    console.error(" Error during shutdown:", error);
   }
 }

@@ -80,10 +80,10 @@ export class TicketIntelligenceService extends AIService {
       }
 
       this.initialized = true;
-      logger.info('✅ [TicketIntelligence] Service initialized successfully');
+      logger.info(' [TicketIntelligence] Service initialized successfully');
 
     } catch (error) {
-      logger.error('❌ [TicketIntelligence] Failed to initialize:', error);
+      logger.error(' [TicketIntelligence] Failed to initialize:', error);
       throw error;
     }
   }
@@ -114,7 +114,7 @@ export class TicketIntelligenceService extends AIService {
       const documentIntelligenceHealthy = await this.documentIntelligence.healthCheck();
       return serviceNowHealthy && documentIntelligenceHealthy;
     } catch (error) {
-      logger.error('❌ [TicketIntelligence] Health check failed:', error);
+      logger.error(' [TicketIntelligence] Health check failed:', error);
       return false;
     }
   }
@@ -174,7 +174,7 @@ export class TicketIntelligenceService extends AIService {
       };
 
     } catch (error) {
-      logger.error('❌ [TicketIntelligence] Ticket analysis failed:', error);
+      logger.error(' [TicketIntelligence] Ticket analysis failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error)
@@ -195,7 +195,7 @@ export class TicketIntelligenceService extends AIService {
             ticketInfo = response.records[0];
           }
         } catch (error) {
-          logger.warn(`⚠️ [TicketIntelligence] Failed to retrieve ticket ${ticket_id}:`, error);
+          logger.warn(` [TicketIntelligence] Failed to retrieve ticket ${ticket_id}:`, error);
         }
       }
 
@@ -223,7 +223,7 @@ export class TicketIntelligenceService extends AIService {
       };
 
     } catch (error) {
-      logger.error('❌ [TicketIntelligence] Similar tickets search failed:', error);
+      logger.error(' [TicketIntelligence] Similar tickets search failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error)
@@ -254,7 +254,7 @@ export class TicketIntelligenceService extends AIService {
       };
 
     } catch (error) {
-      logger.error('❌ [TicketIntelligence] Resolution suggestion failed:', error);
+      logger.error(' [TicketIntelligence] Resolution suggestion failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error)
@@ -284,7 +284,7 @@ export class TicketIntelligenceService extends AIService {
       };
 
     } catch (error) {
-      logger.error('❌ [TicketIntelligence] Time estimation failed:', error);
+      logger.error(' [TicketIntelligence] Time estimation failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error)
@@ -316,7 +316,7 @@ export class TicketIntelligenceService extends AIService {
       };
 
     } catch (error) {
-      logger.error('❌ [TicketIntelligence] Escalation risk assessment failed:', error);
+      logger.error(' [TicketIntelligence] Escalation risk assessment failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error)

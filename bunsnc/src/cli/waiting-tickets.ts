@@ -36,7 +36,7 @@ interface WaitingTicketSummary {
  * Query waiting tickets (state = 3) for all fallback groups using real ServiceNow API
  */
 async function getWaitingTicketsByGroups(): Promise<WaitingTicketSummary[]> {
-    console.log('🔍 Consultando chamados em espera no ServiceNow...\n');
+    console.log(' Consultando chamados em espera no ServiceNow...\n');
     
     // Use real ServiceNow API to get summary
     const results = await serviceNowAuthClient.getWaitingTicketsSummary(FALLBACK_GROUPS);
@@ -48,9 +48,9 @@ async function getWaitingTicketsByGroups(): Promise<WaitingTicketSummary[]> {
             console.log(`   ⏳ Incidents: ${item.incidents_waiting}`);
             console.log(`   ⏳ Change Tasks: ${item.ctasks_waiting}`);
             console.log(`   ⏳ SC Tasks: ${item.sctasks_waiting}`);
-            console.log(`   📊 Total: ${item.total_waiting}`);
+            console.log(`    Total: ${item.total_waiting}`);
         } else {
-            console.log(`   ✅ Nenhum chamado em espera`);
+            console.log(`    Nenhum chamado em espera`);
         }
         console.log('');
     });
@@ -64,7 +64,7 @@ async function getWaitingTicketsByGroups(): Promise<WaitingTicketSummary[]> {
 async function getWaitingTicketsDetails(targetGroup?: string): Promise<any[]> {
     const groupsToQuery = targetGroup ? [targetGroup] : FALLBACK_GROUPS;
     
-    console.log(`🔍 Detalhes dos chamados em espera${targetGroup ? ` para: ${targetGroup}` : ' (todos os grupos)'}\n`);
+    console.log(` Detalhes dos chamados em espera${targetGroup ? ` para: ${targetGroup}` : ' (todos os grupos)'}\n`);
     
     try {
         // Use real ServiceNow API to get detailed tickets
@@ -72,7 +72,7 @@ async function getWaitingTicketsDetails(targetGroup?: string): Promise<any[]> {
         return details;
         
     } catch (error) {
-        console.error('❌ Erro ao buscar detalhes dos chamados:', error);
+        console.error(' Erro ao buscar detalhes dos chamados:', error);
         return [];
     }
 }
@@ -82,11 +82,11 @@ async function getWaitingTicketsDetails(targetGroup?: string): Promise<any[]> {
  */
 export async function waitingTicketsCommand(options: { group?: string; details?: boolean }) {
     try {
-        console.log('🚀 BunSNC - Análise de Chamados em Espera');
+        console.log(' BunSNC - Análise de Chamados em Espera');
         console.log('='.repeat(50));
         console.log('');
         
-        console.log('🔐 Iniciando autenticação ServiceNow...');
+        console.log(' Iniciando autenticação ServiceNow...');
         console.log('📦 Redis cache habilitado para performance otimizada');
         
         if (options.details) {
@@ -94,7 +94,7 @@ export async function waitingTicketsCommand(options: { group?: string; details?:
             const details = await getWaitingTicketsDetails(options.group);
             
             if (details.length === 0) {
-                console.log('✅ Nenhum chamado em espera encontrado!');
+                console.log(' Nenhum chamado em espera encontrado!');
                 return;
             }
             
@@ -102,9 +102,9 @@ export async function waitingTicketsCommand(options: { group?: string; details?:
             
             details.forEach((ticket, index) => {
                 console.log(`${index + 1}. ${ticket.numero} [${ticket.tipo_chamado.toUpperCase()}]`);
-                console.log(`   📝 ${ticket.descricao || 'Sem descrição'}`);
+                console.log(`    ${ticket.descricao || 'Sem descrição'}`);
                 console.log(`   👥 Grupo: ${ticket.grupo_atribuicao || 'Não atribuído'}`);
-                console.log(`   ⚡ Prioridade: ${ticket.prioridade || 'N/A'}`);
+                console.log(`    Prioridade: ${ticket.prioridade || 'N/A'}`);
                 console.log(`   📅 Criado: ${new Date(ticket.data_criacao).toLocaleDateString('pt-BR')}`);
                 console.log('');
             });
@@ -116,7 +116,7 @@ export async function waitingTicketsCommand(options: { group?: string; details?:
             // Sort by total waiting (descending)
             summary.sort((a, b) => b.total_waiting - a.total_waiting);
             
-            console.log('📊 RESUMO POR GRUPO DE ATRIBUIÇÃO');
+            console.log(' RESUMO POR GRUPO DE ATRIBUIÇÃO');
             console.log('='.repeat(50));
             console.log('');
             
@@ -129,9 +129,9 @@ export async function waitingTicketsCommand(options: { group?: string; details?:
                 if (item.total_waiting > 0) {
                     console.log(`${index + 1}. ${item.grupo}`);
                     console.log(`   🎫 Incidents: ${item.incidents_waiting}`);
-                    console.log(`   🔄 Change Tasks: ${item.ctasks_waiting}`);
+                    console.log(`    Change Tasks: ${item.ctasks_waiting}`);
                     console.log(`   📋 SC Tasks: ${item.sctasks_waiting}`);
-                    console.log(`   📊 Total: ${item.total_waiting}`);
+                    console.log(`    Total: ${item.total_waiting}`);
                     console.log('');
                 }
                 
@@ -144,9 +144,9 @@ export async function waitingTicketsCommand(options: { group?: string; details?:
             console.log('='.repeat(50));
             console.log('📈 TOTAIS GERAIS:');
             console.log(`   🎫 Total Incidents em Espera: ${totalIncidents}`);
-            console.log(`   🔄 Total Change Tasks em Espera: ${totalCtasks}`);
+            console.log(`    Total Change Tasks em Espera: ${totalCtasks}`);
             console.log(`   📋 Total SC Tasks em Espera: ${totalSctasks}`);
-            console.log(`   📊 TOTAL GERAL: ${totalWaiting}`);
+            console.log(`    TOTAL GERAL: ${totalWaiting}`);
             console.log('');
             
             if (totalWaiting === 0) {
@@ -158,7 +158,7 @@ export async function waitingTicketsCommand(options: { group?: string; details?:
             
             // Show cache metrics
             console.log('');
-            console.log('📊 MÉTRICAS DO CACHE:');
+            console.log(' MÉTRICAS DO CACHE:');
             const cacheMetrics = serviceNowAuthClient.getCacheMetrics();
             console.log(`   🎯 Hit Rate: ${(cacheMetrics.hitRate * 100).toFixed(1)}%`);
             console.log(`   📈 Cache Hits: ${cacheMetrics.hits}`);
@@ -167,10 +167,10 @@ export async function waitingTicketsCommand(options: { group?: string; details?:
         }
         
     } catch (error) {
-        console.error('❌ Erro na consulta:', error);
+        console.error(' Erro na consulta:', error);
         process.exit(1);
     } finally {
-        console.log('✅ Consulta finalizada.');
+        console.log(' Consulta finalizada.');
     }
 }
 

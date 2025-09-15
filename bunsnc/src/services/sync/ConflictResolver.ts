@@ -105,7 +105,7 @@ export class ConflictResolver {
     conflict.resolution = 'resolved';
     conflict.resolvedWith = resolution;
 
-    console.log(`✅ Resolved conflict for ${conflict.table}/${conflict.sys_id}: ${resolution} wins`);
+    console.log(` Resolved conflict for ${conflict.table}/${conflict.sys_id}: ${resolution} wins`);
     
     return { data: winningData, source: resolution };
   }
@@ -173,6 +173,6 @@ export class ConflictResolver {
    */
   setStrategy(strategy: ConflictResolutionStrategy): void {
     this.strategy = strategy;
-    console.log(`🔧 Conflict resolution strategy updated: ${strategy}`);
+    console.log(` Conflict resolution strategy updated: ${strategy}`);
   }
 }

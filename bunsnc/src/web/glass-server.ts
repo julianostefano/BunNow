@@ -10,6 +10,12 @@ import { cors } from "@elysiajs/cors";
 import { swagger } from "@elysiajs/swagger";
 import { htmx } from "@gtramontina.com/elysia-htmx";
 import { consolidatedServiceNowService } from "../services/ConsolidatedServiceNowService";
+import { htmxAIRoutes } from "./routes/HtmxAIRoutes";
+import { htmxAIChatRoutes } from "./routes/HtmxAIChatRoutes";
+import { workflowGuidanceRoutes } from "./routes/HtmxWorkflowGuidanceRoutes";
+import { neuralSearchRoutes } from "./routes/HtmxNeuralSearchRoutes";
+import { intelligenceDashboardRoutes } from "./routes/HtmxIntelligenceDashboardRoutes";
+import { knowledgeVisualizationRoutes } from "./routes/HtmxKnowledgeVisualizationRoutes";
 
 // Type definitions for better type safety
 interface ServiceNowRecord {
@@ -242,7 +248,7 @@ export class GlassDesignServer {
           const ticket = await this.consolidatedService.getRecord('incident', params.sys_id);
           return this.renderTicketDetails(ticket);
         } catch (error) {
-          console.error('❌ [CRUD] Error fetching ticket:', error);
+          console.error(' [CRUD] Error fetching ticket:', error);
           return this.renderError('Ticket not found');
         }
       })
@@ -253,7 +259,7 @@ export class GlassDesignServer {
           const updatedTicket = await this.consolidatedService.updateRecord('incident', params.sys_id, updateData as Record<string, unknown>);
           return this.renderTicketCard(updatedTicket, 'incident');
         } catch (error) {
-          console.error('❌ [CRUD] Error updating ticket:', error);
+          console.error(' [CRUD] Error updating ticket:', error);
           return this.renderError('Failed to update ticket');
         }
       })
@@ -264,7 +270,7 @@ export class GlassDesignServer {
           const newTicket = await this.consolidatedService.createRecord(params.type, ticketData as Record<string, unknown>);
           return this.renderTicketCard(newTicket, params.type);
         } catch (error) {
-          console.error('❌ [CRUD] Error creating ticket:', error);
+          console.error(' [CRUD] Error creating ticket:', error);
           return this.renderError('Failed to create ticket');
         }
       })
@@ -279,7 +285,7 @@ export class GlassDesignServer {
           const results = await this.getAdvancedTicketFilter(type, filters);
           return this.renderTicketCards(results, type);
         } catch (error) {
-          console.error('❌ [Filter] Error:', error);
+          console.error(' [Filter] Error:', error);
           return this.renderError('Filter operation failed');
         }
       })
@@ -293,7 +299,7 @@ export class GlassDesignServer {
           const results = await this.performBulkOperation(action, bulkData.ticket_ids, bulkData.data);
           return this.renderBulkOperationResult(results);
         } catch (error) {
-          console.error('❌ [Bulk] Error:', error);
+          console.error(' [Bulk] Error:', error);
           return this.renderError('Bulk operation failed');
         }
       })
@@ -350,6 +356,14 @@ export class GlassDesignServer {
 
         return this.createSystemHealthStream();
       })
+
+      // AI Services Routes - Phase 6 Implementation
+      .use(htmxAIRoutes)
+      .use(htmxAIChatRoutes)
+      .use(workflowGuidanceRoutes)
+      .use(neuralSearchRoutes)
+      .use(intelligenceDashboardRoutes)
+      .use(knowledgeVisualizationRoutes)
 
       // Favicon
       .get("/favicon.ico", () => new Response(null, { status: 204 }))
@@ -454,7 +468,7 @@ export class GlassDesignServer {
 
   private createNavigation(currentPath: string): string {
     const navItems = [
-      { href: '/', label: 'Dashboard', icon: '📊', active: currentPath === '/' },
+      { href: '/', label: 'Dashboard', icon: 'dashboard', active: currentPath === '/' },
       { href: '/tickets', label: 'Tickets', icon: '🎫', badge: '41', active: currentPath.startsWith('/tickets') },
       { href: '/analytics', label: 'Analytics', icon: '📈', active: currentPath.startsWith('/analytics') },
       { href: '/reports', label: 'Reports', icon: '📄', active: currentPath.startsWith('/reports') }
@@ -473,7 +487,7 @@ export class GlassDesignServer {
     return `
       <nav class="glass-nav">
         <div class="glass-nav__brand">
-          <div class="glass-nav__logo">⚡</div>
+          <div class="glass-nav__logo">BunSNC</div>
           <a href="/" class="glass-nav__title">BunSNC</a>
         </div>
         <ul class="glass-nav__list">
@@ -563,7 +577,7 @@ export class GlassDesignServer {
 
         <!-- Neural Search FAB -->
         <div class="neural-search-fab" onclick="openNeuralSearch()">
-          <span class="neural-icon">🧠</span>
+          <span class="neural-icon">Neural</span>
           <span class="neural-label">Neural Search</span>
         </div>
 
@@ -575,7 +589,7 @@ export class GlassDesignServer {
               🚨 Incidents
             </button>
             <button class="filter-tab" data-type="problems" onclick="setActiveTab('problems')">
-              🔧 Problems
+               Problems
             </button>
             <button class="filter-tab" data-type="changes" onclick="setActiveTab('changes')">
               📋 Changes
@@ -646,7 +660,7 @@ export class GlassDesignServer {
                         hx-post="/api/process/problems"
                         hx-target="#processing-log"
                         hx-indicator="#processing-spinner">
-                  🔧 Export Problems
+                   Export Problems
                 </button>
 
                 <button class="glass-btn"
@@ -660,7 +674,7 @@ export class GlassDesignServer {
                         hx-get="/api/metrics"
                         hx-target="#analytics-content"
                         hx-trigger="click">
-                  📊 Refresh Data
+                  Refresh Data
                 </button>
               </div>
 
@@ -767,6 +781,42 @@ export class GlassDesignServer {
               <h3 class="quick-action__title">Reports</h3>
             </a>
 
+            <a href="/ai/dashboard" class="glass-card quick-action">
+              <div class="quick-action__icon quick-action__icon--ai">
+                <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+                </svg>
+              </div>
+              <h3 class="quick-action__title">AI Services</h3>
+            </a>
+
+            <a href="/search/neural" class="glass-card quick-action">
+              <div class="quick-action__icon quick-action__icon--search">
+                <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                </svg>
+              </div>
+              <h3 class="quick-action__title">Neural Search</h3>
+            </a>
+
+            <a href="/intelligence/dashboard" class="glass-card quick-action">
+              <div class="quick-action__icon quick-action__icon--intelligence">
+                <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M9 11H7v6h2v-6zm4 0h-2v6h2v-6zm4 0h-2v6h2v-6zm2.5 2.5c0-1.37-1.13-2.5-2.5-2.5s-2.5 1.13-2.5 2.5S17.63 16 19 16s2.5-1.13 2.5-2.5z"/>
+                </svg>
+              </div>
+              <h3 class="quick-action__title">Intelligence</h3>
+            </a>
+
+            <a href="/knowledge/visualization" class="glass-card quick-action">
+              <div class="quick-action__icon quick-action__icon--knowledge">
+                <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM5 19V5h14v14H5z"/>
+                </svg>
+              </div>
+              <h3 class="quick-action__title">Knowledge Base</h3>
+            </a>
+
             <a href="/settings" class="glass-card quick-action">
               <div class="quick-action__icon quick-action__icon--settings">
                 <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
@@ -831,7 +881,7 @@ export class GlassDesignServer {
                 <span class="filter-tab-count">24</span>
               </button>
               <button class="filter-tab" onclick="setActiveTicketTab('problem')" data-type="problem">
-                <span class="filter-tab-icon">🔧</span>
+                <span class="filter-tab-icon"></span>
                 <span class="filter-tab-label">Problems</span>
                 <span class="filter-tab-count">5</span>
               </button>
@@ -873,7 +923,7 @@ export class GlassDesignServer {
 
         <!-- Neural Search FAB -->
         <div class="neural-search-fab" onclick="openNeuralSearch()">
-          <span class="neural-icon">🧠</span>
+          <span class="neural-icon">Neural</span>
           <span class="neural-label">Neural Search</span>
         </div>
 
@@ -979,7 +1029,7 @@ export class GlassDesignServer {
         id: 'PRB0005432',
         title: `Network connectivity issues - ${query}`,
         description: 'Investigating network performance problems',
-        icon: '🔧',
+        icon: '',
         url: '/problems/PRB0005432'
       },
       {
@@ -1249,12 +1299,12 @@ export class GlassDesignServer {
     }
 
     try {
-      console.log(`🧠 [Neural Search] Processing query: "${query}"`);
+      console.log(`[Neural Search] Processing query: "${query}"`);
 
       // Real ServiceNow semantic search implementation
       const searchResults = await this.executeSemanticSearch(query);
 
-      console.log(`✅ [Neural Search] Found ${searchResults.length} results`);
+      console.log(`[Neural Search] Found ${searchResults.length} results`);
 
       return {
         success: true,
@@ -1264,7 +1314,7 @@ export class GlassDesignServer {
         processing_time: '0.3s'
       };
     } catch (error) {
-      console.error('❌ [Neural Search] Error:', error);
+      console.error(' [Neural Search] Error:', error);
       return {
         success: false,
         message: 'Search failed: ' + (error as Error).message,
@@ -1278,7 +1328,7 @@ export class GlassDesignServer {
     let allResults: SearchResult[] = [];
     let hasServiceNowData = false;
 
-    console.log(`🔍 [Neural Search] Search terms: ${searchTerms.join(', ')}`);
+    console.log(`[Neural Search] Search terms: ${searchTerms.join(', ')}`);
 
     // Search across multiple ServiceNow tables with semantic weighting
     const tablesToSearch = [
@@ -1291,12 +1341,12 @@ export class GlassDesignServer {
     // Try ServiceNow integration first
     for (const config of tablesToSearch) {
       try {
-        console.log(`🔍 [Neural Search] Searching table: ${config.table}`);
+        console.log(`[Neural Search] Searching table: ${config.table}`);
         const tableResults = await this.searchServiceNowTable(config.table, searchTerms, config.fields);
 
         if (tableResults.length > 0) {
           hasServiceNowData = true;
-          console.log(`📊 [Neural Search] Found ${tableResults.length} results in ${config.table}`);
+          console.log(`[Neural Search] Found ${tableResults.length} results in ${config.table}`);
 
           const enrichedResults = tableResults.map(record => ({
             id: record.number || record.sys_id,
@@ -1315,20 +1365,16 @@ export class GlassDesignServer {
           allResults.push(...enrichedResults);
         }
       } catch (error) {
-        console.warn(`⚠️ [Neural Search] Search failed for table ${config.table}:`, error);
+        console.warn(`[Neural Search] Search failed for table ${config.table}:`, error);
 
-        // Check if it's an authentication error
-        if (error instanceof Error && error.message.includes('401')) {
-          console.log(`🔄 [Neural Search] Authentication failed - will use demo data fallback`);
-          break; // Exit loop and use fallback data
-        }
+        // Continue searching other tables on error
+        continue;
       }
     }
 
-    // If no ServiceNow data was found (due to auth issues or empty results), use smart fallback
-    if (!hasServiceNowData || allResults.length === 0) {
-      console.log(`🎭 [Neural Search] Using intelligent demo data for query: "${query}"`);
-      allResults = await this.generateIntelligentDemoData(query, searchTerms);
+    // Log search results
+    if (allResults.length === 0) {
+      console.warn(`[Neural Search] No results found for query: "${query}"`);
     }
 
     // Sort by confidence and return top results
@@ -1337,141 +1383,6 @@ export class GlassDesignServer {
       .slice(0, 15);
   }
 
-  private async generateIntelligentDemoData(query: string, searchTerms: string[]) {
-    // Intelligent demo data based on query context
-    const demoDatabase = [
-      {
-        id: 'INC0012345',
-        type: 'incident',
-        title: 'Database connection timeout critical issue',
-        description: 'Production database experiencing intermittent connection timeouts affecting user authentication and data access. Multiple users unable to access the system.',
-        state: 'Em Progresso',
-        priority: 'Crítica',
-        confidence: 0.95,
-        created_at: '2025-01-15T08:30:00Z',
-        assignment_group: 'Database Team',
-        assigned_to: 'João Silva',
-        sys_id: 'demo-001'
-      },
-      {
-        id: 'PRB0001234',
-        type: 'problem',
-        title: 'Network latency spikes causing application slowdowns',
-        description: 'Identified network infrastructure bottleneck causing high latency spikes during peak hours. Affecting multiple services and user experience.',
-        state: 'Novo',
-        priority: 'Alta',
-        confidence: 0.87,
-        created_at: '2025-01-14T14:20:00Z',
-        assignment_group: 'Network Operations',
-        assigned_to: 'Maria Santos',
-        sys_id: 'demo-002'
-      },
-      {
-        id: 'CHG0005678',
-        type: 'change_request',
-        title: 'Security patch deployment for production servers',
-        description: 'Deploy critical security patches to all production servers during scheduled maintenance window. Requires system downtime coordination.',
-        state: 'Pendente',
-        priority: 'Alta',
-        confidence: 0.78,
-        created_at: '2025-01-13T10:15:00Z',
-        assignment_group: 'Security Team',
-        assigned_to: 'Carlos Lima',
-        sys_id: 'demo-003'
-      },
-      {
-        id: 'INC0012346',
-        type: 'incident',
-        title: 'Login authentication service failures',
-        description: 'LDAP authentication service experiencing failures causing users unable to log in to corporate applications. Service intermittently unavailable.',
-        state: 'Resolvido',
-        priority: 'Alta',
-        confidence: 0.82,
-        created_at: '2025-01-12T16:45:00Z',
-        assignment_group: 'Identity Team',
-        assigned_to: 'Ana Costa',
-        sys_id: 'demo-004'
-      },
-      {
-        id: 'SC0001123',
-        type: 'sc_request',
-        title: 'New employee laptop configuration request',
-        description: 'Request for new laptop setup and software configuration for incoming employee in IT department. Standard corporate image required.',
-        state: 'Novo',
-        priority: 'Moderada',
-        confidence: 0.65,
-        created_at: '2025-01-11T09:20:00Z',
-        assignment_group: 'IT Support',
-        assigned_to: 'Pedro Oliveira',
-        sys_id: 'demo-005'
-      },
-      {
-        id: 'INC0012347',
-        type: 'incident',
-        title: 'Email server disk space critical alert',
-        description: 'Mail server running out of disk space causing email delivery delays and storage issues. Immediate attention required.',
-        state: 'Em Progresso',
-        priority: 'Crítica',
-        confidence: 0.91,
-        created_at: '2025-01-10T12:30:00Z',
-        assignment_group: 'Email Team',
-        assigned_to: 'Luisa Rodriguez',
-        sys_id: 'demo-006'
-      }
-    ];
-
-    // Filter results based on semantic relevance to the query
-    const relevantResults = demoDatabase.filter(item => {
-      const titleLower = item.title.toLowerCase();
-      const descriptionLower = item.description.toLowerCase();
-      const queryLower = query.toLowerCase();
-
-      // Check for exact query match
-      if (titleLower.includes(queryLower) || descriptionLower.includes(queryLower)) {
-        return true;
-      }
-
-      // Check for individual search terms
-      return searchTerms.some(term =>
-        titleLower.includes(term) || descriptionLower.includes(term)
-      );
-    });
-
-    // Recalculate confidence based on actual query matching
-    return relevantResults.map(item => ({
-      ...item,
-      confidence: this.calculateDemoConfidence(query, item)
-    }));
-  }
-
-  private calculateDemoConfidence(query: string, item: ServiceNowRecord): number {
-    const queryLower = query.toLowerCase();
-    const titleLower = item.title.toLowerCase();
-    const descriptionLower = item.description.toLowerCase();
-
-    let score = 0;
-
-    // Exact query match in title = highest score
-    if (titleLower.includes(queryLower)) score += 0.5;
-
-    // Exact query match in description
-    if (descriptionLower.includes(queryLower)) score += 0.3;
-
-    // Individual word matches
-    const queryWords = queryLower.split(' ');
-    queryWords.forEach(word => {
-      if (word.length > 2) {
-        if (titleLower.includes(word)) score += 0.2;
-        if (descriptionLower.includes(word)) score += 0.1;
-      }
-    });
-
-    // Priority boost
-    if (item.priority === 'Crítica') score += 0.1;
-    if (item.priority === 'Alta') score += 0.05;
-
-    return Math.min(0.99, Math.max(0.3, score));
-  }
 
   private extractSearchTerms(query: string): string[] {
     return query.toLowerCase()
@@ -1589,7 +1500,7 @@ export class GlassDesignServer {
     if (!query || query.length < 3) {
       return `
         <div style="text-align: center; padding: 2rem; color: rgba(255, 255, 255, 0.6);">
-          <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🧠</div>
+          <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">Neural</div>
           <div>Enter at least 3 characters to search</div>
         </div>
       `;
@@ -1638,7 +1549,7 @@ export class GlassDesignServer {
     if (filteredResults.length === 0) {
       return `
         <div style="text-align: center; padding: 2rem; color: rgba(255, 255, 255, 0.6);">
-          <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🔍</div>
+          <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">Search</div>
           <div>No results found for "${query}"</div>
           <div style="font-size: 0.875rem; margin-top: 0.5rem; color: rgba(255, 255, 255, 0.4);">
             Try different keywords or check your spelling
@@ -1673,7 +1584,7 @@ export class GlassDesignServer {
     return `
       <div style="margin-bottom: 1rem; padding: 0.75rem; background: rgba(102, 126, 234, 0.1); border-radius: 0.5rem; border: 1px solid rgba(102, 126, 234, 0.2);">
         <div style="font-size: 0.875rem; color: rgba(102, 126, 234, 0.9); font-weight: 600;">
-          🧠 Neural Search Results
+          Neural Search Results
         </div>
         <div style="font-size: 0.75rem; color: rgba(102, 126, 234, 0.7); margin-top: 0.25rem;">
           Found ${filteredResults.length} matches for "${query}" • Processing time: 0.3s
@@ -1692,17 +1603,17 @@ export class GlassDesignServer {
       const serviceNowResults = await this.getServiceNowTickets(type, stateList);
 
       if (serviceNowResults.length > 0) {
-        console.log(`✅ [Tickets] Found ${serviceNowResults.length} real ${type} tickets`);
+        console.log(` [Tickets] Found ${serviceNowResults.length} real ${type} tickets`);
         return this.renderTicketCards(serviceNowResults, type);
       }
 
       // Fallback to demo data if no real data available
-      console.log(`🎭 [Tickets] Using demo data for ${type} tickets`);
+      console.log(` [Tickets] Using demo data for ${type} tickets`);
       const demoTickets = this.getDemoTickets(type, stateList);
       return this.renderTicketCards(demoTickets, type);
 
     } catch (error) {
-      console.error(`❌ [Tickets] Error loading ${type} tickets:`, error);
+      console.error(` [Tickets] Error loading ${type} tickets:`, error);
       return this.renderTicketCards(this.getDemoTickets(type, states.split(',')), type);
     }
   }
@@ -1734,7 +1645,7 @@ export class GlassDesignServer {
 
       return await this.consolidatedService.query(queryOptions);
     } catch (error) {
-      console.warn(`⚠️ [Tickets] ServiceNow query failed for ${type}:`, error);
+      console.warn(` [Tickets] ServiceNow query failed for ${type}:`, error);
       return [];
     }
   }
@@ -1792,7 +1703,7 @@ export class GlassDesignServer {
         <div class="ticket-card-footer">
           <div class="ticket-card-meta">
             <div class="ticket-card-assignee">
-              <span class="ticket-meta-icon">👤</span>
+              <span class="ticket-meta-icon"></span>
               ${assignee}
             </div>
             <div class="ticket-card-created">
@@ -1818,9 +1729,9 @@ export class GlassDesignServer {
   private getTypeIcon(type: string): string {
     const icons = {
       'incident': '🚨',
-      'problem': '🔧',
+      'problem': '',
       'change_request': '📋',
-      'sc_request': '📝'
+      'sc_request': ''
     };
     return icons[type as keyof typeof icons] || '🎫';
   }
@@ -2097,7 +2008,7 @@ export class GlassDesignServer {
               </p>
               <div style="display: flex; gap: 1rem; justify-content: center;">
                 <button onclick="location.reload()" class="glass-btn glass-btn--primary">
-                  🔄 Retry
+                   Retry
                 </button>
                 <a href="/" class="glass-btn">
                   🏠 Go Home
@@ -2117,15 +2028,15 @@ export class GlassDesignServer {
     try {
       await this.app.listen(this.port);
 
-      console.log('🌐 Glass Design Server Started');
-      console.log('📊 Dashboard:', `http://localhost:${this.port}`);
-      console.log('📖 API Docs:', `http://localhost:${this.port}/docs`);
-      console.log('🔍 Health Check:', `http://localhost:${this.port}/health`);
-      console.log('✨ Features: HTMX, SSE, Glass Design, Real-time Analytics');
-      console.log('⚡ Ready for connections!');
+      console.log(' Glass Design Server Started');
+      console.log(' Dashboard:', `http://localhost:${this.port}`);
+      console.log(' API Docs:', `http://localhost:${this.port}/docs`);
+      console.log(' Health Check:', `http://localhost:${this.port}/health`);
+      console.log(' Features: HTMX, SSE, Glass Design, Real-time Analytics');
+      console.log(' Ready for connections!');
 
     } catch (error) {
-      console.error('❌ Failed to start server:', error);
+      console.error(' Failed to start server:', error);
       process.exit(1);
     }
   }
@@ -2136,9 +2047,9 @@ export class GlassDesignServer {
   public async stop(): Promise<void> {
     try {
       await this.app.stop();
-      console.log('🛑 Server stopped');
+      console.log(' Server stopped');
     } catch (error) {
-      console.error('❌ Failed to stop server:', error);
+      console.error(' Failed to stop server:', error);
     }
   }
 
@@ -2189,7 +2100,7 @@ export class GlassDesignServer {
   private renderError(message: string): string {
     return `
       <div class="error-message glass-card">
-        <div class="error-icon">⚠️</div>
+        <div class="error-icon"></div>
         <h3>Error</h3>
         <p>${message}</p>
       </div>
@@ -2225,7 +2136,7 @@ export class GlassDesignServer {
 
       return results.length > 0 ? results : this.getDemoTickets(type, filters.states?.split(',') || []);
     } catch (error) {
-      console.error('❌ [Advanced Filter] Error:', error);
+      console.error(' [Advanced Filter] Error:', error);
       return this.getDemoTickets(type, filters.states?.split(',') || []);
     }
   }
@@ -2266,7 +2177,7 @@ export class GlassDesignServer {
 
       return results;
     } catch (error) {
-      console.error('❌ [Bulk Operation] Error:', error);
+      console.error(' [Bulk Operation] Error:', error);
       return { success: false, error: error.message };
     }
   }
@@ -2286,7 +2197,7 @@ export class GlassDesignServer {
           ${results.map((result: any) => `
             <div class="bulk-item ${result.success ? 'bulk-item--success' : 'bulk-item--error'}">
               <span class="bulk-item__id">${result.ticketId}</span>
-              <span class="bulk-item__status">${result.success ? '✅ Success' : '❌ ' + result.error}</span>
+              <span class="bulk-item__status">${result.success ? ' Success' : ' ' + result.error}</span>
             </div>
           `).join('')}
         </div>
@@ -2341,7 +2252,7 @@ export class GlassDesignServer {
               `event: dashboard-update\ndata: ${JSON.stringify(dashboardData)}\n\n`
             ));
           } catch (error) {
-            console.error('❌ [SSE] Dashboard update error:', error);
+            console.error(' [SSE] Dashboard update error:', error);
 
             controller.enqueue(new TextEncoder().encode(
               `event: error\ndata: {"message":"Dashboard update failed","timestamp":"${new Date().toISOString()}"}\n\n`
@@ -2404,7 +2315,7 @@ export class GlassDesignServer {
               })}\n\n`
             ));
           } catch (error) {
-            console.error(`❌ [Ticket Stream] Error for ${type}:`, error);
+            console.error(` [Ticket Stream] Error for ${type}:`, error);
 
             // Send fallback demo data
             const demoTickets = this.getDemoTickets(type, ['1', '2', '3']);
@@ -2449,7 +2360,7 @@ export class GlassDesignServer {
               ));
             }
           } catch (error) {
-            console.error(`❌ [State Change] Error for ${type}:`, error);
+            console.error(` [State Change] Error for ${type}:`, error);
             // Skip sending state change if error occurs
           }
         };
@@ -2473,7 +2384,7 @@ export class GlassDesignServer {
   private createNeuralSearchStream(query: string): Response {
     const stream = new ReadableStream({
       start(controller) {
-        console.log(`🧠 [Neural Search Stream] Starting for query: "${query}"`);
+        console.log(` [Neural Search Stream] Starting for query: "${query}"`);
 
         if (!query || query.length < 3) {
           controller.enqueue(new TextEncoder().encode(
@@ -2516,7 +2427,7 @@ export class GlassDesignServer {
                   })}\n\n`
                 ));
               } catch (error) {
-                console.warn(`⚠️ [Neural Search Stream] ${table} search failed:`, error);
+                console.warn(` [Neural Search Stream] ${table} search failed:`, error);
               }
 
               // Small delay for realistic streaming
@@ -2534,7 +2445,7 @@ export class GlassDesignServer {
             ));
 
           } catch (error) {
-            console.error('❌ [Neural Search Stream] Search error:', error);
+            console.error(' [Neural Search Stream] Search error:', error);
 
             controller.enqueue(new TextEncoder().encode(
               `event: search-error\ndata: {"message":"Search failed","error":"${error.message}","timestamp":"${new Date().toISOString()}"}\n\n`
@@ -2557,7 +2468,7 @@ export class GlassDesignServer {
   private createSystemHealthStream(): Response {
     const stream = new ReadableStream({
       start(controller) {
-        console.log(`📊 [System Health Stream] Starting system monitoring`);
+        console.log(` [System Health Stream] Starting system monitoring`);
 
         const sendHealthUpdate = async () => {
           try {
@@ -2567,7 +2478,7 @@ export class GlassDesignServer {
               `event: health-update\ndata: ${JSON.stringify(healthData)}\n\n`
             ));
           } catch (error) {
-            console.error('❌ [System Health Stream] Health check error:', error);
+            console.error(' [System Health Stream] Health check error:', error);
 
             controller.enqueue(new TextEncoder().encode(
               `event: health-error\ndata: {"message":"Health check failed","timestamp":"${new Date().toISOString()}"}\n\n`
@@ -2673,7 +2584,7 @@ export class GlassDesignServer {
           title: 'Problem Updated',
           message: prob.short_description,
           action: `View problem ${prob.number}`,
-          icon: '🔍',
+          icon: '',
           record_id: prob.sys_id,
           number: prob.number
         })),
@@ -2683,7 +2594,7 @@ export class GlassDesignServer {
           title: 'Change Implemented',
           message: change.short_description,
           action: `Review change ${change.number}`,
-          icon: '✅',
+          icon: '',
           record_id: change.sys_id,
           number: change.number
         }))
@@ -2788,20 +2699,20 @@ export { glassServer };
 if (import.meta.main) {
   // Handle graceful shutdown
   process.on('SIGINT', async () => {
-    console.log('\n🛑 Shutting down gracefully...');
+    console.log('\n Shutting down gracefully...');
     await glassServer.stop();
     process.exit(0);
   });
 
   process.on('SIGTERM', async () => {
-    console.log('\n🛑 Received SIGTERM, shutting down gracefully...');
+    console.log('\n Received SIGTERM, shutting down gracefully...');
     await glassServer.stop();
     process.exit(0);
   });
 
   // Start the server
   glassServer.start().catch((error) => {
-    console.error('❌ Failed to start server:', error);
+    console.error(' Failed to start server:', error);
     process.exit(1);
   });
 }

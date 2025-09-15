@@ -31,9 +31,9 @@ export async function clientCreationExamples() {
   // Method 3: Environment variables
   try {
     const client3 = ServiceNowClient.fromEnv({ validateConnection: false });
-    console.log('✅ Client created from environment variables');
+    console.log(' Client created from environment variables');
   } catch (error) {
-    console.log('❌ Environment variables not set:', error.message);
+    console.log(' Environment variables not set:', error.message);
   }
 
   // Method 4: Basic authentication
@@ -49,7 +49,7 @@ export async function clientCreationExamples() {
     'oauth-access-token'
   );
 
-  console.log('✅ All client creation methods demonstrated\n');
+  console.log(' All client creation methods demonstrated\n');
   return client1;
 }
 
@@ -71,14 +71,14 @@ export async function basicCrudExamples(client: ServiceNowClient) {
       state: '1',
       caller_id: 'admin'
     });
-    console.log('✅ Created incident:', newIncident.number);
+    console.log(' Created incident:', newIncident.number);
 
     const incidentId = newIncident.sys_id;
 
     // READ - Get the created incident
     console.log('Reading incident...');
     const readIncident = await client.read('incident', incidentId);
-    console.log('✅ Read incident:', readIncident?.number);
+    console.log(' Read incident:', readIncident?.number);
 
     // UPDATE - Modify the incident
     console.log('Updating incident...');
@@ -87,7 +87,7 @@ export async function basicCrudExamples(client: ServiceNowClient) {
       priority: '2',
       work_notes: 'Updated via BunSNC Phase 3 API'
     });
-    console.log('✅ Updated incident state to:', updatedIncident.state);
+    console.log(' Updated incident state to:', updatedIncident.state);
 
     // QUERY - Search for incidents
     console.log('Querying incidents...');
@@ -97,20 +97,20 @@ export async function basicCrudExamples(client: ServiceNowClient) {
       fields: ['sys_id', 'number', 'short_description', 'state'],
       limit: 5
     });
-    console.log(`✅ Found ${incidents.length} incidents`);
+    console.log(` Found ${incidents.length} incidents`);
 
     // GET COUNT
     console.log('Getting incident count...');
     const count = await client.getCount('incident', 'state=2');
-    console.log(`✅ Total incidents in state 2: ${count}`);
+    console.log(` Total incidents in state 2: ${count}`);
 
     // DELETE - Remove the test incident
     console.log('Deleting test incident...');
     const deleted = await client.delete('incident', incidentId);
-    console.log('✅ Incident deleted:', deleted);
+    console.log(' Incident deleted:', deleted);
 
   } catch (error) {
-    console.error('❌ CRUD operation failed:', error.message);
+    console.error(' CRUD operation failed:', error.message);
   }
 
   console.log();
@@ -135,7 +135,7 @@ export async function glideRecordPaginationExamples(client: ServiceNowClient) {
     
     // Execute query
     await gr.query();
-    console.log(`✅ Query executed, found ${gr.getRowCount()} users`);
+    console.log(` Query executed, found ${gr.getRowCount()} users`);
 
     // Iterate through results with automatic pagination
     console.log('Iterating through results...');
@@ -152,7 +152,7 @@ export async function glideRecordPaginationExamples(client: ServiceNowClient) {
     grAsync.orderByDesc('sys_created_on');
     
     await grAsync.query();
-    console.log(`✅ Audit query executed, initial batch: ${grAsync.getRowCount()} records`);
+    console.log(` Audit query executed, initial batch: ${grAsync.getRowCount()} records`);
 
     // Use nextAsync() for better performance with large datasets
     let asyncCount = 0;
@@ -162,7 +162,7 @@ export async function glideRecordPaginationExamples(client: ServiceNowClient) {
     }
 
   } catch (error) {
-    console.error('❌ Pagination example failed:', error.message);
+    console.error(' Pagination example failed:', error.message);
   }
 
   console.log();
@@ -178,7 +178,7 @@ export async function attachmentExamples(client: ServiceNowClient) {
       short_description: 'Incident for attachment testing',
       state: '1'
     });
-    console.log('✅ Created test incident:', incident.number);
+    console.log(' Created test incident:', incident.number);
 
     const incidentId = incident.sys_id;
 
@@ -194,7 +194,7 @@ export async function attachmentExamples(client: ServiceNowClient) {
       incidentId,
       textBlob
     );
-    console.log('✅ Uploaded text file:', textAttachmentId);
+    console.log(' Uploaded text file:', textAttachmentId);
 
     // Upload JSON file
     const jsonData = {
@@ -211,12 +211,12 @@ export async function attachmentExamples(client: ServiceNowClient) {
       jsonBlob,
       'application/json'
     );
-    console.log('✅ Uploaded JSON file:', jsonAttachmentId);
+    console.log(' Uploaded JSON file:', jsonAttachmentId);
 
     // LIST - Get all attachments for the incident
     console.log('Listing attachments...');
     const attachments = await client.listAttachments('incident', incidentId);
-    console.log(`✅ Found ${attachments.length} attachments:`);
+    console.log(` Found ${attachments.length} attachments:`);
     attachments.forEach((att, index) => {
       console.log(`  ${index + 1}. ${att.file_name} (${att.size_bytes} bytes)`);
     });
@@ -226,32 +226,32 @@ export async function attachmentExamples(client: ServiceNowClient) {
     
     // Get text file content
     const textContent2 = await client.getAttachmentAsText(textAttachmentId);
-    console.log('✅ Text file content preview:', textContent2.split('\n')[0]);
+    console.log(' Text file content preview:', textContent2.split('\n')[0]);
 
     // Get JSON file as blob
     const jsonBlob2 = await client.getAttachmentAsBlob(jsonAttachmentId);
-    console.log('✅ JSON blob size:', jsonBlob2.size);
+    console.log(' JSON blob size:', jsonBlob2.size);
 
     // Get attachment metadata with file stats
     const attachmentStats = await client.getAttachmentWithStats(textAttachmentId);
-    console.log('✅ Attachment accessible:', attachmentStats.accessible);
-    console.log('✅ File exists:', attachmentStats.fileExists);
+    console.log(' Attachment accessible:', attachmentStats.accessible);
+    console.log(' File exists:', attachmentStats.fileExists);
 
     // BULK DELETE - Clean up attachments
     console.log('Cleaning up attachments...');
     const attachmentIds = attachments.map(att => att.sys_id);
     const deleteResults = await client.bulkDeleteAttachments(attachmentIds);
-    console.log(`✅ Deleted ${deleteResults.deleted} attachments`);
+    console.log(` Deleted ${deleteResults.deleted} attachments`);
     if (deleteResults.errors.length > 0) {
-      console.log(`❌ ${deleteResults.errors.length} deletion errors`);
+      console.log(` ${deleteResults.errors.length} deletion errors`);
     }
 
     // Clean up test incident
     await client.delete('incident', incidentId);
-    console.log('✅ Cleaned up test incident');
+    console.log(' Cleaned up test incident');
 
   } catch (error) {
-    console.error('❌ Attachment operation failed:', error.message);
+    console.error(' Attachment operation failed:', error.message);
   }
 
   console.log();
@@ -273,7 +273,7 @@ export async function batchProcessingExamples(client: ServiceNowClient) {
       });
       testIncidents.push(incident);
     }
-    console.log(`✅ Created ${testIncidents.length} test incidents`);
+    console.log(` Created ${testIncidents.length} test incidents`);
 
     // Example 1: Basic Batch Operations
     console.log('\nBasic batch operations...');
@@ -291,9 +291,9 @@ export async function batchProcessingExamples(client: ServiceNowClient) {
         sysId: inc.sys_id,
         callback: (result, error) => {
           if (error) {
-            console.log(`❌ Read failed for incident ${index + 1}:`, error.message);
+            console.log(` Read failed for incident ${index + 1}:`, error.message);
           } else {
-            console.log(`✅ Read incident ${index + 1}: ${result.number}`);
+            console.log(` Read incident ${index + 1}: ${result.number}`);
           }
         }
       });
@@ -301,7 +301,7 @@ export async function batchProcessingExamples(client: ServiceNowClient) {
 
     console.log(`Executing batch with ${batch1.getRequestCount()} requests...`);
     const results1 = await batch1.execute();
-    console.log(`✅ Batch completed: ${results1.filter(r => r.success).length}/${results1.length} successful`);
+    console.log(` Batch completed: ${results1.filter(r => r.success).length}/${results1.length} successful`);
 
     // Example 2: Mixed Operations Batch
     console.log('\nMixed operations batch...');
@@ -321,7 +321,7 @@ export async function batchProcessingExamples(client: ServiceNowClient) {
         },
         callback: (result, error) => {
           if (!error) {
-            console.log(`✅ Updated incident ${index + 1} to state ${result.state}`);
+            console.log(` Updated incident ${index + 1} to state ${result.state}`);
           }
         }
       });
@@ -341,7 +341,7 @@ export async function batchProcessingExamples(client: ServiceNowClient) {
         },
         callback: (result, error) => {
           if (!error) {
-            console.log(`✅ Created new incident: ${result.number}`);
+            console.log(` Created new incident: ${result.number}`);
             testIncidents.push(result); // Add to cleanup list
           }
         }
@@ -350,7 +350,7 @@ export async function batchProcessingExamples(client: ServiceNowClient) {
 
     console.log(`Executing mixed batch with ${batch2.getRequestCount()} requests...`);
     const results2 = await batch2.execute();
-    console.log(`✅ Mixed batch completed: ${results2.filter(r => r.success).length}/${results2.length} successful`);
+    console.log(` Mixed batch completed: ${results2.filter(r => r.success).length}/${results2.length} successful`);
 
     // Example 3: GlideRecord Integration with Batch
     console.log('\nGlideRecord batch integration...');
@@ -365,13 +365,13 @@ export async function batchProcessingExamples(client: ServiceNowClient) {
       
       batch3.put(gr, (result, error) => {
         if (!error) {
-          console.log(`✅ GlideRecord batch update ${index + 1}: ${result.number}`);
+          console.log(` GlideRecord batch update ${index + 1}: ${result.number}`);
         }
       });
     });
 
     await batch3.execute();
-    console.log('✅ GlideRecord batch integration completed');
+    console.log(' GlideRecord batch integration completed');
 
     // Example 4: Error Handling and Retry Logic
     console.log('\nError handling and retry logic...');
@@ -389,7 +389,7 @@ export async function batchProcessingExamples(client: ServiceNowClient) {
       sysId: 'invalid-sys-id',
       callback: (result, error) => {
         if (error) {
-          console.log('❌ Expected error for invalid sys_id:', error.message);
+          console.log(' Expected error for invalid sys_id:', error.message);
         }
       }
     });
@@ -401,13 +401,13 @@ export async function batchProcessingExamples(client: ServiceNowClient) {
       sysId: testIncidents[0].sys_id,
       callback: (result, error) => {
         if (!error) {
-          console.log(`✅ Successful read after error: ${result.number}`);
+          console.log(` Successful read after error: ${result.number}`);
         }
       }
     });
 
     const results4 = await batch4.execute();
-    console.log(`✅ Error handling batch: ${results4.filter(r => r.success).length}/${results4.length} successful`);
+    console.log(` Error handling batch: ${results4.filter(r => r.success).length}/${results4.length} successful`);
 
     // Cleanup all test incidents
     console.log('\nCleaning up test data...');
@@ -422,10 +422,10 @@ export async function batchProcessingExamples(client: ServiceNowClient) {
     });
 
     const cleanupResults = await cleanupBatch.execute();
-    console.log(`✅ Cleanup completed: ${cleanupResults.filter(r => r.success).length} incidents deleted`);
+    console.log(` Cleanup completed: ${cleanupResults.filter(r => r.success).length} incidents deleted`);
 
   } catch (error) {
-    console.error('❌ Batch processing failed:', error.message);
+    console.error(' Batch processing failed:', error.message);
   }
 
   console.log();
@@ -460,8 +460,8 @@ export async function advancedQueryExamples(client: ServiceNowClient) {
     gr.limit = 20;
     
     await gr.query();
-    console.log('✅ Complex query executed, encoded query:', gr.getEncodedQuery());
-    console.log(`✅ Found ${gr.getRowCount()} incidents matching criteria`);
+    console.log(' Complex query executed, encoded query:', gr.getEncodedQuery());
+    console.log(` Found ${gr.getRowCount()} incidents matching criteria`);
 
     // Example with JOIN queries
     console.log('\nJOIN query example...');
@@ -474,8 +474,8 @@ export async function advancedQueryExamples(client: ServiceNowClient) {
     grJoin.limit = 10;
     
     await grJoin.query();
-    console.log('✅ JOIN query executed:', grJoin.getEncodedQuery());
-    console.log(`✅ Found ${grJoin.getRowCount()} incidents assigned to IT users`);
+    console.log(' JOIN query executed:', grJoin.getEncodedQuery());
+    console.log(` Found ${grJoin.getRowCount()} incidents assigned to IT users`);
 
     // Example with Related List (RL) queries
     console.log('\nRL query example...');
@@ -485,7 +485,7 @@ export async function advancedQueryExamples(client: ServiceNowClient) {
     
     grRL.limit = 5;
     await grRL.query();
-    console.log('✅ RL query executed:', grRL.getEncodedQuery());
+    console.log(' RL query executed:', grRL.getEncodedQuery());
 
     // Direct API queries with advanced options
     console.log('\nDirect API advanced queries...');
@@ -506,13 +506,13 @@ export async function advancedQueryExamples(client: ServiceNowClient) {
       offset: 0
     });
 
-    console.log(`✅ Direct API query returned ${directResults.length} results`);
+    console.log(` Direct API query returned ${directResults.length} results`);
     if (directResults.length > 0) {
       console.log('   Sample result fields:', Object.keys(directResults[0]).slice(0, 5).join(', '));
     }
 
   } catch (error) {
-    console.error('❌ Advanced query failed:', error.message);
+    console.error(' Advanced query failed:', error.message);
   }
 
   console.log();
@@ -526,12 +526,12 @@ export async function performanceExamples(client: ServiceNowClient) {
     // Connection testing
     console.log('Testing connection...');
     const connectionOk = await client.testConnection();
-    console.log('✅ Connection test:', connectionOk ? 'SUCCESS' : 'FAILED');
+    console.log(' Connection test:', connectionOk ? 'SUCCESS' : 'FAILED');
 
     // Instance statistics
     console.log('Getting instance stats...');
     const stats = await client.getStats();
-    console.log('✅ Instance stats:', stats);
+    console.log(' Instance stats:', stats);
 
     // Performance measurement example
     console.log('Performance measurement...');
@@ -547,7 +547,7 @@ export async function performanceExamples(client: ServiceNowClient) {
     const endTime = performance.now();
     const duration = endTime - startTime;
     
-    console.log(`✅ Query performance: ${performanceData.length} records in ${duration.toFixed(2)}ms`);
+    console.log(` Query performance: ${performanceData.length} records in ${duration.toFixed(2)}ms`);
     console.log(`   Average: ${(duration / performanceData.length).toFixed(2)}ms per record`);
 
     // Batch performance comparison
@@ -581,12 +581,12 @@ export async function performanceExamples(client: ServiceNowClient) {
     }
     const batchTime = performance.now() - batchStart;
 
-    console.log(`✅ Individual operations: ${individualTime.toFixed(2)}ms for ${individualResults.length} records`);
-    console.log(`✅ Batch operations setup: ${batchTime.toFixed(2)}ms`);
+    console.log(` Individual operations: ${individualTime.toFixed(2)}ms for ${individualResults.length} records`);
+    console.log(` Batch operations setup: ${batchTime.toFixed(2)}ms`);
     console.log(`   Performance improvement: ${((individualTime - batchTime) / individualTime * 100).toFixed(1)}% faster`);
 
   } catch (error) {
-    console.error('❌ Performance testing failed:', error.message);
+    console.error(' Performance testing failed:', error.message);
   }
 
   console.log();
@@ -594,7 +594,7 @@ export async function performanceExamples(client: ServiceNowClient) {
 
 // Main demonstration function
 export async function runPhase3Examples() {
-  console.log('🚀 BunSNC Phase 3 - Complete Demonstrations\n');
+  console.log(' BunSNC Phase 3 - Complete Demonstrations\n');
   console.log('==========================================\n');
 
   try {
@@ -609,13 +609,13 @@ export async function runPhase3Examples() {
     await advancedQueryExamples(client);
     await performanceExamples(client);
 
-    console.log('✅ All Phase 3 examples completed successfully!');
+    console.log(' All Phase 3 examples completed successfully!');
     console.log('\n==========================================');
     console.log('🎉 BunSNC Phase 3 - Ready for Production!');
 
   } catch (error) {
-    console.error('❌ Examples failed:', error);
-    console.log('\n⚠️  Check your ServiceNow connection and credentials');
+    console.error(' Examples failed:', error);
+    console.log('\n  Check your ServiceNow connection and credentials');
   }
 }
 

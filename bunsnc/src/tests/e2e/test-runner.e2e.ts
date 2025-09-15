@@ -42,7 +42,7 @@ describe('E2E Test Runner - Comprehensive Test Orchestration', () => {
   let hybridDataService: ConsolidatedDataService;
 
   beforeAll(async () => {
-    console.log('🚀 E2E Test Framework Initialization');
+    console.log(' E2E Test Framework Initialization');
     console.log('======================================');
     
     // Initialize execution statistics
@@ -152,8 +152,8 @@ describe('E2E Test Runner - Comprehensive Test Orchestration', () => {
 
     streamingService.initialize(enhancedRedisStreams);
 
-    console.log('✅ E2E Test Framework Initialized');
-    console.log(`📊 Configured for ${executionStats.totalScenarios} test scenarios`);
+    console.log(' E2E Test Framework Initialized');
+    console.log(` Configured for ${executionStats.totalScenarios} test scenarios`);
     console.log('');
   });
 
@@ -179,7 +179,7 @@ describe('E2E Test Runner - Comprehensive Test Orchestration', () => {
     const avgThroughput = performanceResults.reduce((sum, r) => sum + r.metrics.throughput, 0) / performanceResults.length;
     const avgLatency = performanceResults.reduce((sum, r) => sum + r.metrics.latency, 0) / performanceResults.length;
     
-    console.log(`⚡ Performance Analysis:`);
+    console.log(` Performance Analysis:`);
     console.log(`   Average Throughput: ${avgThroughput.toFixed(2)} ops/sec`);
     console.log(`   Average Latency: ${avgLatency.toFixed(2)}ms`);
     console.log(`   Peak Memory Usage: ${Math.max(...performanceResults.map(r => r.metrics.memoryPeak)).toFixed(2)}MB`);
@@ -189,7 +189,7 @@ describe('E2E Test Runner - Comprehensive Test Orchestration', () => {
     // Detailed scenario results
     console.log(`📋 Scenario Results:`);
     executionStats.scenarioResults.forEach((result, scenario) => {
-      const status = result.status === 'passed' ? '✅' : result.status === 'failed' ? '❌' : '⏭️';
+      const status = result.status === 'passed' ? '' : result.status === 'failed' ? '' : '⏭️';
       console.log(`   ${status} ${scenario}: ${result.executionTime.toFixed(2)}ms (${result.operations} ops)`);
       if (result.errors.length > 0) {
         result.errors.forEach(error => {
@@ -220,7 +220,7 @@ describe('E2E Test Runner - Comprehensive Test Orchestration', () => {
         console.log(`   Description: ${scenario.description}`);
 
         // Test 1: Rapid ticket creation
-        console.log('   🚀 Phase 1: Rapid ticket creation...');
+        console.log('    Phase 1: Rapid ticket creation...');
         const rapidCreationPromises = [];
         for (let i = 0; i < 10; i++) {
           rapidCreationPromises.push(
@@ -241,10 +241,10 @@ describe('E2E Test Runner - Comprehensive Test Orchestration', () => {
           expect(ticket.sys_id).toBeDefined();
           expect(ticket.number).toBeDefined();
         });
-        console.log(`   ✅ Created ${rapidTickets.length} tickets successfully`);
+        console.log(`    Created ${rapidTickets.length} tickets successfully`);
 
         // Test 2: Streaming connection establishment
-        console.log('   🚀 Phase 2: Streaming connection establishment...');
+        console.log('    Phase 2: Streaming connection establishment...');
         const streamingConnections = rapidTickets.map(ticket => 
           streamingService.createTicketSSEConnection(ticket.sys_id)
         );
@@ -254,10 +254,10 @@ describe('E2E Test Runner - Comprehensive Test Orchestration', () => {
           expect(connection.headers.get('Content-Type')).toBe('text/event-stream');
         });
         operations += streamingConnections.length;
-        console.log(`   ✅ Established ${streamingConnections.length} streaming connections`);
+        console.log(`    Established ${streamingConnections.length} streaming connections`);
 
         // Test 3: Concurrent ticket updates
-        console.log('   🚀 Phase 3: Concurrent ticket updates...');
+        console.log('    Phase 3: Concurrent ticket updates...');
         const updatePromises = rapidTickets.map((ticket, index) => 
           consolidatedTicketService.updateTicket('incident', ticket.sys_id, {
             state: '2',
@@ -274,10 +274,10 @@ describe('E2E Test Runner - Comprehensive Test Orchestration', () => {
           expect(ticket.state).toBe('2');
           expect(ticket.assigned_to).toContain('e2e.agent');
         });
-        console.log(`   ✅ Updated ${updatedTickets.length} tickets concurrently`);
+        console.log(`    Updated ${updatedTickets.length} tickets concurrently`);
 
         // Test 4: Resolution workflow
-        console.log('   🚀 Phase 4: Resolution workflow...');
+        console.log('    Phase 4: Resolution workflow...');
         const resolutionPromises = updatedTickets.map((ticket, index) =>
           consolidatedTicketService.updateTicket('incident', ticket.sys_id, {
             state: '6',
@@ -293,15 +293,15 @@ describe('E2E Test Runner - Comprehensive Test Orchestration', () => {
         resolvedTickets.forEach(ticket => {
           expect(ticket.state).toBe('6');
         });
-        console.log(`   ✅ Resolved ${resolvedTickets.length} tickets successfully`);
+        console.log(`    Resolved ${resolvedTickets.length} tickets successfully`);
 
         // Test 5: Streaming statistics validation
-        console.log('   🚀 Phase 5: Streaming statistics validation...');
+        console.log('    Phase 5: Streaming statistics validation...');
         const streamingStats = streamingService.getConnectionStats();
         expect(streamingStats.totalConnections).toBeGreaterThan(0);
         expect(streamingStats.connectionsByType).toHaveProperty('ticket-updates');
         operations += 1;
-        console.log(`   ✅ Streaming stats validated: ${streamingStats.totalConnections} connections`);
+        console.log(`    Streaming stats validated: ${streamingStats.totalConnections} connections`);
 
       } catch (error) {
         errors.push(error instanceof Error ? error.message : String(error));
@@ -354,7 +354,7 @@ describe('E2E Test Runner - Comprehensive Test Orchestration', () => {
         console.log(`🎯 Executing: ${scenario.name}`);
 
         // Test 1: High-volume connection establishment
-        console.log('   🚀 Phase 1: High-volume connection establishment...');
+        console.log('    Phase 1: High-volume connection establishment...');
         const connectionCount = 100;
         const connections = [];
         
@@ -364,10 +364,10 @@ describe('E2E Test Runner - Comprehensive Test Orchestration', () => {
           expect(connection).toBeInstanceOf(Response);
         }
         operations += connectionCount;
-        console.log(`   ✅ Established ${connectionCount} connections`);
+        console.log(`    Established ${connectionCount} connections`);
 
         // Test 2: Generator-based streaming
-        console.log('   🚀 Phase 2: Generator-based streaming validation...');
+        console.log('    Phase 2: Generator-based streaming validation...');
         const generatorStreams = [];
         for (let i = 0; i < 25; i++) {
           const stream = streamingService.createStream(
@@ -380,10 +380,10 @@ describe('E2E Test Runner - Comprehensive Test Orchestration', () => {
           expect(typeof stream.next).toBe('function');
         }
         operations += generatorStreams.length;
-        console.log(`   ✅ Created ${generatorStreams.length} generator streams`);
+        console.log(`    Created ${generatorStreams.length} generator streams`);
 
         // Test 3: High-frequency event broadcasting
-        console.log('   🚀 Phase 3: High-frequency event broadcasting...');
+        console.log('    Phase 3: High-frequency event broadcasting...');
         const broadcastCount = 500;
         
         for (let i = 0; i < broadcastCount; i++) {
@@ -403,25 +403,25 @@ describe('E2E Test Runner - Comprehensive Test Orchestration', () => {
           streamingService.broadcastEvent(event, { streamTypes: ['ticket-updates'] });
         }
         operations += broadcastCount;
-        console.log(`   ✅ Broadcasted ${broadcastCount} events`);
+        console.log(`    Broadcasted ${broadcastCount} events`);
 
         // Test 4: Streaming statistics under load
-        console.log('   🚀 Phase 4: Streaming statistics validation under load...');
+        console.log('    Phase 4: Streaming statistics validation under load...');
         const finalStats = streamingService.getConnectionStats();
         expect(finalStats.totalConnections).toBeGreaterThanOrEqual(connectionCount);
         expect(finalStats.connectionsByType).toHaveProperty('ticket-updates');
         expect(finalStats.connectionDetails).toBeInstanceOf(Array);
         operations += 1;
-        console.log(`   ✅ Validated streaming stats: ${finalStats.totalConnections} total connections`);
+        console.log(`    Validated streaming stats: ${finalStats.totalConnections} total connections`);
 
         // Test 5: Performance metrics validation
-        console.log('   🚀 Phase 5: Performance metrics validation...');
+        console.log('    Phase 5: Performance metrics validation...');
         const currentTime = performance.now();
         const avgLatency = (currentTime - startTime) / operations;
         
         expect(avgLatency).toBeLessThan(E2E_CONFIG.performance.benchmarks.streamingLatency);
         operations += 1;
-        console.log(`   ✅ Performance validated: ${avgLatency.toFixed(2)}ms average latency`);
+        console.log(`    Performance validated: ${avgLatency.toFixed(2)}ms average latency`);
 
       } catch (error) {
         errors.push(error instanceof Error ? error.message : String(error));
@@ -473,7 +473,7 @@ describe('E2E Test Runner - Comprehensive Test Orchestration', () => {
         console.log(`🎯 Executing: ${scenario.name}`);
 
         // Test 1: Hybrid query operations
-        console.log('   🚀 Phase 1: Hybrid query operations...');
+        console.log('    Phase 1: Hybrid query operations...');
         const hybridQueries = [];
         for (let i = 0; i < 20; i++) {
           const queryParams = {
@@ -494,10 +494,10 @@ describe('E2E Test Runner - Comprehensive Test Orchestration', () => {
           expect(result).toHaveProperty('source');
           expect(['mongodb', 'servicenow', 'hybrid']).toContain(result.source);
         });
-        console.log(`   ✅ Executed ${hybridResults.length} hybrid queries`);
+        console.log(`    Executed ${hybridResults.length} hybrid queries`);
 
         // Test 2: Batch processing operations
-        console.log('   🚀 Phase 2: Batch processing operations...');
+        console.log('    Phase 2: Batch processing operations...');
         const batchOperations = [];
         for (let i = 0; i < 15; i++) {
           batchOperations.push({
@@ -517,10 +517,10 @@ describe('E2E Test Runner - Comprehensive Test Orchestration', () => {
         
         expect(batchResults).toBeDefined();
         expect(batchResults.results).toHaveLength(batchOperations.length);
-        console.log(`   ✅ Processed batch of ${batchOperations.length} operations`);
+        console.log(`    Processed batch of ${batchOperations.length} operations`);
 
         // Test 3: Collection operations
-        console.log('   🚀 Phase 3: Collection operations...');
+        console.log('    Phase 3: Collection operations...');
         const collectionParams = {
           table: 'incident',
           filters: { state: '1' },
@@ -534,10 +534,10 @@ describe('E2E Test Runner - Comprehensive Test Orchestration', () => {
         expect(collectionResult).toBeDefined();
         expect(collectionResult.tickets).toBeInstanceOf(Array);
         expect(collectionResult.metadata).toBeDefined();
-        console.log(`   ✅ Retrieved ticket collection: ${collectionResult.tickets.length} tickets`);
+        console.log(`    Retrieved ticket collection: ${collectionResult.tickets.length} tickets`);
 
         // Test 4: Data validation scenarios
-        console.log('   🚀 Phase 4: Data validation scenarios...');
+        console.log('    Phase 4: Data validation scenarios...');
         const validationTests = [
           { data: { short_description: 'Valid test', priority: '3' }, shouldPass: true },
           { data: { short_description: 'Valid test 2', priority: '2', urgency: '2' }, shouldPass: true },
@@ -555,7 +555,7 @@ describe('E2E Test Runner - Comprehensive Test Orchestration', () => {
             }
           }
         }
-        console.log(`   ✅ Completed ${validationTests.length} validation tests`);
+        console.log(`    Completed ${validationTests.length} validation tests`);
 
       } catch (error) {
         errors.push(error instanceof Error ? error.message : String(error));
@@ -608,10 +608,10 @@ describe('E2E Test Runner - Comprehensive Test Orchestration', () => {
         'Metrics collection and reporting'
       ];
 
-      console.log('🔍 E2E Framework Validation:');
+      console.log(' E2E Framework Validation:');
       
       frameworkTests.forEach((test, index) => {
-        console.log(`   ${index + 1}. ${test}: ✅ Validated`);
+        console.log(`   ${index + 1}. ${test}:  Validated`);
       });
 
       // Validate framework statistics
@@ -624,9 +624,9 @@ describe('E2E Test Runner - Comprehensive Test Orchestration', () => {
       expect(streamingStats).toHaveProperty('totalConnections');
       expect(streamingStats).toHaveProperty('connectionsByType');
 
-      console.log('✅ E2E Framework validation completed successfully');
-      console.log(`📊 Framework executed ${executionStats.scenarioResults.size} scenarios`);
-      console.log(`⚡ Framework performance: ${(executionStats.totalExecutionTime / 1000).toFixed(2)} seconds total execution`);
+      console.log(' E2E Framework validation completed successfully');
+      console.log(` Framework executed ${executionStats.scenarioResults.size} scenarios`);
+      console.log(` Framework performance: ${(executionStats.totalExecutionTime / 1000).toFixed(2)} seconds total execution`);
     });
   });
 });

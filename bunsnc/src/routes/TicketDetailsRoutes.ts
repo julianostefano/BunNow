@@ -68,7 +68,7 @@ export function createTicketDetailsRoutes(
     .get('/htmx/ticket-details/:sysId/:table', async ({ params, set, TicketService }) => {
       try {
         const { sysId, table } = params;
-        console.log(`🔍 [Elysia Service] HTMX Ticket details requested: ${sysId} from ${table}`);
+        console.log(` [Elysia Service] HTMX Ticket details requested: ${sysId} from ${table}`);
         
         // Consistent service usage - no Controller instantiation
         const ticket = await TicketService.getTicketDetails(sysId, table);
@@ -104,7 +104,7 @@ export function createTicketDetailsRoutes(
     .get('/enhanced/:sysId/:table', async ({ params, set, TicketService }) => {
       try {
         if (!mongoService || !redisStreams) {
-          console.warn('⚠️ MongoDB or Redis not available, using standard service');
+          console.warn(' MongoDB or Redis not available, using standard service');
           // Use standard ticket service without enhanced features
           const ticket = await TicketService.getTicketDetails(params.sysId, params.table);
           const statusLabel = TicketService.getStatusLabel(ticket.state);

@@ -75,7 +75,7 @@ export class LLMClient {
     this.baseUrl = `http://${this.config.host}:${this.config.port}`;
     this.timeout = this.config.timeout;
 
-    logger.info(`🧠 [LLMClient] Initialized with URL: ${this.baseUrl}, Model: ${this.config.default_model}`);
+    logger.info(` [LLMClient] Initialized with URL: ${this.baseUrl}, Model: ${this.config.default_model}`);
   }
 
   async generateResponse(
@@ -117,12 +117,12 @@ export class LLMClient {
 
       const result: LLMResponse = await response.json();
 
-      logger.debug(`✅ [LLMClient] Generated response with ${result.eval_count || 0} tokens in ${result.total_duration ? Math.round(result.total_duration / 1000000) : 0}ms`);
+      logger.debug(` [LLMClient] Generated response with ${result.eval_count || 0} tokens in ${result.total_duration ? Math.round(result.total_duration / 1000000) : 0}ms`);
 
       return result;
 
     } catch (error) {
-      logger.error('❌ [LLMClient] Response generation failed:', error);
+      logger.error(' [LLMClient] Response generation failed:', error);
       throw error;
     }
   }
@@ -191,7 +191,7 @@ export class LLMClient {
                 return;
               }
             } catch (parseError) {
-              logger.warn('⚠️ [LLMClient] Failed to parse stream chunk:', parseError);
+              logger.warn(' [LLMClient] Failed to parse stream chunk:', parseError);
             }
           }
         }
@@ -200,7 +200,7 @@ export class LLMClient {
       }
 
     } catch (error) {
-      logger.error('❌ [LLMClient] Stream generation failed:', error);
+      logger.error(' [LLMClient] Stream generation failed:', error);
       throw error;
     }
   }
@@ -357,15 +357,15 @@ Extract keywords:`;
 
       if (response.ok) {
         const data = await response.json();
-        logger.debug(`✅ [LLMClient] Health check passed - Available models: ${data.models?.length || 0}`);
+        logger.debug(` [LLMClient] Health check passed - Available models: ${data.models?.length || 0}`);
         return true;
       }
 
-      logger.warn(`⚠️ [LLMClient] Health check returned status: ${response.status}`);
+      logger.warn(` [LLMClient] Health check returned status: ${response.status}`);
       return false;
 
     } catch (error) {
-      logger.error('❌ [LLMClient] Health check failed:', error);
+      logger.error(' [LLMClient] Health check failed:', error);
       return false;
     }
   }
@@ -388,7 +388,7 @@ Extract keywords:`;
       return data.models?.map((model: any) => model.name) || [this.config.default_model];
 
     } catch (error) {
-      logger.error('❌ [LLMClient] Failed to get models:', error);
+      logger.error(' [LLMClient] Failed to get models:', error);
       return [this.config.default_model];
     }
   }
@@ -410,11 +410,11 @@ Extract keywords:`;
         throw new Error(`Failed to pull model: ${response.status} ${response.statusText}`);
       }
 
-      logger.info(`✅ [LLMClient] Model pulled successfully: ${modelName}`);
+      logger.info(` [LLMClient] Model pulled successfully: ${modelName}`);
       return true;
 
     } catch (error) {
-      logger.error(`❌ [LLMClient] Failed to pull model ${modelName}:`, error);
+      logger.error(` [LLMClient] Failed to pull model ${modelName}:`, error);
       return false;
     }
   }
@@ -437,11 +437,11 @@ Extract keywords:`;
       }
 
       const info = await response.json();
-      logger.debug(`📊 [LLMClient] Model info for ${model}:`, info);
+      logger.debug(` [LLMClient] Model info for ${model}:`, info);
       return info;
 
     } catch (error) {
-      logger.error(`❌ [LLMClient] Failed to get model info for ${modelName}:`, error);
+      logger.error(` [LLMClient] Failed to get model info for ${modelName}:`, error);
       return null;
     }
   }
@@ -491,11 +491,11 @@ Extract keywords:`;
         temperature: 0.1
       });
 
-      logger.info('✅ [LLMClient] Service warmup completed');
+      logger.info(' [LLMClient] Service warmup completed');
       return true;
 
     } catch (error) {
-      logger.error('❌ [LLMClient] Service warmup failed:', error);
+      logger.error(' [LLMClient] Service warmup failed:', error);
       return false;
     }
   }

@@ -29,7 +29,7 @@ async function initializeCleanServices() {
     // const hybridService = new HybridTicketService(mongoService, serviceNowAuthClient);
     return { mongoService: null, hybridService: null, error: null };
   } catch (error) {
-    console.error('❌ Clean Dashboard Services initialization error:', error);
+    console.error(' Clean Dashboard Services initialization error:', error);
     return { mongoService: null, hybridService: null, error };
   }
 }
@@ -249,7 +249,7 @@ function stateToNumeric(namedState: string): string {
   }
   
   const config = getUnifiedStatusConfig(namedState);
-  console.log(`🔄 State mapping: ${namedState} → ${config.numericCode} (${config.label})`);
+  console.log(` State mapping: ${namedState} → ${config.numericCode} (${config.label})`);
   return config.numericCode;
 }
 
@@ -343,7 +343,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
           <body class="h-full bg-gray-100 flex items-center justify-center">
               <div class="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
                   <div class="text-center">
-                      <div class="text-red-500 text-6xl mb-4">⚠️</div>
+                      <div class="text-red-500 text-6xl mb-4"></div>
                       <h1 class="text-2xl font-bold text-gray-900 mb-2">Dashboard Clean Indisponível</h1>
                       <p class="text-gray-600 mb-4">Os serviços MongoDB ou ServiceNow estão indisponíveis.</p>
                       <div class="text-sm text-gray-500 mb-4">
@@ -883,15 +883,15 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                         button.disabled = true;
                     }
                     
-                    console.log(\`🔍 [MODAL DEBUG] Loading ticket details: \${sysId}, \${table}\`);
-                    console.log(\`🔍 [MODAL DEBUG] Target URL: /clean/ticket-details/\${sysId}/\${table}\`);
+                    console.log(\` [MODAL DEBUG] Loading ticket details: \${sysId}, \${table}\`);
+                    console.log(\` [MODAL DEBUG] Target URL: /clean/ticket-details/\${sysId}/\${table}\`);
                     
                     // Use HTMX to load ticket details
                     htmx.ajax('GET', \`/clean/ticket-details/\${sysId}/\${table}\`, {
                         target: '#modal-container',
                         swap: 'innerHTML'
                     }).then(() => {
-                        console.log(\`✅ [MODAL DEBUG] Successfully loaded ticket details\`);
+                        console.log(\` [MODAL DEBUG] Successfully loaded ticket details\`);
                         // Reset button state
                         if (button) {
                             button.innerHTML = '<i data-lucide="eye" class="w-4 h-4 inline mr-2"></i>Ver Detalhes';
@@ -899,7 +899,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                             lucide.createIcons();
                         }
                     }).catch((error) => {
-                        console.error(\`❌ [MODAL DEBUG] Error loading ticket details:\`, error);
+                        console.error(\` [MODAL DEBUG] Error loading ticket details:\`, error);
                         if (button) {
                             button.innerHTML = '<i data-lucide="alert-circle" class="w-4 h-4 inline mr-2"></i>Erro';
                             button.disabled = false;
@@ -922,7 +922,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
       `;
     }
     } catch (error) {
-      console.error('❌ Clean Dashboard Error:', error);
+      console.error(' Clean Dashboard Error:', error);
       set.status = 503;
       return `
         <!DOCTYPE html>
@@ -936,7 +936,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
         <body class="h-full bg-gray-100 flex items-center justify-center">
             <div class="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
                 <div class="text-center">
-                    <div class="text-red-500 text-6xl mb-4">❌</div>
+                    <div class="text-red-500 text-6xl mb-4"></div>
                     <h1 class="text-2xl font-bold text-gray-900 mb-2">Erro no Dashboard</h1>
                     <p class="text-gray-600 mb-4">Ocorreu um erro inesperado.</p>
                     <div class="text-sm text-gray-500 mb-4">
@@ -1142,12 +1142,12 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
         // Add change_request table for CHG tickets based on ServiceNow standard tables
         if (searchQuery.trim().toUpperCase().startsWith('CHG')) {
           tables = ['change_request'];
-          console.log(`🔍 [SEARCH CHG] Searching for CHG ticket: ${searchQuery.trim()}`);
+          console.log(` [SEARCH CHG] Searching for CHG ticket: ${searchQuery.trim()}`);
         }
         
         for (const table of tables) {
           try {
-            console.log(`🔍 [SEARCH] Table: ${table}, Query: number=${searchQuery.trim()}`);
+            console.log(` [SEARCH] Table: ${table}, Query: number=${searchQuery.trim()}`);
             
             // For ticket number search, don't restrict by groups to find any ticket
             const response = await serviceNowAuthClient.makeRequest(
@@ -1162,10 +1162,10 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
               }
             );
             
-            console.log(`📊 [SEARCH RESULT] Table: ${table}, Results: ${response?.result?.length || 0}`);
+            console.log(` [SEARCH RESULT] Table: ${table}, Results: ${response?.result?.length || 0}`);
             
             if (response?.result && response.result.length > 0) {
-              console.log(`✅ [SEARCH FOUND] Ticket found in ${table}:`, response.result[0].number);
+              console.log(` [SEARCH FOUND] Ticket found in ${table}:`, response.result[0].number);
               results.push({
                 ...response.result[0],
                 table_name: table
@@ -1422,7 +1422,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
           try {
             // Use exactly the same query syntax as Python scripts
             const queryString = `${dateQuery}^${stateQuery}^assignment_group.nameCONTAINS${targetGroup}`;
-            console.log(`🔍 [QUERY] Table: ${table}, Group: ${targetGroup}, Query: ${queryString}`);
+            console.log(` [QUERY] Table: ${table}, Group: ${targetGroup}, Query: ${queryString}`);
             
             const response = await serviceNowAuthClient.makeRequest(
               table,
@@ -1436,7 +1436,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
               }
             );
             
-            console.log(`📊 [RESPONSE] Table: ${table}, Group: ${targetGroup}, Results: ${response?.result?.length || 0}`);
+            console.log(` [RESPONSE] Table: ${table}, Group: ${targetGroup}, Results: ${response?.result?.length || 0}`);
 
             if (response?.result && response.result.length > 0) {
               allResults.push(...response.result.map(ticket => ({
@@ -1639,14 +1639,14 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
             }
             
             // Use HTMX to load ticket details - fix the endpoint URL
-            console.log(\`🔍 [MODAL DEBUG] Loading ticket details: \${sysId}, \${table}\`);
-            console.log(\`🔍 [MODAL DEBUG] Target URL: /clean/ticket-details/\${sysId}/\${table}\`);
+            console.log(\` [MODAL DEBUG] Loading ticket details: \${sysId}, \${table}\`);
+            console.log(\` [MODAL DEBUG] Target URL: /clean/ticket-details/\${sysId}/\${table}\`);
             
             htmx.ajax('GET', \`/clean/ticket-details/\${sysId}/\${table}\`, {
               target: '#modal-container',
               swap: 'innerHTML'
             }).then(() => {
-              console.log(\`✅ [MODAL DEBUG] Successfully loaded ticket details\`);
+              console.log(\` [MODAL DEBUG] Successfully loaded ticket details\`);
               // Reset button state
               if (button) {
                 button.innerHTML = '<i data-lucide="eye" class="w-4 h-4 inline mr-2"></i>Ver Detalhes';
@@ -1654,7 +1654,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                 lucide.createIcons();
               }
             }).catch((error) => {
-              console.error(\`❌ [MODAL DEBUG] Error loading ticket details:\`, error);
+              console.error(\` [MODAL DEBUG] Error loading ticket details:\`, error);
               if (button) {
                 button.innerHTML = '<i data-lucide="alert-circle" class="w-4 h-4 inline mr-2"></i>Erro';
                 button.disabled = false;
@@ -1723,9 +1723,9 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
       try {
         console.log(`🎯 Getting comprehensive SLA breakdown for ${sysId} from table ${table}`);
         slaBreakdown = await serviceNowAuthClient.getTicketSLABreakdown(sysId);
-        console.log(`✅ SLA breakdown obtained:`, Object.keys(slaBreakdown));
+        console.log(` SLA breakdown obtained:`, Object.keys(slaBreakdown));
       } catch (slaError) {
-        console.warn('❌ Comprehensive SLA information not available:', slaError);
+        console.warn(' Comprehensive SLA information not available:', slaError);
         slaBreakdown = {};
       }
 
@@ -2407,7 +2407,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
       if (!note || note.trim().length === 0) {
         return `
           <div class="bg-red-500/20 text-red-300 p-4 rounded-lg">
-            ❌ Anotação não pode estar vazia
+             Anotação não pode estar vazia
           </div>
         `;
       }
@@ -2425,7 +2425,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
       if (response.data) {
         return `
           <div class="bg-green-500/20 text-green-300 p-4 rounded-lg">
-            ✅ Anotação adicionada com sucesso
+             Anotação adicionada com sucesso
           </div>
         `;
       } else {
@@ -2435,7 +2435,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
       console.error('Error adding note:', error);
       return `
         <div class="bg-red-500/20 text-red-300 p-4 rounded-lg">
-          ❌ Erro ao adicionar anotação: ${error instanceof Error ? error.message : 'Erro desconhecido'}
+           Erro ao adicionar anotação: ${error instanceof Error ? error.message : 'Erro desconhecido'}
         </div>
       `;
     }
@@ -2457,7 +2457,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
       if (response.data) {
         return `
           <div class="bg-green-500/20 text-green-300 p-4 rounded-lg">
-            ✅ Ticket assumido com sucesso
+             Ticket assumido com sucesso
           </div>
         `;
       } else {
@@ -2467,7 +2467,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
       console.error('Error assigning ticket:', error);
       return `
         <div class="bg-red-500/20 text-red-300 p-4 rounded-lg">
-          ❌ Erro ao assumir ticket: ${error instanceof Error ? error.message : 'Erro desconhecido'}
+           Erro ao assumir ticket: ${error instanceof Error ? error.message : 'Erro desconhecido'}
         </div>
       `;
     }
@@ -2481,7 +2481,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
       if (!status) {
         return `
           <div class="bg-red-500/20 text-red-300 p-4 rounded-lg">
-            ❌ Status é obrigatório
+             Status é obrigatório
           </div>
         `;
       }
@@ -2501,7 +2501,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
       if (response.data) {
         return `
           <div class="bg-green-500/20 text-green-300 p-4 rounded-lg">
-            ✅ Status alterado com sucesso
+             Status alterado com sucesso
           </div>
         `;
       } else {
@@ -2511,7 +2511,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
       console.error('Error changing status:', error);
       return `
         <div class="bg-red-500/20 text-red-300 p-4 rounded-lg">
-          ❌ Erro ao alterar status: ${error instanceof Error ? error.message : 'Erro desconhecido'}
+           Erro ao alterar status: ${error instanceof Error ? error.message : 'Erro desconhecido'}
         </div>
       `;
     }
@@ -2533,7 +2533,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
       if (response.data) {
         return `
           <div class="bg-green-500/20 text-green-300 p-4 rounded-lg">
-            ✅ Ticket encerrado com sucesso
+             Ticket encerrado com sucesso
           </div>
         `;
       } else {
@@ -2543,7 +2543,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
       console.error('Error closing ticket:', error);
       return `
         <div class="bg-red-500/20 text-red-300 p-4 rounded-lg">
-          ❌ Erro ao encerrar ticket: ${error instanceof Error ? error.message : 'Erro desconhecido'}
+           Erro ao encerrar ticket: ${error instanceof Error ? error.message : 'Erro desconhecido'}
         </div>
       `;
     }
@@ -2562,7 +2562,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
       page = query?.page || '1';
       limit = query?.limit || '10';
       
-      console.log(`🔄 [LAZY LOAD] group: ${group}, type: ${ticketType}, state: ${state}, page: ${page}`);
+      console.log(` [LAZY LOAD] group: ${group}, type: ${ticketType}, state: ${state}, page: ${page}`);
     } catch (paramError) {
       console.error('🚨 [LAZY LOAD] Parameter extraction error:', paramError);
       // Fallback to default values
@@ -2639,7 +2639,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
         hasMoreGlobal = response.hasMore;
       }
 
-      console.log(`📊 [LAZY LOAD] Found ${results.length} tickets, hasMore: ${hasMoreGlobal}`);
+      console.log(` [LAZY LOAD] Found ${results.length} tickets, hasMore: ${hasMoreGlobal}`);
 
       // Generate skeleton placeholders for loading state
       const generateSkeleton = (count: number) => {
@@ -2700,7 +2700,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
       const userDisplayNames = new Map();
       if (userIds.size > 0) {
         try {
-          console.log(`🔍 Looking up ${userIds.size} users: ${Array.from(userIds).join(', ')}`);
+          console.log(` Looking up ${userIds.size} users: ${Array.from(userIds).join(', ')}`);
           const userList = Array.from(userIds).join(',');
           const usersResponse = await serviceNowAuthClient.makeRequestPaginated('/sys_user', {
             sysparm_query: `sys_idIN${userList}`,
@@ -2708,16 +2708,16 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
             sysparm_limit: 100
           });
           
-          console.log(`🔍 Users response structure:`, JSON.stringify(usersResponse, null, 2));
+          console.log(` Users response structure:`, JSON.stringify(usersResponse, null, 2));
           if (usersResponse?.result) {
-            console.log(`📊 Processing ${usersResponse.result.length} users from response`);
+            console.log(` Processing ${usersResponse.result.length} users from response`);
             usersResponse.result.forEach(user => {
               const displayName = user.name || user.user_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Usuário';
               userDisplayNames.set(user.sys_id, displayName);
-              console.log(`👤 User lookup: ${user.sys_id} = ${displayName}`);
+              console.log(` User lookup: ${user.sys_id} = ${displayName}`);
             });
           } else {
-            console.log(`⚠️ No users result found in response:`, usersResponse);
+            console.log(` No users result found in response:`, usersResponse);
           }
         } catch (error) {
           console.warn('Failed to batch lookup users:', error);
@@ -2729,7 +2729,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
         const ticketNumber = ticket.number?.display_value || ticket.number || 'N/A';
         const shortDescription = ticket.short_description?.display_value || ticket.short_description || 'Sem descrição';
         // DEBUGGING: Log specific fields with full structure
-        console.log(`🔍 CARD DEBUG - Ticket ${ticket.number?.display_value || ticket.number}:`);
+        console.log(` CARD DEBUG - Ticket ${ticket.number?.display_value || ticket.number}:`);
         console.log(`  - target_group: ${ticket.target_group}`);
         console.log(`  - assignment_group FULL: ${JSON.stringify(ticket.assignment_group, null, 2)}`);
         console.log(`  - assigned_to FULL: ${JSON.stringify(ticket.assigned_to, null, 2)}`);
@@ -2766,7 +2766,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
         const description = ticket.description?.display_value || ticket.description || 'Sem descrição detalhada';
         
         // Debug user field structure
-        console.log(`🔍 Raw user fields for ticket ${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}:`);
+        console.log(` Raw user fields for ticket ${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}:`);
         console.log(`  assigned_to:`, JSON.stringify(ticket.assigned_to, null, 2));
         console.log(`  caller_id:`, JSON.stringify(ticket.caller_id, null, 2));
         console.log(`  opened_by:`, JSON.stringify(ticket.opened_by, null, 2));
@@ -2937,7 +2937,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
           const totalHeader = headers?.['x-total-count'] || headers?.['X-Total-Count'] || '0';
           counts[ticketType as keyof typeof counts] = parseInt(totalHeader);
         } catch (error) {
-          console.log(`🔍 Error getting count for ${ticketType}:`, error);
+          console.log(` Error getting count for ${ticketType}:`, error);
         }
       }
       
@@ -2949,7 +2949,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
         </script>
       `;
     } catch (error) {
-      console.log('🔍 Error getting ticket counts:', error);
+      console.log(' Error getting ticket counts:', error);
       return `<script>console.log('Failed to load ticket counts');</script>`;
     }
   })
@@ -3162,12 +3162,12 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
   .get('/ticket-details/:sysId/:table', async ({ params, set }) => {
       try {
         const { sysId, table } = params;
-        console.log(`🔍 [HTMX] Ticket details requested: ${sysId} from ${table}`);
+        console.log(` [HTMX] Ticket details requested: ${sysId} from ${table}`);
         
         // Initialize services safely
         const services = await initializeCleanServices();
         if (services.error) {
-          console.error('❌ Service initialization failed:', services.error);
+          console.error(' Service initialization failed:', services.error);
           set.headers['content-type'] = 'text/html';
           return getServiceErrorFallbackHTML();
         }
@@ -3180,7 +3180,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
           <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
               <div class="text-center">
-                <div class="text-red-500 text-6xl mb-4">⚠️</div>
+                <div class="text-red-500 text-6xl mb-4"></div>
                 <h3 class="text-lg font-semibold text-gray-900 mb-2">Ticket não encontrado</h3>
                 <p class="text-gray-600 mb-4">O ticket ${sysId} não foi encontrado no sistema.</p>
                 <button onclick="this.parentElement.parentElement.parentElement.parentElement.remove()" 
@@ -3208,7 +3208,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                 <h2 class="text-2xl font-bold text-gray-900">${ticket.number || sysId}</h2>
                 <div class="flex items-center gap-2 mt-2">
                   <span class="px-2 py-1 text-xs rounded-full ${source === 'mongodb' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}">
-                    ${source === 'mongodb' ? '📊 MongoDB' : '🌐 ServiceNow'}
+                    ${source === 'mongodb' ? ' MongoDB' : ' ServiceNow'}
                   </span>
                   <span class="text-sm text-gray-600">Sys ID: ${sysId}</span>
                 </div>
@@ -3272,7 +3272,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
         <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <div class="text-center">
-              <div class="text-red-500 text-6xl mb-4">❌</div>
+              <div class="text-red-500 text-6xl mb-4"></div>
               <h3 class="text-lg font-semibold text-gray-900 mb-2">Erro ao carregar ticket</h3>
               <p class="text-gray-600 mb-4">${error.message}</p>
               <button onclick="this.parentElement.parentElement.parentElement.parentElement.remove()" 

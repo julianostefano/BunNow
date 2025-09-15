@@ -28,9 +28,9 @@ export class TicketDataCore {
     try {
       await this.initializeMongoDB();
       await this.groupService.initialize();
-      logger.info('✅ [TICKET-DATA] TicketDataCore initialized successfully');
+      logger.info(' [TICKET-DATA] TicketDataCore initialized successfully');
     } catch (error) {
-      logger.error('❌ [TICKET-DATA] Failed to initialize TicketDataCore:', error);
+      logger.error(' [TICKET-DATA] Failed to initialize TicketDataCore:', error);
       throw error;
     }
   }
@@ -61,9 +61,9 @@ export class TicketDataCore {
       this.db = this.client.db('bunsnc');
       this.isConnected = true;
 
-      logger.info('✅ [TICKET-DATA] MongoDB connection established');
+      logger.info(' [TICKET-DATA] MongoDB connection established');
     } catch (error) {
-      logger.error('❌ [TICKET-DATA] MongoDB connection failed:', error);
+      logger.error(' [TICKET-DATA] MongoDB connection failed:', error);
       throw error;
     }
   }

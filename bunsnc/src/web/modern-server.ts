@@ -56,7 +56,7 @@ export class ModernWebServer {
   }
 
   private initializeServer(): void {
-    console.log("🚀 Initializing modern web server with file-based routing...");
+    console.log(" Initializing modern web server with file-based routing...");
 
     this.app = new Elysia()
       // Core plugins
@@ -153,14 +153,14 @@ export class ModernWebServer {
         prefix: this.config.routes?.prefix || ""
       }));
 
-      console.log("✅ File-based routing configured successfully");
+      console.log(" File-based routing configured successfully");
     } catch (error) {
-      console.warn("⚠️ File-based routing not available:", error.message);
-      console.log("📝 Falling back to manual route definitions");
+      console.warn(" File-based routing not available:", error.message);
+      console.log(" Falling back to manual route definitions");
       this.setupFallbackRoutes();
     }
 
-    console.log("✅ Modern web server initialized successfully");
+    console.log(" Modern web server initialized successfully");
   }
 
   private setupFallbackRoutes(): void {
@@ -206,19 +206,19 @@ export class ModernWebServer {
 
   public async start(): Promise<void> {
     try {
-      console.log(`🌐 Starting modern web server on http://${this.config.host}:${this.config.port}`);
+      console.log(` Starting modern web server on http://${this.config.host}:${this.config.port}`);
 
       await this.app.listen({
         hostname: this.config.host,
         port: this.config.port
       });
 
-      console.log(`✅ Modern web server running successfully!`);
-      console.log(`📊 Dashboard: http://${this.config.host}:${this.config.port}`);
-      console.log(`📖 API Docs: http://${this.config.host}:${this.config.port}/swagger`);
-      console.log(`🔍 Health Check: http://${this.config.host}:${this.config.port}/health`);
+      console.log(` Modern web server running successfully!`);
+      console.log(` Dashboard: http://${this.config.host}:${this.config.port}`);
+      console.log(` API Docs: http://${this.config.host}:${this.config.port}/swagger`);
+      console.log(` Health Check: http://${this.config.host}:${this.config.port}/health`);
     } catch (error) {
-      console.error("❌ Failed to start modern web server:", error);
+      console.error(" Failed to start modern web server:", error);
       throw error;
     }
   }
@@ -226,7 +226,7 @@ export class ModernWebServer {
   public async stop(): Promise<void> {
     try {
       await this.app.stop();
-      console.log("🛑 Modern web server stopped");
+      console.log(" Modern web server stopped");
     } catch (error) {
       console.error("Error stopping web server:", error);
       throw error;
@@ -261,7 +261,7 @@ export function createModernWebServer(config: Partial<ModernServerConfig> = {}):
 
 // Development server launcher
 if (import.meta.main) {
-  console.log("🚀 Starting development server...");
+  console.log(" Starting development server...");
 
   const server = createModernWebServer({
     port: 3008,
@@ -271,7 +271,7 @@ if (import.meta.main) {
   try {
     await server.start();
   } catch (error) {
-    console.error("❌ Development server failed to start:", error);
+    console.error(" Development server failed to start:", error);
     process.exit(1);
   }
 }

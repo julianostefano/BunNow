@@ -4,7 +4,7 @@
  */
 
 import { Elysia, t } from 'elysia';
-import { ServiceNowClient } from '../../../ServiceNowClient';
+import { ServiceNowClient } from '../../../client/ServiceNowClient';
 
 const app = new Elysia({ prefix: '/api/v1/analytics' })
   .get('/dashboard', async () => {

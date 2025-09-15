@@ -91,7 +91,7 @@ class TicketDataAnalyzer {
 
       this.ticketAnalyses.push(analysis);
       
-      console.log(`✅ ${ticketType} analysis complete:`);
+      console.log(` ${ticketType} analysis complete:`);
       console.log(`   Total Fields: ${schema.fields.length}`);
       console.log(`   Common Fields: ${analysis.commonFields.length}`);
       console.log(`   Unique Fields: ${analysis.uniqueFields.length}`);
@@ -101,7 +101,7 @@ class TicketDataAnalyzer {
       return analysis;
 
     } catch (error: any) {
-      console.error(`❌ Failed to analyze ${tableName}:`, error.message);
+      console.error(` Failed to analyze ${tableName}:`, error.message);
       throw error;
     }
   }
@@ -114,7 +114,7 @@ class TicketDataAnalyzer {
       throw new Error("Need at least 2 ticket table analyses to compare");
     }
 
-    console.log(`🔍 Comparing ${this.ticketAnalyses.length} ticket tables...`);
+    console.log(` Comparing ${this.ticketAnalyses.length} ticket tables...`);
 
     // Get all unique fields from all tables
     const allFieldsMap = new Map<string, string[]>();
@@ -182,7 +182,7 @@ class TicketDataAnalyzer {
       storageRecommendations
     };
 
-    console.log("📊 Comparison Results:");
+    console.log(" Comparison Results:");
     console.log(`   Common to All: ${commonToAll.length} fields`);
     console.log(`   Common to Some: ${commonToSome.length} fields`);
     console.log(`   Table-Specific: ${uniquePerTable.length} table groups`);
@@ -199,7 +199,7 @@ class TicketDataAnalyzer {
     comparison: TicketComparison;
     recommendations: string[];
   }> {
-    console.log("🚀 Starting complete ticket data analysis...");
+    console.log(" Starting complete ticket data analysis...");
 
     // Analyze each ticket table
     const ticketTables = [
@@ -212,7 +212,7 @@ class TicketDataAnalyzer {
       try {
         await this.analyzeTicketTable(table, type, 250);
       } catch (error: any) {
-        console.error(`❌ Failed to analyze ${table}:`, error.message);
+        console.error(` Failed to analyze ${table}:`, error.message);
       }
     }
 
@@ -273,7 +273,7 @@ class TicketDataAnalyzer {
     // Generate MongoDB schema suggestions
     await this.generateMongoDBSchemas(results);
 
-    console.log("✅ Analysis results exported:");
+    console.log(" Analysis results exported:");
     console.log(`   Individual analyses: ${results.analyses.length} files`);
     console.log(`   Comparison: ticket-tables-comparison.json`);
     console.log(`   Recommendations: storage-recommendations.json`);
@@ -496,7 +496,7 @@ async function main() {
   }
 
   if (!instanceUrl || !token) {
-    console.error("❌ Please set SERVICENOW_INSTANCE_URL and authentication credentials");
+    console.error(" Please set SERVICENOW_INSTANCE_URL and authentication credentials");
     console.error("💡 Copy .env.example to .env and configure your ServiceNow credentials");
     process.exit(1);
   }
@@ -513,20 +513,20 @@ async function main() {
     console.log("📁 Check src/tests/ticket-analysis/ for detailed results");
     
     // Print summary
-    console.log("\n📊 Analysis Summary:");
+    console.log("\n Analysis Summary:");
     results.analyses.forEach(analysis => {
       console.log(`   ${analysis.tableName}: ${analysis.totalRecords} records, ${analysis.commonFields.length + analysis.uniqueFields.length} fields`);
     });
     
     if (results.comparison) {
-      console.log(`\n🔍 Field Distribution:`);
+      console.log(`\n Field Distribution:`);
       console.log(`   Common to all tables: ${results.comparison.commonToAll.length}`);
       console.log(`   Partially shared: ${results.comparison.commonToSome.length}`);
       console.log(`   Table-specific: ${results.comparison.uniquePerTable.reduce((sum, t) => sum + t.fields.length, 0)}`);
     }
     
   } catch (error: any) {
-    console.error("❌ Analysis failed:", error.message);
+    console.error(" Analysis failed:", error.message);
     process.exit(1);
   }
 }

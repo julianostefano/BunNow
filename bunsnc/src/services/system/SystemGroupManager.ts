@@ -56,9 +56,9 @@ export class SystemGroupManager {
       await this.createIndexes();
 
       this.isInitialized = true;
-      logger.info('✅ [SystemGroups] Group manager initialized');
+      logger.info(' [SystemGroups] Group manager initialized');
     } catch (error) {
-      logger.error('❌ [SystemGroups] Failed to initialize:', error);
+      logger.error(' [SystemGroups] Failed to initialize:', error);
       throw error;
     }
   }
@@ -76,9 +76,9 @@ export class SystemGroupManager {
         this.collection.createIndex({ manager: 1 }),
         this.collection.createIndex({ updated_at: -1 })
       ]);
-      logger.debug('✅ [SystemGroups] Database indexes created');
+      logger.debug(' [SystemGroups] Database indexes created');
     } catch (error) {
-      logger.warn('⚠️ [SystemGroups] Failed to create indexes (non-critical):', error);
+      logger.warn(' [SystemGroups] Failed to create indexes (non-critical):', error);
     }
   }
 
@@ -118,7 +118,7 @@ export class SystemGroupManager {
       return groups;
 
     } catch (error) {
-      logger.error('❌ [SystemGroups] Failed to get groups:', error);
+      logger.error(' [SystemGroups] Failed to get groups:', error);
       throw error;
     }
   }
@@ -141,7 +141,7 @@ export class SystemGroupManager {
       return group;
 
     } catch (error) {
-      logger.error('❌ [SystemGroups] Failed to get group:', error);
+      logger.error(' [SystemGroups] Failed to get group:', error);
       throw error;
     }
   }
@@ -171,11 +171,11 @@ export class SystemGroupManager {
       await this.collection.insertOne(group);
       this.clearCache();
 
-      logger.info(`✅ [SystemGroups] Group created: ${group.name} (${sysId})`);
+      logger.info(` [SystemGroups] Group created: ${group.name} (${sysId})`);
       return sysId;
 
     } catch (error) {
-      logger.error('❌ [SystemGroups] Failed to create group:', error);
+      logger.error(' [SystemGroups] Failed to create group:', error);
       throw error;
     }
   }
@@ -202,14 +202,14 @@ export class SystemGroupManager {
 
       if (result.matchedCount > 0) {
         this.clearCache();
-        logger.info(`✅ [SystemGroups] Group updated: ${groupId}`);
+        logger.info(` [SystemGroups] Group updated: ${groupId}`);
         return true;
       }
 
       return false;
 
     } catch (error) {
-      logger.error('❌ [SystemGroups] Failed to update group:', error);
+      logger.error(' [SystemGroups] Failed to update group:', error);
       throw error;
     }
   }
@@ -223,14 +223,14 @@ export class SystemGroupManager {
 
       if (result.deletedCount > 0) {
         this.clearCache();
-        logger.info(`✅ [SystemGroups] Group deleted: ${groupId}`);
+        logger.info(` [SystemGroups] Group deleted: ${groupId}`);
         return true;
       }
 
       return false;
 
     } catch (error) {
-      logger.error('❌ [SystemGroups] Failed to delete group:', error);
+      logger.error(' [SystemGroups] Failed to delete group:', error);
       throw error;
     }
   }
@@ -250,14 +250,14 @@ export class SystemGroupManager {
 
       if (result.matchedCount > 0) {
         this.clearCache();
-        logger.info(`✅ [SystemGroups] Member added to group: ${memberSysId} -> ${groupId}`);
+        logger.info(` [SystemGroups] Member added to group: ${memberSysId} -> ${groupId}`);
         return true;
       }
 
       return false;
 
     } catch (error) {
-      logger.error('❌ [SystemGroups] Failed to add group member:', error);
+      logger.error(' [SystemGroups] Failed to add group member:', error);
       throw error;
     }
   }
@@ -277,14 +277,14 @@ export class SystemGroupManager {
 
       if (result.matchedCount > 0) {
         this.clearCache();
-        logger.info(`✅ [SystemGroups] Member removed from group: ${memberSysId} -> ${groupId}`);
+        logger.info(` [SystemGroups] Member removed from group: ${memberSysId} -> ${groupId}`);
         return true;
       }
 
       return false;
 
     } catch (error) {
-      logger.error('❌ [SystemGroups] Failed to remove group member:', error);
+      logger.error(' [SystemGroups] Failed to remove group member:', error);
       throw error;
     }
   }
@@ -296,7 +296,7 @@ export class SystemGroupManager {
     try {
       return await this.collection.countDocuments({ active: { $ne: false } });
     } catch (error) {
-      logger.error('❌ [SystemGroups] Failed to get group count:', error);
+      logger.error(' [SystemGroups] Failed to get group count:', error);
       return 0;
     }
   }
@@ -335,7 +335,7 @@ export class SystemGroupManager {
       };
 
     } catch (error) {
-      logger.error('❌ [SystemGroups] Failed to get stats:', error);
+      logger.error(' [SystemGroups] Failed to get stats:', error);
       return {};
     }
   }
@@ -370,7 +370,7 @@ export class SystemGroupManager {
       await this.collection.countDocuments({}, { limit: 1 });
       return true;
     } catch (error) {
-      logger.error('❌ [SystemGroups] Health check failed:', error);
+      logger.error(' [SystemGroups] Health check failed:', error);
       return false;
     }
   }

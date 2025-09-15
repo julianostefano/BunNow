@@ -20,10 +20,10 @@ export class ServiceNowAuthClient {
     
     // Pre-warm cache for critical data on startup
     this.queryService.preWarmCache().catch(error => {
-      console.warn('⚠️ Cache pre-warming failed:', error.message);
+      console.warn('Cache pre-warming failed:', error.message);
     });
 
-    console.log('🚀 ServiceNowAuthClient initialized with modular architecture');
+    console.log('ServiceNowAuthClient initialized with modular architecture');
   }
 
   // === Authentication Methods ===

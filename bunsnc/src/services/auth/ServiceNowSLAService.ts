@@ -3,8 +3,99 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { ServiceNowAuthCore } from './ServiceNowAuthCore';
+import { ServiceNowAuthCore, ServiceNowRecord } from './ServiceNowAuthCore';
 import { serviceNowRateLimiter } from '../ServiceNowRateLimit';
+
+export interface SLATaskRecord extends ServiceNowRecord {
+  task?: {
+    value: string;
+    display_value: string;
+  };
+  sla?: {
+    value: string;
+    display_value: string;
+  };
+  has_breached?: {
+    value: string;
+    display_value: string;
+  };
+  percentage?: {
+    value: string;
+    display_value: string;
+  };
+  business_percentage?: {
+    value: string;
+    display_value: string;
+  };
+}
+
+export interface SLADefinitionRecord extends ServiceNowRecord {
+  name?: {
+    value: string;
+    display_value: string;
+  };
+  duration_type?: {
+    value: string;
+    display_value: string;
+  };
+  duration?: {
+    value: string;
+    display_value: string;
+  };
+}
+
+export interface ContractSLARecord extends ServiceNowRecord {
+  company?: {
+    value: string;
+    display_value: string;
+  };
+  location?: {
+    value: string;
+    display_value: string;
+  };
+  active?: {
+    value: string;
+    display_value: string;
+  };
+}
+
+export interface SLADataResponse {
+  task_slas: SLATaskRecord[];
+  contract_slas: ContractSLARecord[];
+  sla_definitions: SLADefinitionRecord[];
+}
+
+export interface TicketSLABreakdown {
+  ticket: {
+    sys_id: string;
+    number: string;
+    priority: string;
+    urgency: string;
+    impact: string;
+  };
+  sla_data: SLADataResponse;
+  contract_sla_data: ContractSLARecord[];
+  summary: {
+    active_slas: number;
+    breached_slas: number;
+    contract_slas: number;
+  };
+}
+
+export interface SLATypeMetrics {
+  total: number;
+  breached: number;
+  met: number;
+  percentage: number;
+}
+
+export interface SLAPerformanceMetrics {
+  total_slas: number;
+  breached_slas: number;
+  met_slas: number;
+  average_percentage: number;
+  sla_types: Record<string, SLATypeMetrics>;
+}
 
 export class ServiceNowSLAService extends ServiceNowAuthCore {
 
@@ -12,12 +103,12 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
    * Get comprehensive SLA data for a specific task/incident
    * Fetches data from task_sla, contract_sla, and sla_definition tables
    */
-  async getSLADataForTask(taskSysId: string): Promise<any> {
+  async getSLADataForTask(taskSysId: string): Promise<SLADataResponse> {
     await this.authenticate();
     
     return serviceNowRateLimiter.executeRequest(async () => {
       try {
-        const slaData: any = {
+        const slaData: SLADataResponse = {
           task_slas: [],
           contract_slas: [],
           sla_definitions: []
@@ -39,8 +130,8 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
 
         // Get SLA definitions referenced by task_slas
         const slaDefinitionIds = slaData.task_slas
-          .map((sla: any) => sla.sla?.value)
-          .filter((id: string) => id);
+          .map((sla: SLATaskRecord) => sla.sla?.value)
+          .filter((id: string | undefined): id is string => !!id);
         
         if (slaDefinitionIds.length > 0) {
           const slaDefUrl = `${this.SERVICENOW_BASE_URL}/api/now/table/sla_definition`;
@@ -67,7 +158,7 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
   /**
    * Get contract SLA data for a company/location
    */
-  async getContractSLAData(company?: string, location?: string): Promise<any> {
+  async getContractSLAData(company?: string, location?: string): Promise<{ result: ContractSLARecord[] }> {
     await this.authenticate();
     
     return serviceNowRateLimiter.executeRequest(async () => {
@@ -103,7 +194,7 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
   /**
    * Get SLA breakdown data for a specific ticket (combines all SLA sources)
    */
-  async getTicketSLABreakdown(ticketSysId: string): Promise<any> {
+  async getTicketSLABreakdown(ticketSysId: string): Promise<TicketSLABreakdown> {
     await this.authenticate();
     
     try {
@@ -133,7 +224,7 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
         contract_sla_data: contractSLAData?.result || [],
         summary: {
           active_slas: slaData.task_slas?.length || 0,
-          breached_slas: slaData.task_slas?.filter((sla: any) => sla.has_breached?.display_value === 'true').length || 0,
+          breached_slas: slaData.task_slas?.filter((sla: SLATaskRecord) => sla.has_breached?.display_value === 'true').length || 0,
           contract_slas: contractSLAData?.result?.length || 0
         }
       };
@@ -147,7 +238,7 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
    * Make request with ALL fields (no sysparm_fields limitation)
    * Used for complete field mapping and analysis
    */
-  async makeRequestFullFields(table: string, query: string, limit: number = 1): Promise<any> {
+  async makeRequestFullFields(table: string, query: string, limit: number = 1): Promise<{ result: ServiceNowRecord[] }> {
     await this.authenticate();
     
     return serviceNowRateLimiter.executeRequest(async () => {
@@ -165,8 +256,9 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
         });
         
         return response.data;
-      } catch (error: any) {
-        console.error(`ServiceNow ${table} full fields error:`, error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`ServiceNow ${table} full fields error:`, errorMessage);
         throw error;
       }
     });
@@ -179,7 +271,7 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
     startDate: string, 
     endDate: string, 
     slaType?: string
-  ): Promise<any> {
+  ): Promise<SLAPerformanceMetrics> {
     await this.authenticate();
     
     return serviceNowRateLimiter.executeRequest(async () => {
@@ -210,7 +302,7 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
           breached_slas: slaRecords.filter((sla: any) => sla.has_breached?.display_value === 'true').length,
           met_slas: slaRecords.filter((sla: any) => sla.has_breached?.display_value === 'false').length,
           average_percentage: 0,
-          sla_types: {} as Record<string, any>
+          sla_types: {} as Record<string, SLATypeMetrics>
         };
 
         // Calculate breach percentage
@@ -219,7 +311,7 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
         }
 
         // Group by SLA type
-        slaRecords.forEach((sla: any) => {
+        slaRecords.forEach((sla: SLATaskRecord) => {
           const slaName = sla.sla?.display_value || 'Unknown';
           if (!metrics.sla_types[slaName]) {
             metrics.sla_types[slaName] = {

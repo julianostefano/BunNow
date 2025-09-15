@@ -215,7 +215,7 @@ export class E2ETestRunner {
 
   startTest(scenarioName: string): void {
     this.startTime = performance.now();
-    console.log(`🚀 Starting E2E Test: ${scenarioName}`);
+    console.log(` Starting E2E Test: ${scenarioName}`);
   }
 
   endTest(scenarioName: string, operations: number, errors: number = 0): E2ETestMetrics {
@@ -236,7 +236,7 @@ export class E2ETestRunner {
 
     this.metrics.set(scenarioName, metrics);
     
-    console.log(`✅ E2E Test Completed: ${scenarioName}`);
+    console.log(` E2E Test Completed: ${scenarioName}`);
     console.log(`   Execution Time: ${executionTime.toFixed(2)}ms`);
     console.log(`   Operations/sec: ${operationsPerSecond.toFixed(2)}`);
     console.log(`   Success Rate: ${successRate.toFixed(2)}%`);

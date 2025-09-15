@@ -15,8 +15,8 @@ async function testMongoDBIntegration() {
     // Test 1: Check MongoDB connection
     console.log('1️⃣ Testing MongoDB connection...');
     const stats = await ticketCollectionService.getCollectionStats();
-    console.log('✅ MongoDB connection successful');
-    console.log('📊 Current stats:', JSON.stringify(stats, null, 2));
+    console.log(' MongoDB connection successful');
+    console.log(' Current stats:', JSON.stringify(stats, null, 2));
     console.log('');
 
     // Test 2: Test sample incident creation
@@ -49,9 +49,9 @@ async function testMongoDBIntegration() {
 
     try {
       const incidentSuccess = await ticketCollectionService.upsertIncident(sampleIncident, sampleSLMs);
-      console.log('✅ Incident creation:', incidentSuccess ? 'Success' : 'Failed');
+      console.log(' Incident creation:', incidentSuccess ? 'Success' : 'Failed');
     } catch (error) {
-      console.log('❌ Incident creation failed:', error.message);
+      console.log(' Incident creation failed:', error.message);
       console.error('Full error:', error);
     }
     console.log('');
@@ -72,7 +72,7 @@ async function testMongoDBIntegration() {
     };
 
     const changeTaskSuccess = await ticketCollectionService.upsertChangeTask(sampleChangeTask, sampleSLMs);
-    console.log('✅ Change Task creation:', changeTaskSuccess ? 'Success' : 'Failed');
+    console.log(' Change Task creation:', changeTaskSuccess ? 'Success' : 'Failed');
     console.log('');
 
     // Test 4: Test sample SC task creation
@@ -91,7 +91,7 @@ async function testMongoDBIntegration() {
     };
 
     const scTaskSuccess = await ticketCollectionService.upsertSCTask(sampleSCTask, sampleSLMs);
-    console.log('✅ SC Task creation:', scTaskSuccess ? 'Success' : 'Failed');
+    console.log(' SC Task creation:', scTaskSuccess ? 'Success' : 'Failed');
     console.log('');
 
     // Test 5: Test group creation
@@ -104,23 +104,23 @@ async function testMongoDBIntegration() {
     };
 
     const groupSuccess = await ticketCollectionService.upsertGroup(sampleGroup);
-    console.log('✅ Group creation:', groupSuccess ? 'Success' : 'Failed');
+    console.log(' Group creation:', groupSuccess ? 'Success' : 'Failed');
     console.log('');
 
     // Test 6: Test data retrieval
     console.log('6️⃣ Testing data retrieval...');
     
     const incidents = await ticketCollectionService.getTickets('incident', {}, 5);
-    console.log(`✅ Retrieved ${incidents.length} incidents`);
+    console.log(` Retrieved ${incidents.length} incidents`);
     
     const changeTasks = await ticketCollectionService.getTickets('change_task', {}, 5);
-    console.log(`✅ Retrieved ${changeTasks.length} change tasks`);
+    console.log(` Retrieved ${changeTasks.length} change tasks`);
     
     const scTasks = await ticketCollectionService.getTickets('sc_task', {}, 5);
-    console.log(`✅ Retrieved ${scTasks.length} SC tasks`);
+    console.log(` Retrieved ${scTasks.length} SC tasks`);
     
     const groups = await ticketCollectionService.getTargetGroups();
-    console.log(`✅ Retrieved ${groups.length} groups: ${groups.slice(0, 3).join(', ')}...`);
+    console.log(` Retrieved ${groups.length} groups: ${groups.slice(0, 3).join(', ')}...`);
     console.log('');
 
     // Test 7: Test count functionality
@@ -129,7 +129,7 @@ async function testMongoDBIntegration() {
     const changeTaskCount = await ticketCollectionService.getTicketCount('change_task');
     const scTaskCount = await ticketCollectionService.getTicketCount('sc_task');
     
-    console.log('📊 Collection counts:');
+    console.log(' Collection counts:');
     console.log(`   - Incidents: ${incidentCount}`);
     console.log(`   - Change Tasks: ${changeTaskCount}`);
     console.log(`   - SC Tasks: ${scTaskCount}`);
@@ -138,14 +138,14 @@ async function testMongoDBIntegration() {
     // Test 8: Updated stats
     console.log('8️⃣ Getting updated collection stats...');
     const finalStats = await ticketCollectionService.getCollectionStats();
-    console.log('📊 Final stats:', JSON.stringify(finalStats, null, 2));
+    console.log(' Final stats:', JSON.stringify(finalStats, null, 2));
     console.log('');
 
-    console.log('✅ MongoDB Integration Test completed successfully!');
+    console.log(' MongoDB Integration Test completed successfully!');
     console.log('🎯 All collections are working correctly with specialized storage.');
     
   } catch (error) {
-    console.error('❌ MongoDB Integration Test failed:', error);
+    console.error(' MongoDB Integration Test failed:', error);
     console.error('Stack trace:', error.stack);
   }
 }

@@ -15,12 +15,12 @@ console.log('=====================================\n');
 // Run all integration examples
 runAllExamples();
 
-console.log('\n📊 Integration Test Summary');
+console.log('\n Integration Test Summary');
 console.log('===========================');
-console.log('✅ Schema registry initialized');
-console.log('✅ Zod to TypeBox conversion working');
-console.log('✅ Hybrid validation system operational');
-console.log('✅ Advanced business rules implemented');
-console.log('✅ API schemas ready for Elysia integration');
+console.log(' Schema registry initialized');
+console.log(' Zod to TypeBox conversion working');
+console.log(' Hybrid validation system operational');
+console.log(' Advanced business rules implemented');
+console.log(' API schemas ready for Elysia integration');
 
 console.log('\n🎉 Zod integration test completed successfully!');

@@ -61,7 +61,7 @@ export class RerankClient {
     this.baseUrl = `http://${this.config.host}:${this.config.port}`;
     this.timeout = this.config.timeout;
 
-    logger.info(`🔄 [RerankClient] Initialized with URL: ${this.baseUrl}`);
+    logger.info(` [RerankClient] Initialized with URL: ${this.baseUrl}`);
   }
 
   async rerank(
@@ -113,12 +113,12 @@ export class RerankClient {
 
       const result: RerankResponse = await response.json();
 
-      logger.debug(`✅ [RerankClient] Reranked ${result.total_documents} documents, returned top ${result.returned_documents}`);
+      logger.debug(` [RerankClient] Reranked ${result.total_documents} documents, returned top ${result.returned_documents}`);
 
       return result;
 
     } catch (error) {
-      logger.error('❌ [RerankClient] Reranking failed:', error);
+      logger.error(' [RerankClient] Reranking failed:', error);
       throw error;
     }
   }
@@ -176,7 +176,7 @@ export class RerankClient {
         const result = await this.rerank(query, documents, options);
         results.push(result);
       } catch (error) {
-        logger.error(`❌ [RerankClient] Batch reranking failed for query: "${query}"`, error);
+        logger.error(` [RerankClient] Batch reranking failed for query: "${query}"`, error);
         results.push({
           results: [],
           model: options.model || this.config.default_model,
@@ -203,15 +203,15 @@ export class RerankClient {
 
       if (response.ok) {
         const health = await response.json();
-        logger.debug(`✅ [RerankClient] Health check passed - Status: ${health.status || 'OK'}`);
+        logger.debug(` [RerankClient] Health check passed - Status: ${health.status || 'OK'}`);
         return true;
       }
 
-      logger.warn(`⚠️ [RerankClient] Health check returned status: ${response.status}`);
+      logger.warn(` [RerankClient] Health check returned status: ${response.status}`);
       return false;
 
     } catch (error) {
-      logger.error('❌ [RerankClient] Health check failed:', error);
+      logger.error(' [RerankClient] Health check failed:', error);
       return false;
     }
   }
@@ -234,7 +234,7 @@ export class RerankClient {
       return data.models || [this.config.default_model];
 
     } catch (error) {
-      logger.error('❌ [RerankClient] Failed to get models:', error);
+      logger.error(' [RerankClient] Failed to get models:', error);
       return [this.config.default_model];
     }
   }
@@ -255,11 +255,11 @@ export class RerankClient {
       }
 
       const info = await response.json();
-      logger.debug(`📊 [RerankClient] Model info for ${model}:`, info);
+      logger.debug(` [RerankClient] Model info for ${model}:`, info);
       return info;
 
     } catch (error) {
-      logger.error(`❌ [RerankClient] Failed to get model info for ${modelName}:`, error);
+      logger.error(` [RerankClient] Failed to get model info for ${modelName}:`, error);
       return null;
     }
   }
@@ -283,7 +283,7 @@ export class RerankClient {
       return null;
 
     } catch (error) {
-      logger.error('❌ [RerankClient] Failed to get service info:', error);
+      logger.error(' [RerankClient] Failed to get service info:', error);
       return null;
     }
   }
@@ -356,11 +356,11 @@ export class RerankClient {
 
       await this.rerank(testQuery, testDocuments, { top_k: 2 });
 
-      logger.info('✅ [RerankClient] Service warmup completed');
+      logger.info(' [RerankClient] Service warmup completed');
       return true;
 
     } catch (error) {
-      logger.error('❌ [RerankClient] Service warmup failed:', error);
+      logger.error(' [RerankClient] Service warmup failed:', error);
       return false;
     }
   }
@@ -401,7 +401,7 @@ export class RerankClient {
         successCount++;
 
       } catch (error) {
-        logger.warn(`⚠️ [RerankClient] Benchmark iteration ${i + 1} failed:`, error);
+        logger.warn(` [RerankClient] Benchmark iteration ${i + 1} failed:`, error);
       }
     }
 
@@ -418,7 +418,7 @@ export class RerankClient {
       total_requests: iterations
     };
 
-    logger.info('📊 [RerankClient] Benchmark results:', results);
+    logger.info(' [RerankClient] Benchmark results:', results);
     return results;
   }
 }

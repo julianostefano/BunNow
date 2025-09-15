@@ -79,9 +79,9 @@ async function getNotificationManager(): Promise<NotificationManager> {
     // Start the notification manager
     try {
       await notificationManager.start();
-      console.log('✅ Notification system initialized');
+      console.log(' Notification system initialized');
     } catch (error) {
-      console.error('❌ Failed to initialize notification system:', error);
+      console.error(' Failed to initialize notification system:', error);
       throw error;
     }
   }

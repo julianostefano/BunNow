@@ -72,7 +72,7 @@ export const aiRoutes = new Elysia({ prefix: '/api/ai' })
       };
 
     } catch (error) {
-      logger.error('❌ [AI-API] Ticket analysis failed:', error);
+      logger.error(' [AI-API] Ticket analysis failed:', error);
 
       set.status = 500;
       return {
@@ -99,7 +99,7 @@ export const aiRoutes = new Elysia({ prefix: '/api/ai' })
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      logger.error('❌ [AI-API] Failed to get ticket analysis config:', error);
+      logger.error(' [AI-API] Failed to get ticket analysis config:', error);
       throw error;
     }
   }, {
@@ -121,7 +121,7 @@ export const aiRoutes = new Elysia({ prefix: '/api/ai' })
       };
 
     } catch (error) {
-      logger.error('❌ [AI-API] Failed to update ticket analysis config:', error);
+      logger.error(' [AI-API] Failed to update ticket analysis config:', error);
 
       set.status = 500;
       return {
@@ -160,7 +160,7 @@ export const aiRoutes = new Elysia({ prefix: '/api/ai' })
       };
 
     } catch (error) {
-      logger.error('❌ [AI-API] Document processing failed:', error);
+      logger.error(' [AI-API] Document processing failed:', error);
 
       set.status = 500;
       return {
@@ -180,7 +180,7 @@ export const aiRoutes = new Elysia({ prefix: '/api/ai' })
 
   .post('/documents/search', async ({ body, documentIntelligence, set }) => {
     try {
-      logger.info(`🔍 [AI-API] Document search: "${(body as any).query}"`);
+      logger.info(` [AI-API] Document search: "${(body as any).query}"`);
 
       const result = await documentIntelligence.searchDocuments(body as any);
 
@@ -191,7 +191,7 @@ export const aiRoutes = new Elysia({ prefix: '/api/ai' })
       };
 
     } catch (error) {
-      logger.error('❌ [AI-API] Document search failed:', error);
+      logger.error(' [AI-API] Document search failed:', error);
 
       set.status = 500;
       return {
@@ -218,7 +218,7 @@ export const aiRoutes = new Elysia({ prefix: '/api/ai' })
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      logger.error('❌ [AI-API] Failed to get document intelligence config:', error);
+      logger.error(' [AI-API] Failed to get document intelligence config:', error);
       throw error;
     }
   }, {
@@ -240,7 +240,7 @@ export const aiRoutes = new Elysia({ prefix: '/api/ai' })
       };
 
     } catch (error) {
-      logger.error('❌ [AI-API] Failed to update document intelligence config:', error);
+      logger.error(' [AI-API] Failed to update document intelligence config:', error);
 
       set.status = 500;
       return {
@@ -284,7 +284,7 @@ export const aiRoutes = new Elysia({ prefix: '/api/ai' })
       };
 
     } catch (error) {
-      logger.error('❌ [AI-API] Health check failed:', error);
+      logger.error(' [AI-API] Health check failed:', error);
 
       set.status = 503;
       return {
@@ -356,7 +356,7 @@ export const aiRoutes = new Elysia({ prefix: '/api/ai' })
       };
 
     } catch (error) {
-      logger.error('❌ [AI-API] Service status check failed:', error);
+      logger.error(' [AI-API] Service status check failed:', error);
 
       set.status = 503;
       return {

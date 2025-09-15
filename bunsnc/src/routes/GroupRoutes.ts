@@ -113,7 +113,7 @@ export const createGroupRoutes = () => {
     .onRequest(({ request, path }) => {
       const timestamp = new Date().toISOString();
       const userAgent = request.headers.get('user-agent') || 'unknown';
-      logger.info(`🌐 [GROUP-API-REQUEST] ${request.method} ${path} - ${timestamp} - UA: ${userAgent.substring(0, 50)}`);
+      logger.info(` [GROUP-API-REQUEST] ${request.method} ${path} - ${timestamp} - UA: ${userAgent.substring(0, 50)}`);
     })
     
     // Initialization middleware 
@@ -121,15 +121,15 @@ export const createGroupRoutes = () => {
       try {
         // Ensure MongoDB is connected and GroupService is initialized
         if (!mongoClient.isConnected()) {
-          logger.info('🔄 [GROUP-API] Establishing MongoDB connection...');
+          logger.info(' [GROUP-API] Establishing MongoDB connection...');
           await mongoClient.connect();
-          logger.info('✅ [GROUP-API] MongoDB connected successfully');
+          logger.info(' [GROUP-API] MongoDB connected successfully');
         }
         
         // ConsolidatedDataService initialization handled internally
-        logger.debug('✅ [GROUP-API] GroupService initialized for request:', `${request.method} ${path}`);
+        logger.debug(' [GROUP-API] GroupService initialized for request:', `${request.method} ${path}`);
       } catch (error) {
-        logger.error('❌ [GROUP-API] Failed to initialize:', error);
+        logger.error(' [GROUP-API] Failed to initialize:', error);
         throw new Error(`Groups API initialization failed: ${error}`);
       }
     })
@@ -164,16 +164,16 @@ export const createGroupRoutes = () => {
     // Performance monitoring middleware
     .onAfterResponse(({ request, path, elapsed }) => {
       const method = request.method;
-      logger.info(`🚀 [GROUP-API-RESPONSE] ${method} ${path} completed in ${elapsed.toFixed(2)}ms`);
+      logger.info(` [GROUP-API-RESPONSE] ${method} ${path} completed in ${elapsed.toFixed(2)}ms`);
       
       // Log performance warnings
       if (elapsed > 1000) {
-        logger.warn(`⚡ [GROUP-API-SLOW] Slow request detected: ${method} ${path} took ${elapsed.toFixed(2)}ms`);
+        logger.warn(` [GROUP-API-SLOW] Slow request detected: ${method} ${path} took ${elapsed.toFixed(2)}ms`);
       }
       
       // Log successful operations
       if (elapsed < 100) {
-        logger.debug(`⚡ [GROUP-API-FAST] Fast request: ${method} ${path} took ${elapsed.toFixed(2)}ms`);
+        logger.debug(` [GROUP-API-FAST] Fast request: ${method} ${path} took ${elapsed.toFixed(2)}ms`);
       }
     })
     .get('/', async ({ query }) => {
@@ -204,7 +204,7 @@ export const createGroupRoutes = () => {
           filter: filter
         };
       } catch (error) {
-        logger.error('❌ [API] Error fetching groups:', error);
+        logger.error(' [API] Error fetching groups:', error);
         return {
           success: false,
           error: 'Failed to fetch groups',
@@ -229,7 +229,7 @@ export const createGroupRoutes = () => {
         const dropdownOptions = allGroups.map(group => ({
           value: group.nome,
           label: group.nome,
-          emoji: group.temperatura <= 2 ? '🔥' : group.temperatura <= 4 ? '⚡' : '✅'
+          emoji: group.temperatura <= 2 ? '🔥' : group.temperatura <= 4 ? '' : ''
         }));
         
         return {
@@ -238,7 +238,7 @@ export const createGroupRoutes = () => {
           count: dropdownOptions.length
         };
       } catch (error) {
-        logger.error('❌ [API] Error fetching group dropdown:', error);
+        logger.error(' [API] Error fetching group dropdown:', error);
         return {
           success: false,
           error: 'Failed to fetch group dropdown options',
@@ -248,7 +248,7 @@ export const createGroupRoutes = () => {
     })
     .get('/stats', async () => {
       try {
-        logger.info('📊 [API] GET /api/groups/stats - Fetching collection statistics');
+        logger.info(' [API] GET /api/groups/stats - Fetching collection statistics');
         
         const stats = await hybridDataService.getGroupsStats();
         
@@ -257,7 +257,7 @@ export const createGroupRoutes = () => {
           data: stats
         };
       } catch (error) {
-        logger.error('❌ [API] Error fetching group stats:', error);
+        logger.error(' [API] Error fetching group stats:', error);
         return {
           success: false,
           error: 'Failed to fetch group statistics',
@@ -293,7 +293,7 @@ export const createGroupRoutes = () => {
           data: group
         };
       } catch (error) {
-        logger.error(`❌ [API] Error fetching group ${params.id}:`, error);
+        logger.error(` [API] Error fetching group ${params.id}:`, error);
         return {
           success: false,
           error: 'Failed to fetch group',
@@ -326,7 +326,7 @@ export const createGroupRoutes = () => {
           data: group
         };
       } catch (error) {
-        logger.error(`❌ [API] Error fetching group by name ${params.name}:`, error);
+        logger.error(` [API] Error fetching group by name ${params.name}:`, error);
         return {
           success: false,
           error: 'Failed to fetch group by name',
@@ -352,7 +352,7 @@ export const createGroupRoutes = () => {
           tag: tag
         };
       } catch (error) {
-        logger.error(`❌ [API] Error fetching groups by tag ${params.tag}:`, error);
+        logger.error(` [API] Error fetching groups by tag ${params.tag}:`, error);
         return {
           success: false,
           error: 'Failed to fetch groups by tag',
@@ -378,7 +378,7 @@ export const createGroupRoutes = () => {
           responsavel: responsavel
         };
       } catch (error) {
-        logger.error(`❌ [API] Error fetching groups by responsavel ${params.responsavel}:`, error);
+        logger.error(` [API] Error fetching groups by responsavel ${params.responsavel}:`, error);
         return {
           success: false,
           error: 'Failed to fetch groups by responsavel',
@@ -392,7 +392,7 @@ export const createGroupRoutes = () => {
     })
     .post('/', async ({ body }) => {
       try {
-        logger.info('✅ [API] POST /api/groups - Creating new group');
+        logger.info(' [API] POST /api/groups - Creating new group');
         
         const groupData: GroupData = {
           nome: body.nome,
@@ -410,7 +410,7 @@ export const createGroupRoutes = () => {
           message: `Group '${groupData.nome}' created successfully`
         };
       } catch (error) {
-        logger.error('❌ [API] Error creating group:', error);
+        logger.error(' [API] Error creating group:', error);
         return {
           success: false,
           error: 'Failed to create group',
@@ -454,7 +454,7 @@ export const createGroupRoutes = () => {
           message: `Group ${groupId} updated successfully`
         };
       } catch (error) {
-        logger.error(`❌ [API] Error updating group ${params.id}:`, error);
+        logger.error(` [API] Error updating group ${params.id}:`, error);
         return {
           success: false,
           error: 'Failed to update group',
@@ -501,7 +501,7 @@ export const createGroupRoutes = () => {
           message: `Group ${groupId} deleted successfully`
         };
       } catch (error) {
-        logger.error(`❌ [API] Error deleting group ${params.id}:`, error);
+        logger.error(` [API] Error deleting group ${params.id}:`, error);
         return {
           success: false,
           error: 'Failed to delete group',

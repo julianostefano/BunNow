@@ -389,20 +389,20 @@ function generateDashboardScripts(options: { enableAutoRefresh: boolean }): stri
                 button.disabled = true;
             }
             
-            console.log(\`🔍 [MODAL DEBUG] Loading ticket details: \${sysId}, \${table}\`);
+            console.log(\` [MODAL DEBUG] Loading ticket details: \${sysId}, \${table}\`);
             
             htmx.ajax('GET', \`/clean/ticket-details/\${sysId}/\${table}\`, {
                 target: '#modal-container',
                 swap: 'innerHTML'
             }).then(() => {
-                console.log(\`✅ [MODAL DEBUG] Successfully loaded ticket details\`);
+                console.log(\` [MODAL DEBUG] Successfully loaded ticket details\`);
                 if (button) {
                     button.innerHTML = '<i data-lucide="eye" class="w-4 h-4 inline mr-2"></i>Ver Detalhes';
                     button.disabled = false;
                     lucide.createIcons();
                 }
             }).catch((error) => {
-                console.error(\`❌ [MODAL DEBUG] Error loading ticket details:\`, error);
+                console.error(\` [MODAL DEBUG] Error loading ticket details:\`, error);
                 if (button) {
                     button.innerHTML = '<i data-lucide="eye" class="w-4 h-4 inline mr-2"></i>Ver Detalhes';
                     button.disabled = false;

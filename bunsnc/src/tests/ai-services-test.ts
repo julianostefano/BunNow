@@ -24,7 +24,7 @@ export class AIServicesTestSuite {
   private results: TestResult[] = [];
 
   async runAllTests(): Promise<TestResult[]> {
-    logger.info('🚀 [AIServicesTest] Starting comprehensive AI services test suite...');
+    logger.info(' [AIServicesTest] Starting comprehensive AI services test suite...');
 
     await this.testTikaClient();
     await this.testOpenSearchClient();
@@ -76,7 +76,7 @@ export class AIServicesTestSuite {
   }
 
   private async testOpenSearchClient(): Promise<void> {
-    logger.info('🔍 [AIServicesTest] Testing OpenSearch Client...');
+    logger.info(' [AIServicesTest] Testing OpenSearch Client...');
 
     const client = new OpenSearchClient({
       host: '10.219.8.210',
@@ -155,7 +155,7 @@ export class AIServicesTestSuite {
   }
 
   private async testRerankClient(): Promise<void> {
-    logger.info('🔄 [AIServicesTest] Testing Rerank Client...');
+    logger.info(' [AIServicesTest] Testing Rerank Client...');
 
     const client = new RerankClient();
 
@@ -218,7 +218,7 @@ export class AIServicesTestSuite {
   }
 
   private async testLLMClient(): Promise<void> {
-    logger.info('🧠 [AIServicesTest] Testing LLM Client...');
+    logger.info(' [AIServicesTest] Testing LLM Client...');
 
     const client = new LLMClient();
 
@@ -313,7 +313,7 @@ export class AIServicesTestSuite {
   }
 
   private async testAIServicesBootstrap(): Promise<void> {
-    logger.info('🚀 [AIServicesTest] Testing AI Services Bootstrap...');
+    logger.info(' [AIServicesTest] Testing AI Services Bootstrap...');
 
     const bootstrap = AIServicesBootstrap.getInstance();
 
@@ -327,7 +327,7 @@ export class AIServicesTestSuite {
         await bootstrap.initialize();
         return bootstrap.isInitialized();
       } catch (error) {
-        logger.warn('⚠️ [AIServicesTest] Bootstrap initialization failed (expected if services unavailable):', error);
+        logger.warn(' [AIServicesTest] Bootstrap initialization failed (expected if services unavailable):', error);
         return false;
       }
     });
@@ -368,7 +368,7 @@ export class AIServicesTestSuite {
         latency
       });
 
-      const status = success ? '✅' : '❌';
+      const status = success ? '' : '';
       logger.info(`${status} [${service}] ${testName} - ${latency}ms`);
 
     } catch (error) {
@@ -382,7 +382,7 @@ export class AIServicesTestSuite {
         error: error instanceof Error ? error.message : String(error)
       });
 
-      logger.error(`❌ [${service}] ${testName} - ${latency}ms - ${error}`);
+      logger.error(` [${service}] ${testName} - ${latency}ms - ${error}`);
     }
   }
 
@@ -394,10 +394,10 @@ export class AIServicesTestSuite {
       this.results.reduce((sum, r) => sum + (r.latency || 0), 0) / total
     );
 
-    logger.info('\n📊 [AIServicesTest] Test Summary:');
+    logger.info('\n [AIServicesTest] Test Summary:');
     logger.info(`Total Tests: ${total}`);
-    logger.info(`✅ Passed: ${passed}`);
-    logger.info(`❌ Failed: ${failed}`);
+    logger.info(` Passed: ${passed}`);
+    logger.info(` Failed: ${failed}`);
     logger.info(`📈 Success Rate: ${Math.round((passed / total) * 100)}%`);
     logger.info(`⏱️ Average Latency: ${avgLatency}ms`);
 
@@ -424,7 +424,7 @@ export class AIServicesTestSuite {
     // Show failed tests
     const failedTests = this.results.filter(r => !r.success);
     if (failedTests.length > 0) {
-      logger.info('\n⚠️ [AIServicesTest] Failed Tests:');
+      logger.info('\n [AIServicesTest] Failed Tests:');
       failedTests.forEach(test => {
         logger.warn(`  ${test.service} - ${test.test}: ${test.error || 'Unknown error'}`);
       });
@@ -464,7 +464,7 @@ if (import.meta.main) {
       process.exit(results.every(r => r.success) ? 0 : 1);
     })
     .catch((error) => {
-      logger.error('❌ [AIServicesTest] Test suite execution failed:', error);
+      logger.error(' [AIServicesTest] Test suite execution failed:', error);
       process.exit(1);
     });
 }

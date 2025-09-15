@@ -752,7 +752,7 @@ export class BigDataServer {
       this.app.listen(port);
       this.isStarted = true;
 
-      logger.info(`🚀 ServiceNow Big Data API Server started on port ${port}`);
+      logger.info(` ServiceNow Big Data API Server started on port ${port}`);
       logger.info(`📚 API Documentation: http://localhost:${port}/swagger`);
       logger.info(`❤️  Health Check: http://localhost:${port}/health`);
 

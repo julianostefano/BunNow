@@ -35,7 +35,7 @@ async function initializeServices() {
     
     return { mongoService, hybridService, notesService, error: null };
   } catch (error) {
-    console.error('❌ Services initialization error:', error);
+    console.error(' Services initialization error:', error);
     return { mongoService: null, hybridService: null, notesService: null, error };
   }
 }
@@ -304,16 +304,16 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
                               
                               if (data.success && data.data) {
                                   this.availableGroups = [
-                                      { value: 'all', label: '🌐 Todos os Grupos', emoji: '🌐' },
+                                      { value: 'all', label: ' Todos os Grupos', emoji: '' },
                                       ...data.data
                                   ];
                                   this.groupsLoaded = true;
-                                  console.log(\`✅ Loaded \${data.data.length} groups dynamically\`);
+                                  console.log(\` Loaded \${data.data.length} groups dynamically\`);
                               } else {
                                   throw new Error(data.error || 'Failed to load groups');
                               }
                           } catch (error) {
-                              console.error('❌ Error loading groups:', error);
+                              console.error(' Error loading groups:', error);
                               // Fallback to static groups if dynamic loading fails
                               this.loadFallbackGroups();
                           }
@@ -321,17 +321,17 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
                       
                       // Fallback to static groups if dynamic loading fails
                       loadFallbackGroups() {
-                          console.log('⚠️ Using fallback static groups');
+                          console.log(' Using fallback static groups');
                           this.availableGroups = [
-                              { value: 'all', label: '🌐 Todos os Grupos', emoji: '🌐' },
+                              { value: 'all', label: ' Todos os Grupos', emoji: '' },
                               { value: 'L2-NE-IT APP AND DATABASE', label: '💾 App & Database', emoji: '💾' },
                               { value: 'L2-NE-IT SAP BASIS', label: '🏢 SAP Basis', emoji: '🏢' },
                               { value: 'L2-NE-IT APP AND SERVICES', label: '⚙️ App & Services', emoji: '⚙️' },
-                              { value: 'L2-NE-IT PROCESSING', label: '🔄 Processing', emoji: '🔄' },
-                              { value: 'L2-NE-IT NETWORK SECURITY', label: '🔐 Network Security', emoji: '🔐' },
-                              { value: 'L2-NE-IT NETWORK', label: '🌐 Network', emoji: '🌐' },
+                              { value: 'L2-NE-IT PROCESSING', label: ' Processing', emoji: '' },
+                              { value: 'L2-NE-IT NETWORK SECURITY', label: ' Network Security', emoji: '' },
+                              { value: 'L2-NE-IT NETWORK', label: ' Network', emoji: '' },
                               { value: 'L2-NE-CLOUDSERVICES', label: '☁️ Cloud Services', emoji: '☁️' },
-                              { value: 'L2-NE-IT MONITORY', label: '📊 Monitoring', emoji: '📊' },
+                              { value: 'L2-NE-IT MONITORY', label: ' Monitoring', emoji: '' },
                               { value: 'L2-NE-IT SO UNIX', label: '🐧 Unix Systems', emoji: '🐧' },
                               { value: 'L2-NE-IT BOC', label: '📋 BOC', emoji: '📋' },
                               { value: 'L2-NE-IT MIDDLEWARE', label: '🔗 Middleware', emoji: '🔗' },
@@ -361,7 +361,7 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
                                   <select x-model="group" @change="updateFilters()"
                                           class="w-full appearance-none bg-gray-800/50 border border-gray-600 text-white px-4 py-3 pr-10 rounded-xl text-sm hover:border-elysia-blue focus:border-elysia-blue focus:ring-2 focus:ring-elysia-blue focus:ring-opacity-50 transition-all duration-300 backdrop-blur-sm">
                                       <template x-if="!groupsLoaded">
-                                          <option value="all">🔄 Carregando grupos...</option>
+                                          <option value="all"> Carregando grupos...</option>
                                       </template>
                                       <template x-if="groupsLoaded" x-for="groupOption in availableGroups" :key="groupOption.value">
                                           <option :value="groupOption.value" x-text="`${groupOption.emoji} ${groupOption.label.replace(/^[^\s]*\s/, '')}`"></option>
@@ -405,8 +405,8 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
                                   <label class="block text-sm font-medium text-gray-300 mb-2">Intervalo</label>
                                   <select x-model="refreshInterval"
                                           class="w-full appearance-none bg-gray-800/50 border border-gray-600 text-white px-4 py-3 pr-10 rounded-xl text-sm hover:border-elysia-blue focus:border-elysia-blue focus:ring-2 focus:ring-elysia-blue focus:ring-opacity-50 transition-all duration-300 backdrop-blur-sm">
-                                      <option value="5">⚡ 5 segundos</option>
-                                      <option value="15">🔄 15 segundos</option>
+                                      <option value="5"> 5 segundos</option>
+                                      <option value="15"> 15 segundos</option>
                                       <option value="30">⏰ 30 segundos</option>
                                       <option value="60">⏱️ 1 minuto</option>
                                       <option value="300">🕐 5 minutos</option>
@@ -671,7 +671,7 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
         headers: { 'Content-Type': 'text/html; charset=utf-8' }
       });
     } catch (error) {
-      console.error('❌ Enhanced Dashboard Error:', error);
+      console.error(' Enhanced Dashboard Error:', error);
       
       // Fallback page when services are not available
       const fallbackHtml = `
@@ -686,7 +686,7 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
         <body class="h-full bg-gray-100 flex items-center justify-center">
             <div class="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
                 <div class="text-center">
-                    <div class="text-red-500 text-6xl mb-4">⚠️</div>
+                    <div class="text-red-500 text-6xl mb-4"></div>
                     <h1 class="text-2xl font-bold text-gray-900 mb-2">Dashboard Temporariamente Indisponível</h1>
                     <p class="text-gray-600 mb-4">Os serviços MongoDB ou ServiceNow estão indisponíveis.</p>
                     <div class="text-sm text-gray-500 mb-4">
@@ -721,7 +721,7 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
     const { query } = context;
     const { group = 'all', ticketType = 'incident', state = 'active', page = '1', limit = '10' } = query;
     
-    console.log(`🔄 [ENHANCED LAZY] group: ${group}, type: ${ticketType}, state: ${state}, page: ${page}`);
+    console.log(` [ENHANCED LAZY] group: ${group}, type: ${ticketType}, state: ${state}, page: ${page}`);
     
     try {
       const pageNum = parseInt(page);
@@ -882,7 +882,7 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center space-x-2">
               <span class="text-xs px-2 py-1 rounded-full ${result.source === 'mongodb' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}">
-                ${result.source === 'mongodb' ? '📊 MongoDB' : '🌐 ServiceNow'}
+                ${result.source === 'mongodb' ? ' MongoDB' : ' ServiceNow'}
               </span>
             </div>
           </div>
@@ -1015,7 +1015,7 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
     const { table, sysId } = params;
     
     try {
-      console.log(`📝 [NOTES] Fetching notes for ${table}/${sysId}`);
+      console.log(` [NOTES] Fetching notes for ${table}/${sysId}`);
       
       // Buscar notas reais usando ConsolidatedServiceNowService
       const notes = await notesService.getTicketNotes(table, sysId);
@@ -1167,7 +1167,7 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
         data: groups
       };
     } catch (error) {
-      console.error('❌ [GROUPS] Error fetching groups:', error);
+      console.error(' [GROUPS] Error fetching groups:', error);
       set.status = 500;
       return {
         success: false,

@@ -111,7 +111,7 @@ const app = new Elysia()
             <h3 class="text-xl font-semibold text-gray-800 mb-4">Phase 5 Features</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="space-y-2">
-                    <h4 class="font-semibold text-green-600">✅ Implemented</h4>
+                    <h4 class="font-semibold text-green-600"> Implemented</h4>
                     <ul class="space-y-1 text-sm text-gray-600">
                         <li>• Modern Elysia.js server</li>
                         <li>• TailwindCSS styling</li>
@@ -123,7 +123,7 @@ const app = new Elysia()
                 </div>
                 
                 <div class="space-y-2">
-                    <h4 class="font-semibold text-blue-600">🔄 In Progress</h4>
+                    <h4 class="font-semibold text-blue-600"> In Progress</h4>
                     <ul class="space-y-1 text-sm text-gray-600">
                         <li>• WebSocket integration</li>
                         <li>• Server-Sent Events</li>
@@ -182,11 +182,11 @@ const PORT = 3008;
 try {
   app.listen(PORT);
   
-  console.log('🚀 ServiceNow Web Interface - Simple Server');
+  console.log(' ServiceNow Web Interface - Simple Server');
   console.log('');
-  console.log(`✅ Server running on port ${PORT}`);
-  console.log(`📊 Dashboard: http://localhost:${PORT}`);
-  console.log(`🔍 Health Check: http://localhost:${PORT}/health`);
+  console.log(` Server running on port ${PORT}`);
+  console.log(` Dashboard: http://localhost:${PORT}`);
+  console.log(` Health Check: http://localhost:${PORT}/health`);
   console.log(`🧪 Test API: http://localhost:${PORT}/api/test`);
   console.log('');
   console.log('Phase 5 - Modern Web Interface');
@@ -194,6 +194,6 @@ try {
   console.log('');
   
 } catch (error) {
-  console.error('❌ Failed to start server:', error);
+  console.error(' Failed to start server:', error);
   process.exit(1);
 }

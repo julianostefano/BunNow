@@ -67,7 +67,7 @@ export class TicketAnalysisController {
     const startTime = Date.now();
 
     try {
-      logger.info(`🔍 [TicketAnalysis] Starting analysis for ticket: ${request.ticket_number || 'new'}`);
+      logger.info(` [TicketAnalysis] Starting analysis for ticket: ${request.ticket_number || 'new'}`);
 
       // 1. Extract and enhance ticket content
       const enhancedContent = await this.enhanceTicketContent(request);
@@ -112,11 +112,11 @@ export class TicketAnalysisController {
         }
       };
 
-      logger.info(`✅ [TicketAnalysis] Completed analysis in ${response.analysis.processing_time_ms}ms`);
+      logger.info(` [TicketAnalysis] Completed analysis in ${response.analysis.processing_time_ms}ms`);
       return response;
 
     } catch (error) {
-      logger.error('❌ [TicketAnalysis] Analysis failed:', error);
+      logger.error(' [TicketAnalysis] Analysis failed:', error);
       throw error;
     }
   }
@@ -150,7 +150,7 @@ export class TicketAnalysisController {
             attachmentTexts.push(`[${attachment.file_name}]: ${extractedText}`);
           }
         } catch (error) {
-          logger.warn(`⚠️ [TicketAnalysis] Failed to extract text from ${attachment.file_name}:`, error);
+          logger.warn(` [TicketAnalysis] Failed to extract text from ${attachment.file_name}:`, error);
         }
       }
 
@@ -222,7 +222,7 @@ export class TicketAnalysisController {
       return similarTickets;
 
     } catch (error) {
-      logger.error('❌ [TicketAnalysis] Similar ticket search failed:', error);
+      logger.error(' [TicketAnalysis] Similar ticket search failed:', error);
       return [];
     }
   }
@@ -263,7 +263,7 @@ export class TicketAnalysisController {
       }
 
     } catch (error) {
-      logger.error('❌ [TicketAnalysis] Prediction generation failed:', error);
+      logger.error(' [TicketAnalysis] Prediction generation failed:', error);
     }
 
     return predictions;
@@ -397,7 +397,7 @@ export class TicketAnalysisController {
       }
 
     } catch (error) {
-      logger.warn('⚠️ [TicketAnalysis] Recommendation generation failed:', error);
+      logger.warn(' [TicketAnalysis] Recommendation generation failed:', error);
       recommendations.push('Consultar tickets similares para estratégias de resolução');
     }
 
@@ -449,6 +449,6 @@ export class TicketAnalysisController {
 
   async updateConfig(newConfig: Partial<TicketAnalysisConfig>): Promise<void> {
     this.config = { ...this.config, ...newConfig };
-    logger.info('🔧 [TicketAnalysis] Configuration updated');
+    logger.info(' [TicketAnalysis] Configuration updated');
   }
 }

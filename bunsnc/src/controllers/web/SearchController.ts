@@ -100,9 +100,9 @@ async function performSearch(searchQuery: SearchQuery): Promise<SearchResult[]> 
     // This would normally call the ServiceNow API through ConsolidatedDataService
     // For now, return mock data to avoid circular dependency
     
-    console.log(`🔍 Searching for: "${searchQuery.query}"`);
+    console.log(` Searching for: "${searchQuery.query}"`);
     const filter = buildSearchFilter(searchQuery);
-    console.log(`🔍 Search filter: ${filter}`);
+    console.log(` Search filter: ${filter}`);
     
     // Mock results - replace with actual API call
     const mockResults: SearchResult[] = [];

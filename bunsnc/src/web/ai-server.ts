@@ -144,41 +144,41 @@ export class AIServer {
       .onAfterHandle(({ response, path, request }) => {
         const method = request.method;
         const status = response instanceof Response ? response.status : 200;
-        logger.info(`✅ [AI-Server] ${method} ${path} - ${status}`);
+        logger.info(` [AI-Server] ${method} ${path} - ${status}`);
       });
   }
 
   async start(): Promise<void> {
     try {
-      logger.info(`🚀 [AI-Server] Starting AI Services Server on port ${this.port}...`);
+      logger.info(` [AI-Server] Starting AI Services Server on port ${this.port}...`);
 
       // Initialize AI services
       await this.initializeServices();
 
       await this.app.listen(this.port);
-      logger.info(`✅ [AI-Server] AI Services Server running on http://localhost:${this.port}`);
+      logger.info(` [AI-Server] AI Services Server running on http://localhost:${this.port}`);
       logger.info(`📚 [AI-Server] API Documentation: http://localhost:${this.port}/docs`);
 
     } catch (error) {
-      logger.error('❌ [AI-Server] Failed to start server:', error);
+      logger.error(' [AI-Server] Failed to start server:', error);
       throw error;
     }
   }
 
   async stop(): Promise<void> {
     try {
-      logger.info('🛑 [AI-Server] Stopping AI Services Server...');
+      logger.info(' [AI-Server] Stopping AI Services Server...');
       await this.app.stop();
-      logger.info('✅ [AI-Server] Server stopped successfully');
+      logger.info(' [AI-Server] Server stopped successfully');
     } catch (error) {
-      logger.error('❌ [AI-Server] Error stopping server:', error);
+      logger.error(' [AI-Server] Error stopping server:', error);
       throw error;
     }
   }
 
   private async initializeServices(): Promise<void> {
     try {
-      logger.info('🔧 [AI-Server] Initializing AI services...');
+      logger.info(' [AI-Server] Initializing AI services...');
 
       // Import and test all AI clients
       const { TikaClient } = await import('../clients/TikaClient');
@@ -206,14 +206,14 @@ export class AIServer {
           try {
             const isHealthy = await client.healthCheck();
             if (isHealthy) {
-              logger.info(`✅ [AI-Server] ${name}: Connected`);
+              logger.info(` [AI-Server] ${name}: Connected`);
               return { name, status: 'connected' };
             } else {
-              logger.warn(`⚠️ [AI-Server] ${name}: Health check failed`);
+              logger.warn(` [AI-Server] ${name}: Health check failed`);
               return { name, status: 'unhealthy' };
             }
           } catch (error) {
-            logger.error(`❌ [AI-Server] ${name}: Connection failed -`, error);
+            logger.error(` [AI-Server] ${name}: Connection failed -`, error);
             return { name, status: 'failed' };
           }
         })
@@ -229,11 +229,11 @@ export class AIServer {
       logger.info(`🎯 [AI-Server] Service initialization complete: ${connected}/${total} services connected`);
 
       if (connected === 0) {
-        logger.warn('⚠️ [AI-Server] No AI services are connected - some functionality may be limited');
+        logger.warn(' [AI-Server] No AI services are connected - some functionality may be limited');
       }
 
     } catch (error) {
-      logger.error('❌ [AI-Server] Service initialization failed:', error);
+      logger.error(' [AI-Server] Service initialization failed:', error);
       // Don't throw - allow server to start even if some services are unavailable
     }
   }

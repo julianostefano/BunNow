@@ -62,11 +62,11 @@ export class SystemPerformanceMonitor extends EventEmitter {
    */
   async initialize(): Promise<void> {
     try {
-      logger.info('📊 [SystemPerformance] Initializing performance monitor...');
+      logger.info(' [SystemPerformance] Initializing performance monitor...');
       // Initialize any required resources
-      logger.info('✅ [SystemPerformance] Performance monitor initialized');
+      logger.info(' [SystemPerformance] Performance monitor initialized');
     } catch (error) {
-      logger.error('❌ [SystemPerformance] Failed to initialize:', error);
+      logger.error(' [SystemPerformance] Failed to initialize:', error);
       throw error;
     }
   }
@@ -78,7 +78,7 @@ export class SystemPerformanceMonitor extends EventEmitter {
     if (this.isMonitoring) return;
 
     this.isMonitoring = true;
-    logger.info('🚀 [SystemPerformance] Starting performance monitoring...');
+    logger.info(' [SystemPerformance] Starting performance monitoring...');
 
     // Monitor system metrics every 30 seconds
     this.monitoringInterval = setInterval(async () => {
@@ -87,7 +87,7 @@ export class SystemPerformanceMonitor extends EventEmitter {
       await this.checkThresholds();
     }, 30000);
 
-    logger.info('✅ [SystemPerformance] Performance monitoring started');
+    logger.info(' [SystemPerformance] Performance monitoring started');
   }
 
   /**
@@ -99,7 +99,7 @@ export class SystemPerformanceMonitor extends EventEmitter {
       this.monitoringInterval = undefined;
     }
     this.isMonitoring = false;
-    logger.info('🛑 [SystemPerformance] Performance monitoring stopped');
+    logger.info(' [SystemPerformance] Performance monitoring stopped');
   }
 
   /**
@@ -159,7 +159,7 @@ export class SystemPerformanceMonitor extends EventEmitter {
 
       logger.debug(`🖥️ [SystemPerformance] Memory: ${memoryMB}MB, CPU: ${Math.min(cpuPercent, 100)}%`);
     } catch (error) {
-      logger.error('❌ [SystemPerformance] Failed to collect system metrics:', error);
+      logger.error(' [SystemPerformance] Failed to collect system metrics:', error);
     }
   }
 
@@ -177,11 +177,11 @@ export class SystemPerformanceMonitor extends EventEmitter {
 
     // Check for performance degradation trends
     if (avgResponseTime > this.thresholds.response_time_warning) {
-      logger.warn(`⚡ [SystemPerformance] Average response time: ${avgResponseTime.toFixed(2)}ms exceeds threshold: ${this.thresholds.response_time_warning}ms`);
+      logger.warn(` [SystemPerformance] Average response time: ${avgResponseTime.toFixed(2)}ms exceeds threshold: ${this.thresholds.response_time_warning}ms`);
     }
 
     if (avgMemory > this.thresholds.memory_warning) {
-      logger.warn(`🧠 [SystemPerformance] Average memory usage: ${avgMemory.toFixed(2)}MB exceeds threshold: ${this.thresholds.memory_warning}MB`);
+      logger.warn(` [SystemPerformance] Average memory usage: ${avgMemory.toFixed(2)}MB exceeds threshold: ${this.thresholds.memory_warning}MB`);
     }
   }
 
@@ -209,7 +209,7 @@ export class SystemPerformanceMonitor extends EventEmitter {
         metric
       });
     } else if (metric.response_time_ms > this.thresholds.response_time_warning) {
-      logger.warn(`⚠️ [SystemPerformance] WARNING - Response time: ${metric.response_time_ms}ms exceeds warning threshold: ${this.thresholds.response_time_warning}ms`);
+      logger.warn(` [SystemPerformance] WARNING - Response time: ${metric.response_time_ms}ms exceeds warning threshold: ${this.thresholds.response_time_warning}ms`);
     }
 
     // Memory thresholds
@@ -222,7 +222,7 @@ export class SystemPerformanceMonitor extends EventEmitter {
         metric
       });
     } else if (metric.memory_usage_mb && metric.memory_usage_mb > this.thresholds.memory_warning) {
-      logger.warn(`⚠️ [SystemPerformance] WARNING - Memory usage: ${metric.memory_usage_mb}MB exceeds warning threshold: ${this.thresholds.memory_warning}MB`);
+      logger.warn(` [SystemPerformance] WARNING - Memory usage: ${metric.memory_usage_mb}MB exceeds warning threshold: ${this.thresholds.memory_warning}MB`);
     }
 
     // CPU thresholds
@@ -235,7 +235,7 @@ export class SystemPerformanceMonitor extends EventEmitter {
         metric
       });
     } else if (metric.cpu_usage_percent && metric.cpu_usage_percent > this.thresholds.cpu_warning) {
-      logger.warn(`⚠️ [SystemPerformance] WARNING - CPU usage: ${metric.cpu_usage_percent}% exceeds warning threshold: ${this.thresholds.cpu_warning}%`);
+      logger.warn(` [SystemPerformance] WARNING - CPU usage: ${metric.cpu_usage_percent}% exceeds warning threshold: ${this.thresholds.cpu_warning}%`);
     }
   }
 
@@ -249,7 +249,7 @@ export class SystemPerformanceMonitor extends EventEmitter {
         await db.collection('performance_metrics').insertOne(metric);
       }
     } catch (error) {
-      logger.debug('❌ [SystemPerformance] Failed to persist metric (non-critical):', error);
+      logger.debug(' [SystemPerformance] Failed to persist metric (non-critical):', error);
     }
   }
 
@@ -323,7 +323,7 @@ export class SystemPerformanceMonitor extends EventEmitter {
       };
 
     } catch (error) {
-      logger.error('❌ [SystemPerformance] Failed to get stats:', error);
+      logger.error(' [SystemPerformance] Failed to get stats:', error);
       return {};
     }
   }
@@ -357,7 +357,7 @@ export class SystemPerformanceMonitor extends EventEmitter {
       const memory = this.getMemoryUsage();
       return memory.heapUsed < this.thresholds.memory_critical && this.isMonitoring;
     } catch (error) {
-      logger.error('❌ [SystemPerformance] Health check failed:', error);
+      logger.error(' [SystemPerformance] Health check failed:', error);
       return false;
     }
   }

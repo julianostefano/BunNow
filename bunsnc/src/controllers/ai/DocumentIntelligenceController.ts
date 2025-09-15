@@ -121,11 +121,11 @@ export class DocumentIntelligenceController {
       // 8. Index document in OpenSearch
       await this.indexDocument(response);
 
-      logger.info(`✅ [DocumentIntelligence] Processed ${request.filename} in ${response.processing_result.processing_time_ms}ms`);
+      logger.info(` [DocumentIntelligence] Processed ${request.filename} in ${response.processing_result.processing_time_ms}ms`);
       return response;
 
     } catch (error) {
-      logger.error('❌ [DocumentIntelligence] Document processing failed:', error);
+      logger.error(' [DocumentIntelligence] Document processing failed:', error);
       throw error;
     }
   }
@@ -134,7 +134,7 @@ export class DocumentIntelligenceController {
     const startTime = Date.now();
 
     try {
-      logger.info(`🔍 [DocumentIntelligence] Searching documents: "${request.query}"`);
+      logger.info(` [DocumentIntelligence] Searching documents: "${request.query}"`);
 
       // 1. Generate query embedding
       const queryEmbedding = await this.embedding.generateEmbeddings([request.query]);
@@ -180,11 +180,11 @@ export class DocumentIntelligenceController {
         }
       };
 
-      logger.info(`✅ [DocumentIntelligence] Found ${response.results.length} relevant documents in ${response.metadata.processing_time_ms}ms`);
+      logger.info(` [DocumentIntelligence] Found ${response.results.length} relevant documents in ${response.metadata.processing_time_ms}ms`);
       return response;
 
     } catch (error) {
-      logger.error('❌ [DocumentIntelligence] Document search failed:', error);
+      logger.error(' [DocumentIntelligence] Document search failed:', error);
       throw error;
     }
   }
@@ -236,7 +236,7 @@ export class DocumentIntelligenceController {
       }
 
     } catch (error) {
-      logger.warn('⚠️ [DocumentIntelligence] NER extraction failed:', error);
+      logger.warn(' [DocumentIntelligence] NER extraction failed:', error);
     }
 
     return nerResults;
@@ -427,7 +427,7 @@ export class DocumentIntelligenceController {
                                   complexityScore > 1 ? 'intermediate' : 'basic';
 
     } catch (error) {
-      logger.warn('⚠️ [DocumentIntelligence] Knowledge extraction failed:', error);
+      logger.warn(' [DocumentIntelligence] Knowledge extraction failed:', error);
     }
 
     return knowledge;
@@ -475,7 +475,7 @@ export class DocumentIntelligenceController {
       logger.info(`📚 [DocumentIntelligence] Indexed document ${response.document_id} with ${doc.chunks.length} chunks`);
 
     } catch (error) {
-      logger.error('❌ [DocumentIntelligence] Document indexing failed:', error);
+      logger.error(' [DocumentIntelligence] Document indexing failed:', error);
       throw error;
     }
   }
@@ -563,6 +563,6 @@ export class DocumentIntelligenceController {
 
   async updateConfig(newConfig: Partial<DocumentIntelligenceConfig>): Promise<void> {
     this.config = { ...this.config, ...newConfig };
-    logger.info('🔧 [DocumentIntelligence] Configuration updated');
+    logger.info(' [DocumentIntelligence] Configuration updated');
   }
 }

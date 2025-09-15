@@ -51,7 +51,7 @@ export function createIncidentNotesRoutes(
           try {
             slaData = await slaService.getSLAStatus(sysId);
           } catch (error) {
-            console.warn('⚠️ Could not fetch SLA data:', error);
+            console.warn(' Could not fetch SLA data:', error);
           }
         }
 
@@ -141,7 +141,7 @@ export function createIncidentNotesRoutes(
         return result;
 
       } catch (error) {
-        console.error('❌ [API] Error getting incident details:', error);
+        console.error(' [API] Error getting incident details:', error);
         set.status = 500;
         return { 
           error: 'Failed to retrieve incident details',
@@ -154,7 +154,7 @@ export function createIncidentNotesRoutes(
     .get('/notes/:sysId', async ({ params, set }) => {
       try {
         const { sysId } = params;
-        console.log(`📝 [API] Incident notes requested: ${sysId}`);
+        console.log(` [API] Incident notes requested: ${sysId}`);
 
         // Get work notes
         const notesResponse = await serviceNowClient.makeRequestFullFields(
@@ -192,7 +192,7 @@ export function createIncidentNotesRoutes(
         return result;
 
       } catch (error) {
-        console.error('❌ [API] Error getting incident notes:', error);
+        console.error(' [API] Error getting incident notes:', error);
         set.status = 500;
         return { 
           error: 'Failed to retrieve incident notes',
@@ -205,7 +205,7 @@ export function createIncidentNotesRoutes(
     .get('/sla/:sysId', async ({ params, set }) => {
       try {
         const { sysId } = params;
-        console.log(`📊 [API] Incident SLA requested: ${sysId}`);
+        console.log(` [API] Incident SLA requested: ${sysId}`);
 
         // Get task_sla records
         const slaResponse = await serviceNowClient.makeRequestFullFields(
@@ -220,7 +220,7 @@ export function createIncidentNotesRoutes(
           try {
             trackingSLA = await slaService.getSLAStatus(sysId);
           } catch (error) {
-            console.warn('⚠️ Could not fetch tracking SLA data:', error);
+            console.warn(' Could not fetch tracking SLA data:', error);
           }
         }
 
@@ -255,7 +255,7 @@ export function createIncidentNotesRoutes(
         return result;
 
       } catch (error) {
-        console.error('❌ [API] Error getting incident SLA:', error);
+        console.error(' [API] Error getting incident SLA:', error);
         set.status = 500;
         return { 
           error: 'Failed to retrieve incident SLA',

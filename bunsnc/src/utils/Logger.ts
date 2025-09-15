@@ -116,21 +116,67 @@ export class Logger {
 
     this.isProcessing = true;
 
-    try {
-      while (this.logBuffer.length > 0) {
-        const entry = this.logBuffer.shift()!;
+    // Process logs asynchronously to avoid blocking
+    setImmediate(async () => {
+      try {
+        const entriesToProcess = [...this.logBuffer];
+        this.logBuffer = [];
 
-        if (this.config.enableConsole) {
-          this.writeToConsole(entry);
-        }
+        await Promise.all(
+          entriesToProcess.map(async (entry) => {
+            const promises: Promise<void>[] = [];
 
-        if (this.config.enableFile) {
-          this.writeToFile(entry);
+            if (this.config.enableConsole) {
+              promises.push(this.writeToConsoleAsync(entry));
+            }
+
+            if (this.config.enableFile) {
+              promises.push(this.writeToFileAsync(entry));
+            }
+
+            await Promise.all(promises);
+          })
+        );
+      } catch (error) {
+        // Fallback to synchronous console error to avoid log loops
+        console.error('[Logger] Async processing failed:', error);
+      } finally {
+        this.isProcessing = false;
+
+        // Process any logs that arrived while we were processing
+        if (this.logBuffer.length > 0) {
+          setImmediate(() => this.processLogBuffer());
         }
       }
-    } finally {
-      this.isProcessing = false;
-    }
+    });
+  }
+
+  private async writeToConsoleAsync(entry: LogEntry): Promise<void> {
+    return new Promise((resolve) => {
+      setImmediate(() => {
+        try {
+          this.writeToConsole(entry);
+          resolve();
+        } catch (error) {
+          console.error('[Logger] Console write failed:', error);
+          resolve();
+        }
+      });
+    });
+  }
+
+  private async writeToFileAsync(entry: LogEntry): Promise<void> {
+    return new Promise((resolve) => {
+      setImmediate(async () => {
+        try {
+          await this.writeToFile(entry);
+          resolve();
+        } catch (error) {
+          console.error('[Logger] File write failed:', error);
+          resolve();
+        }
+      });
+    });
   }
 
   private writeToConsole(entry: LogEntry): void {
@@ -150,9 +196,9 @@ export class Logger {
       const timestamp = entry.timestamp.split('T')[1]?.split('.')[0] || '';
       const levelName = levelNames[entry.level];
       const color = levelColors[entry.level] || '';
-      
+
       let logLine = `${color}[${timestamp}] ${levelName}${resetColor}: ${entry.message}`;
-      
+
       if (entry.context) {
         logLine += ` (${entry.context})`;
       }
@@ -189,12 +235,18 @@ export class Logger {
     }
   }
 
-  private writeToFile(entry: LogEntry): void {
-    // File logging implementation would go here
-    // For now, just buffer the entry (could implement with Bun.file later)
+  private async writeToFile(entry: LogEntry): Promise<void> {
     if (typeof process !== 'undefined' && process.env.BUNSNC_LOG_FILE) {
-      // Could implement file logging using Bun.file
-      // Bun.write(process.env.BUNSNC_LOG_FILE, JSON.stringify(entry) + '\n');
+      try {
+        const logLine = JSON.stringify(entry) + '\n';
+        // Use Bun's async file API
+        if (typeof Bun !== 'undefined') {
+          await Bun.write(process.env.BUNSNC_LOG_FILE, logLine, { createPath: true });
+        }
+      } catch (error) {
+        // Fallback to console if file write fails
+        console.error('[Logger] File write error:', error);
+      }
     }
   }
 

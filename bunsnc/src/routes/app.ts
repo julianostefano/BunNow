@@ -92,9 +92,9 @@ app.post("/batch",
   try {
     // Initialize MongoDB persistence service
     await dataService.initialize();
-    console.log('✅ MongoDB service initialized for enhanced features');
+    console.log(' MongoDB service initialized for enhanced features');
   } catch (error) {
-    console.warn('⚠️ MongoDB service not available, enhanced features will be limited:', error.message);
+    console.warn(' MongoDB service not available, enhanced features will be limited:', error.message);
   }
 
   try {
@@ -102,9 +102,9 @@ app.post("/batch",
     const { ServiceNowStreams } = await import("../config/redis-streams");
     redisStreams = new ServiceNowStreams();
     await redisStreams.initialize();
-    console.log('✅ Redis Streams initialized for real-time features');
+    console.log(' Redis Streams initialized for real-time features');
   } catch (error) {
-    console.warn('⚠️ Redis Streams not available, real-time features will be limited:', error.message);
+    console.warn(' Redis Streams not available, real-time features will be limited:', error.message);
   }
 
   // Add ticket routes following Elysia best practices (services, not controllers)

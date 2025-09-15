@@ -132,10 +132,10 @@ export class TaskQueue extends EventEmitter {
         }
       });
       
-      console.log('✅ Task Queue Redis connection established');
+      console.log(' Task Queue Redis connection established');
       
     } catch (error) {
-      console.error('❌ Failed to initialize Redis for TaskQueue:', error);
+      console.error(' Failed to initialize Redis for TaskQueue:', error);
       throw error;
     }
   }
@@ -177,7 +177,7 @@ export class TaskQueue extends EventEmitter {
       return taskId;
       
     } catch (error) {
-      console.error(`❌ Failed to add task ${taskId}:`, error);
+      console.error(` Failed to add task ${taskId}:`, error);
       throw error;
     }
   }
@@ -192,7 +192,7 @@ export class TaskQueue extends EventEmitter {
       
       return JSON.parse(taskData);
     } catch (error) {
-      console.error(`❌ Failed to get task ${taskId}:`, error);
+      console.error(` Failed to get task ${taskId}:`, error);
       return null;
     }
   }
@@ -230,7 +230,7 @@ export class TaskQueue extends EventEmitter {
       });
       
     } catch (error) {
-      console.error(`❌ Failed to update task ${taskId}:`, error);
+      console.error(` Failed to update task ${taskId}:`, error);
       throw error;
     }
   }
@@ -264,7 +264,7 @@ export class TaskQueue extends EventEmitter {
       });
       
     } catch (error) {
-      console.error(`❌ Failed to cancel task ${taskId}:`, error);
+      console.error(` Failed to cancel task ${taskId}:`, error);
       throw error;
     }
   }
@@ -333,7 +333,7 @@ export class TaskQueue extends EventEmitter {
       return { tasks, total };
       
     } catch (error) {
-      console.error('❌ Failed to get tasks:', error);
+      console.error(' Failed to get tasks:', error);
       throw error;
     }
   }
@@ -391,7 +391,7 @@ export class TaskQueue extends EventEmitter {
       };
       
     } catch (error) {
-      console.error('❌ Failed to get queue stats:', error);
+      console.error(' Failed to get queue stats:', error);
       throw error;
     }
   }
@@ -403,7 +403,7 @@ export class TaskQueue extends EventEmitter {
     if (this.isRunning) return;
     
     this.isRunning = true;
-    console.log(`🚀 Starting TaskQueue with ${this.options.concurrency} workers`);
+    console.log(` Starting TaskQueue with ${this.options.concurrency} workers`);
     
     // Start workers
     for (let i = 0; i < this.options.concurrency; i++) {
@@ -425,7 +425,7 @@ export class TaskQueue extends EventEmitter {
   async stop(): Promise<void> {
     if (!this.isRunning) return;
     
-    console.log('🛑 Stopping TaskQueue...');
+    console.log(' Stopping TaskQueue...');
     this.isRunning = false;
     
     // Clear cleanup timer
@@ -446,7 +446,7 @@ export class TaskQueue extends EventEmitter {
     ]);
     
     this.emit('stopped');
-    console.log('✅ TaskQueue stopped');
+    console.log(' TaskQueue stopped');
   }
   
   // Private Methods
@@ -491,7 +491,7 @@ export class TaskQueue extends EventEmitter {
         timestamp: new Date().toISOString(),
       }));
     } catch (error) {
-      console.error('❌ Failed to publish task event:', error);
+      console.error(' Failed to publish task event:', error);
     }
   }
   
@@ -507,7 +507,7 @@ export class TaskQueue extends EventEmitter {
       
       console.log('🧹 TaskQueue cleanup completed');
     } catch (error) {
-      console.error('❌ TaskQueue cleanup failed:', error);
+      console.error(' TaskQueue cleanup failed:', error);
     }
   }
   
@@ -527,7 +527,7 @@ export class TaskQueue extends EventEmitter {
       
       return task;
     } catch (error) {
-      console.error('❌ Failed to get next task:', error);
+      console.error(' Failed to get next task:', error);
       return null;
     }
   }
@@ -601,14 +601,14 @@ export class TaskWorker {
         this.currentTask = undefined;
         
       } catch (error) {
-        console.error(`❌ Worker ${this.workerId} error:`, error);
+        console.error(` Worker ${this.workerId} error:`, error);
         await new Promise(resolve => setTimeout(resolve, 5000)); // Wait before retrying
       }
     }
   }
   
   private async processTask(task: Task): Promise<void> {
-    console.log(`🔄 Worker ${this.workerId} processing task ${task.id} (${task.type})`);
+    console.log(` Worker ${this.workerId} processing task ${task.id} (${task.type})`);
     
     try {
       // Mark task as running
@@ -628,10 +628,10 @@ export class TaskWorker {
         result,
       });
       
-      console.log(`✅ Task ${task.id} completed by worker ${this.workerId}`);
+      console.log(` Task ${task.id} completed by worker ${this.workerId}`);
       
     } catch (error) {
-      console.error(`❌ Task ${task.id} failed on worker ${this.workerId}:`, error);
+      console.error(` Task ${task.id} failed on worker ${this.workerId}:`, error);
       
       const taskError: TaskError = {
         message: error.message,

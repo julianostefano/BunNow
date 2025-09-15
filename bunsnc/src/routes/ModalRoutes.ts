@@ -49,7 +49,7 @@ export const createModalRoutes = () => {
         return modalHtml;
 
       } catch (error) {
-        logger.error(`❌ Error loading modal for ${params.table}/${params.sysId}:`, error);
+        logger.error(` Error loading modal for ${params.table}/${params.sysId}:`, error);
         set.status = 500;
         return { error: 'Internal server error' };
       }
@@ -68,7 +68,7 @@ export const createModalRoutes = () => {
       const startTime = Date.now();
       
       try {
-        logger.info(`📊 Loading modal data for ${params.table}/${params.sysId}`);
+        logger.info(` Loading modal data for ${params.table}/${params.sysId}`);
 
         const ticket = await dataService.getTicketDetails(params.sysId, params.table, {
           includeSLMs: query.includeSLA === 'true',
@@ -97,7 +97,7 @@ export const createModalRoutes = () => {
         };
 
       } catch (error) {
-        logger.error(`❌ Error loading modal data for ${params.table}/${params.sysId}:`, error);
+        logger.error(` Error loading modal data for ${params.table}/${params.sysId}:`, error);
         return { error: 'Internal server error' };
       }
     }, {
@@ -114,7 +114,7 @@ export const createModalRoutes = () => {
     // Refresh specific modal section (HTMX endpoint)
     .get('/refresh/:section/:table/:sysId', async ({ params, set }) => {
       try {
-        logger.info(`🔄 Refreshing ${params.section} for ${params.table}/${params.sysId}`);
+        logger.info(` Refreshing ${params.section} for ${params.table}/${params.sysId}`);
 
         const ticket = await dataService.getTicketDetails(params.sysId, params.table, {
           forceServiceNow: true, // Force fresh data
@@ -161,7 +161,7 @@ export const createModalRoutes = () => {
         return sectionHtml;
 
       } catch (error) {
-        logger.error(`❌ Error refreshing ${params.section} for ${params.table}/${params.sysId}:`, error);
+        logger.error(` Error refreshing ${params.section} for ${params.table}/${params.sysId}:`, error);
         set.status = 500;
         set.headers['Content-Type'] = 'text/html';
         return '<div class="text-red-500">Erro interno do servidor</div>';
@@ -265,7 +265,7 @@ export const createSSERoutes = () => {
         return new Response(stream, { headers: set.headers });
 
       } catch (error) {
-        logger.error(`❌ Error setting up SSE for ${params.sysId}:`, error);
+        logger.error(` Error setting up SSE for ${params.sysId}:`, error);
         set.status = 500;
         return { error: 'Failed to establish SSE connection' };
       }
@@ -278,7 +278,7 @@ export const createSSERoutes = () => {
     // Performance metrics SSE stream
     .get('/performance', async ({ set }) => {
       try {
-        logger.info('📊 Performance monitoring SSE connection established');
+        logger.info(' Performance monitoring SSE connection established');
 
         set.headers = {
           'Content-Type': 'text/event-stream',
@@ -326,14 +326,14 @@ export const createSSERoutes = () => {
           
           cancel() {
             isConnected = false;
-            logger.info('📊 Performance SSE connection closed');
+            logger.info(' Performance SSE connection closed');
           }
         });
 
         return new Response(stream, { headers: set.headers });
 
       } catch (error) {
-        logger.error('❌ Error setting up performance SSE:', error);
+        logger.error(' Error setting up performance SSE:', error);
         set.status = 500;
         return { error: 'Failed to establish performance SSE connection' };
       }

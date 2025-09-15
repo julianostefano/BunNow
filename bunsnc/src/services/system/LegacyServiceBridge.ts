@@ -10,7 +10,7 @@ import { logger } from '../../utils/Logger';
 export interface LegacyOperation {
   service: string;
   operation: string;
-  data: any;
+  data: Record<string, unknown>;
   timestamp: Date;
   requestId: string;
 }
@@ -19,7 +19,65 @@ export interface ServiceMapping {
   legacyService: string;
   newService: string;
   methodMapping: Record<string, string>;
-  dataTransformations?: Record<string, (data: any) => any>;
+  dataTransformations?: Record<string, (data: Record<string, unknown>) => Record<string, unknown>>;
+}
+
+// Attachment operation interfaces
+export interface AttachmentData {
+  fileName?: string;
+  fileContent?: Buffer | string;
+  tableName?: string;
+  tableSysId?: string;
+  attachmentId?: string;
+  contentType?: string;
+}
+
+export interface AttachmentResponse {
+  success: boolean;
+  attachmentId?: string;
+  fileName?: string;
+  downloadUrl?: string;
+  message?: string;
+  error?: string;
+}
+
+// Batch operation interfaces
+export interface BatchOperation {
+  operation: string;
+  table: string;
+  data: Record<string, unknown>;
+  id?: string;
+}
+
+export interface BatchData {
+  operations?: BatchOperation[];
+  batchId?: string;
+  concurrent?: boolean;
+  timeout?: number;
+}
+
+export interface BatchResponse {
+  success: boolean;
+  batchId?: string;
+  results?: Array<{
+    success: boolean;
+    operation: string;
+    result?: Record<string, unknown>;
+    error?: string;
+  }>;
+  completed?: number;
+  failed?: number;
+  total?: number;
+}
+
+// ServiceNow operation interfaces
+export interface ServiceNowData {
+  table?: string;
+  query?: string;
+  data?: Record<string, unknown>;
+  sysId?: string;
+  limit?: number;
+  offset?: number;
 }
 
 export class LegacyServiceBridge extends EventEmitter {
@@ -46,9 +104,9 @@ export class LegacyServiceBridge extends EventEmitter {
       this.setupServiceMappings();
 
       this.isInitialized = true;
-      logger.info('✅ [LegacyBridge] Legacy service bridge initialized');
+      logger.info(' [LegacyBridge] Legacy service bridge initialized');
     } catch (error) {
-      logger.error('❌ [LegacyBridge] Failed to initialize:', error);
+      logger.error(' [LegacyBridge] Failed to initialize:', error);
       throw error;
     }
   }
@@ -131,13 +189,13 @@ export class LegacyServiceBridge extends EventEmitter {
       }
     });
 
-    logger.debug('✅ [LegacyBridge] Service mappings configured');
+    logger.debug(' [LegacyBridge] Service mappings configured');
   }
 
   /**
    * Handle legacy attachment operations
    */
-  async handleAttachment(operation: string, data: any): Promise<any> {
+  async handleAttachment(operation: string, data: AttachmentData): Promise<AttachmentResponse> {
     this.logDeprecationWarning('AttachmentService', operation);
 
     try {
@@ -154,7 +212,7 @@ export class LegacyServiceBridge extends EventEmitter {
           throw new Error(`Unsupported attachment operation: ${operation}`);
       }
     } catch (error) {
-      logger.error(`❌ [LegacyBridge] Attachment operation failed: ${operation}`, error);
+      logger.error(` [LegacyBridge] Attachment operation failed: ${operation}`, error);
       throw error;
     }
   }
@@ -162,7 +220,7 @@ export class LegacyServiceBridge extends EventEmitter {
   /**
    * Handle legacy batch operations
    */
-  async handleBatch(operation: string, data: any): Promise<any> {
+  async handleBatch(operation: string, data: BatchData): Promise<BatchResponse> {
     this.logDeprecationWarning('BatchService', operation);
 
     try {
@@ -179,7 +237,7 @@ export class LegacyServiceBridge extends EventEmitter {
           throw new Error(`Unsupported batch operation: ${operation}`);
       }
     } catch (error) {
-      logger.error(`❌ [LegacyBridge] Batch operation failed: ${operation}`, error);
+      logger.error(` [LegacyBridge] Batch operation failed: ${operation}`, error);
       throw error;
     }
   }
@@ -187,7 +245,7 @@ export class LegacyServiceBridge extends EventEmitter {
   /**
    * Handle legacy ServiceNow operations
    */
-  async handleServiceNow(operation: string, data: any): Promise<any> {
+  async handleServiceNow(operation: string, data: ServiceNowData): Promise<Record<string, unknown>> {
     this.logDeprecationWarning('ServiceNowService', operation);
 
     try {
@@ -207,7 +265,7 @@ export class LegacyServiceBridge extends EventEmitter {
           throw new Error(`Unsupported ServiceNow operation: ${operation}`);
       }
     } catch (error) {
-      logger.error(`❌ [LegacyBridge] ServiceNow operation failed: ${operation}`, error);
+      logger.error(` [LegacyBridge] ServiceNow operation failed: ${operation}`, error);
       throw error;
     }
   }
@@ -218,7 +276,7 @@ export class LegacyServiceBridge extends EventEmitter {
   private logDeprecationWarning(service: string, operation: string): void {
     const key = `${service}.${operation}`;
     if (!this.deprecationWarnings.has(key)) {
-      logger.warn(`⚠️ [LegacyBridge] DEPRECATED: ${service}.${operation}() is deprecated and will be removed in a future version. Please migrate to the new SystemService API.`);
+      logger.warn(` [LegacyBridge] DEPRECATED: ${service}.${operation}() is deprecated and will be removed in a future version. Please migrate to the new SystemService API.`);
       this.deprecationWarnings.add(key);
     }
   }
@@ -226,7 +284,7 @@ export class LegacyServiceBridge extends EventEmitter {
   /**
    * Record legacy operation for monitoring
    */
-  private recordOperation(service: string, operation: string, data: any): void {
+  private recordOperation(service: string, operation: string, data: Record<string, unknown>): void {
     const legacyOp: LegacyOperation = {
       service,
       operation,
@@ -248,7 +306,7 @@ export class LegacyServiceBridge extends EventEmitter {
   /**
    * Simulate attachment operations for backward compatibility
    */
-  private async simulateAttachmentUpload(data: any): Promise<any> {
+  private async simulateAttachmentUpload(data: AttachmentData): Promise<AttachmentResponse> {
     await new Promise(resolve => setTimeout(resolve, 100));
     return {
       success: true,
@@ -259,7 +317,7 @@ export class LegacyServiceBridge extends EventEmitter {
     };
   }
 
-  private async simulateAttachmentDownload(data: any): Promise<any> {
+  private async simulateAttachmentDownload(data: AttachmentData): Promise<AttachmentResponse> {
     await new Promise(resolve => setTimeout(resolve, 50));
     return {
       success: true,
@@ -270,7 +328,7 @@ export class LegacyServiceBridge extends EventEmitter {
     };
   }
 
-  private async simulateAttachmentList(data: any): Promise<any> {
+  private async simulateAttachmentList(data: AttachmentData): Promise<AttachmentResponse> {
     await new Promise(resolve => setTimeout(resolve, 30));
     return {
       success: true,
@@ -283,7 +341,7 @@ export class LegacyServiceBridge extends EventEmitter {
     };
   }
 
-  private async simulateAttachmentDelete(data: any): Promise<any> {
+  private async simulateAttachmentDelete(data: AttachmentData): Promise<AttachmentResponse> {
     await new Promise(resolve => setTimeout(resolve, 25));
     return {
       success: true,
@@ -295,7 +353,7 @@ export class LegacyServiceBridge extends EventEmitter {
   /**
    * Simulate batch operations for backward compatibility
    */
-  private async simulateBatchProcessing(data: any): Promise<any> {
+  private async simulateBatchProcessing(data: BatchData): Promise<BatchResponse> {
     await new Promise(resolve => setTimeout(resolve, 200));
     return {
       success: true,
@@ -306,7 +364,7 @@ export class LegacyServiceBridge extends EventEmitter {
     };
   }
 
-  private async simulateBatchAddOperation(data: any): Promise<any> {
+  private async simulateBatchAddOperation(data: BatchData): Promise<BatchResponse> {
     await new Promise(resolve => setTimeout(resolve, 10));
     return {
       success: true,
@@ -316,13 +374,13 @@ export class LegacyServiceBridge extends EventEmitter {
     };
   }
 
-  private async simulateBatchExecution(data: any): Promise<any> {
+  private async simulateBatchExecution(data: BatchData): Promise<BatchResponse> {
     await new Promise(resolve => setTimeout(resolve, 150));
     return {
       success: true,
       batchId: data.batchId,
       executed: true,
-      results: data.operations?.map((op: any, index: number) => ({
+      results: data.operations?.map((op: BatchOperation, index: number) => ({
         operationId: `op_${index}`,
         status: 'success',
         result: { id: `result_${index}` }
@@ -331,7 +389,7 @@ export class LegacyServiceBridge extends EventEmitter {
     };
   }
 
-  private async simulateBatchStatus(data: any): Promise<any> {
+  private async simulateBatchStatus(data: BatchData): Promise<BatchResponse> {
     await new Promise(resolve => setTimeout(resolve, 5));
     return {
       success: true,
@@ -427,7 +485,7 @@ export class LegacyServiceBridge extends EventEmitter {
         bridge_active: this.isInitialized
       };
     } catch (error) {
-      logger.error('❌ [LegacyBridge] Failed to get stats:', error);
+      logger.error(' [LegacyBridge] Failed to get stats:', error);
       return {};
     }
   }
@@ -440,7 +498,7 @@ export class LegacyServiceBridge extends EventEmitter {
       // Bridge is healthy if initialized and service mappings are configured
       return this.isInitialized && this.serviceMappings.size > 0;
     } catch (error) {
-      logger.error('❌ [LegacyBridge] Health check failed:', error);
+      logger.error(' [LegacyBridge] Health check failed:', error);
       return false;
     }
   }

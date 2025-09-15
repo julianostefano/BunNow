@@ -89,12 +89,12 @@ export class EmbeddingClient {
 
       const result: EmbeddingResponse = await response.json();
 
-      logger.debug(`✅ [EmbeddingClient] Generated ${result.embeddings.length} embeddings with ${result.dimensions} dimensions`);
+      logger.debug(` [EmbeddingClient] Generated ${result.embeddings.length} embeddings with ${result.dimensions} dimensions`);
 
       return result;
 
     } catch (error) {
-      logger.error('❌ [EmbeddingClient] Embedding generation failed:', error);
+      logger.error(' [EmbeddingClient] Embedding generation failed:', error);
       throw error;
     }
   }
@@ -142,15 +142,15 @@ export class EmbeddingClient {
 
       if (response.ok) {
         const health = await response.json();
-        logger.debug(`✅ [EmbeddingClient] Health check passed - Status: ${health.status || 'OK'}`);
+        logger.debug(` [EmbeddingClient] Health check passed - Status: ${health.status || 'OK'}`);
         return true;
       }
 
-      logger.warn(`⚠️ [EmbeddingClient] Health check returned status: ${response.status}`);
+      logger.warn(` [EmbeddingClient] Health check returned status: ${response.status}`);
       return false;
 
     } catch (error) {
-      logger.error('❌ [EmbeddingClient] Health check failed:', error);
+      logger.error(' [EmbeddingClient] Health check failed:', error);
       return false;
     }
   }
@@ -173,7 +173,7 @@ export class EmbeddingClient {
       return data.models || [this.config.default_model];
 
     } catch (error) {
-      logger.error('❌ [EmbeddingClient] Failed to get models:', error);
+      logger.error(' [EmbeddingClient] Failed to get models:', error);
       return [this.config.default_model];
     }
   }
@@ -194,11 +194,11 @@ export class EmbeddingClient {
       }
 
       const info = await response.json();
-      logger.debug(`📊 [EmbeddingClient] Model info for ${model}:`, info);
+      logger.debug(` [EmbeddingClient] Model info for ${model}:`, info);
       return info;
 
     } catch (error) {
-      logger.error(`❌ [EmbeddingClient] Failed to get model info for ${modelName}:`, error);
+      logger.error(` [EmbeddingClient] Failed to get model info for ${modelName}:`, error);
       return null;
     }
   }
@@ -229,7 +229,7 @@ export class EmbeddingClient {
       return result.similarity || this.cosineSimilarity(embedding1, embedding2);
 
     } catch (error) {
-      logger.warn('⚠️ [EmbeddingClient] Using local similarity calculation due to API error:', error);
+      logger.warn(' [EmbeddingClient] Using local similarity calculation due to API error:', error);
       return this.cosineSimilarity(embedding1, embedding2);
     }
   }
@@ -275,7 +275,7 @@ export class EmbeddingClient {
       return null;
 
     } catch (error) {
-      logger.error('❌ [EmbeddingClient] Failed to get service info:', error);
+      logger.error(' [EmbeddingClient] Failed to get service info:', error);
       return null;
     }
   }
@@ -323,11 +323,11 @@ export class EmbeddingClient {
       const testText = 'This is a test embedding to warm up the service.';
       await this.generateSingleEmbedding(testText);
 
-      logger.info('✅ [EmbeddingClient] Service warmup completed');
+      logger.info(' [EmbeddingClient] Service warmup completed');
       return true;
 
     } catch (error) {
-      logger.error('❌ [EmbeddingClient] Service warmup failed:', error);
+      logger.error(' [EmbeddingClient] Service warmup failed:', error);
       return false;
     }
   }

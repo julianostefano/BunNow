@@ -49,7 +49,7 @@ export class OpenSearchClient {
     this.config = config;
     this.baseUrl = `${config.ssl ? 'https' : 'http'}://${config.host}:${config.port}`;
     this.timeout = config.timeout || 30000;
-    logger.info(`🔍 [OpenSearchClient] Initialized with URL: ${this.baseUrl}`);
+    logger.info(` [OpenSearchClient] Initialized with URL: ${this.baseUrl}`);
   }
 
   private getHeaders(): Record<string, string> {
@@ -88,7 +88,7 @@ export class OpenSearchClient {
       return this.transformSearchResults(data);
 
     } catch (error) {
-      logger.error('❌ [OpenSearchClient] Neural search failed:', error);
+      logger.error(' [OpenSearchClient] Neural search failed:', error);
       throw error;
     }
   }
@@ -158,7 +158,7 @@ export class OpenSearchClient {
       return this.transformSearchResults(data);
 
     } catch (error) {
-      logger.error('❌ [OpenSearchClient] Hybrid search failed:', error);
+      logger.error(' [OpenSearchClient] Hybrid search failed:', error);
       throw error;
     }
   }
@@ -205,7 +205,7 @@ export class OpenSearchClient {
       return this.transformSearchResults(data);
 
     } catch (error) {
-      logger.error('❌ [OpenSearchClient] Rerank search failed:', error);
+      logger.error(' [OpenSearchClient] Rerank search failed:', error);
       throw error;
     }
   }
@@ -320,14 +320,14 @@ export class OpenSearchClient {
 
       if (response.ok) {
         const health = await response.json();
-        logger.debug(`✅ [OpenSearchClient] Health check passed - Status: ${health.status}`);
+        logger.debug(` [OpenSearchClient] Health check passed - Status: ${health.status}`);
         return health.status !== 'red';
       }
 
       return false;
 
     } catch (error) {
-      logger.error('❌ [OpenSearchClient] Health check failed:', error);
+      logger.error(' [OpenSearchClient] Health check failed:', error);
       return false;
     }
   }
@@ -348,7 +348,7 @@ export class OpenSearchClient {
       return indices.map((idx: any) => idx.index);
 
     } catch (error) {
-      logger.error('❌ [OpenSearchClient] Failed to get indices:', error);
+      logger.error(' [OpenSearchClient] Failed to get indices:', error);
       throw error;
     }
   }

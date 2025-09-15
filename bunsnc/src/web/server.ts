@@ -41,7 +41,7 @@ export class ServiceNowWebServer {
 
     this.setupRoutes();
     
-    console.log('✅ Modular ServiceNow Web Server initialized');
+    console.log(' Modular ServiceNow Web Server initialized');
   }
 
   private setupRoutes(): void {

@@ -165,7 +165,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
       const result = await response.json();
       const record = result.result || result;
 
-      logger.info(`✅ [ServiceNow] Created record in ${table}: ${record.sys_id}`);
+      logger.info(` [ServiceNow] Created record in ${table}: ${record.sys_id}`);
       this.emit('recordCreated', { table, sysId: record.sys_id, data: record });
 
       return record;
@@ -180,7 +180,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
       });
 
       if (response.status === 404) {
-        logger.warn(`❌ [ServiceNow] Record not found: ${table}/${sysId}`);
+        logger.warn(` [ServiceNow] Record not found: ${table}/${sysId}`);
         return null;
       }
 
@@ -192,7 +192,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
       const result = await response.json();
       const record = result.result || result;
 
-      logger.debug(`📖 [ServiceNow] Read record from ${table}: ${sysId}`);
+      logger.debug(` [ServiceNow] Read record from ${table}: ${sysId}`);
       this.emit('recordRead', { table, sysId, data: record });
 
       return record;
@@ -215,7 +215,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
       const result = await response.json();
       const record = result.result || result;
 
-      logger.info(`🔄 [ServiceNow] Updated record in ${table}: ${sysId}`);
+      logger.info(` [ServiceNow] Updated record in ${table}: ${sysId}`);
       this.emit('recordUpdated', { table, sysId, data: record });
 
       return record;
@@ -230,7 +230,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
       });
 
       if (response.status === 404) {
-        logger.warn(`❌ [ServiceNow] Record not found for deletion: ${table}/${sysId}`);
+        logger.warn(` [ServiceNow] Record not found for deletion: ${table}/${sysId}`);
         return false;
       }
 
@@ -271,7 +271,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
       const result = await response.json();
       const records = result.result || [];
 
-      logger.info(`🔍 [ServiceNow] Queried ${records.length} records from ${options.table}`);
+      logger.info(` [ServiceNow] Queried ${records.length} records from ${options.table}`);
       this.emit('recordsQueried', { table: options.table, count: records.length, filter: options.filter });
 
       return records;
@@ -282,7 +282,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
 
   async resolveTicket(request: ResolveTicketRequest): Promise<TicketActionResponse> {
     try {
-      logger.info(`🔄 [ServiceNow] Resolving ticket ${request.table}/${request.sysId}`);
+      logger.info(` [ServiceNow] Resolving ticket ${request.table}/${request.sysId}`);
 
       // Get current ticket state
       const currentTicket = await this.read(request.table, request.sysId);
@@ -326,19 +326,19 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         timestamp: new Date().toISOString()
       };
 
-      logger.info(`✅ [ServiceNow] Ticket resolved: ${request.sysId}`);
+      logger.info(` [ServiceNow] Ticket resolved: ${request.sysId}`);
       this.emit('ticketResolved', response);
 
       return response;
     } catch (error) {
-      logger.error('❌ [ServiceNow] Failed to resolve ticket:', error);
+      logger.error(' [ServiceNow] Failed to resolve ticket:', error);
       throw error;
     }
   }
 
   async closeTicket(request: CloseTicketRequest): Promise<TicketActionResponse> {
     try {
-      logger.info(`🔒 [ServiceNow] Closing ticket ${request.table}/${request.sysId}`);
+      logger.info(` [ServiceNow] Closing ticket ${request.table}/${request.sysId}`);
 
       const currentTicket = await this.read(request.table, request.sysId);
       if (!currentTicket) {
@@ -374,19 +374,19 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         timestamp: new Date().toISOString()
       };
 
-      logger.info(`✅ [ServiceNow] Ticket closed: ${request.sysId}`);
+      logger.info(` [ServiceNow] Ticket closed: ${request.sysId}`);
       this.emit('ticketClosed', response);
 
       return response;
     } catch (error) {
-      logger.error('❌ [ServiceNow] Failed to close ticket:', error);
+      logger.error(' [ServiceNow] Failed to close ticket:', error);
       throw error;
     }
   }
 
   async reopenTicket(request: ReopenTicketRequest): Promise<TicketActionResponse> {
     try {
-      logger.info(`🔓 [ServiceNow] Reopening ticket ${request.table}/${request.sysId}`);
+      logger.info(` [ServiceNow] Reopening ticket ${request.table}/${request.sysId}`);
 
       const currentTicket = await this.read(request.table, request.sysId);
       if (!currentTicket) {
@@ -421,19 +421,19 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         timestamp: new Date().toISOString()
       };
 
-      logger.info(`✅ [ServiceNow] Ticket reopened: ${request.sysId}`);
+      logger.info(` [ServiceNow] Ticket reopened: ${request.sysId}`);
       this.emit('ticketReopened', response);
 
       return response;
     } catch (error) {
-      logger.error('❌ [ServiceNow] Failed to reopen ticket:', error);
+      logger.error(' [ServiceNow] Failed to reopen ticket:', error);
       throw error;
     }
   }
 
   async assignTicket(request: AssignTicketRequest): Promise<TicketActionResponse> {
     try {
-      logger.info(`👤 [ServiceNow] Assigning ticket ${request.table}/${request.sysId}`);
+      logger.info(` [ServiceNow] Assigning ticket ${request.table}/${request.sysId}`);
 
       const updateData: Record<string, string> = {};
 
@@ -466,12 +466,12 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         timestamp: new Date().toISOString()
       };
 
-      logger.info(`✅ [ServiceNow] Ticket assigned: ${request.sysId}`);
+      logger.info(` [ServiceNow] Ticket assigned: ${request.sysId}`);
       this.emit('ticketAssigned', response);
 
       return response;
     } catch (error) {
-      logger.error('❌ [ServiceNow] Failed to assign ticket:', error);
+      logger.error(' [ServiceNow] Failed to assign ticket:', error);
       throw error;
     }
   }
@@ -480,7 +480,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
 
   async getTicketNotes(table: string, sysId: string): Promise<ServiceNowNote[]> {
     try {
-      logger.debug(`📝 [ServiceNow] Fetching notes for ${table}/${sysId}`);
+      logger.debug(` [ServiceNow] Fetching notes for ${table}/${sysId}`);
 
       const response = await this.query({
         table: 'sys_journal_field',
@@ -501,17 +501,17 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         work_notes: note.element === 'work_notes'
       }));
 
-      logger.debug(`📝 [ServiceNow] Retrieved ${notes.length} notes for ${table}/${sysId}`);
+      logger.debug(` [ServiceNow] Retrieved ${notes.length} notes for ${table}/${sysId}`);
       return notes;
     } catch (error) {
-      logger.error(`❌ [ServiceNow] Failed to fetch notes for ${table}/${sysId}:`, error);
+      logger.error(` [ServiceNow] Failed to fetch notes for ${table}/${sysId}:`, error);
       throw error;
     }
   }
 
   async addTicketNote(request: CreateNoteRequest): Promise<string> {
     try {
-      logger.debug(`➕ [ServiceNow] Adding note to ${request.table}/${request.sysId}`);
+      logger.debug(` [ServiceNow] Adding note to ${request.table}/${request.sysId}`);
 
       const noteField = request.workNotes ? 'work_notes' : 'comments';
 
@@ -521,12 +521,12 @@ export class ConsolidatedServiceNowService extends EventEmitter {
 
       const response = await this.update(request.table, request.sysId, updateData);
 
-      logger.info(`✅ [ServiceNow] Note added to ${request.table}/${request.sysId}`);
+      logger.info(` [ServiceNow] Note added to ${request.table}/${request.sysId}`);
       this.emit('noteAdded', { table: request.table, sysId: request.sysId, noteText: request.noteText });
 
       return response.sys_id;
     } catch (error) {
-      logger.error(`❌ [ServiceNow] Failed to add note to ${request.table}/${request.sysId}:`, error);
+      logger.error(` [ServiceNow] Failed to add note to ${request.table}/${request.sysId}:`, error);
       throw error;
     }
   }
@@ -621,7 +621,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         download_link: `${this.attachmentUrl}/${att.sys_id}/file`
       }));
     } catch (error) {
-      logger.error(`❌ [ServiceNow] Failed to list attachments for ${table}/${sysId}:`, error);
+      logger.error(` [ServiceNow] Failed to list attachments for ${table}/${sysId}:`, error);
       throw error;
     }
   }
@@ -630,7 +630,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
 
   async executeBatch(operations: BatchOperation[]): Promise<any[]> {
     try {
-      logger.info(`🔄 [ServiceNow] Executing batch of ${operations.length} operations`);
+      logger.info(` [ServiceNow] Executing batch of ${operations.length} operations`);
 
       const results: Array<{ success: boolean; operation: BatchOperation; result?: any; error?: string }> = [];
 
@@ -665,7 +665,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
           });
 
         } catch (error: unknown) {
-          logger.error(`❌ [ServiceNow] Batch operation failed:`, operation, error);
+          logger.error(` [ServiceNow] Batch operation failed:`, operation, error);
           results.push({
             success: false,
             operation: operation.op,
@@ -676,12 +676,12 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         }
       }
 
-      logger.info(`✅ [ServiceNow] Batch completed: ${results.filter(r => r.success).length}/${operations.length} successful`);
+      logger.info(` [ServiceNow] Batch completed: ${results.filter(r => r.success).length}/${operations.length} successful`);
       this.emit('batchExecuted', { totalOperations: operations.length, successful: results.filter(r => r.success).length });
 
       return results;
     } catch (error) {
-      logger.error('❌ [ServiceNow] Batch execution failed:', error);
+      logger.error(' [ServiceNow] Batch execution failed:', error);
       throw error;
     }
   }
@@ -690,7 +690,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
 
   async getTaskSLAs(options: TaskSLAQueryOptions): Promise<TaskSLAResponse> {
     try {
-      logger.debug(`🔍 [ServiceNow] Getting SLAs for task: ${options.taskNumber}`);
+      logger.debug(` [ServiceNow] Getting SLAs for task: ${options.taskNumber}`);
 
       const response = await this.query({
         table: 'task_sla',
@@ -711,7 +711,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         raw_data: sla
       }));
 
-      logger.debug(`✅ [ServiceNow] Found ${slmRecords.length} SLAs for task ${options.taskNumber}`);
+      logger.debug(` [ServiceNow] Found ${slmRecords.length} SLAs for task ${options.taskNumber}`);
 
       return {
         result: slmRecords,
@@ -719,7 +719,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         hasMore: false
       };
     } catch (error) {
-      logger.error(`❌ [ServiceNow] Error getting SLAs for task ${options.taskNumber}:`, error);
+      logger.error(` [ServiceNow] Error getting SLAs for task ${options.taskNumber}:`, error);
       throw error;
     }
   }
@@ -759,7 +759,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         all_slas: slaBreachInfos
       };
     } catch (error) {
-      logger.error(`❌ [ServiceNow] Error getting SLA summary for task ${taskNumber}:`, error);
+      logger.error(` [ServiceNow] Error getting SLA summary for task ${taskNumber}:`, error);
       throw error;
     }
   }
@@ -808,7 +808,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         }
 
         const delay = baseDelay * Math.pow(2, attempt - 1);
-        logger.warn(`⚠️ [ServiceNow] Request failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms:`, lastError.message);
+        logger.warn(` [ServiceNow] Request failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms:`, lastError.message);
 
         await new Promise(resolve => setTimeout(resolve, delay));
       }
@@ -903,7 +903,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         instance_url: this.config.instanceUrl
       };
     } catch (error) {
-      logger.error('❌ [ServiceNow] Failed to get stats:', error);
+      logger.error(' [ServiceNow] Failed to get stats:', error);
       return {};
     }
   }
@@ -918,7 +918,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
 
       return response.ok;
     } catch (error) {
-      logger.error('❌ [ServiceNow] Health check failed:', error);
+      logger.error(' [ServiceNow] Health check failed:', error);
       return false;
     }
   }
@@ -933,16 +933,20 @@ export class ConsolidatedServiceNowService extends EventEmitter {
 
 // ==================== SINGLETON INSTANCE ====================
 
-const instanceUrl = process.env.SERVICENOW_INSTANCE_URL || 'https://iberdrola.service-now.com';
-const authToken = process.env.SNC_AUTH_TOKEN || process.env.AUTH_SERVICE_URL;
+import { ServiceNowAuthClient } from './ServiceNowAuthClient';
 
-if (!authToken) {
-  throw new Error('ServiceNow authentication token is required. Set SNC_AUTH_TOKEN or AUTH_SERVICE_URL environment variable.');
+const instanceUrl = process.env.SERVICENOW_INSTANCE_URL || 'https://iberdrola.service-now.com';
+
+// Use ServiceNowAuthClient with broker authentication
+const authClient = new ServiceNowAuthClient();
+
+if (!authClient.isAuthValid()) {
+  console.warn('[ConsolidatedServiceNowService] Authentication broker not available, will initialize with URL only');
 }
 
 const consolidatedServiceNowService = new ConsolidatedServiceNowService({
   instanceUrl,
-  authToken,
+  authToken: process.env.AUTH_SERVICE_URL || 'http://10.219.8.210:8000/auth',
   rateLimiting: {
     enabled: true,
     maxRequests: parseInt(process.env.SERVICENOW_RATE_LIMIT || '95'),

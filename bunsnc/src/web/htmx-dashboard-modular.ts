@@ -27,7 +27,7 @@ async function initializeModularServices() {
     // Services initialization will be moved to proper dependency injection
     return { error: null };
   } catch (error) {
-    console.error('❌ Modular Dashboard Services initialization error:', error);
+    console.error(' Modular Dashboard Services initialization error:', error);
     return { error };
   }
 }
@@ -150,7 +150,7 @@ export const htmxDashboardModular = new Elysia({ prefix: '/modular' })
       );
 
     } catch (error: any) {
-      console.error('❌ Dashboard route error:', error);
+      console.error(' Dashboard route error:', error);
       set.status = 500;
       return generateDashboardLayout({
         title: 'BunSNC Dashboard - Error',
@@ -191,7 +191,7 @@ export const htmxDashboardModular = new Elysia({ prefix: '/modular' })
         <p class="text-sm mt-2">Group: ${group}, State: ${state}</p>
         <div class="mt-4 text-xs text-gray-500">
           <p>🚧 Integration with ConsolidatedDataService pending</p>
-          <p>📝 Modular architecture implementation in progress</p>
+          <p> Modular architecture implementation in progress</p>
         </div>
       </div>
     `;
@@ -204,7 +204,7 @@ export const htmxDashboardModular = new Elysia({ prefix: '/modular' })
   .get('/ticket-details/:sysId/:table', async ({ params }) => {
     const { sysId, table } = params;
     
-    console.log(`🔍 Loading ticket details: ${sysId} from ${table}`);
+    console.log(` Loading ticket details: ${sysId} from ${table}`);
     
     // Mock modal response - replace with actual modal template
     return `

@@ -154,7 +154,7 @@ describe('Phase 2 Consolidation - Performance Benchmarks', () => {
       await warmupService.cleanup();
     }
     
-    console.log('🚀 Warmup completed, starting benchmarks...');
+    console.log(' Warmup completed, starting benchmarks...');
   });
 
   beforeEach(() => {
@@ -174,7 +174,7 @@ describe('Phase 2 Consolidation - Performance Benchmarks', () => {
 
   describe('Ticket Retrieval Performance', () => {
     it(`should retrieve tickets within performance thresholds (${BENCHMARK_CONFIG.iterations} iterations)`, async () => {
-      console.log('📊 Benchmarking ticket retrieval performance...');
+      console.log(' Benchmarking ticket retrieval performance...');
       
       ticketRetrievalMeasurement.startMeasurement();
       
@@ -215,7 +215,7 @@ describe('Phase 2 Consolidation - Performance Benchmarks', () => {
     }, BENCHMARK_CONFIG.timeout);
 
     it('should handle concurrent ticket retrievals efficiently', async () => {
-      console.log('🚀 Benchmarking concurrent ticket retrieval...');
+      console.log(' Benchmarking concurrent ticket retrieval...');
       
       const concurrency = 20;
       const startTime = performance.now();
@@ -331,7 +331,7 @@ describe('Phase 2 Consolidation - Performance Benchmarks', () => {
 
   describe('Hybrid Query Performance', () => {
     it('should execute hybrid queries within performance thresholds', async () => {
-      console.log('🔍 Benchmarking hybrid query performance...');
+      console.log(' Benchmarking hybrid query performance...');
       
       hybridQueryMeasurement.startMeasurement();
       
@@ -380,7 +380,7 @@ describe('Phase 2 Consolidation - Performance Benchmarks', () => {
     }, BENCHMARK_CONFIG.timeout);
 
     it('should handle different table types efficiently', async () => {
-      console.log('📊 Benchmarking multi-table hybrid queries...');
+      console.log(' Benchmarking multi-table hybrid queries...');
       
       const tables = ['incident', 'change_task', 'sc_task'];
       const resultsPerTable: Record<string, number[]> = {};
@@ -421,7 +421,7 @@ describe('Phase 2 Consolidation - Performance Benchmarks', () => {
 
   describe('Synchronization Performance', () => {
     it('should execute synchronization within performance thresholds', async () => {
-      console.log('🔄 Benchmarking synchronization performance...');
+      console.log(' Benchmarking synchronization performance...');
       
       synchronizationMeasurement.startMeasurement();
       
@@ -465,7 +465,7 @@ describe('Phase 2 Consolidation - Performance Benchmarks', () => {
 
   describe('Memory Usage and Resource Management', () => {
     it('should maintain reasonable memory usage under load', async () => {
-      console.log('🧠 Benchmarking memory usage under load...');
+      console.log(' Benchmarking memory usage under load...');
       
       const initialMemory = process.memoryUsage();
       
@@ -638,7 +638,7 @@ describe('Phase 2 Consolidation - Performance Benchmarks', () => {
       expect(postConsolidationTime).toBeLessThanOrEqual(preConsolidationTime * 1.1); // 10% tolerance
       
       if (performanceImprovement > 0) {
-        console.log(`✅ Consolidation improved performance by ${performanceImprovement.toFixed(2)}%`);
+        console.log(` Consolidation improved performance by ${performanceImprovement.toFixed(2)}%`);
       } else {
         console.log(`ℹ️ Consolidation maintained performance within acceptable range`);
       }
@@ -689,7 +689,7 @@ describe('Phase 2 Consolidation - Performance Benchmarks', () => {
       expect(allStats.synchronization.avg).toBeLessThan(thresholds.synchronization.maxAvgTime);
       
       console.log('🎉 All performance thresholds validated successfully!');
-      console.log('✅ Phase 2 consolidations maintain excellent performance characteristics');
+      console.log(' Phase 2 consolidations maintain excellent performance characteristics');
       
     });
   });

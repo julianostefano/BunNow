@@ -414,17 +414,17 @@ async function createEnhancedApp() {
   try {
     await enhancedTicketStorageService.initialize();
     mongoService = enhancedTicketStorageService;
-    console.log('✅ Enhanced app: MongoDB service initialized');
+    console.log(' Enhanced app: MongoDB service initialized');
   } catch (error) {
-    console.warn('⚠️ Enhanced app: MongoDB service not available:', error.message);
+    console.warn(' Enhanced app: MongoDB service not available:', error.message);
   }
 
   try {
     redisStreams = new ServiceNowStreams();
     await redisStreams.initialize();
-    console.log('✅ Enhanced app: Redis Streams initialized');
+    console.log(' Enhanced app: Redis Streams initialized');
   } catch (error) {
-    console.warn('⚠️ Enhanced app: Redis Streams not available:', error.message);
+    console.warn(' Enhanced app: Redis Streams not available:', error.message);
   }
 
   // Add existing ticket routes

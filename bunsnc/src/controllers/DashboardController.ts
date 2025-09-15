@@ -44,8 +44,8 @@ export class DashboardController {
             <h1 class="text-3xl font-bold text-gray-800 mb-2">ServiceNow Web Interface</h1>
             <p class="text-gray-600">Sistema funcionando na porta ${this.config.port} - Versão simplificada temporária</p>
             <div class="mt-4 flex space-x-4">
-                <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">✅ Server Online</span>
-                <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">🔧 Rate Limiting: 10 req/sec</span>
+                <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm"> Server Online</span>
+                <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"> Rate Limiting: 10 req/sec</span>
                 <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm">📦 Redis Cache: Enabled</span>
             </div>
         </div>
@@ -53,7 +53,7 @@ export class DashboardController {
         <!-- Navigation -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div class="bg-white rounded-lg shadow-md p-6">
-                <h3 class="text-xl font-semibold text-gray-800 mb-4">📊 Dashboard</h3>
+                <h3 class="text-xl font-semibold text-gray-800 mb-4"> Dashboard</h3>
                 <div class="space-y-2">
                     <a href="/dashboard/incidents" class="block text-blue-600 hover:text-blue-800">Incidents</a>
                     <a href="/dashboard/problems" class="block text-blue-600 hover:text-blue-800">Problems</a>
@@ -82,11 +82,11 @@ export class DashboardController {
             <h3 class="text-xl font-semibold text-gray-800 mb-4">📈 System Status</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="text-center">
-                    <div class="text-2xl font-bold text-green-600">✅</div>
+                    <div class="text-2xl font-bold text-green-600"></div>
                     <div class="text-sm text-gray-600">ServiceNow API</div>
                 </div>
                 <div class="text-center">
-                    <div class="text-2xl font-bold text-green-600">✅</div>
+                    <div class="text-2xl font-bold text-green-600"></div>
                     <div class="text-sm text-gray-600">Redis Cache</div>
                 </div>
                 <div class="text-center">
@@ -94,7 +94,7 @@ export class DashboardController {
                     <div class="text-sm text-gray-600">Rate Limiter</div>
                 </div>
                 <div class="text-center">
-                    <div class="text-2xl font-bold text-green-600">🚀</div>
+                    <div class="text-2xl font-bold text-green-600"></div>
                     <div class="text-sm text-gray-600">Web Server</div>
                 </div>
             </div>

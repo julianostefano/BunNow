@@ -173,10 +173,10 @@ export class TicketStorageCore {
       this.ticketsCollection = this.db.collection<TicketDocument>('tickets');
       this.isConnected = true;
 
-      console.log('✅ Enhanced Ticket Storage Service initialized successfully');
+      console.log(' Enhanced Ticket Storage Service initialized successfully');
       
     } catch (error) {
-      console.error('❌ Failed to initialize Enhanced Ticket Storage Service:', error);
+      console.error(' Failed to initialize Enhanced Ticket Storage Service:', error);
       throw error;
     }
   }
@@ -222,14 +222,14 @@ export class TicketStorageCore {
       };
 
       await this.db.createCollection('tickets', options);
-      console.log('✅ Tickets collection created with validation');
+      console.log(' Tickets collection created with validation');
     }
 
     // Create audit trail collection
     const auditCollections = await this.db.listCollections({ name: 'ticket_audit' }).toArray();
     if (auditCollections.length === 0) {
       await this.db.createCollection('ticket_audit');
-      console.log('✅ Audit trail collection created');
+      console.log(' Audit trail collection created');
     }
   }
 
@@ -244,10 +244,10 @@ export class TicketStorageCore {
     const createIndexSafe = async (collection: any, indexSpec: any, options: any) => {
       try {
         await collection.createIndex(indexSpec, options);
-        console.log(`✅ Index created: ${JSON.stringify(indexSpec)}`);
+        console.log(` Index created: ${JSON.stringify(indexSpec)}`);
       } catch (error: any) {
         if (error.code !== 85) { // Index already exists
-          console.warn(`⚠️ Index creation warning: ${error.message}`);
+          console.warn(` Index creation warning: ${error.message}`);
         }
       }
     };
@@ -307,7 +307,7 @@ export class TicketStorageCore {
       partialFilterExpression: { ticketType: 'sc_task' } 
     });
 
-    console.log('🔍 All indexes setup completed');
+    console.log(' All indexes setup completed');
   }
 
   /**
@@ -322,7 +322,7 @@ export class TicketStorageCore {
       // Ping to verify connection is still active
       await this.client!.db('admin').command({ ping: 1 });
     } catch (error) {
-      console.log('🔄 Reconnecting to MongoDB...');
+      console.log(' Reconnecting to MongoDB...');
       this.isConnected = false;
       await this.initialize();
     }

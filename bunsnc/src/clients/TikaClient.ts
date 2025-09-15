@@ -60,11 +60,11 @@ export class TikaClient {
       }
 
       const text = await response.text();
-      logger.debug(`✅ [TikaClient] Extracted ${text.length} characters`);
+      logger.debug(` [TikaClient] Extracted ${text.length} characters`);
       return text;
 
     } catch (error) {
-      logger.error('❌ [TikaClient] Text extraction failed:', error);
+      logger.error(' [TikaClient] Text extraction failed:', error);
       throw error;
     }
   }
@@ -91,11 +91,11 @@ export class TikaClient {
       }
 
       const metadata = await response.json();
-      logger.debug(`✅ [TikaClient] Extracted metadata with ${Object.keys(metadata).length} fields`);
+      logger.debug(` [TikaClient] Extracted metadata with ${Object.keys(metadata).length} fields`);
       return metadata;
 
     } catch (error) {
-      logger.error('❌ [TikaClient] Metadata extraction failed:', error);
+      logger.error(' [TikaClient] Metadata extraction failed:', error);
       throw error;
     }
   }
@@ -136,7 +136,7 @@ export class TikaClient {
       throw new Error('No results returned from Tika');
 
     } catch (error) {
-      logger.error('❌ [TikaClient] Full extraction failed:', error);
+      logger.error(' [TikaClient] Full extraction failed:', error);
       throw error;
     }
   }
@@ -151,13 +151,13 @@ export class TikaClient {
       const isHealthy = response.ok;
       if (isHealthy) {
         const version = await response.text();
-        logger.debug(`✅ [TikaClient] Health check passed - Version: ${version.trim()}`);
+        logger.debug(` [TikaClient] Health check passed - Version: ${version.trim()}`);
       }
 
       return isHealthy;
 
     } catch (error) {
-      logger.error('❌ [TikaClient] Health check failed:', error);
+      logger.error(' [TikaClient] Health check failed:', error);
       return false;
     }
   }

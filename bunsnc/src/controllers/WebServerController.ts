@@ -76,7 +76,7 @@ export class WebServerController {
   }
 
   private initializeClients(): void {
-    console.log('🔧 Initializing ServiceNow clients...');
+    console.log(' Initializing ServiceNow clients...');
 
     this.serviceNowClient = new ServiceNowClient(
       this.config.serviceNow.instanceUrl,
@@ -93,40 +93,40 @@ export class WebServerController {
     this.serviceNowAuthClient = authService;
     this.consolidatedTicketService = serviceNowService;
 
-    console.log('✅ ServiceNow clients initialized');
+    console.log(' ServiceNow clients initialized');
   }
 
   public async initializeEnhancedServices(): Promise<void> {
-    console.log('🚀 Initializing enhanced services...');
+    console.log(' Initializing enhanced services...');
 
     try {
       await dataService.initialize();
       await mongoCollectionManager.initializeCollections();
 
       this.enhancedTicketStorageService = dataService;
-      console.log('✅ MongoDB service initialized for enhanced features');
+      console.log(' MongoDB service initialized for enhanced features');
       
       this.ticketRepository = new TicketRepository();
-      console.log('✅ Ticket Repository initialized');
+      console.log(' Ticket Repository initialized');
       
       this.hybridDataService = dataService;
-      console.log('✅ Hybrid Data Service with sync capabilities initialized');
+      console.log(' Hybrid Data Service with sync capabilities initialized');
 
       this.slaTrackingService = ticketService;
-      console.log('✅ SLA Tracking Service initialized');
+      console.log(' SLA Tracking Service initialized');
       
       this.startBackgroundServices();
       
     } catch (error) {
-      console.warn('⚠️ MongoDB service not available, enhanced features will be limited:', error);
+      console.warn(' MongoDB service not available, enhanced features will be limited:', error);
     }
 
     try {
       this.redisStreams = new ServiceNowStreams();
       await this.redisStreams.initialize();
-      console.log('✅ Redis Streams initialized for real-time features');
+      console.log(' Redis Streams initialized for real-time features');
     } catch (error) {
-      console.warn('⚠️ Redis Streams not available, real-time features will be limited:', error);
+      console.warn(' Redis Streams not available, real-time features will be limited:', error);
     }
   }
 
@@ -145,7 +145,7 @@ export class WebServerController {
       
       this.slaTrackingService.start();
       
-      console.log('🔄 Background services started (ConsolidatedDataService + SLA Tracking)');
+      console.log(' Background services started (ConsolidatedDataService + SLA Tracking)');
     }
   }
 
@@ -214,7 +214,7 @@ export class WebServerController {
         };
       });
 
-    console.log('✅ Elysia server configuration completed');
+    console.log(' Elysia server configuration completed');
     return this.app;
   }
 
@@ -223,9 +223,9 @@ export class WebServerController {
       await this.initializeEnhancedServices();
       
       await this.app.listen(this.config.port);
-      console.log(`🚀 ServiceNow Web Interface running on port ${this.config.port}`);
-      console.log(`📊 Dashboard: http://localhost:${this.config.port}`);
-      console.log(`📖 API Docs: http://localhost:${this.config.port}/swagger`);
+      console.log(` ServiceNow Web Interface running on port ${this.config.port}`);
+      console.log(` Dashboard: http://localhost:${this.config.port}`);
+      console.log(` API Docs: http://localhost:${this.config.port}/swagger`);
     } catch (error) {
       console.error('Failed to start web server:', error);
       throw error;
@@ -242,10 +242,10 @@ export class WebServerController {
         this.slaTrackingService.stop();
       }
       
-      console.log('🛑 Background services stopped');
+      console.log(' Background services stopped');
       
       await this.app.stop();
-      console.log('🛑 ServiceNow Web Interface stopped');
+      console.log(' ServiceNow Web Interface stopped');
     } catch (error) {
       console.error('Error stopping web server:', error);
       throw error;

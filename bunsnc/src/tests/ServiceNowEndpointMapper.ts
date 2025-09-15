@@ -72,7 +72,7 @@ export class ServiceNowEndpointMapper {
     const startTime = Date.now();
     
     try {
-      console.log(`🔍 Testing endpoint: ${table}`);
+      console.log(` Testing endpoint: ${table}`);
       
       const queryOptions = {
         table,
@@ -94,7 +94,7 @@ export class ServiceNowEndpointMapper {
       };
 
       this.testResults.push(result);
-      console.log(`✅ ${table}: ${records.length} records in ${responseTime}ms`);
+      console.log(` ${table}: ${records.length} records in ${responseTime}ms`);
       
       return result;
 
@@ -109,7 +109,7 @@ export class ServiceNowEndpointMapper {
       };
 
       this.testResults.push(result);
-      console.error(`❌ ${table}: ${error.message}`);
+      console.error(` ${table}: ${error.message}`);
       
       return result;
     }
@@ -119,7 +119,7 @@ export class ServiceNowEndpointMapper {
    * Map complete data structure of a table
    */
   async mapDataStructure(table: string, sampleSize: number = 100): Promise<TableSchema> {
-    console.log(`📊 Mapping data structure for table: ${table}`);
+    console.log(` Mapping data structure for table: ${table}`);
     
     try {
       const records = await this.serviceNowService.query({
@@ -211,7 +211,7 @@ export class ServiceNowEndpointMapper {
       return schema;
 
     } catch (error: any) {
-      console.error(`❌ Error mapping structure for ${table}:`, error.message);
+      console.error(` Error mapping structure for ${table}:`, error.message);
       throw error;
     }
   }
@@ -281,7 +281,7 @@ export class ServiceNowEndpointMapper {
     avgResponseTime: number;
     recommendedLimit: number;
   }> {
-    console.log(`⚡ Testing performance limits for ${table}`);
+    console.log(` Testing performance limits for ${table}`);
     
     const limits = [10, 50, 100, 250, 500, 1000];
     const results: { limit: number; time: number; success: boolean }[] = [];
@@ -293,17 +293,17 @@ export class ServiceNowEndpointMapper {
         const time = Date.now() - startTime;
         
         results.push({ limit, time, success: true });
-        console.log(`  ✅ Limit ${limit}: ${time}ms`);
+        console.log(`   Limit ${limit}: ${time}ms`);
         
         // If response time exceeds 30 seconds, stop testing
         if (time > 30000) {
-          console.log(`  ⚠️ Stopping at limit ${limit} due to slow response`);
+          console.log(`   Stopping at limit ${limit} due to slow response`);
           break;
         }
         
       } catch (error) {
         results.push({ limit, time: 0, success: false });
-        console.log(`  ❌ Limit ${limit}: Failed`);
+        console.log(`   Limit ${limit}: Failed`);
         break;
       }
     }
@@ -335,7 +335,7 @@ export class ServiceNowEndpointMapper {
       'change_request'
     ];
 
-    console.log(`🚀 Testing ${criticalTables.length} critical tables...`);
+    console.log(` Testing ${criticalTables.length} critical tables...`);
     
     for (const table of criticalTables) {
       try {
@@ -358,7 +358,7 @@ export class ServiceNowEndpointMapper {
         }
         
       } catch (error: any) {
-        console.error(`❌ Failed to test table ${table}:`, error.message);
+        console.error(` Failed to test table ${table}:`, error.message);
       }
     }
   }
@@ -395,7 +395,7 @@ export class ServiceNowEndpointMapper {
     const summaryFile = join(this.outputDir, 'mapping-summary.json');
     writeFileSync(summaryFile, JSON.stringify(summary, null, 2));
     
-    console.log(`✅ Results exported:`);
+    console.log(` Results exported:`);
     console.log(`  - Test results: ${testResultsFile}`);
     console.log(`  - Schemas: ${schemasFile}`);
     console.log(`  - Summary: ${summaryFile}`);
@@ -406,7 +406,7 @@ export class ServiceNowEndpointMapper {
    * Generate TypeScript interfaces from discovered schemas
    */
   async generateTypeScriptInterfaces(): Promise<void> {
-    console.log(`🔧 Generating TypeScript interfaces...`);
+    console.log(` Generating TypeScript interfaces...`);
     
     let interfaceContent = `/**
  * ServiceNow Table Interfaces - Auto-generated from API mapping
@@ -431,7 +431,7 @@ export class ServiceNowEndpointMapper {
 
     const interfacesFile = join(this.outputDir, 'servicenow-interfaces.ts');
     writeFileSync(interfacesFile, interfaceContent);
-    console.log(`✅ TypeScript interfaces generated: ${interfacesFile}`);
+    console.log(` TypeScript interfaces generated: ${interfacesFile}`);
   }
 
   // Helper methods
@@ -524,7 +524,7 @@ export class ServiceNowEndpointMapper {
       stageDistribution: Record<string, number>;
     };
   }> {
-    console.log('🔍 Analyzing SLA table relationships...');
+    console.log(' Analyzing SLA table relationships...');
     
     try {
       // First get the SLA table schema
@@ -536,7 +536,7 @@ export class ServiceNowEndpointMapper {
       }
 
       // Analyze relationships by querying SLAs for each task type
-      console.log('📊 Analyzing SLA relationships to task tables...');
+      console.log(' Analyzing SLA relationships to task tables...');
       
       const relationships = {
         incident: 0,
@@ -621,7 +621,7 @@ export class ServiceNowEndpointMapper {
         }
       };
 
-      console.log('✅ SLA analysis completed:');
+      console.log(' SLA analysis completed:');
       console.log(`   Total SLA records: ${relationships.total}`);
       console.log(`   Incident SLAs: ${relationships.incident}`);
       console.log(`   Change Task SLAs: ${relationships.change_task}`);
@@ -632,7 +632,7 @@ export class ServiceNowEndpointMapper {
       return result;
 
     } catch (error) {
-      console.error('❌ Error analyzing SLA relationships:', error);
+      console.error(' Error analyzing SLA relationships:', error);
       return {
         slaSchema: null,
         relationships: { incident: 0, change_task: 0, sc_task: 0, total: 0 },

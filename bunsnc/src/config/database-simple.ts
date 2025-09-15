@@ -30,7 +30,7 @@ export class SimplePostgreSQL {
     try {
       // Use Bun's built-in fetch with SQL query construction for PostgreSQL
       // This is a simplified approach - in production, use a proper PostgreSQL client
-      console.log(`🔍 Executing query: ${sql.substring(0, 100)}...`);
+      console.log(` Executing query: ${sql.substring(0, 100)}...`);
       console.log(`📋 Parameters: ${JSON.stringify(params)}`);
       
       // For demonstration, return mock data since we can't connect to actual DB
@@ -41,17 +41,17 @@ export class SimplePostgreSQL {
       };
       
     } catch (error) {
-      console.error('❌ Query execution failed:', error);
+      console.error(' Query execution failed:', error);
       throw error;
     }
   }
 
   async initialize(): Promise<void> {
-    console.log('✅ Database initialized (mock mode)');
+    console.log(' Database initialized (mock mode)');
   }
 
   async close(): Promise<void> {
-    console.log('🔒 Database connection closed');
+    console.log(' Database connection closed');
   }
 }
 

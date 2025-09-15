@@ -68,7 +68,7 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
         return cached;
       }
 
-      console.log(`🔍 Getting paginated ${table} - group: ${group}, state: ${state}, page: ${page}`);
+      console.log(` Getting paginated ${table} - group: ${group}, state: ${state}, page: ${page}`);
 
       return serviceNowRateLimiter.executeRequest(async () => {
         try {
@@ -139,7 +139,7 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
             }, '*', 1000); // Max 1000 messages in stream
             console.log(`📡 Streamed ${result.data.length} ${table} records to Redis Stream`);
           } catch (streamError) {
-            console.warn('⚠️ Redis Stream failed, continuing with cache only:', streamError);
+            console.warn(' Redis Stream failed, continuing with cache only:', streamError);
           }
           
           return result;
@@ -187,7 +187,7 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
     const url = `${this.SERVICENOW_BASE_URL}/api/now/table/${table}`;
 
     return serviceNowRateLimiter.executeRequest(async () => {
-      console.log(`🔍 ServiceNow query: ${table} - ${query.substring(0, 100)}...`);
+      console.log(` ServiceNow query: ${table} - ${query.substring(0, 100)}...`);
       
       const response = await this.axiosClient.get(url, {
         params: queryParams
@@ -232,7 +232,7 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
       return incidents;
 
     } catch (error: any) {
-      console.error(`❌ Error getting waiting incidents for ${assignmentGroup}:`, error.message);
+      console.error(` Error getting waiting incidents for ${assignmentGroup}:`, error.message);
       return [];
     }
   }
@@ -268,7 +268,7 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
       return changeTasks;
 
     } catch (error: any) {
-      console.error(`❌ Error getting waiting change tasks for ${assignmentGroup}:`, error.message);
+      console.error(` Error getting waiting change tasks for ${assignmentGroup}:`, error.message);
       return [];
     }
   }
@@ -304,7 +304,7 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
       return scTasks;
 
     } catch (error: any) {
-      console.error(`❌ Error getting waiting SC tasks for ${assignmentGroup}:`, error.message);
+      console.error(` Error getting waiting SC tasks for ${assignmentGroup}:`, error.message);
       return [];
     }
   }
@@ -330,9 +330,9 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
           this.getWaitingChangeTasks(group),
           this.getWaitingServiceCatalogTasks(group)
         ]);
-        console.log(`✅ Cache warmed for: ${group}`);
+        console.log(` Cache warmed for: ${group}`);
       } catch (error) {
-        console.warn(`⚠️ Cache warmup failed for ${group}:`, error);
+        console.warn(` Cache warmup failed for ${group}:`, error);
       }
     });
 
@@ -388,7 +388,7 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
       return allRecords;
 
     } catch (error: any) {
-      console.error(`❌ Error searching tickets for ${searchTerm}:`, error.message);
+      console.error(` Error searching tickets for ${searchTerm}:`, error.message);
       return [];
     }
   }

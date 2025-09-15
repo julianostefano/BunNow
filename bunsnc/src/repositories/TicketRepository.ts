@@ -27,13 +27,13 @@ export class TicketRepository {
    * Initialize collections and indexes
    */
   async initialize(): Promise<void> {
-    console.log('🔧 Initializing TicketRepository with collections and indexes...');
+    console.log(' Initializing TicketRepository with collections and indexes...');
     
     await this.createCollections();
     await this.createIndexes();
     await this.createValidationRules();
     
-    console.log('✅ TicketRepository initialized successfully');
+    console.log(' TicketRepository initialized successfully');
   }
 
   /**
@@ -63,9 +63,9 @@ export class TicketRepository {
       for (const index of indexes) {
         try {
           await collection.createIndex(index.spec, index.options);
-          console.log(`🔍 Created index on ${collectionName}: ${JSON.stringify(index.spec)}`);
+          console.log(` Created index on ${collectionName}: ${JSON.stringify(index.spec)}`);
         } catch (error) {
-          console.warn(`⚠️ Failed to create index on ${collectionName}:`, error);
+          console.warn(` Failed to create index on ${collectionName}:`, error);
         }
       }
     }
@@ -152,9 +152,9 @@ export class TicketRepository {
           collMod: collectionName,
           validator: validation
         });
-        console.log(`✅ Applied validation rules to ${collectionName}`);
+        console.log(` Applied validation rules to ${collectionName}`);
       } catch (error) {
-        console.warn(`⚠️ Failed to apply validation to ${collectionName}:`, error);
+        console.warn(` Failed to apply validation to ${collectionName}:`, error);
       }
     }
   }

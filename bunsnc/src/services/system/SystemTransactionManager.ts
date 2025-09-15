@@ -54,7 +54,7 @@ export class SystemTransactionManager extends EventEmitter {
       // Check if MongoDB supports transactions
       const serverStatus = await this.client.db().admin().serverStatus();
       const version = serverStatus.version;
-      logger.debug(`📊 [SystemTransactions] MongoDB version: ${version}`);
+      logger.debug(` [SystemTransactions] MongoDB version: ${version}`);
 
       // Start cleanup interval for expired transactions
       this.cleanupInterval = setInterval(() => {
@@ -62,9 +62,9 @@ export class SystemTransactionManager extends EventEmitter {
       }, 60000); // Every minute
 
       this.isInitialized = true;
-      logger.info('✅ [SystemTransactions] Transaction manager initialized');
+      logger.info(' [SystemTransactions] Transaction manager initialized');
     } catch (error) {
-      logger.error('❌ [SystemTransactions] Failed to initialize:', error);
+      logger.error(' [SystemTransactions] Failed to initialize:', error);
       throw error;
     }
   }
@@ -101,13 +101,13 @@ export class SystemTransactionManager extends EventEmitter {
       this.transactions.set(transactionId, transaction);
       this.sessions.set(transactionId, session);
 
-      logger.info(`🚀 [SystemTransactions] Started transaction: ${transactionId}`);
+      logger.info(` [SystemTransactions] Started transaction: ${transactionId}`);
       this.emit('transactionStarted', { transactionId, transaction });
 
       return transactionId;
 
     } catch (error) {
-      logger.error('❌ [SystemTransactions] Failed to start transaction:', error);
+      logger.error(' [SystemTransactions] Failed to start transaction:', error);
       throw error;
     }
   }
@@ -142,12 +142,12 @@ export class SystemTransactionManager extends EventEmitter {
       this.sessions.delete(transactionId);
 
       const duration = Date.now() - transaction.startTime.getTime();
-      logger.info(`✅ [SystemTransactions] Committed transaction: ${transactionId} in ${duration}ms`);
+      logger.info(` [SystemTransactions] Committed transaction: ${transactionId} in ${duration}ms`);
       this.emit('transactionCommitted', { transactionId, transaction, duration });
 
     } catch (error) {
       await this.rollbackTransaction(transactionId);
-      logger.error('❌ [SystemTransactions] Failed to commit transaction:', error);
+      logger.error(' [SystemTransactions] Failed to commit transaction:', error);
       throw error;
     }
   }
@@ -174,11 +174,11 @@ export class SystemTransactionManager extends EventEmitter {
       transaction.status = 'aborted';
 
       const duration = Date.now() - transaction.startTime.getTime();
-      logger.info(`🔄 [SystemTransactions] Rolled back transaction: ${transactionId} after ${duration}ms`);
+      logger.info(` [SystemTransactions] Rolled back transaction: ${transactionId} after ${duration}ms`);
       this.emit('transactionRolledBack', { transactionId, transaction, duration });
 
     } catch (error) {
-      logger.error('❌ [SystemTransactions] Failed to rollback transaction:', error);
+      logger.error(' [SystemTransactions] Failed to rollback transaction:', error);
       this.emit('transactionFailed', { transactionId, error });
       throw error;
     }
@@ -212,7 +212,7 @@ export class SystemTransactionManager extends EventEmitter {
           await this.rollbackTransaction(transactionId);
         }
 
-        logger.warn(`⚠️ [SystemTransactions] Transaction attempt ${attempt}/${maxRetries} failed:`, lastError.message);
+        logger.warn(` [SystemTransactions] Transaction attempt ${attempt}/${maxRetries} failed:`, lastError.message);
 
         if (attempt < maxRetries) {
           const delay = attempt * 1000; // 1s, 2s, 3s delay
@@ -221,7 +221,7 @@ export class SystemTransactionManager extends EventEmitter {
       }
     }
 
-    logger.error(`❌ [SystemTransactions] All transaction attempts failed after ${maxRetries} retries`);
+    logger.error(` [SystemTransactions] All transaction attempts failed after ${maxRetries} retries`);
     throw lastError!;
   }
 
@@ -245,7 +245,7 @@ export class SystemTransactionManager extends EventEmitter {
     };
 
     transaction.operations.push(operationWithId);
-    logger.debug(`📝 [SystemTransactions] Added operation to transaction ${transactionId}: ${operation.type} on ${operation.collection}`);
+    logger.debug(` [SystemTransactions] Added operation to transaction ${transactionId}: ${operation.type} on ${operation.collection}`);
   }
 
   /**
@@ -299,7 +299,7 @@ export class SystemTransactionManager extends EventEmitter {
         }
         logger.warn(`⏰ [SystemTransactions] Rolled back expired transaction: ${transactionId}`);
       } catch (error) {
-        logger.error(`❌ [SystemTransactions] Failed to cleanup expired transaction ${transactionId}:`, error);
+        logger.error(` [SystemTransactions] Failed to cleanup expired transaction ${transactionId}:`, error);
       }
     }
 
@@ -348,7 +348,7 @@ export class SystemTransactionManager extends EventEmitter {
         active_sessions: this.sessions.size
       };
     } catch (error) {
-      logger.error('❌ [SystemTransactions] Failed to get stats:', error);
+      logger.error(' [SystemTransactions] Failed to get stats:', error);
       return {};
     }
   }
@@ -364,13 +364,13 @@ export class SystemTransactionManager extends EventEmitter {
       // Check if we have too many active transactions (potential memory leak)
       const activeCount = this.getActiveTransactions().length;
       if (activeCount > 100) {
-        logger.warn(`⚠️ [SystemTransactions] High number of active transactions: ${activeCount}`);
+        logger.warn(` [SystemTransactions] High number of active transactions: ${activeCount}`);
         return false;
       }
 
       return true;
     } catch (error) {
-      logger.error('❌ [SystemTransactions] Health check failed:', error);
+      logger.error(' [SystemTransactions] Health check failed:', error);
       return false;
     }
   }
@@ -409,7 +409,7 @@ export class SystemTransactionManager extends EventEmitter {
 
       logger.info('🧹 [SystemTransactions] Cleanup completed');
     } catch (error) {
-      logger.error('❌ [SystemTransactions] Cleanup failed:', error);
+      logger.error(' [SystemTransactions] Cleanup failed:', error);
       throw error;
     }
   }

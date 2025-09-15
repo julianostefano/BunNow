@@ -277,9 +277,9 @@ export class MongoDBCollectionManager {
     for (const config of COLLECTION_CONFIGS) {
       try {
         await this.ensureCollection(config);
-        console.log(`✅ [MongoDB] Collection '${config.name}' configured`);
+        console.log(` [MongoDB] Collection '${config.name}' configured`);
       } catch (error) {
-        console.error(`❌ [MongoDB] Failed to configure collection '${config.name}':`, error);
+        console.error(` [MongoDB] Failed to configure collection '${config.name}':`, error);
         throw error;
       }
     }
@@ -325,7 +325,7 @@ export class MongoDBCollectionManager {
       } catch (error: any) {
         // Sharding might not be available or already configured
         if (!error.message.includes('already sharded')) {
-          console.warn(`⚠️ [MongoDB] Sharding not available for ${config.name}:`, error.message);
+          console.warn(` [MongoDB] Sharding not available for ${config.name}:`, error.message);
         }
       }
     }
@@ -412,7 +412,7 @@ export class MongoDBCollectionManager {
         
         console.log(`🗑️ [MongoDB] Cleaned ${result.deletedCount} old documents from ${collectionName}`);
       } catch (error) {
-        console.error(`❌ [MongoDB] Error cleaning ${collectionName}:`, error);
+        console.error(` [MongoDB] Error cleaning ${collectionName}:`, error);
       }
     }
   }

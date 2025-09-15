@@ -74,11 +74,11 @@ export class BunPostgreSQL {
 
       this.isInitialized = true;
       
-      console.log(`✅ PostgreSQL pool initialized: ${this.config.pool.min} connections`);
-      console.log(`📊 Database: ${this.config.database}@${this.config.host}:${this.config.port}`);
+      console.log(` PostgreSQL pool initialized: ${this.config.pool.min} connections`);
+      console.log(` Database: ${this.config.database}@${this.config.host}:${this.config.port}`);
 
     } catch (error) {
-      console.error('❌ Failed to initialize PostgreSQL pool:', error);
+      console.error(' Failed to initialize PostgreSQL pool:', error);
       throw error;
     }
   }
@@ -229,7 +229,7 @@ export class BunPostgreSQL {
       const result = await Promise.race([queryPromise, timeoutPromise]);
       
       const duration = Date.now() - startTime;
-      console.log(`🔍 Query executed in ${duration}ms: ${sql.substring(0, 100)}...`);
+      console.log(` Query executed in ${duration}ms: ${sql.substring(0, 100)}...`);
 
       return result;
 
@@ -304,7 +304,7 @@ export class BunPostgreSQL {
    * Close all connections and clean up
    */
   async close(): Promise<void> {
-    console.log('🔒 Closing PostgreSQL connection pool...');
+    console.log(' Closing PostgreSQL connection pool...');
     
     try {
       // Close all connections
@@ -317,10 +317,10 @@ export class BunPostgreSQL {
       this.busyConnections.clear();
       this.isInitialized = false;
 
-      console.log('✅ PostgreSQL pool closed successfully');
+      console.log(' PostgreSQL pool closed successfully');
 
     } catch (error) {
-      console.error('❌ Error closing PostgreSQL pool:', error);
+      console.error(' Error closing PostgreSQL pool:', error);
       throw error;
     }
   }

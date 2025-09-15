@@ -36,7 +36,7 @@ export class StreamNotifications {
     if (!this.redisStreams) return;
 
     this.redisStreams.subscribe('ticket-updates', async (change: ServiceNowChange) => {
-      console.log(`🔄 Received Redis change for ${change.sys_id}:`, change.action);
+      console.log(` Received Redis change for ${change.sys_id}:`, change.action);
 
       const ticketEvent: TicketUpdateEvent = {
         event: change.action === 'delete' ? 'ticket-deleted' :
@@ -75,7 +75,7 @@ export class StreamNotifications {
       this.addToEventHistory(connection.streamType, event);
 
     } catch (error) {
-      console.error(`❌ Error sending SSE message to ${connection.id}:`, error);
+      console.error(` Error sending SSE message to ${connection.id}:`, error);
       connection.isAlive = false;
     }
   }

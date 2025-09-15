@@ -64,12 +64,12 @@ export class AIServicesBootstrap {
 
   async initialize(): Promise<void> {
     if (this.initialized) {
-      logger.info('🔄 [AIServicesBootstrap] Services already initialized');
+      logger.info(' [AIServicesBootstrap] Services already initialized');
       return;
     }
 
     try {
-      logger.info('🚀 [AIServicesBootstrap] Starting AI services initialization...');
+      logger.info(' [AIServicesBootstrap] Starting AI services initialization...');
 
       await this.aiManager.initialize();
 
@@ -114,27 +114,27 @@ export class AIServicesBootstrap {
       this.setupEventHandlers();
 
       this.initialized = true;
-      logger.info('✅ [AIServicesBootstrap] AI services initialization completed successfully');
+      logger.info(' [AIServicesBootstrap] AI services initialization completed successfully');
 
     } catch (error) {
-      logger.error('❌ [AIServicesBootstrap] Failed to initialize AI services:', error);
+      logger.error(' [AIServicesBootstrap] Failed to initialize AI services:', error);
       throw error;
     }
   }
 
   async shutdown(): Promise<void> {
     if (!this.initialized) {
-      logger.info('⚠️ [AIServicesBootstrap] Services not initialized, skipping shutdown');
+      logger.info(' [AIServicesBootstrap] Services not initialized, skipping shutdown');
       return;
     }
 
     try {
-      logger.info('🛑 [AIServicesBootstrap] Shutting down AI services...');
+      logger.info(' [AIServicesBootstrap] Shutting down AI services...');
       await this.aiManager.shutdown();
       this.initialized = false;
-      logger.info('✅ [AIServicesBootstrap] AI services shutdown completed');
+      logger.info(' [AIServicesBootstrap] AI services shutdown completed');
     } catch (error) {
-      logger.error('❌ [AIServicesBootstrap] Error during shutdown:', error);
+      logger.error(' [AIServicesBootstrap] Error during shutdown:', error);
       throw error;
     }
   }
@@ -165,7 +165,7 @@ export class AIServicesBootstrap {
         initialized_at: new Date().toISOString()
       };
     } catch (error) {
-      logger.error('❌ [AIServicesBootstrap] Health check failed:', error);
+      logger.error(' [AIServicesBootstrap] Health check failed:', error);
       return {
         status: 'error',
         error: error instanceof Error ? error.message : String(error)
@@ -219,7 +219,7 @@ export class AIServicesBootstrap {
   }
 
   private async performHealthChecks(): Promise<void> {
-    logger.info('🔍 [AIServicesBootstrap] Performing initial health checks...');
+    logger.info(' [AIServicesBootstrap] Performing initial health checks...');
 
     const healthStatus = await this.aiManager.healthCheck();
     const failedServices = Object.entries(healthStatus)
@@ -227,23 +227,23 @@ export class AIServicesBootstrap {
       .map(([service]) => service);
 
     if (failedServices.length > 0) {
-      logger.warn(`⚠️ [AIServicesBootstrap] Some services failed health check: ${failedServices.join(', ')}`);
+      logger.warn(` [AIServicesBootstrap] Some services failed health check: ${failedServices.join(', ')}`);
     } else {
-      logger.info('✅ [AIServicesBootstrap] All services passed health checks');
+      logger.info(' [AIServicesBootstrap] All services passed health checks');
     }
   }
 
   private setupEventHandlers(): void {
     this.aiManager.on('service-error', (event) => {
-      logger.error(`❌ [AIServicesBootstrap] Service error in ${event.serviceId}:`, event.error);
+      logger.error(` [AIServicesBootstrap] Service error in ${event.serviceId}:`, event.error);
     });
 
     this.aiManager.on('service-metrics', (event) => {
-      logger.debug(`📊 [AIServicesBootstrap] Metrics update from ${event.serviceId}:`, event.metrics);
+      logger.debug(` [AIServicesBootstrap] Metrics update from ${event.serviceId}:`, event.metrics);
     });
 
     this.aiManager.on('request-processed', (event) => {
-      logger.debug(`📝 [AIServicesBootstrap] Request processed by ${event.serviceId}: success=${event.success}, time=${event.processingTime}ms`);
+      logger.debug(` [AIServicesBootstrap] Request processed by ${event.serviceId}: success=${event.success}, time=${event.processingTime}ms`);
     });
 
     this.aiManager.on('initialized', () => {
@@ -287,10 +287,10 @@ export class AIServicesBootstrap {
 
     try {
       const result = await this.processAIRequest(serviceId, testRequest);
-      logger.info(`✅ [AIServicesBootstrap] Service test passed: ${serviceId}`);
+      logger.info(` [AIServicesBootstrap] Service test passed: ${serviceId}`);
       return result;
     } catch (error) {
-      logger.error(`❌ [AIServicesBootstrap] Service test failed: ${serviceId}`, error);
+      logger.error(` [AIServicesBootstrap] Service test failed: ${serviceId}`, error);
       throw error;
     }
   }

@@ -152,7 +152,7 @@ class MongoDBManager extends EventEmitter {
     if (this.isInitialized) return;
 
     try {
-      logger.info('🔧 [DataService] Initializing MongoDB connection...');
+      logger.info(' [DataService] Initializing MongoDB connection...');
 
       this.client = new MongoClient(this.config.connectionString, {
         maxPoolSize: this.config.options?.maxPoolSize || 10,
@@ -168,10 +168,10 @@ class MongoDBManager extends EventEmitter {
       await this.createIndexes();
 
       this.isInitialized = true;
-      logger.info('✅ [DataService] MongoDB initialized successfully');
+      logger.info(' [DataService] MongoDB initialized successfully');
       this.emit('initialized');
     } catch (error) {
-      logger.error('❌ [DataService] MongoDB initialization failed:', error);
+      logger.error(' [DataService] MongoDB initialization failed:', error);
       throw error;
     }
   }
@@ -184,7 +184,7 @@ class MongoDBManager extends EventEmitter {
       this.collections.set(name, collection);
     }
 
-    logger.debug('✅ [DataService] Collections initialized');
+    logger.debug(' [DataService] Collections initialized');
   }
 
   private async createIndexes(): Promise<void> {
@@ -238,15 +238,15 @@ class MongoDBManager extends EventEmitter {
             });
           } catch (error: any) {
             if (error.code !== 85) { // Index already exists
-              logger.warn(`⚠️ [DataService] Failed to create index ${index.name}:`, error.message);
+              logger.warn(` [DataService] Failed to create index ${index.name}:`, error.message);
             }
           }
         }
       }
 
-      logger.info('✅ [DataService] Database indexes created');
+      logger.info(' [DataService] Database indexes created');
     } catch (error) {
-      logger.error('❌ [DataService] Failed to create indexes:', error);
+      logger.error(' [DataService] Failed to create indexes:', error);
     }
   }
 
@@ -484,16 +484,16 @@ export class ConsolidatedDataService extends EventEmitter {
   private setupEventListeners(): void {
     // MongoDB events
     this.mongoManager.on('initialized', () => {
-      logger.info('✅ [DataService] MongoDB manager initialized');
+      logger.info(' [DataService] MongoDB manager initialized');
     });
 
     // Cache events
     this.cacheManager.on('cacheHit', (event) => {
-      logger.debug(`📊 [DataService] Cache hit: ${event.key}`);
+      logger.debug(` [DataService] Cache hit: ${event.key}`);
     });
 
     this.cacheManager.on('cacheMiss', (event) => {
-      logger.debug(`📊 [DataService] Cache miss: ${event.key}`);
+      logger.debug(` [DataService] Cache miss: ${event.key}`);
     });
   }
 
@@ -501,7 +501,7 @@ export class ConsolidatedDataService extends EventEmitter {
     if (this.isInitialized) return;
 
     try {
-      logger.info('🚀 [DataService] Initializing Consolidated Data Service...');
+      logger.info(' [DataService] Initializing Consolidated Data Service...');
 
       // Initialize MongoDB
       await this.mongoManager.initialize();
@@ -527,10 +527,10 @@ export class ConsolidatedDataService extends EventEmitter {
       }
 
       this.isInitialized = true;
-      logger.info('✅ [DataService] Consolidated Data Service initialized');
+      logger.info(' [DataService] Consolidated Data Service initialized');
       this.emit('initialized');
     } catch (error) {
-      logger.error('❌ [DataService] Initialization failed:', error);
+      logger.error(' [DataService] Initialization failed:', error);
       throw error;
     }
   }
@@ -545,7 +545,7 @@ export class ConsolidatedDataService extends EventEmitter {
       if (!options.skipCache && !options.forceServiceNow) {
         const cached = this.cacheManager.get(cacheKey);
         if (cached) {
-          logger.debug(`📊 [DataService] Cache hit for ticket: ${sysId}`);
+          logger.debug(` [DataService] Cache hit for ticket: ${sysId}`);
           return cached;
         }
       }
@@ -579,7 +579,7 @@ export class ConsolidatedDataService extends EventEmitter {
 
       return ticket;
     } catch (error) {
-      logger.error(`❌ [DataService] Failed to get ticket ${sysId}:`, error);
+      logger.error(` [DataService] Failed to get ticket ${sysId}:`, error);
       throw error;
     }
   }
@@ -623,7 +623,7 @@ export class ConsolidatedDataService extends EventEmitter {
   private async getTicketFromServiceNow(sysId: string, options: HybridDataOptions): Promise<TicketData | null> {
     // This would integrate with the ConsolidatedServiceNowService
     // For now, return null as placeholder
-    logger.debug(`🔄 [DataService] Fetching ticket from ServiceNow: ${sysId}`);
+    logger.debug(` [DataService] Fetching ticket from ServiceNow: ${sysId}`);
     return null;
   }
 
@@ -678,7 +678,7 @@ export class ConsolidatedDataService extends EventEmitter {
 
     const tables = syncOpts.tables || ['incident', 'change_task', 'sc_task'];
 
-    logger.info(`🔄 [DataService] Starting data sync for ${tables.length} tables`);
+    logger.info(` [DataService] Starting data sync for ${tables.length} tables`);
 
     for (const table of tables) {
       const startTime = Date.now();
@@ -687,9 +687,9 @@ export class ConsolidatedDataService extends EventEmitter {
         const result = await this.syncTable(table, syncOpts);
         results.push(result);
 
-        logger.info(`✅ [DataService] Sync completed for ${table}: ${result.processed} processed, ${result.saved} saved`);
+        logger.info(` [DataService] Sync completed for ${table}: ${result.processed} processed, ${result.saved} saved`);
       } catch (error) {
-        logger.error(`❌ [DataService] Sync failed for ${table}:`, error);
+        logger.error(` [DataService] Sync failed for ${table}:`, error);
 
         results.push({
           table,
@@ -739,7 +739,7 @@ export class ConsolidatedDataService extends EventEmitter {
       try {
         await this.syncData();
       } catch (error) {
-        logger.error('❌ [DataService] Scheduled sync failed:', error);
+        logger.error(' [DataService] Scheduled sync failed:', error);
       }
     }, this.config.sync.syncInterval);
 
@@ -792,7 +792,7 @@ export class ConsolidatedDataService extends EventEmitter {
         is_initialized: this.isInitialized
       };
     } catch (error) {
-      logger.error('❌ [DataService] Failed to get stats:', error);
+      logger.error(' [DataService] Failed to get stats:', error);
       return {};
     }
   }
@@ -812,7 +812,7 @@ export class ConsolidatedDataService extends EventEmitter {
 
       return cached === true;
     } catch (error) {
-      logger.error('❌ [DataService] Health check failed:', error);
+      logger.error(' [DataService] Health check failed:', error);
       return false;
     }
   }
@@ -839,7 +839,7 @@ export class ConsolidatedDataService extends EventEmitter {
       this.isInitialized = false;
       logger.info('🧹 [DataService] Cleanup completed');
     } catch (error) {
-      logger.error('❌ [DataService] Cleanup failed:', error);
+      logger.error(' [DataService] Cleanup failed:', error);
       throw error;
     }
   }

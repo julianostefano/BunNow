@@ -119,7 +119,7 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: '/waiting-analysis' })
                             <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500"
                                     hx-get="/waiting-analysis/summary"
                                     hx-target="#main-content">
-                                📊 Resumo por Grupos
+                                 Resumo por Grupos
                             </button>
                             <button class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500"
                                     hx-get="/waiting-analysis/details"
@@ -134,7 +134,7 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: '/waiting-analysis' })
                             <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500"
                                     hx-get="/waiting-analysis/cache-metrics"
                                     hx-target="#main-content">
-                                📊 Cache Metrics
+                                 Cache Metrics
                             </button>
                         </div>
                         
@@ -142,7 +142,7 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: '/waiting-analysis' })
                                 hx-get="/waiting-analysis/summary"
                                 hx-target="#main-content"
                                 title="Atualizar dados">
-                            🔄 Atualizar
+                             Atualizar
                         </button>
                     </div>
                 </div>
@@ -305,7 +305,7 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: '/waiting-analysis' })
             
         const typeIcon = 
             ticket.tipo_chamado === 'incident' ? '🎫' :
-            ticket.tipo_chamado === 'change_task' ? '🔄' : '📋';
+            ticket.tipo_chamado === 'change_task' ? '' : '📋';
             
         return `
             <div class="ticket-card">
@@ -419,7 +419,7 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: '/waiting-analysis' })
             ${tickets.length > 0 ? 
                 `<div class="space-y-4">${criticalHtml}</div>` :
                 `<div class="text-center py-8">
-                    <div class="text-6xl mb-4">✅</div>
+                    <div class="text-6xl mb-4"></div>
                     <h3 class="text-xl font-semibold text-green-600 mb-2">Ótimo!</h3>
                     <p class="text-gray-600">Nenhum chamado crítico em espera no momento.</p>
                 </div>`
@@ -486,7 +486,7 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: '/waiting-analysis' })
       
       return `
         <div class="bg-white p-6 rounded-lg shadow">
-          <h3 class="text-lg font-semibold mb-4">📊 Métricas do Redis Cache</h3>
+          <h3 class="text-lg font-semibold mb-4"> Métricas do Redis Cache</h3>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div class="text-center">
               <div class="text-2xl font-bold text-green-600">${(metrics.hitRate * 100).toFixed(1)}%</div>

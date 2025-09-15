@@ -146,7 +146,7 @@ export class WebSocketManager {
           });
       }
     } catch (error) {
-      console.error(`❌ WebSocket message error for ${client.id}:`, error);
+      console.error(` WebSocket message error for ${client.id}:`, error);
       this.sendToClient(ws, {
         type: 'error',
         data: { message: 'Invalid message format' },
@@ -317,7 +317,7 @@ export class WebSocketManager {
     try {
       ws.send(JSON.stringify(data));
     } catch (error) {
-      console.error('❌ Failed to send WebSocket message:', error);
+      console.error(' Failed to send WebSocket message:', error);
     }
   }
 
@@ -343,7 +343,7 @@ export class WebSocketManager {
           sentCount++;
         }
       } catch (error) {
-        console.error(`❌ Failed to send to client ${client.id}:`, error);
+        console.error(` Failed to send to client ${client.id}:`, error);
         this.clients.delete(ws);
       }
     }

@@ -163,7 +163,7 @@ export class TaskManager extends EventEmitter {
   async start(): Promise<void> {
     if (this.isRunning) return;
     
-    console.log('🚀 Starting Task Manager...');
+    console.log(' Starting Task Manager...');
     
     try {
       await Promise.all([
@@ -174,13 +174,13 @@ export class TaskManager extends EventEmitter {
       this.isRunning = true;
       this.emit('started');
       
-      console.log('✅ Task Manager started successfully');
+      console.log(' Task Manager started successfully');
       
       // Schedule default tasks
       await this.scheduleDefaultTasks();
       
     } catch (error) {
-      console.error('❌ Failed to start Task Manager:', error);
+      console.error(' Failed to start Task Manager:', error);
       throw error;
     }
   }
@@ -191,7 +191,7 @@ export class TaskManager extends EventEmitter {
   async stop(): Promise<void> {
     if (!this.isRunning) return;
     
-    console.log('🛑 Stopping Task Manager...');
+    console.log(' Stopping Task Manager...');
     
     try {
       await Promise.all([
@@ -202,10 +202,10 @@ export class TaskManager extends EventEmitter {
       this.isRunning = false;
       this.emit('stopped');
       
-      console.log('✅ Task Manager stopped successfully');
+      console.log(' Task Manager stopped successfully');
       
     } catch (error) {
-      console.error('❌ Failed to stop Task Manager:', error);
+      console.error(' Failed to stop Task Manager:', error);
       throw error;
     }
   }
@@ -620,10 +620,10 @@ export class TaskManager extends EventEmitter {
         createdBy: 'system',
       });
       
-      console.log('✅ Default scheduled tasks created');
+      console.log(' Default scheduled tasks created');
       
     } catch (error) {
-      console.error('❌ Failed to create default scheduled tasks:', error);
+      console.error(' Failed to create default scheduled tasks:', error);
     }
   }
 }

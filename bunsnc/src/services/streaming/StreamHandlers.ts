@@ -90,7 +90,7 @@ export class StreamHandlers extends StreamingCore {
           timestamp: new Date().toISOString()
         });
 
-        console.log(`✅ SSE connection established: ${connectionId}`);
+        console.log(` SSE connection established: ${connectionId}`);
       },
 
       cancel: () => {

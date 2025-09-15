@@ -53,7 +53,7 @@ export class EnhancedTicketController {
       });
 
     } catch (error) {
-      console.error(`❌ Error generating enhanced modal for ${table}/${sysId}:`, error);
+      console.error(` Error generating enhanced modal for ${table}/${sysId}:`, error);
       return this.generateErrorModal(`Erro ao carregar ticket: ${error.message}`);
     }
   }

@@ -33,13 +33,13 @@ function validateEnvironment(): { instanceUrl: string; token: string } {
   }
   
   if (!instanceUrl) {
-    console.error("❌ Error: SERVICENOW_INSTANCE_URL or SNC_INSTANCE_URL environment variable is required");
+    console.error(" Error: SERVICENOW_INSTANCE_URL or SNC_INSTANCE_URL environment variable is required");
     console.error("💡 Copy .env.example to .env and configure your ServiceNow credentials");
     process.exit(1);
   }
   
   if (!token) {
-    console.error("❌ Error: ServiceNow authentication is required");
+    console.error(" Error: ServiceNow authentication is required");
     console.error("💡 Set SNC_AUTH_TOKEN or (SERVICENOW_USERNAME + SERVICENOW_PASSWORD)");
     process.exit(1);
   }
@@ -74,7 +74,7 @@ program
         fields
       );
       
-      console.log("\n📊 Test Results:");
+      console.log("\n Test Results:");
       console.log(`   Status: ${result.status}`);
       console.log(`   Response Time: ${result.responseTime}ms`);
       console.log(`   Record Count: ${result.recordCount}`);
@@ -102,7 +102,7 @@ program
       }
       
     } catch (error: any) {
-      console.error("❌ Test failed:", error.message);
+      console.error(" Test failed:", error.message);
       process.exit(1);
     }
   });
@@ -115,7 +115,7 @@ program
   .option("--export", "Export results to JSON file")
   .action(async (opts) => {
     try {
-      console.log(`📊 Mapping structure for table: ${opts.table}`);
+      console.log(` Mapping structure for table: ${opts.table}`);
       
       const mapper = await createMapper();
       const schema = await mapper.mapDataStructure(opts.table, parseInt(opts.sampleSize));
@@ -126,7 +126,7 @@ program
       console.log(`   Fields Count: ${schema.fields.length}`);
       console.log(`   Avg Response Size: ${schema.performance.avgResponseSize} bytes`);
       
-      console.log("\n🔍 Field Analysis:");
+      console.log("\n Field Analysis:");
       schema.fields
         .sort((a, b) => b.frequency - a.frequency)
         .slice(0, 15) // Show top 15 fields
@@ -150,7 +150,7 @@ program
       }
       
     } catch (error: any) {
-      console.error("❌ Mapping failed:", error.message);
+      console.error(" Mapping failed:", error.message);
       process.exit(1);
     }
   });
@@ -161,26 +161,26 @@ program
   .requiredOption("-t, --table <table>", "Table name to test")
   .action(async (opts) => {
     try {
-      console.log(`⚡ Testing performance limits for table: ${opts.table}`);
+      console.log(` Testing performance limits for table: ${opts.table}`);
       
       const mapper = await createMapper();
       const performance = await mapper.testPerformanceLimits(opts.table);
       
-      console.log("\n⚡ Performance Results:");
+      console.log("\n Performance Results:");
       console.log(`   Max Limit: ${performance.maxLimit} records`);
       console.log(`   Avg Response Time: ${performance.avgResponseTime.toFixed(2)}ms`);
       console.log(`   Recommended Limit: ${performance.recommendedLimit} records`);
       
       if (performance.avgResponseTime > 10000) {
-        console.log("   ⚠️  Warning: High response times detected");
+        console.log("     Warning: High response times detected");
       }
       
       if (performance.recommendedLimit < 100) {
-        console.log("   ⚠️  Warning: Low recommended limit suggests performance issues");
+        console.log("     Warning: Low recommended limit suggests performance issues");
       }
       
     } catch (error: any) {
-      console.error("❌ Performance test failed:", error.message);
+      console.error(" Performance test failed:", error.message);
       process.exit(1);
     }
   });
@@ -192,7 +192,7 @@ program
   .option("--generate-interfaces", "Generate TypeScript interfaces")
   .action(async (opts) => {
     try {
-      console.log("🚀 Starting comprehensive analysis of all critical tables...");
+      console.log(" Starting comprehensive analysis of all critical tables...");
       
       const mapper = await createMapper();
       
@@ -215,11 +215,11 @@ program
       console.log(`   Tables with Errors: ${summary.tablesWithErrors}`);
       console.log(`   Avg Response Time: ${summary.avgResponseTime.toFixed(2)}ms`);
       
-      console.log("\n✅ Complete analysis finished!");
+      console.log("\n Complete analysis finished!");
       console.log("📁 Check the data-schemas directory for detailed results");
       
     } catch (error: any) {
-      console.error("❌ Analysis failed:", error.message);
+      console.error(" Analysis failed:", error.message);
       process.exit(1);
     }
   });
@@ -231,7 +231,7 @@ program
   .action(async (opts) => {
     try {
       const tables = opts.tables.split(',').map((t: string) => t.trim());
-      console.log(`🔍 Comparing field structures across ${tables.length} tables...`);
+      console.log(` Comparing field structures across ${tables.length} tables...`);
       
       const mapper = await createMapper();
       const schemas = [];
@@ -242,12 +242,12 @@ program
           const schema = await mapper.mapDataStructure(table, 50);
           schemas.push(schema);
         } catch (error: any) {
-          console.error(`❌ Failed to map ${table}:`, error.message);
+          console.error(` Failed to map ${table}:`, error.message);
         }
       }
       
       if (schemas.length < 2) {
-        console.error("❌ Need at least 2 tables to compare");
+        console.error(" Need at least 2 tables to compare");
         return;
       }
       
@@ -268,7 +268,7 @@ program
         .filter(([, count]) => count > 1 && count < schemas.length)
         .sort((a, b) => b[1] - a[1]);
       
-      console.log("\n📊 Comparison Results:");
+      console.log("\n Comparison Results:");
       console.log(`   Common Fields (${commonFields.length}): ${commonFields.slice(0, 10).join(', ')}${commonFields.length > 10 ? '...' : ''}`);
       
       console.log(`\n   Partially Common Fields:`);
@@ -283,7 +283,7 @@ program
       });
       
     } catch (error: any) {
-      console.error("❌ Comparison failed:", error.message);
+      console.error(" Comparison failed:", error.message);
       process.exit(1);
     }
   });
@@ -317,16 +317,16 @@ program
             });
           }
         } catch (error: any) {
-          console.error(`❌ Failed to analyze ${table}:`, error.message);
+          console.error(` Failed to analyze ${table}:`, error.message);
         }
       }
       
       if (fieldAnalyses.length === 0) {
-        console.log(`❌ Field '${fieldName}' not found in any of the specified tables`);
+        console.log(` Field '${fieldName}' not found in any of the specified tables`);
         return;
       }
       
-      console.log(`\n📊 Field Analysis Results for '${fieldName}':`);
+      console.log(`\n Field Analysis Results for '${fieldName}':`);
       console.log(`   Found in: ${fieldAnalyses.length}/${tables.length} tables`);
       
       fieldAnalyses.forEach(analysis => {
@@ -350,7 +350,7 @@ program
       });
       
     } catch (error: any) {
-      console.error("❌ Field analysis failed:", error.message);
+      console.error(" Field analysis failed:", error.message);
       process.exit(1);
     }
   });
@@ -363,7 +363,7 @@ program
   .action(async (opts) => {
     try {
       const ticketNumbers = opts.tickets.split(',').map((t: string) => t.trim());
-      console.log(`🔍 Testing SLA data collection for ${ticketNumbers.length} tickets...`);
+      console.log(` Testing SLA data collection for ${ticketNumbers.length} tickets...`);
       
       const mapper = await createMapper();
       
@@ -378,12 +378,12 @@ program
         );
         
         if (slaResult.status === 'success') {
-          console.log(`   ✅ Found ${slaResult.recordCount} SLA records`);
+          console.log(`    Found ${slaResult.recordCount} SLA records`);
           
           if (slaResult.sampleData && slaResult.sampleData.length > 0) {
             const sample = slaResult.sampleData[0];
             console.log(`   🏷️  SLA Fields: ${Object.keys(sample).length}`);
-            console.log(`   📊 Key SLA fields: business_percentage, start_time, end_time, has_breached, stage`);
+            console.log(`    Key SLA fields: business_percentage, start_time, end_time, has_breached, stage`);
             
             // Show breach status if available
             const breached = sample.has_breached;
@@ -393,7 +393,7 @@ program
             console.log(`   📈 Sample SLA: ${percentage}% complete, stage: ${stage}, breached: ${breached}`);
           }
         } else {
-          console.log(`   ❌ No SLA data found: ${slaResult.error}`);
+          console.log(`    No SLA data found: ${slaResult.error}`);
         }
       }
       
@@ -403,7 +403,7 @@ program
       }
       
     } catch (error: any) {
-      console.error("❌ SLA test failed:", error.message);
+      console.error(" SLA test failed:", error.message);
       process.exit(1);
     }
   });
@@ -414,7 +414,7 @@ program
   .option("--output <path>", "Output directory for results", "src/tests/sla-schemas")
   .action(async (opts) => {
     try {
-      console.log("📊 Analyzing SLA/SLM related tables...");
+      console.log(" Analyzing SLA/SLM related tables...");
       
       const mapper = await createMapper();
       const slaRelatedTables = [
@@ -427,7 +427,7 @@ program
       
       for (const table of slaRelatedTables) {
         try {
-          console.log(`\n🔍 Analyzing table: ${table}`);
+          console.log(`\n Analyzing table: ${table}`);
           
           const schema = await mapper.mapDataStructure(table, 100);
           
@@ -445,7 +445,7 @@ program
           });
           
         } catch (error: any) {
-          console.log(`   ❌ Failed to analyze ${table}: ${error.message}`);
+          console.log(`    Failed to analyze ${table}: ${error.message}`);
         }
       }
       
@@ -473,15 +473,15 @@ program
           }
           
         } catch (error: any) {
-          console.log(`   ❌ Failed to analyze ${ticketTable}: ${error.message}`);
+          console.log(`    Failed to analyze ${ticketTable}: ${error.message}`);
         }
       }
       
       await mapper.exportResults();
-      console.log(`\n✅ SLA analysis completed! Check ${opts.output} directory for results.`);
+      console.log(`\n SLA analysis completed! Check ${opts.output} directory for results.`);
       
     } catch (error: any) {
-      console.error("❌ SLA analysis failed:", error.message);
+      console.error(" SLA analysis failed:", error.message);
       process.exit(1);
     }
   });
@@ -506,13 +506,13 @@ program
       );
       
       if (ticketResult.status !== 'success' || !ticketResult.sampleData?.length) {
-        console.error(`❌ Ticket ${opts.ticket} not found in ${opts.tableType} table`);
+        console.error(` Ticket ${opts.ticket} not found in ${opts.tableType} table`);
         process.exit(1);
       }
       
       const ticketData = ticketResult.sampleData[0];
-      console.log(`   ✅ Found ticket: ${ticketData.number} (sys_id: ${ticketData.sys_id})`);
-      console.log(`   📊 Ticket fields: ${Object.keys(ticketData).length}`);
+      console.log(`    Found ticket: ${ticketData.number} (sys_id: ${ticketData.sys_id})`);
+      console.log(`    Ticket fields: ${Object.keys(ticketData).length}`);
       
       // Step 2: Get SLA data
       console.log(`\n🎯 Step 2: Collecting SLA data from task_sla...`);
@@ -525,7 +525,7 @@ program
       let slaData = [];
       if (slaResult.status === 'success' && slaResult.sampleData?.length) {
         slaData = slaResult.sampleData;
-        console.log(`   ✅ Found ${slaData.length} SLA records`);
+        console.log(`    Found ${slaData.length} SLA records`);
         
         // Analyze SLA data
         const breachedCount = slaData.filter(sla => sla.has_breached === 'true' || sla.has_breached === true).length;
@@ -556,10 +556,10 @@ program
         }
       };
       
-      console.log(`✅ Combined document created:`);
+      console.log(` Combined document created:`);
       console.log(`   📋 Ticket data: ${Object.keys(combinedDocument.ticket).length} fields`);
       console.log(`   🎯 SLA data: ${combinedDocument.slms.length} records`);
-      console.log(`   📊 Document size: ~${JSON.stringify(combinedDocument).length} bytes`);
+      console.log(`    Document size: ~${JSON.stringify(combinedDocument).length} bytes`);
       
       // Step 4: Show storage strategy
       console.log(`\n💾 Step 4: MongoDB storage strategy:`);
@@ -576,7 +576,7 @@ program
       console.log(`💡 This matches the Python script pattern for storing tickets with SLM data`);
       
     } catch (error: any) {
-      console.error("❌ Combined test failed:", error.message);
+      console.error(" Combined test failed:", error.message);
       process.exit(1);
     }
   });
@@ -588,7 +588,7 @@ program
   .option("-l, --limit <number>", "Limit records", "5")
   .action(async (opts) => {
     try {
-      console.log("🚀 Running quick test of ServiceNow connectivity...");
+      console.log(" Running quick test of ServiceNow connectivity...");
       
       const { instanceUrl, token } = validateEnvironment();
       const mapper = await createMapper();
@@ -597,26 +597,26 @@ program
       const result = await mapper.testEndpoint(opts.table, undefined, parseInt(opts.limit));
       
       if (result.status === 'success') {
-        console.log("✅ ServiceNow connectivity: OK");
-        console.log(`✅ Table '${opts.table}': ${result.recordCount} records retrieved in ${result.responseTime}ms`);
+        console.log(" ServiceNow connectivity: OK");
+        console.log(` Table '${opts.table}': ${result.recordCount} records retrieved in ${result.responseTime}ms`);
         
         if (result.sampleData && result.sampleData.length > 0) {
           const sample = result.sampleData[0];
-          console.log(`✅ Sample record has ${Object.keys(sample).length} fields`);
-          console.log("🔍 First few fields:", Object.keys(sample).slice(0, 5).join(', '));
+          console.log(` Sample record has ${Object.keys(sample).length} fields`);
+          console.log(" First few fields:", Object.keys(sample).slice(0, 5).join(', '));
         }
         
         console.log("\n🎉 Quick test completed successfully!");
         console.log("💡 Ready to run full analysis with 'analyze-all' command");
         
       } else {
-        console.error("❌ ServiceNow connectivity: FAILED");
-        console.error(`❌ Error: ${result.error}`);
+        console.error(" ServiceNow connectivity: FAILED");
+        console.error(` Error: ${result.error}`);
         process.exit(1);
       }
       
     } catch (error: any) {
-      console.error("❌ Quick test failed:", error.message);
+      console.error(" Quick test failed:", error.message);
       process.exit(1);
     }
   });

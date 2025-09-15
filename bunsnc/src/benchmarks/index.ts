@@ -32,7 +32,7 @@ class BenchmarkRunner {
   private results: BenchmarkResult[] = [];
 
   async run(name: string, fn: () => Promise<any>, iterations: number = 1000): Promise<BenchmarkResult> {
-    console.log(`\n🚀 Running benchmark: ${name} (${iterations} iterations)`);
+    console.log(`\n Running benchmark: ${name} (${iterations} iterations)`);
     
     // Warm up
     for (let i = 0; i < Math.min(10, iterations / 10); i++) {
@@ -90,7 +90,7 @@ class BenchmarkRunner {
   }
 
   private printResult(result: BenchmarkResult) {
-    console.log(`\n✨ ${result.name} Results:`);
+    console.log(`\n ${result.name} Results:`);
     console.log(`   Duration: ${result.duration.toFixed(2)}ms`);
     console.log(`   Ops/sec: ${result.opsPerSecond.toFixed(2)}`);
     console.log(`   Avg time: ${result.avgTime.toFixed(3)}ms`);
@@ -133,7 +133,7 @@ class BenchmarkRunner {
     const summary = this.getSummary();
     
     console.log('\n' + '='.repeat(80));
-    console.log(`📊 BENCHMARK SUMMARY - ${summary.name}`);
+    console.log(` BENCHMARK SUMMARY - ${summary.name}`);
     console.log('='.repeat(80));
     console.log(`Total execution time: ${summary.totalTime.toFixed(2)}ms`);
     console.log(`Fastest operation: ${summary.summary.fastest}`);
@@ -333,14 +333,14 @@ async function runBenchmarks() {
     console.log(`   Average operation time: ${report.metrics.summary ? 'Available' : 'N/A'}`);
 
   } catch (error) {
-    console.error('❌ Benchmark execution failed:', error);
+    console.error(' Benchmark execution failed:', error);
     process.exit(1);
   }
 }
 
 // Comparison benchmarks (simulating different implementations)
 async function runComparisonBenchmarks() {
-  console.log('\n🔄 Running Implementation Comparison Benchmarks...\n');
+  console.log('\n Running Implementation Comparison Benchmarks...\n');
 
   const runner = new BenchmarkRunner();
   runner.clear();
@@ -384,7 +384,7 @@ async function runComparisonBenchmarks() {
 
 // Memory benchmark
 async function runMemoryBenchmarks() {
-  console.log('\n🧠 Running Memory Performance Benchmarks...\n');
+  console.log('\n Running Memory Performance Benchmarks...\n');
 
   const runner = new BenchmarkRunner();
   runner.clear();
@@ -438,7 +438,7 @@ if (import.meta.main) {
     console.log('🎉 All benchmarks completed successfully!');
     process.exit(0);
   })().catch(error => {
-    console.error('❌ Benchmark suite failed:', error);
+    console.error(' Benchmark suite failed:', error);
     process.exit(1);
   });
 }

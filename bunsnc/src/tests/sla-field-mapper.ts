@@ -117,7 +117,7 @@ class SLAFieldMapper {
    * Map SLA fields from the incident record
    */
   private async mapIncidentSLAFields(ticketSysId: string): Promise<SLAFieldAnalysis[]> {
-    console.log(`🔍 Mapping incident SLA fields for ${ticketSysId}`);
+    console.log(` Mapping incident SLA fields for ${ticketSysId}`);
     
     // Get the incident with ALL fields to capture SLA-related ones
     const response = await this.serviceNowClient.makeRequestFullFields(
@@ -149,7 +149,7 @@ class SLAFieldMapper {
       field.includes('due_date')
     );
 
-    console.log(`📊 Found ${slaFieldNames.length} SLA-related fields in incident`);
+    console.log(` Found ${slaFieldNames.length} SLA-related fields in incident`);
 
     slaFieldNames.forEach(fieldName => {
       const value = incident[fieldName];
@@ -163,7 +163,7 @@ class SLAFieldMapper {
    * Map task_sla records related to the incident
    */
   private async mapTaskSLARecords(ticketSysId: string): Promise<TaskSLARecord[]> {
-    console.log(`🔍 Mapping task_sla records for ${ticketSysId}`);
+    console.log(` Mapping task_sla records for ${ticketSysId}`);
     
     try {
       // Query task_sla table for this specific incident
@@ -176,7 +176,7 @@ class SLAFieldMapper {
       const taskSLARecords: TaskSLARecord[] = [];
 
       if (response.result && response.result.length > 0) {
-        console.log(`📊 Found ${response.result.length} task_sla records`);
+        console.log(` Found ${response.result.length} task_sla records`);
 
         for (const record of response.result) {
           const fieldAnalysis: SLAFieldAnalysis[] = [];
@@ -203,12 +203,12 @@ class SLAFieldMapper {
           });
         }
       } else {
-        console.log(`📊 No task_sla records found for incident ${ticketSysId}`);
+        console.log(` No task_sla records found for incident ${ticketSysId}`);
       }
 
       return taskSLARecords;
     } catch (error: any) {
-      console.warn(`⚠️ Error fetching task_sla records: ${error.message}`);
+      console.warn(` Error fetching task_sla records: ${error.message}`);
       return [];
     }
   }
@@ -217,7 +217,7 @@ class SLAFieldMapper {
    * Map contract_sla records related to the incident
    */
   private async mapContractSLARecords(ticketSysId: string): Promise<ContractSLARecord[]> {
-    console.log(`🔍 Mapping contract_sla records for ${ticketSysId}`);
+    console.log(` Mapping contract_sla records for ${ticketSysId}`);
     
     try {
       // First get the incident to find related contract information
@@ -254,7 +254,7 @@ class SLAFieldMapper {
       const contractSLARecords: ContractSLARecord[] = [];
 
       if (response.result && response.result.length > 0) {
-        console.log(`📊 Found ${response.result.length} contract_sla records`);
+        console.log(` Found ${response.result.length} contract_sla records`);
 
         for (const record of response.result) {
           const fieldAnalysis: SLAFieldAnalysis[] = [];
@@ -274,12 +274,12 @@ class SLAFieldMapper {
           });
         }
       } else {
-        console.log(`📊 No contract_sla records found`);
+        console.log(` No contract_sla records found`);
       }
 
       return contractSLARecords;
     } catch (error: any) {
-      console.warn(`⚠️ Error fetching contract_sla records: ${error.message}`);
+      console.warn(` Error fetching contract_sla records: ${error.message}`);
       return [];
     }
   }
@@ -298,7 +298,7 @@ class SLAFieldMapper {
       );
 
       if (!response.result || response.result.length === 0) {
-        console.log(`⚠️ No sc_task found for ${taskSysId}`);
+        console.log(` No sc_task found for ${taskSysId}`);
         return [];
       }
 
@@ -322,11 +322,11 @@ class SLAFieldMapper {
         }
       });
 
-      console.log(`✅ Found ${fields.length} SLA-related fields in sc_task`);
+      console.log(` Found ${fields.length} SLA-related fields in sc_task`);
       return fields;
 
     } catch (error: any) {
-      console.error(`❌ Error mapping sc_task SLA fields: ${error.message}`);
+      console.error(` Error mapping sc_task SLA fields: ${error.message}`);
       return [];
     }
   }
@@ -335,7 +335,7 @@ class SLAFieldMapper {
    * Map SLA fields specific to change_task (Change Task) table
    */
   private async mapCTaskSLAFields(taskSysId: string): Promise<SLAFieldAnalysis[]> {
-    console.log(`🔄 Mapping change_task SLA fields for ${taskSysId}`);
+    console.log(` Mapping change_task SLA fields for ${taskSysId}`);
     
     try {
       const response = await this.serviceNowClient.makeRequestFullFields(
@@ -345,7 +345,7 @@ class SLAFieldMapper {
       );
 
       if (!response.result || response.result.length === 0) {
-        console.log(`⚠️ No change_task found for ${taskSysId}`);
+        console.log(` No change_task found for ${taskSysId}`);
         return [];
       }
 
@@ -372,11 +372,11 @@ class SLAFieldMapper {
         }
       });
 
-      console.log(`✅ Found ${fields.length} SLA-related fields in change_task`);
+      console.log(` Found ${fields.length} SLA-related fields in change_task`);
       return fields;
 
     } catch (error: any) {
-      console.error(`❌ Error mapping change_task SLA fields: ${error.message}`);
+      console.error(` Error mapping change_task SLA fields: ${error.message}`);
       return [];
     }
   }
@@ -445,11 +445,11 @@ class SLAFieldMapper {
         analysisTime
       };
 
-      console.log(`✅ SLA mapping completed in ${analysisTime}ms`);
+      console.log(` SLA mapping completed in ${analysisTime}ms`);
       return mapping;
 
     } catch (error: any) {
-      console.error(`❌ Error in SLA mapping for ${ticketSysId}:`, error.message);
+      console.error(` Error in SLA mapping for ${ticketSysId}:`, error.message);
       throw error;
     }
   }
@@ -472,7 +472,7 @@ class SLAFieldMapper {
 
     // Incident SLA Fields
     if (mapping.incidentSLAFields.length > 0) {
-      console.log(`\n🔧 INCIDENT SLA FIELDS (${mapping.incidentSLAFields.length}):`);
+      console.log(`\n INCIDENT SLA FIELDS (${mapping.incidentSLAFields.length}):`);
       console.log(`════════════════════════════════════════`);
       mapping.incidentSLAFields.forEach((field, index) => {
         const num = String(index + 1).padStart(2, '0');
@@ -521,15 +521,15 @@ class SLAFieldMapper {
       });
     }
 
-    console.log(`\n⚡ SLA SUMMARY:`);
+    console.log(`\n SLA SUMMARY:`);
     console.log(`══════════════`);
-    console.log(`✅ Successfully mapped ${mapping.totalSLAFields} SLA-related fields`);
+    console.log(` Successfully mapped ${mapping.totalSLAFields} SLA-related fields`);
     console.log(`🎯 Found ${mapping.taskSLARecords.length} active SLA definitions`);
     console.log(`📋 Found ${mapping.contractSLARecords.length} contract SLA configurations`);
     
     const breachedSLAs = mapping.taskSLARecords.filter(sla => sla.hasBreached).length;
     if (breachedSLAs > 0) {
-      console.log(`⚠️  ${breachedSLAs} SLA(s) have been breached`);
+      console.log(`  ${breachedSLAs} SLA(s) have been breached`);
     }
   }
 
@@ -578,10 +578,10 @@ async function main() {
       
       await slaMapper.saveToFile(slaMapping);
       
-      console.log(`\n✅ Completed SLA mapping for ${ticket.number}`);
+      console.log(`\n Completed SLA mapping for ${ticket.number}`);
       
     } catch (error: any) {
-      console.error(`❌ Failed to map SLA for ${ticket.number}:`, error.message);
+      console.error(` Failed to map SLA for ${ticket.number}:`, error.message);
     }
   }
 }

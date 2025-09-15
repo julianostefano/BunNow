@@ -111,7 +111,7 @@ export class ServiceNowRateLimiter {
           this.updateAverageResponseTime(duration);
           this.metrics.successfulRequests++;
           
-          console.log(`✅ ServiceNow request completed in ${duration}ms`);
+          console.log(` ServiceNow request completed in ${duration}ms`);
           return result;
 
         } catch (error: any) {
@@ -145,7 +145,7 @@ export class ServiceNowRateLimiter {
         
         if (retryCount < this.config.maxRetries && this.isRetryableError(error)) {
           const backoffDelay = this.calculateBackoffDelay(retryCount);
-          console.log(`🔄 Retrying request in ${backoffDelay}ms (${retryCount + 1}/${this.config.maxRetries})`);
+          console.log(` Retrying request in ${backoffDelay}ms (${retryCount + 1}/${this.config.maxRetries})`);
           await this.sleep(backoffDelay);
           retryCount++;
           continue;
@@ -174,7 +174,7 @@ export class ServiceNowRateLimiter {
       if (request) {
         // Process request without waiting - the request itself handles rate limiting
         request().catch(error => {
-          console.error('❌ Request from queue failed:', error);
+          console.error(' Request from queue failed:', error);
         });
       }
 
@@ -327,7 +327,7 @@ export class ServiceNowRateLimiter {
       averageResponseTime: 0,
       currentConcurrentRequests: this.concurrentRequests,
     };
-    console.log('📊 ServiceNow rate limiter metrics reset');
+    console.log(' ServiceNow rate limiter metrics reset');
   }
 
   /**

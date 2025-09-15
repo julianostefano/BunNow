@@ -58,7 +58,7 @@ export abstract class AIService extends EventEmitter {
       };
 
     } catch (error) {
-      logger.error(`❌ [AIService:${this.name}] Error processing request:`, error);
+      logger.error(` [AIService:${this.name}] Error processing request:`, error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
@@ -79,7 +79,7 @@ export class AIServiceManager extends EventEmitter {
 
   private constructor() {
     super();
-    logger.info('🧠 [AIServiceManager] Initializing AI Service Manager...');
+    logger.info(' [AIServiceManager] Initializing AI Service Manager...');
   }
 
   static getInstance(): AIServiceManager {
@@ -93,28 +93,28 @@ export class AIServiceManager extends EventEmitter {
     if (this.initialized) return;
 
     try {
-      logger.info('🔧 [AIServiceManager] Loading AI services...');
+      logger.info(' [AIServiceManager] Loading AI services...');
 
       // Services will be registered by their respective modules
       // This allows for lazy loading and better dependency management
 
       this.initialized = true;
-      logger.info('✅ [AIServiceManager] AI Service Manager initialized successfully');
+      logger.info(' [AIServiceManager] AI Service Manager initialized successfully');
 
       this.emit('initialized');
     } catch (error) {
-      logger.error('❌ [AIServiceManager] Failed to initialize:', error);
+      logger.error(' [AIServiceManager] Failed to initialize:', error);
       throw error;
     }
   }
 
   registerService(serviceId: string, service: AIService): void {
     if (this.services.has(serviceId)) {
-      logger.warn(`⚠️ [AIServiceManager] Service ${serviceId} already registered, replacing...`);
+      logger.warn(` [AIServiceManager] Service ${serviceId} already registered, replacing...`);
     }
 
     this.services.set(serviceId, service);
-    logger.info(`📝 [AIServiceManager] Service '${serviceId}' registered`);
+    logger.info(` [AIServiceManager] Service '${serviceId}' registered`);
 
     // Setup service event forwarding
     service.on('error', (error) => {
@@ -148,7 +148,7 @@ export class AIServiceManager extends EventEmitter {
 
       return response;
     } catch (error) {
-      logger.error(`❌ [AIServiceManager] Error processing request for service '${serviceId}':`, error);
+      logger.error(` [AIServiceManager] Error processing request for service '${serviceId}':`, error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error)
@@ -163,7 +163,7 @@ export class AIServiceManager extends EventEmitter {
       try {
         healthStatus[serviceId] = await service.healthCheck();
       } catch (error) {
-        logger.error(`❌ [AIServiceManager] Health check failed for '${serviceId}':`, error);
+        logger.error(` [AIServiceManager] Health check failed for '${serviceId}':`, error);
         healthStatus[serviceId] = false;
       }
     }
@@ -190,7 +190,7 @@ export class AIServiceManager extends EventEmitter {
   }
 
   async shutdown(): Promise<void> {
-    logger.info('🛑 [AIServiceManager] Shutting down AI services...');
+    logger.info(' [AIServiceManager] Shutting down AI services...');
 
     // Give services a chance to clean up
     for (const [serviceId, service] of this.services.entries()) {
@@ -198,9 +198,9 @@ export class AIServiceManager extends EventEmitter {
         if (typeof (service as any).shutdown === 'function') {
           await (service as any).shutdown();
         }
-        logger.info(`✅ [AIServiceManager] Service '${serviceId}' shutdown complete`);
+        logger.info(` [AIServiceManager] Service '${serviceId}' shutdown complete`);
       } catch (error) {
-        logger.error(`❌ [AIServiceManager] Error shutting down service '${serviceId}':`, error);
+        logger.error(` [AIServiceManager] Error shutting down service '${serviceId}':`, error);
       }
     }
 

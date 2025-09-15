@@ -88,7 +88,7 @@ class FullFieldMapper {
    * Map all fields for a specific ticket
    */
   async mapAllFields(table: string, sysId: string): Promise<TableFieldMapping> {
-    console.log(`🔍 Starting complete field mapping for ${table}:${sysId}`);
+    console.log(` Starting complete field mapping for ${table}:${sysId}`);
     const startTime = Date.now();
 
     try {
@@ -106,7 +106,7 @@ class FullFieldMapper {
       const record = response.result[0];
       const fieldNames = Object.keys(record);
 
-      console.log(`📊 Found ${fieldNames.length} fields in ${table} record`);
+      console.log(` Found ${fieldNames.length} fields in ${table} record`);
 
       // Analyze each field
       const fieldAnalysis: FieldAnalysis[] = fieldNames.map(fieldName => {
@@ -129,7 +129,7 @@ class FullFieldMapper {
       return mapping;
 
     } catch (error: any) {
-      console.error(`❌ Error mapping fields for ${table}:${sysId}:`, error.message);
+      console.error(` Error mapping fields for ${table}:${sysId}:`, error.message);
       throw error;
     }
   }
@@ -204,12 +204,12 @@ class FullFieldMapper {
       console.log(`   Value: "${field.sampleValue}"`);
     });
 
-    console.log(`\n⚡ SUMMARY:`);
+    console.log(`\n SUMMARY:`);
     console.log(`══════════`);
-    console.log(`✅ Successfully mapped ${mapping.totalFields} fields`);
+    console.log(` Successfully mapped ${mapping.totalFields} fields`);
     console.log(`🔗 Found ${fieldsByType.reference.length} reference fields`);
     console.log(`📅 Found ${fieldsByType.datetime.length + fieldsByType.date.length} date/time fields`);
-    console.log(`📝 Found ${fieldsByType.string.length} text fields`);
+    console.log(` Found ${fieldsByType.string.length} text fields`);
     console.log(`🔢 Found ${fieldsByType.number.length} numeric fields`);
   }
 
@@ -258,10 +258,10 @@ async function main() {
       
       await mapper.saveToFile(mapping);
       
-      console.log(`\n✅ Completed mapping for ${ticket.number}`);
+      console.log(`\n Completed mapping for ${ticket.number}`);
       
     } catch (error: any) {
-      console.error(`❌ Failed to map ${ticket.number}:`, error.message);
+      console.error(` Failed to map ${ticket.number}:`, error.message);
     }
   }
 }

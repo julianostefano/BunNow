@@ -47,11 +47,11 @@ export class StreamHandler {
         };
 
         await this.syncManager.syncTicket(tickets[0], change.type, result);
-        console.log(`🔄 Real-time sync completed for ${change.type}/${change.sys_id}`);
+        console.log(` Real-time sync completed for ${change.type}/${change.sys_id}`);
       }
 
     } catch (error) {
-      console.error(`❌ Error handling stream change:`, error);
+      console.error(` Error handling stream change:`, error);
     }
   }
 

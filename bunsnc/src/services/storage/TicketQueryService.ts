@@ -80,7 +80,7 @@ export class TicketQueryService extends TicketStorageCore {
       };
 
     } catch (error) {
-      console.error('❌ Error querying tickets:', error);
+      console.error(' Error querying tickets:', error);
       throw error;
     }
   }
@@ -155,7 +155,7 @@ export class TicketQueryService extends TicketStorageCore {
       };
 
     } catch (error) {
-      console.error('❌ Error getting dashboard stats:', error);
+      console.error(' Error getting dashboard stats:', error);
       throw error;
     }
   }
@@ -190,7 +190,7 @@ export class TicketQueryService extends TicketStorageCore {
       };
 
     } catch (error) {
-      console.error('❌ Error getting health metrics:', error);
+      console.error(' Error getting health metrics:', error);
       throw error;
     }
   }
@@ -243,7 +243,7 @@ export class TicketQueryService extends TicketStorageCore {
       };
 
     } catch (error) {
-      console.error('❌ Error getting tickets with SLAs:', error);
+      console.error(' Error getting tickets with SLAs:', error);
       throw error;
     }
   }
@@ -303,7 +303,7 @@ export class TicketQueryService extends TicketStorageCore {
       };
 
     } catch (error) {
-      console.error('❌ Error getting ticket trends:', error);
+      console.error(' Error getting ticket trends:', error);
       throw error;
     }
   }
@@ -390,7 +390,7 @@ export class TicketQueryService extends TicketStorageCore {
       }));
 
     } catch (error) {
-      console.error('❌ Error getting tickets by assignment group:', error);
+      console.error(' Error getting tickets by assignment group:', error);
       throw error;
     }
   }
@@ -416,7 +416,7 @@ export class TicketQueryService extends TicketStorageCore {
       return await this.queryTickets(query);
 
     } catch (error) {
-      console.error('❌ Error searching tickets:', error);
+      console.error(' Error searching tickets:', error);
       throw error;
     }
   }

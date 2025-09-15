@@ -219,7 +219,7 @@ export class NotificationManager extends EventEmitter {
       this.isRunning = true;
       this.startTime = new Date();
 
-      console.log('🚀 Notification manager started successfully');
+      console.log(' Notification manager started successfully');
       this.emit('started');
 
     } catch (error) {
@@ -723,7 +723,7 @@ export class NotificationManager extends EventEmitter {
                 await webpush.sendNotification(subscription, JSON.stringify(pushPayload));
                 console.log(`✓ Push notification sent successfully to subscription ${subscription.endpoint.substr(-20)}...`);
               } catch (error) {
-                console.error(`❌ Push notification failed for subscription ${subscription.endpoint.substr(-20)}...:`, error);
+                console.error(` Push notification failed for subscription ${subscription.endpoint.substr(-20)}...:`, error);
                 // Remove invalid subscriptions
                 if (error.statusCode === 410 || error.statusCode === 404) {
                   await this.removePushSubscription(subscription.endpoint);
@@ -734,14 +734,14 @@ export class NotificationManager extends EventEmitter {
             await Promise.allSettled(pushPromises);
             console.log(`✓ Push notification batch completed for ${notification.id}`);
           } else {
-            console.log(`⚠️  No push subscriptions found for notification ${notification.id}`);
+            console.log(`  No push subscriptions found for notification ${notification.id}`);
           }
         } catch (importError) {
           console.error('web-push module not available, installing with: bun add web-push');
-          console.log(`⚠️  Push notification ${notification.id} logged only - web-push module required`);
+          console.log(`  Push notification ${notification.id} logged only - web-push module required`);
         }
       } else {
-        console.log(`⚠️  VAPID keys not configured, push notification ${notification.id} logged only`);
+        console.log(`  VAPID keys not configured, push notification ${notification.id} logged only`);
       }
       
     } catch (error) {
@@ -787,7 +787,7 @@ export class NotificationManager extends EventEmitter {
         await transporter.sendMail(emailContent);
         console.log(`✓ Email notification sent successfully for ${notification.id}`);
       } else {
-        console.log(`⚠️  Email SMTP configuration not provided, notification ${notification.id} logged only`);
+        console.log(`  Email SMTP configuration not provided, notification ${notification.id} logged only`);
       }
       
     } catch (error) {
@@ -844,11 +844,11 @@ export class NotificationManager extends EventEmitter {
           } catch (error) {
             retryCount++;
             if (retryCount > maxRetries) {
-              console.error(`❌ Webhook delivery failed after ${maxRetries} retries to ${url}:`, error);
+              console.error(` Webhook delivery failed after ${maxRetries} retries to ${url}:`, error);
               throw error;
             } else {
               const backoffMs = Math.min(1000 * Math.pow(2, retryCount - 1), 10000); // Exponential backoff, max 10s
-              console.warn(`⚠️  Webhook attempt ${retryCount} failed for ${url}, retrying in ${backoffMs}ms:`, error.message);
+              console.warn(`  Webhook attempt ${retryCount} failed for ${url}, retrying in ${backoffMs}ms:`, error.message);
               await new Promise(resolve => setTimeout(resolve, backoffMs));
             }
           }
@@ -888,8 +888,8 @@ export class NotificationManager extends EventEmitter {
         const result = await db.collection('notifications').insertOne(dbRecord);
         console.log(`✓ Database notification stored successfully with ID ${result.insertedId} for ${notification.id}`);
       } catch (dbError) {
-        console.error(`❌ Database storage failed for notification ${notification.id}:`, dbError);
-        console.log(`⚠️  Database notification ${notification.id} logged only - MongoDB connection required`);
+        console.error(` Database storage failed for notification ${notification.id}:`, dbError);
+        console.log(`  Database notification ${notification.id} logged only - MongoDB connection required`);
       }
       
     } catch (error) {

@@ -116,9 +116,9 @@ export class ServiceNowAuthCore {
   }
 
   private setupLogging(): void {
-    console.log('🔐 ServiceNow Auth Client initialized with Redis Streams');
-    console.log(`🌐 ServiceNow URL: ${this.SERVICENOW_BASE_URL}`);
-    console.log(`🔄 Using environment proxy variables`);
+    console.log(' ServiceNow Auth Client initialized with Redis Streams');
+    console.log(` ServiceNow URL: ${this.SERVICENOW_BASE_URL}`);
+    console.log(` Using environment proxy variables`);
     console.log('📦 Redis cache enabled');
   }
 
@@ -133,7 +133,7 @@ export class ServiceNowAuthCore {
     }
 
     try {
-      console.log('🔑 Authenticating with ServiceNow auth service...');
+      console.log(' Authenticating with ServiceNow auth service...');
       
       const authResponse = await axios.get(this.AUTH_SERVICE_URL, {
         timeout: 15000,
@@ -153,10 +153,10 @@ export class ServiceNowAuthCore {
       this.isAuthenticated = true;
       this.lastAuthTime = now;
       
-      console.log(`✅ ServiceNow authentication successful (${this.authData.cookies.length} cookies)`);
+      console.log(` ServiceNow authentication successful (${this.authData.cookies.length} cookies)`);
 
     } catch (error: any) {
-      console.error('❌ ServiceNow authentication failed:', error.message);
+      console.error(' ServiceNow authentication failed:', error.message);
       this.isAuthenticated = false;
       throw new Error(`ServiceNow authentication failed: ${error.message}`);
     }
@@ -178,7 +178,7 @@ export class ServiceNowAuthCore {
       this.axiosClient.defaults.headers.common[key] = value;
     });
 
-    console.log('🔧 Axios configured with ServiceNow auth data');
+    console.log(' Axios configured with ServiceNow auth data');
   }
 
   /**

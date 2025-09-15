@@ -26,10 +26,10 @@ async function simpleUpsertTest() {
     console.log('Sample incident data:', JSON.stringify(sampleIncident, null, 2));
     
     const result = await ticketCollectionService.upsertIncident(sampleIncident, []);
-    console.log('✅ Result:', result);
+    console.log(' Result:', result);
     
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    console.error(' Error:', error.message);
     console.error('Stack:', error.stack);
   }
 }

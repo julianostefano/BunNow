@@ -68,7 +68,7 @@ export class IntelligentSearchController {
     const startTime = Date.now();
 
     try {
-      logger.info(`🔍 [IntelligentSearch] Query: "${request.query}" | Type: ${request.search_type || 'hybrid'}`);
+      logger.info(` [IntelligentSearch] Query: "${request.query}" | Type: ${request.search_type || 'hybrid'}`);
 
       // 1. Generate query embedding
       const queryEmbedding = await this.embedding.generateEmbeddings([request.query]);
@@ -118,11 +118,11 @@ export class IntelligentSearchController {
         }
       };
 
-      logger.info(`✅ [IntelligentSearch] Found ${finalResults.length} results in ${response.metadata.processing_time_ms}ms`);
+      logger.info(` [IntelligentSearch] Found ${finalResults.length} results in ${response.metadata.processing_time_ms}ms`);
       return response;
 
     } catch (error) {
-      logger.error('❌ [IntelligentSearch] Search failed:', error);
+      logger.error(' [IntelligentSearch] Search failed:', error);
       throw error;
     }
   }
@@ -220,7 +220,7 @@ export class IntelligentSearchController {
       }));
 
     } catch (error) {
-      logger.warn('⚠️ [IntelligentSearch] Document search failed:', error);
+      logger.warn(' [IntelligentSearch] Document search failed:', error);
       return [];
     }
   }
@@ -277,7 +277,7 @@ export class IntelligentSearchController {
       }));
 
     } catch (error) {
-      logger.warn('⚠️ [IntelligentSearch] Ticket search failed:', error);
+      logger.warn(' [IntelligentSearch] Ticket search failed:', error);
       return [];
     }
   }
@@ -298,7 +298,7 @@ export class IntelligentSearchController {
       return results.flatMap(result => result.result || []);
 
     } catch (error) {
-      logger.warn('⚠️ [IntelligentSearch] ServiceNow ticket search failed:', error);
+      logger.warn(' [IntelligentSearch] ServiceNow ticket search failed:', error);
       return [];
     }
   }
@@ -330,7 +330,7 @@ export class IntelligentSearchController {
       }));
 
     } catch (error) {
-      logger.warn('⚠️ [IntelligentSearch] Knowledge base search failed:', error);
+      logger.warn(' [IntelligentSearch] Knowledge base search failed:', error);
       return [];
     }
   }
@@ -380,7 +380,7 @@ export class IntelligentSearchController {
       }).filter(result => result !== null);
 
     } catch (error) {
-      logger.warn('⚠️ [IntelligentSearch] Reranking failed, returning original results:', error);
+      logger.warn(' [IntelligentSearch] Reranking failed, returning original results:', error);
       return results.slice(0, maxResults);
     }
   }
@@ -471,7 +471,7 @@ export const searchRoutes = new Elysia({ prefix: '/api/search' })
       };
 
     } catch (error) {
-      logger.error('❌ [SearchAPI] Intelligent search failed:', error);
+      logger.error(' [SearchAPI] Intelligent search failed:', error);
 
       set.status = 500;
       return {
@@ -529,7 +529,7 @@ export const searchRoutes = new Elysia({ prefix: '/api/search' })
       };
 
     } catch (error) {
-      logger.error('❌ [SearchAPI] Search suggestions failed:', error);
+      logger.error(' [SearchAPI] Search suggestions failed:', error);
       return {
         success: false,
         error: 'Failed to generate suggestions',
@@ -583,7 +583,7 @@ export const searchRoutes = new Elysia({ prefix: '/api/search' })
       };
 
     } catch (error) {
-      logger.error('❌ [SearchAPI] Failed to get filter options:', error);
+      logger.error(' [SearchAPI] Failed to get filter options:', error);
       throw error;
     }
   }, {

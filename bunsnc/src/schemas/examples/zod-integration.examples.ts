@@ -67,14 +67,14 @@ export function exampleCreateIncident() {
     const validationResult = validateSchema('incident-creation', incidentData);
     
     if (validationResult.success) {
-      console.log('✅ Incident validation successful:', validationResult.data?.short_description);
+      console.log(' Incident validation successful:', validationResult.data?.short_description);
     } else {
-      console.log('❌ Incident validation failed:', validationResult.errors);
+      console.log(' Incident validation failed:', validationResult.errors);
     }
     
     // Using direct Zod schema
     const zodValidation = IncidentCreationSchema.safeParse(incidentData);
-    console.log('Direct Zod validation:', zodValidation.success ? '✅ Success' : '❌ Failed');
+    console.log('Direct Zod validation:', zodValidation.success ? ' Success' : ' Failed');
     
   } catch (error) {
     console.error('Validation error:', error);
@@ -105,9 +105,9 @@ export function exampleCreateChangeTask() {
     const validationResult = validateSchema('change-task-creation', changeTaskData);
     
     if (validationResult.success) {
-      console.log('✅ Change task validation successful:', validationResult.data?.short_description);
+      console.log(' Change task validation successful:', validationResult.data?.short_description);
     } else {
-      console.log('❌ Change task validation failed:', validationResult.errors);
+      console.log(' Change task validation failed:', validationResult.errors);
     }
     
   } catch (error) {
@@ -147,9 +147,9 @@ export function exampleCreateServiceTask() {
     const validationResult = validateSchema('service-task-creation', serviceTaskData);
     
     if (validationResult.success) {
-      console.log('✅ Service task validation successful:', validationResult.data?.short_description);
+      console.log(' Service task validation successful:', validationResult.data?.short_description);
     } else {
-      console.log('❌ Service task validation failed:', validationResult.errors);
+      console.log(' Service task validation failed:', validationResult.errors);
     }
     
   } catch (error) {
@@ -177,14 +177,14 @@ export function exampleSLAValidation() {
     const validation = SLAValidationSchema.safeParse(slaData);
     
     if (validation.success) {
-      console.log('✅ SLA compliance check passed');
+      console.log(' SLA compliance check passed');
       // Calculate actual resolution time
       const created = new Date(slaData.created_on);
       const resolved = new Date(slaData.resolved_at);
       const resolutionHours = (resolved.getTime() - created.getTime()) / (1000 * 60 * 60);
       console.log(`Resolution time: ${resolutionHours.toFixed(1)} hours (Target: 4 hours for Critical)`);
     } else {
-      console.log('❌ SLA compliance check failed:', validation.error.errors);
+      console.log(' SLA compliance check failed:', validation.error.errors);
     }
     
   } catch (error) {
@@ -224,12 +224,12 @@ export function exampleServiceRequestValidation() {
     const validation = ServiceRequestValidationSchema.safeParse(serviceRequestData);
     
     if (validation.success) {
-      console.log('✅ Service request validation passed');
+      console.log(' Service request validation passed');
       console.log('Request for:', serviceRequestData.variables.software_name);
       console.log('Estimated cost:', `$${serviceRequestData.variables.estimated_cost}`);
-      console.log('Manager approval:', serviceRequestData.manager_approval?.approved_at ? '✅ Approved' : '⏳ Pending');
+      console.log('Manager approval:', serviceRequestData.manager_approval?.approved_at ? ' Approved' : '⏳ Pending');
     } else {
-      console.log('❌ Service request validation failed:', validation.error.errors);
+      console.log(' Service request validation failed:', validation.error.errors);
     }
     
   } catch (error) {
@@ -262,11 +262,11 @@ export function exampleIncidentEscalation() {
     const validation = IncidentEscalationValidationSchema.safeParse(escalationData);
     
     if (validation.success) {
-      console.log('✅ Incident escalation level is appropriate');
+      console.log(' Incident escalation level is appropriate');
       const ageHours = (currentTime.getTime() - createdTime.getTime()) / (1000 * 60 * 60);
       console.log(`Incident age: ${ageHours.toFixed(1)} hours, Escalation level: ${escalationData.escalation}`);
     } else {
-      console.log('❌ Incident requires escalation:', validation.error.errors);
+      console.log(' Incident requires escalation:', validation.error.errors);
     }
     
   } catch (error) {
@@ -321,7 +321,7 @@ export function exampleHybridValidation() {
   
   // Validate with Zod
   const zodResult = safeValidateSchema('incident', testData);
-  console.log('Zod validation:', zodResult.success ? '✅ Success' : '❌ Failed');
+  console.log('Zod validation:', zodResult.success ? ' Success' : ' Failed');
   
   // Get TypeBox version for Elysia
   const typeboxSchema = unifiedRegistry.getTypeBoxSchema('incident');
@@ -356,7 +356,7 @@ export function exampleErrorHandling() {
   const validation = safeValidateSchema('incident', invalidIncidentData);
   
   if (!validation.success) {
-    console.log('❌ Validation failed as expected:');
+    console.log(' Validation failed as expected:');
     validation.errors?.forEach((error, index) => {
       console.log(`  ${index + 1}. ${error}`);
     });
@@ -370,7 +370,7 @@ export function exampleErrorHandling() {
   
   const incompleteValidation = safeValidateSchema('incident-creation', incompleteData);
   if (!incompleteValidation.success) {
-    console.log('\n❌ Incomplete data validation failed as expected:');
+    console.log('\n Incomplete data validation failed as expected:');
     incompleteValidation.errors?.forEach((error, index) => {
       console.log(`  ${index + 1}. ${error}`);
     });
@@ -380,7 +380,7 @@ export function exampleErrorHandling() {
 // ===== EXPORT ALL EXAMPLES =====
 
 export function runAllExamples() {
-  console.log('🚀 Running Zod Integration Examples\n');
+  console.log(' Running Zod Integration Examples\n');
   
   try {
     exampleCreateIncident();
@@ -409,10 +409,10 @@ export function runAllExamples() {
     
     exampleErrorHandling();
     
-    console.log('\n✅ All examples completed successfully!');
+    console.log('\n All examples completed successfully!');
     
   } catch (error) {
-    console.error('\n❌ Example execution error:', error);
+    console.error('\n Example execution error:', error);
   }
 }
 

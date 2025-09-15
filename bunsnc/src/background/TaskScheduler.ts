@@ -81,13 +81,13 @@ export class TaskScheduler extends EventEmitter {
       
       await this.redis.connect();
       
-      console.log('✅ Task Scheduler Redis connection established');
+      console.log(' Task Scheduler Redis connection established');
       
       // Load existing scheduled tasks
       await this.loadScheduledTasks();
       
     } catch (error) {
-      console.error('❌ Failed to initialize Redis for TaskScheduler:', error);
+      console.error(' Failed to initialize Redis for TaskScheduler:', error);
       throw error;
     }
   }
@@ -137,7 +137,7 @@ export class TaskScheduler extends EventEmitter {
       return taskId;
       
     } catch (error) {
-      console.error(`❌ Failed to schedule task ${taskId}:`, error);
+      console.error(` Failed to schedule task ${taskId}:`, error);
       throw error;
     }
   }
@@ -163,7 +163,7 @@ export class TaskScheduler extends EventEmitter {
       console.log(`📅 Task unscheduled: ${task.name} (${taskId})`);
       
     } catch (error) {
-      console.error(`❌ Failed to unschedule task ${taskId}:`, error);
+      console.error(` Failed to unschedule task ${taskId}:`, error);
       throw error;
     }
   }
@@ -202,7 +202,7 @@ export class TaskScheduler extends EventEmitter {
       this.emit('taskUpdated', { taskId, task: updatedTask });
       
     } catch (error) {
-      console.error(`❌ Failed to update scheduled task ${taskId}:`, error);
+      console.error(` Failed to update scheduled task ${taskId}:`, error);
       throw error;
     }
   }
@@ -282,7 +282,7 @@ export class TaskScheduler extends EventEmitter {
     await this.checkAndRunTasks();
     
     this.emit('started');
-    console.log('✅ Task Scheduler started');
+    console.log(' Task Scheduler started');
   }
   
   /**
@@ -291,7 +291,7 @@ export class TaskScheduler extends EventEmitter {
   async stop(): Promise<void> {
     if (!this.isRunning) return;
     
-    console.log('🛑 Stopping Task Scheduler...');
+    console.log(' Stopping Task Scheduler...');
     this.isRunning = false;
     
     if (this.schedulerInterval) {
@@ -301,7 +301,7 @@ export class TaskScheduler extends EventEmitter {
     await this.redis.disconnect();
     
     this.emit('stopped');
-    console.log('✅ Task Scheduler stopped');
+    console.log(' Task Scheduler stopped');
   }
   
   /**
@@ -313,7 +313,7 @@ export class TaskScheduler extends EventEmitter {
       throw new Error(`Scheduled task ${taskId} not found`);
     }
     
-    console.log(`⚡ Manually triggering task: ${scheduledTask.name} (${taskId})`);
+    console.log(` Manually triggering task: ${scheduledTask.name} (${taskId})`);
     
     return await this.executeScheduledTask(scheduledTask);
   }
@@ -335,14 +335,14 @@ export class TaskScheduler extends EventEmitter {
           
           this.scheduledTasks.set(taskId, task);
         } catch (parseError) {
-          console.error(`❌ Failed to parse scheduled task ${taskId}:`, parseError);
+          console.error(` Failed to parse scheduled task ${taskId}:`, parseError);
         }
       }
       
       console.log(`📅 Loaded ${this.scheduledTasks.size} scheduled tasks`);
       
     } catch (error) {
-      console.error('❌ Failed to load scheduled tasks:', error);
+      console.error(' Failed to load scheduled tasks:', error);
     }
   }
   
@@ -380,7 +380,7 @@ export class TaskScheduler extends EventEmitter {
           try {
             await this.executeScheduledTask(task);
           } catch (error) {
-            console.error(`❌ Failed to execute scheduled task ${task.id}:`, error);
+            console.error(` Failed to execute scheduled task ${task.id}:`, error);
           }
         }
       }
@@ -389,12 +389,12 @@ export class TaskScheduler extends EventEmitter {
       await this.redis.del(this.SCHEDULE_LOCK_KEY);
       
     } catch (error) {
-      console.error('❌ Scheduler check failed:', error);
+      console.error(' Scheduler check failed:', error);
       // Make sure to release lock on error
       try {
         await this.redis.del(this.SCHEDULE_LOCK_KEY);
       } catch (unlockError) {
-        console.error('❌ Failed to release scheduler lock:', unlockError);
+        console.error(' Failed to release scheduler lock:', unlockError);
       }
     }
   }
@@ -527,7 +527,7 @@ export class TaskScheduler extends EventEmitter {
       return nextRun;
       
     } catch (error) {
-      console.error(`❌ Failed to parse cron expression "${cronExpression}":`, error);
+      console.error(` Failed to parse cron expression "${cronExpression}":`, error);
       // Fallback: run in 1 hour
       const fallback = new Date(now);
       fallback.setHours(fallback.getHours() + 1);

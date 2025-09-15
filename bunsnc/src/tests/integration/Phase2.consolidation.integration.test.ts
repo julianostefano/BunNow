@@ -84,11 +84,11 @@ describe('Phase 2 Consolidation - Integration Tests', () => {
   let mockRedisStreams: ServiceNowStreams;
 
   beforeAll(async () => {
-    console.log('🔧 Setting up Phase 2 integration tests...');
+    console.log(' Setting up Phase 2 integration tests...');
     console.log('Environment configuration:', {
-      mongodb: INTEGRATION_TEST_CONFIG.mongodb.enabled ? '✅ Enabled' : '❌ Mocked',
-      servicenow: INTEGRATION_TEST_CONFIG.servicenow.enabled ? '✅ Enabled' : '❌ Mocked',
-      redis: INTEGRATION_TEST_CONFIG.redis.enabled ? '✅ Enabled' : '❌ Mocked'
+      mongodb: INTEGRATION_TEST_CONFIG.mongodb.enabled ? ' Enabled' : ' Mocked',
+      servicenow: INTEGRATION_TEST_CONFIG.servicenow.enabled ? ' Enabled' : ' Mocked',
+      redis: INTEGRATION_TEST_CONFIG.redis.enabled ? ' Enabled' : ' Mocked'
     });
 
     // Initialize mock services
@@ -364,7 +364,7 @@ describe('Phase 2 Consolidation - Integration Tests', () => {
         expect(result.ticket.sysId).toBe(`performance-test-${index}`);
       });
 
-      console.log(`✅ Performance test completed: ${operations} operations in ${duration}ms`);
+      console.log(` Performance test completed: ${operations} operations in ${duration}ms`);
     }, INTEGRATION_TEST_CONFIG.timeout);
   });
 
@@ -489,7 +489,7 @@ describe('Phase 2 Consolidation - Integration Tests', () => {
       expect(consolidatedTicketService.getStatusLabel('2')).toBe('Em Progresso');
       expect(consolidatedTicketService.getPriorityLabel('1')).toBe('Crítica');
 
-      console.log('✅ All consolidated service features validated');
+      console.log(' All consolidated service features validated');
     }, INTEGRATION_TEST_CONFIG.timeout);
   });
 });
@@ -502,6 +502,6 @@ const shouldSkipTests = INTEGRATION_TEST_CONFIG.skipIfNoEnvironment && (
 );
 
 if (shouldSkipTests) {
-  console.warn('⚠️ Some integration tests will use mocks due to missing environment variables');
+  console.warn(' Some integration tests will use mocks due to missing environment variables');
   console.warn('Set MONGODB_URL, SNC_INSTANCE_URL, SNC_AUTH_TOKEN, and REDIS_URL for full integration testing');
 }

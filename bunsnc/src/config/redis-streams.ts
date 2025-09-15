@@ -77,12 +77,12 @@ export class ServiceNowStreams {
     });
 
     this.redis.on('error', (error) => {
-      console.error('❌ Redis connection error:', error);
+      console.error(' Redis connection error:', error);
       this.isConnected = false;
     });
 
     this.redis.on('close', () => {
-      console.log('🔒 Redis connection closed');
+      console.log(' Redis connection closed');
       this.isConnected = false;
     });
   }
@@ -103,7 +103,7 @@ export class ServiceNowStreams {
           '$',
           'MKSTREAM'
         );
-        console.log(`✅ Consumer group '${this.config.consumerGroup}' created`);
+        console.log(` Consumer group '${this.config.consumerGroup}' created`);
       } catch (error: any) {
         if (!error.message.includes('BUSYGROUP')) {
           throw error;
@@ -111,9 +111,9 @@ export class ServiceNowStreams {
         console.log(`ℹ️ Consumer group '${this.config.consumerGroup}' already exists`);
       }
 
-      console.log('🚀 ServiceNow streams initialized successfully');
+      console.log(' ServiceNow streams initialized successfully');
     } catch (error) {
-      console.error('❌ Failed to initialize ServiceNow streams:', error);
+      console.error(' Failed to initialize ServiceNow streams:', error);
       throw error;
     }
   }
@@ -148,7 +148,7 @@ export class ServiceNowStreams {
       console.log(`📤 ServiceNow change published: ${change.type}:${change.action} (${messageId})`);
       return messageId;
     } catch (error) {
-      console.error('❌ Failed to publish ServiceNow change:', error);
+      console.error(' Failed to publish ServiceNow change:', error);
       throw error;
     }
   }
@@ -184,7 +184,7 @@ export class ServiceNowStreams {
       await this.initialize();
     }
 
-    console.log(`🔄 Starting consumer: ${this.config.consumerName}`);
+    console.log(` Starting consumer: ${this.config.consumerName}`);
 
     while (this.isConnected) {
       try {
@@ -215,12 +215,12 @@ export class ServiceNowStreams {
 
       } catch (error: any) {
         if (error.message.includes('NOGROUP')) {
-          console.log('🔄 Consumer group not found, recreating...');
+          console.log(' Consumer group not found, recreating...');
           await this.initialize();
           continue;
         }
         
-        console.error('❌ Consumer error:', error);
+        console.error(' Consumer error:', error);
         await new Promise(resolve => setTimeout(resolve, this.config.retryDelayMs));
       }
     }
@@ -270,10 +270,10 @@ export class ServiceNowStreams {
       // Acknowledge message
       await this.redis.xack(this.config.streamKey, this.config.consumerGroup, messageId);
       
-      console.log(`✅ Processed message: ${changeKey} (${messageId})`);
+      console.log(` Processed message: ${changeKey} (${messageId})`);
 
     } catch (error) {
-      console.error(`❌ Failed to process message ${messageId}:`, error);
+      console.error(` Failed to process message ${messageId}:`, error);
       
       // TODO: Implement dead letter queue for failed messages
       await this.redis.xack(this.config.streamKey, this.config.consumerGroup, messageId);
@@ -295,7 +295,7 @@ export class ServiceNowStreams {
       );
 
       if (pending && pending.length > 0) {
-        console.log(`🔄 Processing ${pending.length} pending messages`);
+        console.log(` Processing ${pending.length} pending messages`);
         
         for (const [messageId] of pending) {
           const messages = await this.redis.xclaim(
@@ -313,7 +313,7 @@ export class ServiceNowStreams {
         }
       }
     } catch (error) {
-      console.error('❌ Failed to process pending messages:', error);
+      console.error(' Failed to process pending messages:', error);
     }
   }
 
@@ -347,7 +347,7 @@ export class ServiceNowStreams {
 
       return stats;
     } catch (error) {
-      console.error('❌ Failed to get stream stats:', error);
+      console.error(' Failed to get stream stats:', error);
       return { status: 'error', error: error.message };
     }
   }
@@ -396,14 +396,14 @@ export class ServiceNowStreams {
    * Close Redis connection
    */
   async close(): Promise<void> {
-    console.log('🔒 Closing ServiceNow streams connection...');
+    console.log(' Closing ServiceNow streams connection...');
     
     if (this.redis) {
       await this.redis.quit();
     }
     
     this.isConnected = false;
-    console.log('✅ ServiceNow streams connection closed');
+    console.log(' ServiceNow streams connection closed');
   }
 
   /**
