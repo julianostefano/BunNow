@@ -48,6 +48,127 @@ export interface SearchOptions {
   include_source?: boolean;
 }
 
+// Milestone 5: Knowledge Management Integration Types
+
+export interface DocumentUploadMetadata {
+  filename?: string;
+  title?: string;
+  support_group?: string;
+  technology?: string;
+  document_type?: string;
+  file_size?: number;
+  uploaded_by: string;
+  creation_date?: Date;
+  last_modified?: Date;
+}
+
+export interface ProcessingResult {
+  success: boolean;
+  document_id?: string;
+  classification?: any;
+  indexed_collections?: string[];
+  processing_time_ms: number;
+  errors?: string[];
+  extracted_metadata?: any;
+}
+
+export interface DocumentValidation {
+  valid: boolean;
+  errors: string[];
+  detected_format: string;
+}
+
+export interface GapAnalysis {
+  analysis_date: string;
+  missing_topics: Array<{
+    topic: string;
+    gap_severity: string;
+    search_frequency: number;
+  }>;
+  suggested_documents: Array<{
+    title: string;
+    priority: string;
+    estimated_effort: string;
+  }>;
+  update_candidates: Array<{
+    technology: string;
+    reason: string;
+  }>;
+  coverage_score: number;
+  recommendations: string[];
+}
+
+export interface KnowledgeGraphUpdate {
+  document_id: string;
+  classification: any;
+  relationships: any[];
+}
+
+export interface NotificationResult {
+  notifications_sent: number;
+  groups_notified: string[];
+}
+
+export interface EntityRelationship {
+  source: string;
+  target: string;
+  relationship: string;
+}
+
+// Knowledge Graph Types
+
+export interface KnowledgeGraphNode {
+  node_id: string;
+  type: 'document' | 'entity';
+  title: string;
+  technology: string[];
+  support_group: string[];
+  document_type: string;
+  criticality: 'low' | 'medium' | 'high' | 'critical';
+  metadata: any;
+  related_documents?: string[];
+  connections: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface KnowledgeGraphEdge {
+  edge_id: string;
+  source: string;
+  target: string;
+  relationship_type: string;
+  strength: number;
+  source_document: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface KnowledgeGraphQuery {
+  query_type: 'find_related_documents' | 'get_technology_map' | 'analyze_support_coverage' | 'find_knowledge_clusters' | 'get_expertise_mapping';
+  parameters: any;
+}
+
+export interface TechnologyMap {
+  technologies: Array<{
+    name: string;
+    document_count: number;
+    complexity_score: number;
+    support_groups: string[];
+  }>;
+  total_technologies: number;
+}
+
+export interface SupportGroupMap {
+  support_groups: Array<{
+    name: string;
+    document_count: number;
+    technologies_covered: string[];
+    criticality_level: string;
+    coverage_score: number;
+  }>;
+  total_groups: number;
+}
+
 export interface SearchResult {
   id: string;
   score: number;
