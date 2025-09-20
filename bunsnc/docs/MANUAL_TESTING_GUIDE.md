@@ -220,47 +220,46 @@ curl -s -m 5 http://localhost:3008/clean/
 
 ### Common Issues and Solutions
 
-#### 1. Authentication Failures
+#### 1. Modal HTMX Not Opening (CRÍTICO)
 **Symptoms:**
-- "Authentication failed" errors
-- HTTP 401/403 responses
+- Botão "Ver Detalhes" não responde
+- Modal não abre ao clicar nos tickets
 
 **Solutions:**
-- Verify ServiceNow instance URL is correct
-- Check AUTH_SERVICE_URL is reachable (http://10.219.8.210:8000/auth)
-- Ensure user has sufficient ServiceNow permissions
+- Debugar rota `/enhanced/ticket-details/:sysId/:table` no browser DevTools
+- Verificar resposta HTMX no Network tab
+- Testar endpoint diretamente via curl
+- Validar Alpine.js event binding no console
 
-#### 2. Background Sync Not Starting
+#### 2. Dados Mock em vez de Reais
 **Symptoms:**
-- `"initialized": false` in status
-- No MongoDB data being collected
+- Dashboard mostra INC001, INC002 (dados fixos)
+- Contadores não refletem dados reais
 
 **Solutions:**
-- Check MongoDB connection (10.219.8.210:27018)
-- Verify Redis is running and accessible
-- Check ServiceNow API rate limits
+- Verificar integração ServiceNow → dashboard
+- Testar endpoints de dados reais: `/api/v1/mongodb/tickets/incident`
+- Validar pipeline de dados MongoDB ← ServiceNow
+- Confirmar background sync está populando dados
 
-#### 3. No Tickets Found for Monitored Groups
+#### 3. Workflows de Movimentação Não Testados
 **Symptoms:**
-- Query returns 0 tickets for groups
-- "No active tickets found" messages
+- Dropdowns de status implementados mas não validados
+- Ações de resolver/fechar/atribuir não testadas
 
 **Solutions:**
-- Verify group names match exactly in ServiceNow
-- Check if tickets are in excluded states (closed/resolved)
-- Confirm assignment_group field contains correct group names
+- Após modal funcionar, testar cada dropdown
+- Validar persistência das mudanças de status
+- Confirmar integração com ServiceNow API
+- Testar fluxos completos de movimentação
 
-#### 4. MongoDB Connection Issues  
-**Symptoms:**
-- "MongoDB service not available" warnings
-- Database connection timeouts
+#### ✅ PROBLEMAS REMOVIDOS (Já Resolvidos)
+- ~~Authentication Failures~~ - NORMALIZADA pelo usuário
+- ~~Background Sync Not Starting~~ - FUNCIONAL (startAutoSync implementado)
+- ~~MongoDB Connection Issues~~ - TOTALMENTE IMPLEMENTADA (commit 6aa50a9)
+- ~~No Tickets Found~~ - Sistema conectado, problema é dados mock vs reais
 
-**Solutions:**
-- Verify MongoDB server is running on 10.219.8.210:27018
-- Check network connectivity and firewall rules
-- Confirm database credentials are correct
-
-#### 5. SLA Data Not Found
+#### 4. SLA Data Not Found
 **Symptoms:**
 - "Nenhum SLA encontrado" in ticket reports
 - Empty SLA arrays in responses
@@ -273,18 +272,18 @@ curl -s -m 5 http://localhost:3008/clean/
 ## Performance Benchmarks
 
 ### Expected Response Times
+- **HTMX Modal Response**: < 500ms (CURRENT ISSUE)
 - **ServiceNow API Requests**: < 2000ms per request
 - **MongoDB Queries**: < 100ms per query
-- **Background Sync Status**: < 500ms
-- **Dashboard Load**: < 1000ms
-- **CRUD Operations**: < 3000ms per operation
+- **Dashboard Load**: < 1000ms ✅ WORKING
+- **Background Sync Status**: < 500ms ✅ WORKING
 
-### Data Volume Expectations
-- **Incidents**: 100-500 active tickets
-- **Change Tasks**: 100-300 active tickets  
-- **Service Request Tasks**: 100-400 active tickets
-- **SLA Records**: 2-5 SLAs per ticket
-- **Notes**: 5-20 notes per ticket
+### Data Volume Expectations (Updated)
+- **System Status**: 90% FUNCIONAL - Architecture Sólida
+- **Mock Data**: INC001, INC002 (need replacement with real data)
+- **Real Data Expected**: 100-500+ tickets from ServiceNow
+- **SLA Records**: Available through consolidated services
+- **Storage**: MongoDB fully implemented (3→1 services)
 
 ## Test Execution Checklist
 

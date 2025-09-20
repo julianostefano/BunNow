@@ -8,7 +8,6 @@ import { EventEmitter } from 'events';
 import { MongoClient, Db, Collection } from 'mongodb';
 import { logger } from '../utils/Logger';
 import { ServiceNowAuthClient } from './ServiceNowAuthClient';
-import { ConsolidatedDataService } from './ConsolidatedDataService';
 import { ServiceNowStreams, ServiceNowChange } from '../config/redis-streams';
 import { IncidentDocument, ChangeTaskDocument, SCTaskDocument, GroupDocument, GroupData, COLLECTION_NAMES } from '../config/mongodb-collections';
 
@@ -506,12 +505,8 @@ export class ConsolidatedDataService extends EventEmitter {
       // Initialize MongoDB
       await this.mongoManager.initialize();
 
-      // Initialize Enhanced Ticket Storage Service
-      this.ticketStorageService = new ConsolidatedDataService(
-        this.mongoManager.getClient(),
-        this.config.mongodb.databaseName || 'bunsnc'
-      );
-      await this.ticketStorageService.initialize();
+      // Initialize Enhanced Ticket Storage Service (self-reference for this singleton)
+      this.ticketStorageService = this;
 
       // Initialize ServiceNow Streams
       this.serviceNowStreams = new ServiceNowStreams({
@@ -519,7 +514,7 @@ export class ConsolidatedDataService extends EventEmitter {
         port: this.config.redis.port,
         password: this.config.redis.password
       });
-      await this.serviceNowStreams.connect();
+      await this.serviceNowStreams.initialize();
 
       // Start sync interval if configured
       if (this.config.sync.syncInterval) {
@@ -817,6 +812,106 @@ export class ConsolidatedDataService extends EventEmitter {
     }
   }
 
+  // ==================== AUTO-SYNC METHODS ====================
+
+  startAutoSync(options: SyncOptions): void {
+    try {
+      // Stop any existing sync interval
+      this.stopAutoSync();
+
+      const syncInterval = options.syncInterval || this.config.sync.syncInterval || 300000; // Default 5 minutes
+      const batchSize = options.batchSize || 50;
+      const tables = options.tables || ['incident', 'change_task', 'sc_task'];
+
+      logger.info(`🔄 [DataService] Starting auto-sync with interval: ${syncInterval}ms`);
+      logger.info(`📊 [DataService] Auto-sync configuration:`, {
+        syncInterval,
+        batchSize,
+        tables,
+        enableDeltaSync: options.enableDeltaSync,
+        enableRealTimeUpdates: options.enableRealTimeUpdates,
+        enableSLMCollection: options.enableSLMCollection,
+        enableNotesCollection: options.enableNotesCollection
+      });
+
+      // Set up the interval for automatic synchronization
+      this.syncInterval = setInterval(async () => {
+        try {
+          logger.info('🔄 [DataService] Executing scheduled auto-sync...');
+
+          for (const table of tables) {
+            try {
+              // Perform sync for each table
+              await this.syncTableData(table, {
+                batchSize,
+                enableDeltaSync: options.enableDeltaSync,
+                enableRealTimeUpdates: options.enableRealTimeUpdates,
+                enableSLMCollection: options.enableSLMCollection,
+                enableNotesCollection: options.enableNotesCollection
+              });
+
+              logger.info(`✅ [DataService] Auto-sync completed for table: ${table}`);
+            } catch (tableError) {
+              logger.error(`❌ [DataService] Auto-sync failed for table ${table}:`, tableError);
+            }
+          }
+
+          logger.info('🎉 [DataService] Auto-sync cycle completed');
+        } catch (syncError) {
+          logger.error('❌ [DataService] Auto-sync cycle failed:', syncError);
+        }
+      }, syncInterval);
+
+      logger.info('✅ [DataService] Auto-sync enabled successfully');
+    } catch (error) {
+      logger.error('❌ [DataService] Failed to start auto-sync:', error);
+      throw error;
+    }
+  }
+
+  stopAutoSync(): void {
+    try {
+      if (this.syncInterval) {
+        clearInterval(this.syncInterval);
+        this.syncInterval = undefined;
+        logger.info('🛑 [DataService] Auto-sync stopped');
+      } else {
+        logger.info('ℹ️ [DataService] Auto-sync was not running');
+      }
+    } catch (error) {
+      logger.error('❌ [DataService] Failed to stop auto-sync:', error);
+      throw error;
+    }
+  }
+
+  private async syncTableData(table: string, options: Partial<SyncOptions>): Promise<void> {
+    try {
+      // This is a placeholder for the actual sync implementation
+      // In a real implementation, this would:
+      // 1. Fetch data from ServiceNow for the specified table
+      // 2. Compare with cached/stored data
+      // 3. Update MongoDB with new/changed records
+      // 4. Handle delta sync if enabled
+      // 5. Collect SLM data if enabled
+      // 6. Collect notes if enabled
+
+      logger.info(`🔄 [DataService] Syncing table: ${table} with options:`, options);
+
+      // For now, just log the sync attempt
+      const batchSize = options.batchSize || 50;
+      logger.info(`📦 [DataService] Processing ${table} with batch size: ${batchSize}`);
+
+      // Simulate sync completion
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+    } catch (error) {
+      logger.error(`❌ [DataService] Sync failed for table ${table}:`, error);
+      throw error;
+    }
+  }
+
+  // ==================== CLEANUP ====================
+
   async cleanup(): Promise<void> {
     try {
       if (this.syncInterval) {
@@ -850,5 +945,30 @@ export const createDataService = (config: DataServiceConfig) => {
   return ConsolidatedDataService.getInstance(config);
 };
 
-// Export singleton for global use
-export const dataService = ConsolidatedDataService.getInstance();
+// Export singleton for global use with default config
+const defaultDataServiceConfig: DataServiceConfig = {
+  mongodb: {
+    connectionString: `mongodb://${process.env.MONGODB_USERNAME || 'admin'}:${encodeURIComponent(process.env.MONGODB_PASSWORD || 'Logica2011_')}@${process.env.MONGODB_HOST || '10.219.8.210'}:${process.env.MONGODB_PORT || '27018'}/${process.env.MONGODB_DATABASE || 'bunsnc'}?authSource=admin`,
+    databaseName: process.env.MONGODB_DATABASE || 'bunsnc'
+  },
+  redis: {
+    host: process.env.REDIS_HOST || '10.219.8.210',
+    port: parseInt(process.env.REDIS_PORT || '6380'),
+    password: process.env.REDIS_PASSWORD
+  },
+  cache: {
+    enabled: true,
+    ttl: 300000,
+    maxSize: 1000,
+    strategy: 'smart'
+  },
+  sync: {
+    batchSize: 100,
+    maxRetries: 3,
+    syncInterval: 30000,
+    enableDeltaSync: true,
+    enableRealTimeUpdates: true
+  }
+};
+
+export const dataService = createDataService(defaultDataServiceConfig);

@@ -441,7 +441,7 @@ export class SystemTaskManager extends EventEmitter {
   /**
    * Get task statistics
    */
-  async getStats(): Promise<TaskStats>;
+  async getStats(): Promise<TaskStats> {
     const allTasks = Array.from(this.tasks.values());
     const totalTasks = allTasks.length;
     const completedTasks = allTasks.filter(t => t.status === 'completed').length;

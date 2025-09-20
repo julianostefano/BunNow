@@ -16,11 +16,11 @@ import {
 
 export class TicketRepository {
   private db: Db;
-  private client: MongoClient;
+  private client: MongoClient | null;
   
-  constructor(client: MongoClient, dbName: string = 'bunsnc_tickets') {
-    this.client = client;
-    this.db = client.db(dbName);
+  constructor(db: Db, dbName: string = 'bunsnc_tickets') {
+    this.client = null; // Not needed when passed Database directly
+    this.db = db;
   }
 
   /**
@@ -415,4 +415,21 @@ export class TicketRepository {
 
 // Export singleton instance (initialized when needed)
 import { mongoClient } from '../config/mongodb';
-export const ticketRepository = new TicketRepository(mongoClient);
+
+// Create a lazy-loaded repository that connects to MongoDB when first used
+export const ticketRepository = {
+  _instance: null as TicketRepository | null,
+
+  async getInstance(): Promise<TicketRepository> {
+    if (!this._instance) {
+      // Ensure MongoDB is connected
+      if (!mongoClient.getDatabase) {
+        await mongoClient.connect();
+      }
+
+      // Create repository with the connected MongoDB database
+      this._instance = new TicketRepository(mongoClient.getDatabase());
+    }
+    return this._instance;
+  }
+};

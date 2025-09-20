@@ -304,10 +304,6 @@ export class SystemService extends EventEmitter {
 
   // === Task Management Methods ===
   async addTask(type: string, data: Record<string, unknown>, options?: TaskOptions): Promise<string> {
-    priority?: 'low' | 'normal' | 'high' | 'critical';
-    maxRetries?: number;
-    tags?: string[];
-  }): Promise<string> {
     return this.taskManager.addTask(type, data, options);
   }
 

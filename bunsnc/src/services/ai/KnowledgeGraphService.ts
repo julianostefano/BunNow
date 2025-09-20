@@ -46,14 +46,15 @@ export interface ExpertiseMapping {
 }
 
 export class KnowledgeGraphService {
-  private db: Db;
-  private nodesCollection: Collection<KnowledgeGraphNode>;
-  private edgesCollection: Collection<KnowledgeGraphEdge>;
-  private clustersCollection: Collection<KnowledgeCluster>;
-  private expertiseCollection: Collection<ExpertiseMapping>;
+  private db: Db | null = null;
+  private nodesCollection: Collection<KnowledgeGraphNode> | null = null;
+  private edgesCollection: Collection<KnowledgeGraphEdge> | null = null;
+  private clustersCollection: Collection<KnowledgeCluster> | null = null;
+  private expertiseCollection: Collection<ExpertiseMapping> | null = null;
+  private initializationPromise: Promise<void>;
 
   constructor() {
-    this.initializeDatabase();
+    this.initializationPromise = this.initializeDatabase();
   }
 
   private async initializeDatabase(): Promise<void> {
@@ -80,6 +81,10 @@ export class KnowledgeGraphService {
 
   private async createIndexes(): Promise<void> {
     try {
+      if (!this.nodesCollection || !this.edgesCollection || !this.clustersCollection || !this.expertiseCollection) {
+        throw new Error('Collections not initialized');
+      }
+
       await Promise.all([
         this.nodesCollection.createIndex({ node_id: 1 }, { unique: true }),
         this.nodesCollection.createIndex({ type: 1 }),
@@ -92,6 +97,13 @@ export class KnowledgeGraphService {
       ]);
     } catch (error) {
       console.error('Index creation failed:', error);
+    }
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    await this.initializationPromise;
+    if (!this.nodesCollection || !this.edgesCollection || !this.clustersCollection || !this.expertiseCollection) {
+      throw new Error('Knowledge Graph Service not properly initialized');
     }
   }
 
@@ -344,13 +356,15 @@ export class KnowledgeGraphService {
   }
 
   private async findRelatedDocuments(parameters: any): Promise<any> {
+    await this.ensureInitialized();
+
     const { document_id, technology, support_group, max_results = 10 } = parameters;
 
     const matchStage: any = {};
 
     if (document_id) {
       // Find documents connected to this document
-      const edges = await this.edgesCollection.find({
+      const edges = await this.edgesCollection!.find({
         $or: [{ source: document_id }, { target: document_id }]
       }).toArray();
 
@@ -369,7 +383,7 @@ export class KnowledgeGraphService {
       matchStage.support_group = { $in: Array.isArray(support_group) ? support_group : [support_group] };
     }
 
-    const documents = await this.nodesCollection
+    const documents = await this.nodesCollection!
       .find(matchStage)
       .sort({ connections: -1 })
       .limit(max_results)
@@ -382,6 +396,8 @@ export class KnowledgeGraphService {
   }
 
   private async getTechnologyMap(parameters: any): Promise<TechnologyMap> {
+    await this.ensureInitialized();
+
     const { support_group } = parameters;
 
     const pipeline: any[] = [
@@ -405,7 +421,7 @@ export class KnowledgeGraphService {
       { $sort: { document_count: -1 } }
     );
 
-    const technologies = await this.nodesCollection.aggregate(pipeline).toArray();
+    const technologies = await this.nodesCollection!.aggregate(pipeline).toArray();
 
     return {
       technologies: technologies.map(tech => ({
@@ -419,6 +435,8 @@ export class KnowledgeGraphService {
   }
 
   private async analyzeSupportCoverage(parameters: any): Promise<SupportGroupMap> {
+    await this.ensureInitialized();
+
     const { technology } = parameters;
 
     const pipeline: any[] = [
@@ -450,7 +468,7 @@ export class KnowledgeGraphService {
       { $sort: { document_count: -1 } }
     );
 
-    const groups = await this.nodesCollection.aggregate(pipeline).toArray();
+    const groups = await this.nodesCollection!.aggregate(pipeline).toArray();
 
     return {
       support_groups: groups.map(group => ({
@@ -465,8 +483,10 @@ export class KnowledgeGraphService {
   }
 
   private async findKnowledgeClusters(parameters: any): Promise<KnowledgeCluster[]> {
+    await this.ensureInitialized();
+
     // Find clusters of related knowledge
-    const clusters = await this.clustersCollection
+    const clusters = await this.clustersCollection!
       .find(parameters)
       .sort({ document_count: -1 })
       .toArray();
@@ -475,7 +495,9 @@ export class KnowledgeGraphService {
   }
 
   private async getExpertiseMapping(parameters: any): Promise<ExpertiseMapping[]> {
-    const mapping = await this.expertiseCollection
+    await this.ensureInitialized();
+
+    const mapping = await this.expertiseCollection!
       .find(parameters)
       .sort({ knowledge_depth: -1 })
       .toArray();
@@ -554,6 +576,8 @@ export class KnowledgeGraphService {
 
   async getGraphAnalytics(): Promise<GraphAnalytics> {
     try {
+      await this.ensureInitialized();
+
       const [
         totalNodes,
         totalEdges,
@@ -561,11 +585,11 @@ export class KnowledgeGraphService {
         orphanedDocs,
         clusters
       ] = await Promise.all([
-        this.nodesCollection.countDocuments(),
-        this.edgesCollection.countDocuments(),
+        this.nodesCollection!.countDocuments(),
+        this.edgesCollection!.countDocuments(),
         this.getMostConnectedTechnologies(),
         this.getOrphanedDocuments(),
-        this.clustersCollection.find().toArray()
+        this.clustersCollection!.find().toArray()
       ]);
 
       return {
@@ -588,6 +612,8 @@ export class KnowledgeGraphService {
   }
 
   private async getMostConnectedTechnologies(): Promise<Array<{ name: string; connections: number }>> {
+    await this.ensureInitialized();
+
     const pipeline = [
       { $match: { type: 'document' } },
       { $unwind: '$technology' },
@@ -601,7 +627,7 @@ export class KnowledgeGraphService {
       { $limit: 10 }
     ];
 
-    const result = await this.nodesCollection.aggregate(pipeline).toArray();
+    const result = await this.nodesCollection!.aggregate(pipeline).toArray();
     return result.map(item => ({
       name: item._id,
       connections: item.connections
@@ -609,7 +635,9 @@ export class KnowledgeGraphService {
   }
 
   private async getOrphanedDocuments(): Promise<string[]> {
-    const orphaned = await this.nodesCollection
+    await this.ensureInitialized();
+
+    const orphaned = await this.nodesCollection!
       .find({
         type: 'document',
         connections: { $lte: 1 }
@@ -621,6 +649,8 @@ export class KnowledgeGraphService {
   }
 
   private async getRelationshipStrengths(): Promise<Array<{ source: string; target: string; strength: number }>> {
+    await this.ensureInitialized();
+
     const pipeline = [
       {
         $group: {
@@ -632,7 +662,7 @@ export class KnowledgeGraphService {
       { $limit: 20 }
     ];
 
-    const result = await this.edgesCollection.aggregate(pipeline).toArray();
+    const result = await this.edgesCollection!.aggregate(pipeline).toArray();
     return result.map(item => ({
       source: item._id.source,
       target: item._id.target,

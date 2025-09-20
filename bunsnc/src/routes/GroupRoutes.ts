@@ -17,7 +17,7 @@ import {
 } from '../utils/GroupsErrors';
 
 export const createGroupRoutes = () => {
-  const hybridDataService = dataService();
+  const hybridDataService = dataService;
   
   return new Elysia({ prefix: '/api/groups' })
     // Register custom error types

@@ -40,18 +40,33 @@ export class TicketAnalysisController {
   private config: TicketAnalysisConfig;
 
   constructor() {
-    this.serviceNow = new ServiceNowAuthClient();
-    this.aiManager = AIServiceManager.getInstance();
-    this.openSearch = new OpenSearchClient({
-      host: process.env.OPENSEARCH_HOST || '10.219.8.210',
-      port: parseInt(process.env.OPENSEARCH_PORT || '9200'),
-      ssl: false,
-      timeout: 30000
-    });
-    this.embedding = new EmbeddingClient();
-    this.rerank = new RerankClient();
-    this.llm = new LLMClient();
-    this.tika = new TikaClient();
+    try {
+      this.serviceNow = new ServiceNowAuthClient();
+      this.aiManager = AIServiceManager.getInstance();
+
+      // Validate OpenSearch environment variables
+      const openSearchHost = process.env.OPENSEARCH_HOST;
+      const openSearchPort = process.env.OPENSEARCH_PORT;
+
+      if (!openSearchHost || !openSearchPort) {
+        logger.warn(`⚠️ [TicketAnalysisController] OpenSearch environment variables missing. Using defaults: host=${openSearchHost || '10.219.8.210'}, port=${openSearchPort || '9200'}`);
+      }
+
+      this.openSearch = new OpenSearchClient({
+        host: openSearchHost || '10.219.8.210',
+        port: parseInt(openSearchPort || '9200'),
+        ssl: false,
+        timeout: 30000
+      });
+
+      this.embedding = new EmbeddingClient();
+      this.rerank = new RerankClient();
+      this.llm = new LLMClient();
+      this.tika = new TikaClient();
+    } catch (error) {
+      logger.error(`❌ [TicketAnalysisController] Failed to initialize: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error;
+    }
 
     this.config = {
       similarity_threshold: 0.75,

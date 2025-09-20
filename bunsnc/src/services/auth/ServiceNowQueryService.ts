@@ -7,6 +7,8 @@ import { ServiceNowAuthCore, ServiceNowRecord } from './ServiceNowAuthCore';
 import { serviceNowRateLimiter } from '../ServiceNowRateLimit';
 
 export class ServiceNowQueryService extends ServiceNowAuthCore {
+  private static cacheWarmingInProgress = false;
+  private static cacheWarmingCompleted = false;
 
   /**
    * Generic method to make ServiceNow API requests (similar to makeRequest pattern)
@@ -164,20 +166,21 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
   }
 
   /**
-   * Execute ServiceNow API query with rate limiting
+   * Execute ServiceNow API query with rate limiting and enhanced error handling
    */
   private async executeQuery<T>(
-    table: string, 
-    query: string, 
-    fields?: string
+    table: string,
+    query: string,
+    fields?: string,
+    retryAttempts: number = 3
   ): Promise<T> {
     await this.authenticate();
 
     const queryParams: Record<string, string> = {
       sysparm_query: query,
-      sysparm_display_value: 'all', // Same as Python default
+      sysparm_display_value: 'all',
       sysparm_exclude_reference_link: 'true',
-      sysparm_limit: '1000' // Reasonable limit
+      sysparm_limit: '1000'
     };
 
     if (fields) {
@@ -187,17 +190,44 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
     const url = `${this.SERVICENOW_BASE_URL}/api/now/table/${table}`;
 
     return serviceNowRateLimiter.executeRequest(async () => {
-      console.log(` ServiceNow query: ${table} - ${query.substring(0, 100)}...`);
-      
-      const response = await this.axiosClient.get(url, {
-        params: queryParams
-      });
+      for (let attempt = 1; attempt <= retryAttempts; attempt++) {
+        try {
+          console.log(` ServiceNow query: ${table} - ${query.substring(0, 100)}... (attempt ${attempt}/${retryAttempts})`);
 
-      if (response.status !== 200) {
-        throw new Error(`ServiceNow API error: ${response.status} ${response.statusText}`);
+          const response = await this.axiosClient.get(url, {
+            params: queryParams,
+            timeout: 30000, // 30 seconds timeout per request
+            headers: {
+              'Connection': 'keep-alive',
+              'Keep-Alive': 'timeout=5, max=1000'
+            }
+          });
+
+          if (response.status !== 200) {
+            throw new Error(`ServiceNow API error: ${response.status} ${response.statusText}`);
+          }
+
+          return response.data;
+
+        } catch (error: any) {
+          const isLastAttempt = attempt === retryAttempts;
+          const isRetryableError = error.code === 'ECONNRESET' ||
+                                 error.code === 'ETIMEDOUT' ||
+                                 error.code === 'ENOTFOUND' ||
+                                 error.message?.includes('socket connection was closed') ||
+                                 error.message?.includes('network error');
+
+          if (isRetryableError && !isLastAttempt) {
+            const backoffDelay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Exponential backoff up to 5s
+            console.warn(`⚠️ Retryable error on attempt ${attempt}/${retryAttempts} for ${table}: ${error.message}. Retrying in ${backoffDelay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, backoffDelay));
+            continue;
+          }
+
+          // For non-retryable errors or final attempt, throw the error
+          throw error;
+        }
       }
-
-      return response.data;
     }, 'high');
   }
 
@@ -310,34 +340,56 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
   }
 
   /**
-   * Pre-warm cache for critical data on startup
+   * Pre-warm cache for critical data on startup with sequential processing and singleton control
    */
   async preWarmCache(): Promise<void> {
-    console.log('🔥 Pre-warming ServiceNow cache...');
-    
+    // Prevent multiple instances from running cache warming simultaneously
+    if (ServiceNowQueryService.cacheWarmingInProgress || ServiceNowQueryService.cacheWarmingCompleted) {
+      console.log('🔥 Cache warming already in progress or completed, skipping...');
+      return;
+    }
+
+    ServiceNowQueryService.cacheWarmingInProgress = true;
+    console.log('🔥 Pre-warming ServiceNow cache with sequential processing...');
+
     const criticalGroups = [
       'IT Operations',
-      'Database Administration', 
+      'Database Administration',
       'Network Support',
       'Application Support'
     ];
 
-    const warmupPromises = criticalGroups.map(async (group) => {
-      try {
-        // Pre-warm all critical queries concurrently
-        await Promise.all([
-          this.getWaitingIncidents(group),
-          this.getWaitingChangeTasks(group),
-          this.getWaitingServiceCatalogTasks(group)
-        ]);
-        console.log(` Cache warmed for: ${group}`);
-      } catch (error) {
-        console.warn(` Cache warmup failed for ${group}:`, error);
-      }
-    });
+    try {
+      // Process groups sequentially to avoid overwhelming ServiceNow
+      for (const group of criticalGroups) {
+        try {
+          console.log(`🔥 Warming cache for group: ${group}`);
 
-    await Promise.all(warmupPromises);
-    console.log('🔥 Cache pre-warming completed');
+          // Process each query type sequentially for each group
+          await this.getWaitingIncidents(group);
+          await new Promise(resolve => setTimeout(resolve, 1500)); // 1.5s delay between requests
+
+          await this.getWaitingChangeTasks(group);
+          await new Promise(resolve => setTimeout(resolve, 1500)); // 1.5s delay between requests
+
+          await this.getWaitingServiceCatalogTasks(group);
+          await new Promise(resolve => setTimeout(resolve, 3000)); // 3s delay before next group
+
+          console.log(`✅ Cache warmed successfully for: ${group}`);
+        } catch (error) {
+          console.warn(`⚠️ Cache warmup failed for ${group}:`, error);
+          // Continue with next group even if this one fails
+          await new Promise(resolve => setTimeout(resolve, 5000)); // Longer delay after error
+        }
+      }
+
+      ServiceNowQueryService.cacheWarmingCompleted = true;
+      console.log('🔥 Cache pre-warming completed successfully');
+    } catch (error) {
+      console.error('❌ Cache pre-warming failed completely:', error);
+    } finally {
+      ServiceNowQueryService.cacheWarmingInProgress = false;
+    }
   }
 
   /**

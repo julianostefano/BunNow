@@ -7,7 +7,7 @@ import { Elysia } from 'elysia';
 import { html } from '@elysiajs/html';
 import { serviceNowAuthClient } from '../services/ServiceNowAuthClient';
 import { ConsolidatedDataService } from '../services/ConsolidatedDataService';
-import { HybridTicketService } from '../services/HybridTicketService';
+import { consolidatedServiceNowService } from '../services';
 import { 
   TICKET_TYPES, 
   getStatusConfig, 
@@ -18,7 +18,7 @@ import {
 } from '../config/servicenow-status';
 import { safeDisplay, safeGet, safeFormatDate } from '../utils/serialization';
 import { ConsolidatedServiceNowService } from '../services/ConsolidatedServiceNowService';
-import { enhancedTicketStorageService } from '../services/ConsolidatedDataService';
+import { enhancedTicketStorageService } from '../services';
 
 // Helper function to initialize services safely
 async function initializeServices() {
@@ -49,7 +49,8 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
       if (services.error) {
         throw services.error;
       }
-    // Import status configuration for frontend
+
+      // Import status configuration for frontend
     const ticketTypesJSON = JSON.stringify(TICKET_TYPES);
     const statusFiltersJSON = JSON.stringify(STATUS_FILTERS);
     
@@ -364,7 +365,7 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
                                           <option value="all"> Carregando grupos...</option>
                                       </template>
                                       <template x-if="groupsLoaded" x-for="groupOption in availableGroups" :key="groupOption.value">
-                                          <option :value="groupOption.value" x-text="`${groupOption.emoji} ${groupOption.label.replace(/^[^\s]*\s/, '')}`"></option>
+                                          <option :value="groupOption.value" x-text="groupOption.emoji + ' ' + groupOption.label.replace(/^[^\\s]*\\s/, '')"></option>
                                       </template>
                                   </select>
                                   <div class="absolute inset-y-0 right-0 top-6 flex items-center px-3 pointer-events-none">
@@ -666,10 +667,10 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
       </body>
       </html>
     `;
-    
-      return new Response(htmlContent, {
-        headers: { 'Content-Type': 'text/html; charset=utf-8' }
-      });
+
+    return new Response(htmlContent, {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' }
+    });
     } catch (error) {
       console.error(' Enhanced Dashboard Error:', error);
       
@@ -696,7 +697,7 @@ const htmxDashboardEnhanced = new Elysia({ prefix: '/enhanced' })
                         <a href="/health" class="block w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">
                             Verificar Status da API
                         </a>
-                        <a href="/htmx/" class="block w-full bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600">
+                        <a href="/dashboard" class="block w-full bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600">
                             Tentar Dashboard Alternativo
                         </a>
                         <button onclick="window.location.reload()" class="block w-full bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600">

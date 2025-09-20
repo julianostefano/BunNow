@@ -11,7 +11,8 @@ import { createNotificationRoutes, getRealtimeRoutes, shutdownNotificationSystem
 // BackgroundSyncManager consolidated into ConsolidatedDataService
 import { createGroupRoutes } from "./GroupRoutes";
 import { createModalRoutes, createSSERoutes } from "./ModalRoutes";
-import { systemService } from "../services/SystemService";
+import { createSystemService, SystemConfig } from "../services/SystemService";
+import { MongoClient } from "mongodb";
 
 export async function createMainApp(): Promise<Elysia> {
   const mainApp = new Elysia();
@@ -35,14 +36,48 @@ export async function createMainApp(): Promise<Elysia> {
   // Initialized via WebServerController.ts
 
   // Initialize system service (includes performance monitoring and cache optimization)
-  systemService.initialize()
-    .then(() => {
-      console.log(' System service initialized (performance monitoring + cache optimization)');
-    })
-    .catch((error) => {
-      console.error(' Failed to initialize system service:', error);
-      console.warn(' Server will continue without system monitoring');
-    });
+  try {
+    const mongoClient = new MongoClient(process.env.MONGODB_URL || "mongodb://localhost:27017");
+    const systemConfig: SystemConfig = {
+      mongodb: {
+        client: mongoClient,
+        database: process.env.MONGODB_DATABASE || "bunsnc"
+      },
+      redis: {
+        host: process.env.REDIS_HOST || "localhost",
+        port: parseInt(process.env.REDIS_PORT || "6379"),
+        password: process.env.REDIS_PASSWORD
+      },
+      performance: {
+        monitoring: true,
+        thresholds: {
+          response_time_warning: 1000,
+          response_time_critical: 5000,
+          memory_warning: 500,
+          memory_critical: 1000
+        }
+      },
+      tasks: {
+        concurrency: 3,
+        retryDelay: 5000,
+        maxRetries: 3,
+        cleanupInterval: 300000
+      }
+    };
+
+    const systemService = createSystemService(systemConfig);
+    systemService.initialize()
+      .then(() => {
+        console.log(' System service initialized (performance monitoring + cache optimization)');
+      })
+      .catch((error) => {
+        console.error(' Failed to initialize system service:', error);
+        console.warn(' Server will continue without system monitoring');
+      });
+  } catch (error) {
+    console.error(' Failed to create system service:', error);
+    console.warn(' Server will continue without system monitoring');
+  }
 
   // Add main application routes with error handling
   try {
@@ -195,7 +230,7 @@ export async function createMainApp(): Promise<Elysia> {
 
   // Add group management routes with error handling
   try {
-    const groupRoutes = await createGroupRoutes();
+    const groupRoutes = createGroupRoutes();
     mainApp.use(groupRoutes);
     console.log(' Group management routes added');
   } catch (error) {

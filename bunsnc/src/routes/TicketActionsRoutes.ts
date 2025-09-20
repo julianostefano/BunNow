@@ -4,13 +4,9 @@
  */
 
 import { Elysia, t } from 'elysia';
-import { ConsolidatedServiceNowService } from '../services/ConsolidatedServiceNowService';
-import { ServiceNowAuthClient } from '../services/ServiceNowAuthClient';
-import { ConsolidatedServiceNowService } from '../services/ConsolidatedServiceNowService';
+import { consolidatedServiceNowService } from '../services';
 
-export const createTicketActionsRoutes = (serviceNowClient: ServiceNowAuthClient) => {
-  const notesService = new ConsolidatedServiceNowService(serviceNowClient);
-  const actionsService = new ConsolidatedServiceNowService(serviceNowClient, notesService);
+export const createTicketActionsRoutes = () => {
 
   return new Elysia({ prefix: '/tickets/actions' })
     /**
@@ -19,7 +15,7 @@ export const createTicketActionsRoutes = (serviceNowClient: ServiceNowAuthClient
      */
     .post('/resolve', async ({ body }) => {
       try {
-        const result = await actionsService.resolveTicket(body);
+        const result = await consolidatedServiceNowService.resolveTicket(body);
         return {
           success: result.success,
           data: result,
@@ -48,7 +44,7 @@ export const createTicketActionsRoutes = (serviceNowClient: ServiceNowAuthClient
      */
     .post('/close', async ({ body }) => {
       try {
-        const result = await actionsService.closeTicket(body);
+        const result = await consolidatedServiceNowService.closeTicket(body);
         return {
           success: result.success,
           data: result,
@@ -76,7 +72,7 @@ export const createTicketActionsRoutes = (serviceNowClient: ServiceNowAuthClient
      */
     .post('/reopen', async ({ body }) => {
       try {
-        const result = await actionsService.reopenTicket(body);
+        const result = await consolidatedServiceNowService.reopenTicket(body);
         return {
           success: result.success,
           data: result,
@@ -104,7 +100,7 @@ export const createTicketActionsRoutes = (serviceNowClient: ServiceNowAuthClient
      */
     .post('/assign', async ({ body }) => {
       try {
-        const result = await actionsService.assignTicket(body);
+        const result = await consolidatedServiceNowService.assignTicket(body);
         return {
           success: result.success,
           data: result,
@@ -133,7 +129,7 @@ export const createTicketActionsRoutes = (serviceNowClient: ServiceNowAuthClient
      */
     .post('/priority', async ({ body }) => {
       try {
-        const result = await actionsService.updatePriority(body);
+        const result = await consolidatedServiceNowService.updatePriority(body);
         return {
           success: result.success,
           data: result,
@@ -164,7 +160,7 @@ export const createTicketActionsRoutes = (serviceNowClient: ServiceNowAuthClient
      */
     .post('/category', async ({ body }) => {
       try {
-        const result = await actionsService.updateCategory(body);
+        const result = await consolidatedServiceNowService.updateCategory(body);
         return {
           success: result.success,
           data: result,
@@ -196,7 +192,7 @@ export const createTicketActionsRoutes = (serviceNowClient: ServiceNowAuthClient
         // In a real implementation, this would get the current user from auth context
         const currentUser = 'current.user'; // Placeholder
         
-        const result = await actionsService.assignTicket({
+        const result = await consolidatedServiceNowService.assignTicket({
           table: body.table,
           sysId: body.sysId,
           assignedTo: currentUser,
@@ -228,7 +224,7 @@ export const createTicketActionsRoutes = (serviceNowClient: ServiceNowAuthClient
      */
     .post('/escalate', async ({ body }) => {
       try {
-        const result = await actionsService.assignTicket({
+        const result = await consolidatedServiceNowService.assignTicket({
           table: body.table,
           sysId: body.sysId,
           assignmentGroup: body.escalationGroup,

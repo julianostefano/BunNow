@@ -58,7 +58,15 @@ export class DocumentLifecycleService {
 
   constructor() {
     this.tikaClient = new TikaClient();
-    this.openSearchClient = new OpenSearchClient();
+    this.openSearchClient = new OpenSearchClient({
+      host: process.env.OPENSEARCH_HOST || '10.219.8.210',
+      port: parseInt(process.env.OPENSEARCH_PORT || '9200'),
+      ssl: false,
+      auth: {
+        username: process.env.OPENSEARCH_USERNAME || 'admin',
+        password: process.env.OPENSEARCH_PASSWORD || 'admin'
+      }
+    });
   }
 
   async processNewDocument(

@@ -263,7 +263,16 @@ export class MongoDBCollectionManager {
 
   private getDatabase(): Db {
     if (!this.db) {
-      this.db = dataService.getDatabase();
+      try {
+        // Access the MongoDB database through the mongoManager within dataService
+        if (dataService && dataService.mongoManager) {
+          this.db = dataService.mongoManager.getDb();
+        } else {
+          throw new Error('DataService or mongoManager not initialized');
+        }
+      } catch (error) {
+        throw new Error(`MongoDB collections manager requires dataService.mongoManager to be initialized: ${error.message}`);
+      }
     }
     return this.db;
   }
@@ -305,14 +314,9 @@ export class MongoDBCollectionManager {
       }
     }
 
-    // Create indexes
+    // Create indexes with conflict resolution
     if (config.indexes && config.indexes.length > 0) {
-      const indexSpecs = config.indexes.map(indexSpec => ({ 
-        key: indexSpec,
-        background: true
-      }));
-      
-      await collection.createIndexes(indexSpecs);
+      await this.createIndexesSafely(collection, config.indexes);
     }
 
     // Configure sharding if specified
@@ -329,6 +333,101 @@ export class MongoDBCollectionManager {
         }
       }
     }
+  }
+
+  /**
+   * Create indexes safely with conflict resolution
+   */
+  private async createIndexesSafely(collection: Collection, indexSpecs: any[]): Promise<void> {
+    try {
+      // Get existing indexes to check for conflicts
+      const existingIndexes = await collection.indexInformation();
+
+      for (const indexSpec of indexSpecs) {
+        try {
+          // Determine if this should be a unique index (for sys_id fields)
+          const isUniqueIndex = this.shouldBeUniqueIndex(indexSpec);
+
+          const indexOptions: any = {
+            background: true
+          };
+
+          if (isUniqueIndex) {
+            indexOptions.unique = true;
+          }
+
+          // Generate index name that MongoDB would create
+          const indexName = this.generateIndexName(indexSpec);
+
+          // Check if an index with this name already exists
+          if (existingIndexes[indexName]) {
+            const existingIndex = existingIndexes[indexName];
+
+            // Check if the existing index has different options (like unique)
+            if (this.isIndexConflicting(existingIndex, indexOptions)) {
+              console.log(` [MongoDB] Dropping conflicting index '${indexName}' to recreate with correct options`);
+              await collection.dropIndex(indexName);
+            } else {
+              console.log(` [MongoDB] Index '${indexName}' already exists with correct configuration`);
+              continue;
+            }
+          }
+
+          // Create the index
+          await collection.createIndex(indexSpec, indexOptions);
+          console.log(` [MongoDB] Created index '${indexName}'${isUniqueIndex ? ' (unique)' : ''}`);
+
+        } catch (indexError: any) {
+          // Handle specific MongoDB errors gracefully
+          if (indexError.code === 86) { // IndexKeySpecsConflict
+            console.warn(` [MongoDB] Index conflict for ${JSON.stringify(indexSpec)}: ${indexError.message}`);
+          } else {
+            console.warn(` [MongoDB] Failed to create index ${JSON.stringify(indexSpec)}:`, indexError.message);
+          }
+        }
+      }
+    } catch (error: any) {
+      console.warn(` [MongoDB] Error during index creation:`, error.message);
+    }
+  }
+
+  /**
+   * Check if an index should be unique (sys_id fields)
+   */
+  private shouldBeUniqueIndex(indexSpec: any): boolean {
+    // Check if this is a sys_id index
+    if (typeof indexSpec === 'object' && indexSpec.sys_id === 1) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Generate index name the same way MongoDB does
+   */
+  private generateIndexName(indexSpec: any): string {
+    if (typeof indexSpec === 'object') {
+      const parts: string[] = [];
+      for (const [key, value] of Object.entries(indexSpec)) {
+        parts.push(`${key}_${value}`);
+      }
+      return parts.join('_');
+    }
+    return String(indexSpec);
+  }
+
+  /**
+   * Check if existing index conflicts with desired options
+   */
+  private isIndexConflicting(existingIndex: any, desiredOptions: any): boolean {
+    // Check unique constraint mismatch
+    if (desiredOptions.unique && !existingIndex.unique) {
+      return true;
+    }
+    if (!desiredOptions.unique && existingIndex.unique) {
+      return true;
+    }
+    return false;
   }
 
   /**

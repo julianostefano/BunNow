@@ -8,6 +8,8 @@ import { serviceNowRateLimiter } from '../ServiceNowRateLimit';
 import Redis from 'ioredis';
 import { RedisCache } from '../../bigdata/redis/RedisCache';
 import { RedisStreamManager } from '../../bigdata/redis/RedisStreamManager';
+import { serviceNowSAMLAuth } from './ServiceNowSAMLAuth';
+import { SAMLConfig, SAMLAuthenticationData } from '../../types/saml';
 
 export interface AuthServiceResponse {
   cookies: Array<{
@@ -46,11 +48,13 @@ export interface ServiceNowQueryResult {
 export class ServiceNowAuthCore {
   protected axiosClient: AxiosInstance;
   protected authData: AuthServiceResponse | null = null;
+  protected samlAuthData: SAMLAuthenticationData | null = null;
   protected isAuthenticated = false;
   protected lastAuthTime = 0;
   protected authTTL = 30 * 60 * 1000; // 30 minutes
   protected redisCache: RedisCache;
   protected redisStreamManager: RedisStreamManager;
+  protected authType: 'external' | 'saml' = 'external';
 
   protected readonly AUTH_SERVICE_URL = 'http://10.219.8.210:8000/auth';
   protected readonly SERVICENOW_INSTANCE = 'iberdrola';
@@ -70,6 +74,10 @@ export class ServiceNowAuthCore {
     this.initializeAxios();
     this.initializeRedis();
     this.setupLogging();
+
+    // Determine authentication type from environment
+    this.authType = (process.env.SERVICENOW_AUTH_TYPE as 'external' | 'saml') || 'external';
+    console.log(`🔐 ServiceNow authentication type: ${this.authType}`);
   }
 
   private setupEnvironment(): void {
@@ -79,16 +87,72 @@ export class ServiceNowAuthCore {
   }
 
   private initializeAxios(): void {
+    const https = require('https');
+    const http = require('http');
+
     this.axiosClient = axios.create({
       baseURL: this.SERVICENOW_BASE_URL,
-      timeout: 240000, // 240 seconds timeout (4 minutes)
-      httpsAgent: new (require('https').Agent)({
-        rejectUnauthorized: false // verify=False from Python
+      timeout: 60000, // 60 seconds timeout (reduced from 240s)
+      httpsAgent: new https.Agent({
+        rejectUnauthorized: false,
+        keepAlive: true,
+        keepAliveMsecs: 30000, // 30 seconds keep-alive
+        maxSockets: 10, // Limit concurrent connections
+        maxFreeSockets: 5, // Keep some connections open
+        timeout: 60000, // Agent timeout
+        scheduling: 'fifo'
+      }),
+      httpAgent: new http.Agent({
+        keepAlive: true,
+        keepAliveMsecs: 30000,
+        maxSockets: 10,
+        maxFreeSockets: 5,
+        timeout: 60000,
+        scheduling: 'fifo'
       }),
       headers: {
-        'User-Agent': 'BunSNC-ServiceNow-Client/1.0'
-      }
+        'User-Agent': 'BunSNC-ServiceNow-Client/1.0',
+        'Connection': 'keep-alive',
+        'Keep-Alive': 'timeout=30, max=100'
+      },
+      maxRedirects: 3,
+      validateStatus: (status) => status >= 200 && status < 300
     });
+
+    // Add request interceptor for better error logging
+    this.axiosClient.interceptors.request.use(
+      (config) => {
+        config.metadata = { startTime: Date.now() };
+        return config;
+      },
+      (error) => {
+        console.error('❌ Request interceptor error:', error);
+        return Promise.reject(error);
+      }
+    );
+
+    // Add response interceptor for better error logging and metrics
+    this.axiosClient.interceptors.response.use(
+      (response) => {
+        const duration = Date.now() - response.config.metadata?.startTime;
+        if (duration > 10000) { // Log slow requests (>10s)
+          console.warn(`⚠️ Slow ServiceNow request: ${response.config.url} took ${duration}ms`);
+        }
+        return response;
+      },
+      (error) => {
+        const duration = error.config?.metadata?.startTime ? Date.now() - error.config.metadata.startTime : 0;
+        console.error(`❌ ServiceNow request failed after ${duration}ms:`, {
+          url: error.config?.url,
+          method: error.config?.method,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          code: error.code,
+          message: error.message?.substring(0, 200)
+        });
+        return Promise.reject(error);
+      }
+    );
   }
 
   private initializeRedis(): void {
@@ -123,18 +187,29 @@ export class ServiceNowAuthCore {
   }
 
   /**
-   * Authenticate with ServiceNow using auth service pattern from Python scripts
+   * Authenticate with ServiceNow using configured authentication type
    */
   protected async authenticate(): Promise<void> {
     const now = Date.now();
-    
+
     if (this.isAuthenticated && (now - this.lastAuthTime) < this.authTTL) {
       return;
     }
 
+    if (this.authType === 'saml') {
+      await this.authenticateWithSAML();
+    } else {
+      await this.authenticateWithExternalService();
+    }
+  }
+
+  /**
+   * Authenticate with ServiceNow using external auth service (legacy)
+   */
+  private async authenticateWithExternalService(): Promise<void> {
     try {
-      console.log(' Authenticating with ServiceNow auth service...');
-      
+      console.log('🔐 Authenticating with ServiceNow external auth service...');
+
       const authResponse = await axios.get(this.AUTH_SERVICE_URL, {
         timeout: 15000,
         httpsAgent: new (require('https').Agent)({
@@ -143,22 +218,70 @@ export class ServiceNowAuthCore {
       });
 
       this.authData = authResponse.data as AuthServiceResponse;
-      
+
       if (!this.authData.cookies || !Array.isArray(this.authData.cookies)) {
         throw new Error('Invalid auth response: missing cookies');
       }
 
       this.configureAxiosWithAuth();
-      
+
       this.isAuthenticated = true;
-      this.lastAuthTime = now;
-      
-      console.log(` ServiceNow authentication successful (${this.authData.cookies.length} cookies)`);
+      this.lastAuthTime = Date.now();
+
+      console.log(`✅ External ServiceNow authentication successful (${this.authData.cookies.length} cookies)`);
 
     } catch (error: any) {
-      console.error(' ServiceNow authentication failed:', error.message);
+      console.error('❌ External ServiceNow authentication failed:', error.message);
       this.isAuthenticated = false;
       throw new Error(`ServiceNow authentication failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Authenticate with ServiceNow using SAML
+   */
+  private async authenticateWithSAML(): Promise<void> {
+    try {
+      console.log('🔐 Authenticating with ServiceNow SAML...');
+
+      const samlConfig: SAMLConfig = {
+        username: process.env.SERVICENOW_USERNAME || '',
+        password: process.env.SERVICENOW_PASSWORD || '',
+        baseUrl: this.SERVICENOW_BASE_URL,
+        instance: this.SERVICENOW_INSTANCE,
+        proxy: process.env.SERVICENOW_PROXY
+      };
+
+      if (!samlConfig.username || !samlConfig.password) {
+        throw new Error('SAML credentials not configured. Set SERVICENOW_USERNAME and SERVICENOW_PASSWORD');
+      }
+
+      this.samlAuthData = await serviceNowSAMLAuth.authenticate(samlConfig);
+
+      // Convert SAML auth data to legacy format for compatibility
+      this.authData = {
+        cookies: this.samlAuthData.cookies.map(cookie => ({
+          name: cookie.name,
+          value: cookie.value,
+          domain: cookie.domain,
+          path: cookie.path
+        })),
+        headers: this.samlAuthData.headers
+      };
+
+      this.configureAxiosWithAuth();
+
+      this.isAuthenticated = true;
+      this.lastAuthTime = Date.now();
+
+      console.log(`✅ SAML ServiceNow authentication successful (${this.samlAuthData.cookies.length} cookies)`);
+      console.log(`🎫 User token: ${this.samlAuthData.userToken ? 'present' : 'not found'}`);
+      console.log(`🆔 Session ID: ${this.samlAuthData.sessionId ? 'present' : 'not found'}`);
+
+    } catch (error: any) {
+      console.error('❌ SAML ServiceNow authentication failed:', error.message);
+      this.isAuthenticated = false;
+      throw new Error(`SAML authentication failed: ${error.message}`);
     }
   }
 
@@ -178,7 +301,12 @@ export class ServiceNowAuthCore {
       this.axiosClient.defaults.headers.common[key] = value;
     });
 
-    console.log(' Axios configured with ServiceNow auth data');
+    // Add SAML-specific headers if available
+    if (this.authType === 'saml' && this.samlAuthData?.userToken) {
+      this.axiosClient.defaults.headers.common['X-UserToken'] = this.samlAuthData.userToken;
+    }
+
+    console.log(`⚙️ Axios configured with ${this.authType} ServiceNow auth data`);
   }
 
   /**
@@ -237,5 +365,50 @@ export class ServiceNowAuthCore {
   public isAuthValid(): boolean {
     const now = Date.now();
     return this.isAuthenticated && (now - this.lastAuthTime) < this.authTTL;
+  }
+
+  /**
+   * Get current authentication type
+   */
+  public getAuthType(): 'external' | 'saml' {
+    return this.authType;
+  }
+
+  /**
+   * Get SAML authentication data (if using SAML)
+   */
+  public getSAMLAuthData(): SAMLAuthenticationData | null {
+    return this.samlAuthData;
+  }
+
+  /**
+   * Validate current SAML authentication
+   */
+  public async validateSAMLAuth(): Promise<boolean> {
+    if (this.authType !== 'saml' || !this.samlAuthData) {
+      return false;
+    }
+
+    try {
+      const samlConfig: SAMLConfig = {
+        username: process.env.SERVICENOW_USERNAME || '',
+        password: process.env.SERVICENOW_PASSWORD || '',
+        baseUrl: this.SERVICENOW_BASE_URL,
+        instance: this.SERVICENOW_INSTANCE,
+        proxy: process.env.SERVICENOW_PROXY
+      };
+
+      const validationResult = await serviceNowSAMLAuth.validateAuth(samlConfig, this.samlAuthData);
+
+      if (!validationResult.isValid) {
+        console.warn('🚨 SAML authentication validation failed:', validationResult.error);
+        this.isAuthenticated = false;
+      }
+
+      return validationResult.isValid;
+    } catch (error) {
+      console.error('❌ SAML validation error:', error);
+      return false;
+    }
   }
 }

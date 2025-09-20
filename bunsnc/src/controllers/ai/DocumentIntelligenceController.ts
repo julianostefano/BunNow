@@ -36,15 +36,29 @@ export class DocumentIntelligenceController {
   private config: DocumentIntelligenceConfig;
 
   constructor() {
-    this.tika = new TikaClient();
-    this.embedding = new EmbeddingClient();
-    this.rerank = new RerankClient();
-    this.openSearch = new OpenSearchClient({
-      host: process.env.OPENSEARCH_HOST || '10.219.8.210',
-      port: parseInt(process.env.OPENSEARCH_PORT || '9200'),
-      ssl: false,
-      timeout: 30000
-    });
+    try {
+      this.tika = new TikaClient();
+      this.embedding = new EmbeddingClient();
+      this.rerank = new RerankClient();
+
+      // Validate OpenSearch environment variables
+      const openSearchHost = process.env.OPENSEARCH_HOST;
+      const openSearchPort = process.env.OPENSEARCH_PORT;
+
+      if (!openSearchHost || !openSearchPort) {
+        logger.warn(`⚠️ [DocumentIntelligenceController] OpenSearch environment variables missing. Using defaults: host=${openSearchHost || '10.219.8.210'}, port=${openSearchPort || '9200'}`);
+      }
+
+      this.openSearch = new OpenSearchClient({
+        host: openSearchHost || '10.219.8.210',
+        port: parseInt(openSearchPort || '9200'),
+        ssl: false,
+        timeout: 30000
+      });
+    } catch (error) {
+      logger.error(`❌ [DocumentIntelligenceController] Failed to initialize: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error;
+    }
 
     this.config = {
       max_document_size: 50 * 1024 * 1024, // 50MB

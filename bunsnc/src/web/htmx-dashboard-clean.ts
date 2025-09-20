@@ -963,7 +963,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
    */
   .get('/metrics', async () => {
     try {
-      const rateLimitMetrics = // Rate limiting now handled internally: getHealthStatus();
+      const rateLimitMetrics = {}; // Rate limiting now handled internally
       
       // Provide default values if metrics are undefined
       const totalRequests = rateLimitMetrics.totalRequests || 0;

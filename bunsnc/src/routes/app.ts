@@ -4,11 +4,43 @@ import { getSchemaForTable } from "../types/schemaRegistry";
 import { createTicketActionsRoutes } from "./TicketActionsRoutes";
 import { createTicketListRoutes } from "./TicketListRoutes";
 import { createTicketDetailsRoutes } from "./TicketDetailsRoutes";
+import { authRoutes } from "./auth";
 import type { ServiceNowStreams } from "../config/redis-streams";
 
 // Create async app initialization function
 async function createApp() {
-  const app = new Elysia();
+  const app = new Elysia()
+    .onError(({ error, code, set }) => {
+      console.error('Global error handler:', { error: error.message, code, stack: error.stack });
+
+      if (code === 'NOT_FOUND') {
+        set.status = 404;
+        return {
+          success: false,
+          error: 'Route not found',
+          message: 'The requested endpoint does not exist',
+          timestamp: new Date().toISOString()
+        };
+      }
+
+      if (code === 'VALIDATION') {
+        set.status = 400;
+        return {
+          success: false,
+          error: 'Validation error',
+          message: error.message,
+          timestamp: new Date().toISOString()
+        };
+      }
+
+      set.status = 500;
+      return {
+        success: false,
+        error: 'Internal server error',
+        message: 'An unexpected error occurred',
+        timestamp: new Date().toISOString()
+      };
+    });
 
   // CRUD seguro
   app.post("/record/:table",
@@ -107,8 +139,11 @@ app.post("/batch",
     console.warn(' Redis Streams not available, real-time features will be limited:', error.message);
   }
 
+  // Add authentication routes (including SAML)
+  app.use(authRoutes);
+
   // Add ticket routes following Elysia best practices (services, not controllers)
-  app.use(createTicketActionsRoutes(defaultServiceNowClient));
+  app.use(createTicketActionsRoutes());
   app.use(createTicketListRoutes(defaultServiceNowClient));
   app.use(createTicketDetailsRoutes(defaultServiceNowClient, mongoService, redisStreams));
   

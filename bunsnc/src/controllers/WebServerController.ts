@@ -14,7 +14,9 @@ import { background } from 'elysia-background';
 
 import { ServiceNowClient } from '../client/ServiceNowClient';
 import { RedisStreamManager } from '../bigdata/redis/RedisStreamManager';
-import { serviceNowService, dataService, ticketService, authService } from '../services';
+import { consolidatedServiceNowService } from '../services/ConsolidatedServiceNowService';
+import { dataService } from '../services/ConsolidatedDataService';
+import { serviceNowAuthClient } from '../services/ServiceNowAuthClient';
 import { ServiceNowStreams } from '../config/redis-streams';
 import { mongoCollectionManager } from '../config/mongodb-collections';
 import { TicketRepository } from '../repositories/TicketRepository';
@@ -62,12 +64,12 @@ export class WebServerController {
   private config: WebServerConfig;
   private serviceNowClient: ServiceNowClient;
   private redisStreamManager: RedisStreamManager;
-  private consolidatedTicketService: typeof serviceNowService;
-  private serviceNowAuthClient: typeof authService;
+  private consolidatedTicketService: typeof consolidatedServiceNowService;
+  private serviceNowAuthClient: typeof serviceNowAuthClient;
   private enhancedTicketStorageService: typeof dataService | undefined;
   private redisStreams: ServiceNowStreams | undefined;
   private hybridDataService: typeof dataService | undefined;
-  private slaTrackingService: typeof ticketService | undefined;
+  private slaTrackingService: typeof consolidatedServiceNowService | undefined;
   private ticketRepository: TicketRepository | undefined;
 
   constructor(config: WebServerConfig) {
@@ -90,8 +92,8 @@ export class WebServerController {
       password: this.config.redis.password,
     });
 
-    this.serviceNowAuthClient = authService;
-    this.consolidatedTicketService = serviceNowService;
+    this.serviceNowAuthClient = serviceNowAuthClient;
+    this.consolidatedTicketService = consolidatedServiceNowService;
 
     console.log(' ServiceNow clients initialized');
   }
@@ -112,7 +114,7 @@ export class WebServerController {
       this.hybridDataService = dataService;
       console.log(' Hybrid Data Service with sync capabilities initialized');
 
-      this.slaTrackingService = ticketService;
+      this.slaTrackingService = consolidatedServiceNowService;
       console.log(' SLA Tracking Service initialized');
       
       this.startBackgroundServices();
@@ -132,19 +134,37 @@ export class WebServerController {
 
   private startBackgroundServices(): void {
     if (this.hybridDataService && this.slaTrackingService) {
-      this.hybridDataService.startAutoSync({
-        syncInterval: 5 * 60 * 1000,
-        batchSize: 50,
-        maxRetries: 3,
-        tables: ['incident', 'change_task', 'sc_task'],
-        enableDeltaSync: true,
-        enableRealTimeUpdates: true,
-        enableSLMCollection: true,
-        enableNotesCollection: true
-      });
+      try {
+        if (typeof this.hybridDataService.startAutoSync === 'function') {
+          this.hybridDataService.startAutoSync({
+            syncInterval: 5 * 60 * 1000,
+            batchSize: 50,
+            maxRetries: 3,
+            tables: ['incident', 'change_task', 'sc_task'],
+            enableDeltaSync: true,
+            enableRealTimeUpdates: true,
+            enableSLMCollection: true,
+            enableNotesCollection: true
+          });
+          console.log('✅ Auto-sync enabled for enhanced features');
+        } else {
+          console.warn('⚠️ startAutoSync method not available, enhanced sync features disabled');
+        }
+      } catch (error) {
+        console.warn('⚠️ Failed to start auto-sync:', error);
+      }
       
-      this.slaTrackingService.start();
-      
+      try {
+        if (typeof this.slaTrackingService.start === 'function') {
+          this.slaTrackingService.start();
+          console.log('✅ SLA tracking service started');
+        } else {
+          console.warn('⚠️ SLA tracking start method not available, SLA features disabled');
+        }
+      } catch (error) {
+        console.warn('⚠️ Failed to start SLA tracking service:', error);
+      }
+
       console.log(' Background services started (ConsolidatedDataService + SLA Tracking)');
     }
   }
@@ -195,21 +215,76 @@ export class WebServerController {
           ],
         },
       }))
-      .get('/health', () => ({
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        services: {
-          serviceNow: 'connected',
-          redis: 'connected',
-          opensearch: 'connected',
-          hadoop: 'connected',
-        },
-      }))
-      .onError(({ error, code }) => {
+      .get('/health', () => {
+        const healthData = {
+          status: 'healthy',
+          timestamp: new Date().toISOString(),
+          services: {
+            serviceNow: 'connected',
+            redis: 'connected',
+            opensearch: 'connected',
+            hadoop: 'connected',
+          },
+        };
+        return new Response(JSON.stringify(healthData), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+      })
+      .head('/health', () => {
+        return new Response(null, {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+      })
+      .get('/htmx/', () => {
+        return new Response(null, {
+          status: 302,
+          headers: {
+            'Location': '/dashboard',
+          },
+        });
+      })
+      .get('/favicon.ico', () => {
+        return new Response(null, { status: 204 });
+      })
+      .head('/favicon.ico', () => {
+        return new Response(null, { status: 204 });
+      })
+      .onError(({ error, code, set }) => {
         console.error(`Error ${code}:`, error);
+
+        if (code === 'NOT_FOUND') {
+          set.status = 404;
+          return {
+            success: false,
+            error: 'Página não encontrada',
+            code: 'NOT_FOUND',
+            timestamp: new Date().toISOString(),
+          };
+        }
+
+        if (code === 'VALIDATION') {
+          set.status = 400;
+          return {
+            success: false,
+            error: 'Dados de entrada inválidos',
+            details: error.message,
+            code: 'VALIDATION_ERROR',
+            timestamp: new Date().toISOString(),
+          };
+        }
+
+        set.status = 500;
         return {
-          error: 'Internal Server Error',
+          success: false,
+          error: 'Erro interno do servidor',
           message: error.message,
+          code: 'INTERNAL_ERROR',
           timestamp: new Date().toISOString(),
         };
       });
@@ -239,7 +314,16 @@ export class WebServerController {
       }
       
       if (this.slaTrackingService) {
-        this.slaTrackingService.stop();
+        try {
+          if (typeof this.slaTrackingService.stop === 'function') {
+            this.slaTrackingService.stop();
+            console.log('✅ SLA tracking service stopped');
+          } else {
+            console.warn('⚠️ SLA tracking stop method not available');
+          }
+        } catch (error) {
+          console.warn('⚠️ Failed to stop SLA tracking service:', error);
+        }
       }
       
       console.log(' Background services stopped');
@@ -257,11 +341,11 @@ export class WebServerController {
     return this.serviceNowClient;
   }
 
-  public getConsolidatedServiceNowService(): typeof serviceNowService {
+  public getConsolidatedServiceNowService(): typeof consolidatedServiceNowService {
     return this.consolidatedTicketService;
   }
 
-  public getServiceNowAuthClient(): typeof authService {
+  public getServiceNowAuthClient(): typeof serviceNowAuthClient {
     return this.serviceNowAuthClient;
   }
 
@@ -273,7 +357,7 @@ export class WebServerController {
     return this.redisStreams;
   }
 
-  public getSLATrackingService(): typeof ticketService | undefined {
+  public getSLATrackingService(): typeof consolidatedServiceNowService | undefined {
     return this.slaTrackingService;
   }
 

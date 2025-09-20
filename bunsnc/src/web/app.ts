@@ -3,8 +3,46 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { ServiceNowWebServer, WebServerConfig } from './server';
-import { enhancedTicketStorageService } from '../services/ConsolidatedDataService';
+import { ServiceNowWebServer } from './server';
+
+interface WebServerConfig {
+  port: number;
+  jwtSecret: string;
+  serviceNow: {
+    instanceUrl: string;
+    username: string;
+    password: string;
+  };
+  redis: {
+    host: string;
+    port: number;
+    password?: string;
+  };
+  hadoop: {
+    namenode: string;
+    port: number;
+    username: string;
+  };
+  opensearch: {
+    host: string;
+    port: number;
+    username?: string;
+    password?: string;
+    ssl?: boolean;
+  };
+  parquet: {
+    outputPath: string;
+    compressionType: 'snappy' | 'gzip' | 'lz4' | 'none';
+  };
+  mongodb: {
+    host: string;
+    port: number;
+    username: string;
+    password: string;
+    database: string;
+  };
+}
+import { dataService } from '../services';
 
 const config: WebServerConfig = {
   port: 3008,
@@ -64,7 +102,9 @@ async function startWebInterface() {
     
     // Initialize MongoDB persistence
     console.log('🍃 Initializing MongoDB persistence...');
-    await enhancedTicketStorageService.initialize();
+    // Import auth client for data service initialization
+    const { serviceNowAuthClient } = await import('../services/ServiceNowAuthClient');
+    await dataService.initialize(serviceNowAuthClient);
     
     const server = new ServiceNowWebServer(config);
     await server.start();
@@ -95,7 +135,7 @@ async function gracefulShutdown(signal: string) {
   
   try {
     // Shutdown persistence service
-    await enhancedTicketStorageService.shutdown();
+    await dataService.shutdown();
     console.log('🍃 MongoDB persistence shut down gracefully');
   } catch (error) {
     console.error(' Error during MongoDB shutdown:', error);

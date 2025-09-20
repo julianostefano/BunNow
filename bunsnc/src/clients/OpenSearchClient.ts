@@ -46,6 +46,14 @@ export class OpenSearchClient {
   private timeout: number;
 
   constructor(config: OpenSearchConfig) {
+    if (!config) {
+      throw new Error('[OpenSearchClient] Configuration is required but was undefined. Please ensure OPENSEARCH_HOST and OPENSEARCH_PORT environment variables are set.');
+    }
+
+    if (!config.host || !config.port) {
+      throw new Error(`[OpenSearchClient] Invalid configuration: host=${config.host}, port=${config.port}. Please check OPENSEARCH_HOST and OPENSEARCH_PORT environment variables.`);
+    }
+
     this.config = config;
     this.baseUrl = `${config.ssl ? 'https' : 'http'}://${config.host}:${config.port}`;
     this.timeout = config.timeout || 30000;

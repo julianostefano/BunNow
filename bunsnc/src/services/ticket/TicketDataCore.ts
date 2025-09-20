@@ -5,7 +5,7 @@
 
 import { mongoCollectionManager, IncidentDocument, ChangeTaskDocument, SCTaskDocument } from '../../config/mongodb-collections';
 import { systemService } from '../SystemService';
-import { enhancedTicketStorageService } from '../ConsolidatedDataService';
+import { enhancedTicketStorageService } from '../index';
 import { logger } from '../../utils/Logger';
 import type { TicketData } from '../../types/TicketTypes';
 

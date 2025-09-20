@@ -10,13 +10,51 @@ import { createTicketDetailsRoutes } from '../routes/TicketDetailsRoutes';
 import { createTicketActionsRoutes } from '../routes/TicketActionsRoutes';
 import { createTicketListRoutes } from '../routes/TicketListRoutes';
 import { createIncidentNotesRoutes } from '../routes/IncidentNotesRoutes';
+import { authRoutes } from '../routes/auth';
 
-import { WebServerController, WebServerConfig } from '../controllers/WebServerController';
+import { WebServerController } from '../controllers/WebServerController';
+
+interface WebServerConfig {
+  port: number;
+  jwtSecret: string;
+  serviceNow: {
+    instanceUrl: string;
+    username: string;
+    password: string;
+  };
+  redis: {
+    host: string;
+    port: number;
+    password?: string;
+  };
+  hadoop: {
+    namenode: string;
+    port: number;
+    username: string;
+  };
+  opensearch: {
+    host: string;
+    port: number;
+    username?: string;
+    password?: string;
+    ssl?: boolean;
+  };
+  parquet: {
+    outputPath: string;
+    compressionType: 'snappy' | 'gzip' | 'lz4' | 'none';
+  };
+  mongodb: {
+    host: string;
+    port: number;
+    username: string;
+    password: string;
+    database: string;
+  };
+}
 import { APIController } from '../controllers/APIController';
 import { DashboardController } from '../controllers/DashboardController';
 import { StreamingController } from '../controllers/StreamingController';
 
-export { WebServerConfig } from '../controllers/WebServerController';
 
 export class ServiceNowWebServer {
   private webServerController: WebServerController;
@@ -31,7 +69,6 @@ export class ServiceNowWebServer {
     
     this.apiController = new APIController(
       this.webServerController.getServiceNowClient(),
-      this.webServerController.getTicketIntegrationService(),
       this.webServerController.getConfig()
     );
     
@@ -48,6 +85,7 @@ export class ServiceNowWebServer {
     const app = this.webServerController.setupServer();
 
     app
+      .use(authRoutes)
       .use(htmxDashboardClean)
       .use(htmxDashboardEnhanced)
       .use(waitingAnalysisHtmx)
@@ -63,24 +101,76 @@ export class ServiceNowWebServer {
         this.webServerController.getSLATrackingService()
       ))
       
-      .get('/', ({ set }) => {
-        set.headers['Location'] = '/htmx/';
-        set.status = 302;
-        return;
+      .get('/', () => {
+        return new Response(null, {
+          status: 302,
+          headers: {
+            'Location': '/htmx/',
+          },
+        });
       })
-      
-      .get('/dashboard/incidents', () => ({ 
-        message: 'Incidents dashboard - modularized version', 
-        incidents: [] 
-      }))
-      .get('/dashboard/problems', () => ({ 
-        message: 'Problems dashboard - modularized version', 
-        problems: [] 
-      }))
-      .get('/dashboard/changes', () => ({ 
-        message: 'Changes dashboard - modularized version', 
-        changes: [] 
-      }))
+      .head('/', () => {
+        return new Response(null, {
+          status: 302,
+          headers: {
+            'Location': '/htmx/',
+          },
+        });
+      })
+
+      .get('/dashboard', () => {
+        return new Response(null, {
+          status: 302,
+          headers: {
+            'Location': '/clean/',
+          },
+        });
+      })
+      .head('/dashboard', () => {
+        return new Response(null, {
+          status: 302,
+          headers: {
+            'Location': '/clean/',
+          },
+        });
+      })
+
+      .get('/dashboard/incidents', () => {
+        const data = {
+          message: 'Incidents dashboard - modularized version',
+          incidents: []
+        };
+        return new Response(JSON.stringify(data), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+      })
+      .get('/dashboard/problems', () => {
+        const data = {
+          message: 'Problems dashboard - modularized version',
+          problems: []
+        };
+        return new Response(JSON.stringify(data), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+      })
+      .get('/dashboard/changes', () => {
+        const data = {
+          message: 'Changes dashboard - modularized version',
+          changes: []
+        };
+        return new Response(JSON.stringify(data), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+      })
       
       .get('/events/stream', (context) => this.streamingController.handleSSEStream(context))
       

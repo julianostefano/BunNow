@@ -6,7 +6,7 @@ import { GlideRecord } from '../record/GlideRecord';
 import { TableAPI } from '../api/TableAPI';
 import { AttachmentAPI } from '../api/AttachmentAPI';
 import { BatchAPI } from '../api/BatchAPI';
-import { ServiceNowService } from '../services/servicenow.service';
+import { ConsolidatedServiceNowService as ServiceNowService } from '../services';
 import { handleServiceNowError } from '../exceptions';
 import { logger } from '../utils/Logger';
 import { cache } from '../utils/Cache';
@@ -113,7 +113,10 @@ export class ServiceNowClient implements IServiceNowClient {
     this.table = new TableAPI(this.instance, this.auth);
     this.attachment = new AttachmentAPI(this.instance, this.auth);
     this.batch = new BatchAPI(this.table, this.attachment);
-    this.serviceNow = new ServiceNowService(this.instance, this.auth);
+    this.serviceNow = new ServiceNowService({
+      instanceUrl: this.instance,
+      authToken: this.auth
+    });
 
     // Log client initialization
     logger.info('ServiceNow client initialized', 'ServiceNowClient', {

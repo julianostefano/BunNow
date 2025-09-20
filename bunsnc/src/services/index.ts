@@ -86,9 +86,12 @@ export { systemService as taskManager } from './SystemService';
 export { systemService as groupService } from './SystemService';
 export { consolidatedServiceNowService as attachmentService } from './ConsolidatedServiceNowService';
 export { consolidatedServiceNowService as batchService } from './ConsolidatedServiceNowService';
+export { consolidatedServiceNowService as serviceNowService } from './ConsolidatedServiceNowService';
+export { serviceNowAuthClient as authService } from './ServiceNowAuthClient';
 export { dataService as enhancedTicketStorageService } from './ConsolidatedDataService';
 export { dataService as hybridDataService } from './ConsolidatedDataService';
 export { businessLogicService as slaTrackingService } from './ConsolidatedBusinessLogicService';
+export { consolidatedServiceNowService as ticketService } from './ConsolidatedServiceNowService';
 
 /**
  * CONSOLIDATED ARCHITECTURE SUMMARY

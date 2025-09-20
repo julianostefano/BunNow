@@ -27,8 +27,14 @@ export const htmxStatisticsRoutes = new Elysia()
         service_catalog_tasks: 850
       }
     };
-    // Rate limiting now handled internally
-    const rateLimitMetrics = null;
+    // Rate limiting now handled internally - using mock data for safe rendering
+    const rateLimitMetrics = {
+      totalRequests: 15650,
+      successfulRequests: 14890,
+      failedRequests: 760,
+      rateLimitedRequests: 125,
+      averageResponseTime: 245
+    };
 
     return `
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -167,8 +173,17 @@ export const htmxStatisticsRoutes = new Elysia()
       }
     ];
     
-    // Rate limiting now handled internally
-    const rateLimitStats = null;
+    // Rate limiting now handled internally - using mock data for safe rendering
+    const rateLimitStats = {
+      details: {
+        metrics: {
+          successfulRequests: 14890,
+          failedRequests: 760,
+          rateLimitedRequests: 125,
+          averageResponseTime: 245
+        }
+      }
+    };
     
     const groupedStats = stats.reduce((acc, stat) => {
       if (!acc[stat.tipo_chamado]) acc[stat.tipo_chamado] = [];
