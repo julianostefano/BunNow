@@ -118,18 +118,17 @@ export class BigDataServer {
 
     // Initialize OpenSearch service
     const opensearch = new ServiceNowOpenSearchFactory({
-      host: this.config.opensearch.host,
-      port: this.config.opensearch.port,
+      node: `${this.config.opensearch.host}:${this.config.opensearch.port}`,
       auth: {
         username: this.config.opensearch.username,
         password: this.config.opensearch.password,
       },
       ssl: {
         // enabled property exists in implementation but not in SSL type definition
-        rejectUnauthorized: false
+        rejectUnauthorized: false,
       } as any,
       requestTimeout: 30000,
-    });
+    } as any);
 
     // Initialize Pipeline Orchestrator
     const pipeline = new DataPipelineOrchestrator({
@@ -419,7 +418,7 @@ export class BigDataServer {
               );
 
               logger.info(`Message added to stream ${params.streamKey}`, {
-                user: user.username,
+                user: (user as any)?.username || "unknown",
                 messageId,
               });
 
@@ -453,7 +452,7 @@ export class BigDataServer {
               );
 
               logger.info(`Cache set for key ${params.key}`, {
-                user: user.username,
+                user: (user as any)?.username || "unknown",
                 ttl,
               });
 
@@ -496,7 +495,7 @@ export class BigDataServer {
               );
 
               logger.info(`Hadoop upload completed for table ${table}`, {
-                user: user.username,
+                user: (user as any)?.username || "unknown",
                 uploadedFiles: result.uploadedFiles.length,
                 totalSize: result.totalSize,
               });
@@ -537,7 +536,7 @@ export class BigDataServer {
               logger.info(
                 `Hadoop maintenance completed for table ${params.table}`,
                 {
-                  user: user.username,
+                  user: (user as any)?.username || "unknown",
                   compactedPartitions: result.compactedPartitions,
                   deletedPartitions: result.deletedPartitions,
                 },
@@ -590,7 +589,7 @@ export class BigDataServer {
               logger.info(
                 `OpenSearch indexing completed for table ${params.table}`,
                 {
-                  user: user.username,
+                  user: (user as any)?.username || "unknown",
                   indexed: result.indexed,
                   failed: result.failed,
                 },
@@ -681,7 +680,7 @@ export class BigDataServer {
               services.pipeline.registerPipeline(pipelineConfig);
 
               logger.info(`Pipeline registered: ${pipelineConfig.name}`, {
-                user: user.username,
+                user: (user as any)?.username || "unknown",
                 pipelineId: pipelineConfig.id,
               });
 
@@ -703,7 +702,7 @@ export class BigDataServer {
               );
 
               logger.info(`Pipeline executed: ${params.pipelineId}`, {
-                user: user.username,
+                user: (user as any)?.username || "unknown",
                 executionId: execution.id,
                 status: execution.status,
               });
@@ -804,7 +803,7 @@ export class BigDataServer {
               );
 
               logger.info(`Stream processor created: ${name}`, {
-                user: user.username,
+                user: (user as any)?.username || "unknown",
                 type,
                 batchSize: config.batchSize,
               });
@@ -838,7 +837,7 @@ export class BigDataServer {
                 );
 
               logger.info(`Incident processing pipeline created`, {
-                user: user.username,
+                user: (user as any)?.username || "unknown",
                 streamKey: pipeline.streamKey,
               });
 
@@ -857,7 +856,7 @@ export class BigDataServer {
               await services.streaming.createDataExportPipeline(config);
 
               logger.info(`Data export pipeline created`, {
-                user: user.username,
+                user: (user as any)?.username || "unknown",
                 tables: config.tables,
               });
 
@@ -904,7 +903,7 @@ export class BigDataServer {
               await services.streaming.startAll();
 
               logger.info("Streaming platform started", {
-                user: user.username,
+                user: (user as any)?.username || "unknown",
               });
 
               return { success: true, status: "started" };
@@ -920,7 +919,7 @@ export class BigDataServer {
               await services.streaming.stopAll();
 
               logger.info("Streaming platform stopped", {
-                user: user.username,
+                user: (user as any)?.username || "unknown",
               });
 
               return { success: true, status: "stopped" };

@@ -60,6 +60,43 @@ export class ServiceNowRedisIntegration {
   async disconnect() {
     return this.factory.disconnect();
   }
+
+  async addMessage(
+    streamKey: string,
+    data: any,
+    messageId: string = "*",
+  ): Promise<string> {
+    const streamManager = this.getStreamManager();
+    return streamManager.addMessage(streamKey, data);
+  }
+
+  async getCached(key: string): Promise<any> {
+    const cache = this.getCache();
+    return cache.get(key);
+  }
+
+  async setCached(key: string, value: any, ttl?: number): Promise<void> {
+    const cache = this.getCache();
+    return cache.set(key, value, ttl);
+  }
+
+  async getComprehensiveStats(): Promise<{
+    streams: any;
+    cache: any;
+    pubsub: any;
+    health: any;
+  }> {
+    const pipeline = this.getDataPipeline();
+    const health = await this.getHealth();
+    const stats = await pipeline.getStats();
+
+    return {
+      streams: stats.streams,
+      cache: stats.cache,
+      pubsub: stats.pubsub,
+      health,
+    };
+  }
 }
 
 /**
