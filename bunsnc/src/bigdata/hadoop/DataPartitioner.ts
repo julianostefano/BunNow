@@ -222,7 +222,7 @@ export class DataPartitioner extends EventEmitter {
             });
           }
         } catch (error) {
-          logger.error(`Failed to create partition ${partition.id}:`, error);
+          logger.error(`Failed to create partition ${partition.id}:`, error as Error);
           this.emit("partition:error", {
             table: plan.table,
             partitionId: partition.id,
@@ -343,7 +343,7 @@ export class DataPartitioner extends EventEmitter {
             });
           }
         } catch (error) {
-          logger.error(`Failed to compact partition group:`, error);
+          logger.error(`Failed to compact partition group:`, error as Error);
         }
       }
 

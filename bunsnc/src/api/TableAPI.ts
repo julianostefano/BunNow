@@ -31,7 +31,7 @@ export interface ITableAPI {
 
 export class TableAPI implements ITableAPI {
   private baseUrl: string;
-  private headers: HeadersInit;
+  private headers: Record<string, string>;
 
   constructor(
     private instanceUrl: string,

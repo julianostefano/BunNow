@@ -320,7 +320,6 @@ export class BigDataServer {
                 );
 
                 logger.info(
-                  "BigDataServer operation",
                   `Parquet export completed for table ${params.table}`,
                   "BigDataServer",
                   {
@@ -419,8 +418,8 @@ export class BigDataServer {
               );
 
               logger.info(
-                "BigDataServer operation",
                 `Message added to stream ${params.streamKey}`,
+                "BigDataServer",
                 {
                   user: (user as any)?.username || "unknown",
                   messageId,
@@ -456,14 +455,10 @@ export class BigDataServer {
                 ttl,
               );
 
-              logger.info(
-                "BigDataServer operation",
-                `Cache set for key ${params.key}`,
-                {
-                  user: (user as any)?.username || "unknown",
-                  ttl,
-                },
-              );
+              logger.info(`Cache set for key ${params.key}`, "BigDataServer", {
+                user: (user as any)?.username || "unknown",
+                ttl,
+              });
 
               return { success, key: params.key, ttl };
             },
@@ -504,8 +499,8 @@ export class BigDataServer {
               );
 
               logger.info(
-                "BigDataServer operation",
                 `Hadoop upload completed for table ${table}`,
+                "BigDataServer",
                 {
                   user: (user as any)?.username || "unknown",
                   uploadedFiles: result.uploadedFiles.length,
@@ -547,8 +542,8 @@ export class BigDataServer {
               );
 
               logger.info(
-                "BigDataServer operation",
                 `Hadoop maintenance completed for table ${params.table}`,
+                "BigDataServer",
                 {
                   user: (user as any)?.username || "unknown",
                   compactedPartitions: result.compactedPartitions,
@@ -601,7 +596,6 @@ export class BigDataServer {
               );
 
               logger.info(
-                "BigDataServer operation",
                 `OpenSearch indexing completed for table ${params.table}`,
                 {
                   user: (user as any)?.username || "unknown",
@@ -694,14 +688,10 @@ export class BigDataServer {
               const pipelineConfig = body as any;
               services.pipeline.registerPipeline(pipelineConfig);
 
-              logger.info(
-                "BigDataServer operation",
-                `Pipeline registered: ${pipelineConfig.name}`,
-                {
-                  user: (user as any)?.username || "unknown",
-                  pipelineId: pipelineConfig.id,
-                },
-              );
+              logger.info(`Pipeline registered: ${pipelineConfig.name}`, {
+                user: (user as any)?.username || "unknown",
+                pipelineId: pipelineConfig.id,
+              });
 
               return { success: true, pipelineId: pipelineConfig.id };
             },
@@ -720,15 +710,11 @@ export class BigDataServer {
                 options,
               );
 
-              logger.info(
-                "BigDataServer operation",
-                `Pipeline executed: ${params.pipelineId}`,
-                {
-                  user: (user as any)?.username || "unknown",
-                  executionId: execution.id,
-                  status: execution.status,
-                },
-              );
+              logger.info(`Pipeline executed: ${params.pipelineId}`, {
+                user: (user as any)?.username || "unknown",
+                executionId: execution.id,
+                status: execution.status,
+              });
 
               return execution;
             },
@@ -763,7 +749,7 @@ export class BigDataServer {
                 (query.compression as "snappy" | "gzip" | "lz4") || "snappy";
 
               const template =
-                services.pipeline.createServiceNowToParquetPipeline({
+                this.services.pipeline.createServiceNowToParquetPipeline({
                   tables,
                   outputPath,
                   compressionType,
@@ -787,11 +773,12 @@ export class BigDataServer {
               const redisStreamPrefix =
                 (query.streamPrefix as string) || "servicenow";
 
-              const template = services.pipeline.createRealTimeSearchPipeline({
-                tables,
-                indexPrefix,
-                redisStreamPrefix,
-              });
+              const template =
+                this.services.pipeline.createRealTimeSearchPipeline({
+                  tables,
+                  indexPrefix,
+                  redisStreamPrefix,
+                });
 
               return template;
             },
@@ -825,15 +812,11 @@ export class BigDataServer {
                 type,
               );
 
-              logger.info(
-                "BigDataServer operation",
-                `Stream processor created: ${name}`,
-                {
-                  user: (user as any)?.username || "unknown",
-                  type,
-                  batchSize: config.batchSize,
-                },
-              );
+              logger.info(`Stream processor created: ${name}`, {
+                user: (user as any)?.username || "unknown",
+                type,
+                batchSize: config.batchSize,
+              });
 
               return { success: true, processorName: name, type };
             },
@@ -863,14 +846,10 @@ export class BigDataServer {
                   config,
                 );
 
-              logger.info(
-                "BigDataServer operation",
-                `Incident processing pipeline created`,
-                {
-                  user: (user as any)?.username || "unknown",
-                  streamKey: pipeline.streamKey,
-                },
-              );
+              logger.info(`Incident processing pipeline created`, {
+                user: (user as any)?.username || "unknown",
+                streamKey: pipeline.streamKey,
+              });
 
               return { success: true, streamKey: pipeline.streamKey };
             },
@@ -886,14 +865,10 @@ export class BigDataServer {
               const config = body as any;
               await services.streaming.createDataExportPipeline(config);
 
-              logger.info(
-                "BigDataServer operation",
-                `Data export pipeline created`,
-                {
-                  user: (user as any)?.username || "unknown",
-                  tables: config.tables,
-                },
-              );
+              logger.info(`Data export pipeline created`, {
+                user: (user as any)?.username || "unknown",
+                tables: config.tables,
+              });
 
               return { success: true };
             },
@@ -937,13 +912,9 @@ export class BigDataServer {
             async ({ services, user }) => {
               await services.streaming.startAll();
 
-              logger.info(
-                "BigDataServer operation",
-                "Streaming platform started",
-                {
-                  user: (user as any)?.username || "unknown",
-                },
-              );
+              logger.info("Streaming platform started", {
+                user: (user as any)?.username || "unknown",
+              });
 
               return { success: true, status: "started" };
             },
@@ -957,13 +928,9 @@ export class BigDataServer {
             async ({ services, user }) => {
               await services.streaming.stopAll();
 
-              logger.info(
-                "BigDataServer operation",
-                "Streaming platform stopped",
-                {
-                  user: (user as any)?.username || "unknown",
-                },
-              );
+              logger.info("Streaming platform stopped", {
+                user: (user as any)?.username || "unknown",
+              });
 
               return { success: true, status: "stopped" };
             },
@@ -1033,7 +1000,7 @@ export class BigDataServer {
       logger.info(`📚 API Documentation: http://localhost:${port}/swagger`);
       logger.info(`❤️  Health Check: http://localhost:${port}/health`);
     } catch (error) {
-      logger.error("Failed to start server:", error);
+      logger.error("Failed to start server:", error as Error);
       throw error;
     }
   }
@@ -1054,7 +1021,7 @@ export class BigDataServer {
       this.isStarted = false;
       logger.info("ServiceNow Big Data API Server stopped gracefully");
     } catch (error) {
-      logger.error("Error during server shutdown:", error);
+      logger.error("Error during server shutdown:", error as Error);
       throw error;
     }
   }
