@@ -240,7 +240,10 @@ export class BatchAPI implements IBatchAPI {
         return this.execute(attempt + 1);
       } else {
         // Max retries exceeded
-        operation.error("Batch execution failed after max retries", error as Error);
+        operation.error(
+          "Batch execution failed after max retries",
+          error as Error,
+        );
 
         const errorResult: BatchResult = {
           id: "batch_error",
