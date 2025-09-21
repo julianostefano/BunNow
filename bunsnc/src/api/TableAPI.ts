@@ -185,8 +185,8 @@ export class TableAPI implements ITableAPI {
     try {
       const params = new URLSearchParams();
 
-      if (options.query) {
-        params.append("sysparm_query", options.query);
+      if (options.filter) {
+        params.append("sysparm_query", options.filter);
       }
 
       if (options.fields && options.fields.length > 0) {

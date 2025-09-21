@@ -241,7 +241,7 @@ export class RedisStreamManager extends EventEmitter {
       );
     } catch (error) {
       // Group might already exist
-      if (!error.message.includes("BUSYGROUP")) {
+      if (!(error as Error).message.includes("BUSYGROUP")) {
         logger.error(`Error creating consumer group ${groupName}:`, error);
         throw error;
       }
@@ -868,7 +868,7 @@ export class RedisConsumer extends EventEmitter {
         ...message.data,
         _original_stream: this.options.streamKey,
         _original_id: message.id,
-        _error: error.message,
+        _error: (error as Error).message,
         _failed_at: Date.now().toString(),
         _consumer: this.options.consumerName,
         _group: this.options.groupName,

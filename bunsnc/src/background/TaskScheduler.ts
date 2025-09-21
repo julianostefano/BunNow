@@ -480,7 +480,7 @@ export class TaskScheduler extends EventEmitter {
 
       this.emit("taskFailed", {
         scheduledTaskId: scheduledTask.id,
-        error: error.message,
+        error: (error as Error).message,
         task: updatedTask,
       });
 

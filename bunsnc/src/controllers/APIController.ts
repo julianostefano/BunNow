@@ -87,7 +87,7 @@ export class APIController {
 
       return { incidents, count: incidents.length };
     } catch (error) {
-      throw new Error(`Failed to fetch incidents: ${error.message}`);
+      throw new Error(`Failed to fetch incidents: ${(error as Error).message}`);
     }
   }
 
@@ -111,7 +111,7 @@ export class APIController {
 
       return { problems, count: problems.length };
     } catch (error) {
-      throw new Error(`Failed to fetch problems: ${error.message}`);
+      throw new Error(`Failed to fetch problems: ${(error as Error).message}`);
     }
   }
 
@@ -135,7 +135,7 @@ export class APIController {
 
       return { changes, count: changes.length };
     } catch (error) {
-      throw new Error(`Failed to fetch changes: ${error.message}`);
+      throw new Error(`Failed to fetch changes: ${(error as Error).message}`);
     }
   }
 
@@ -153,7 +153,7 @@ export class APIController {
       };
     } catch (error) {
       throw new Error(
-        `Failed to process ${tableName} to Parquet: ${error.message}`,
+        `Failed to process ${tableName} to Parquet: ${(error as Error).message}`,
       );
     }
   }
@@ -167,7 +167,9 @@ export class APIController {
         executionId: `exec_${Date.now()}`,
       };
     } catch (error) {
-      throw new Error(`Failed to execute pipeline: ${error.message}`);
+      throw new Error(
+        `Failed to execute pipeline: ${(error as Error).message}`,
+      );
     }
   }
 
@@ -216,7 +218,7 @@ export class APIController {
         </div>
       `;
     } catch (error) {
-      return `<div class="text-red-600">Error loading analytics: ${error.message}</div>`;
+      return `<div class="text-red-600">Error loading analytics: ${(error as Error).message}</div>`;
     }
   }
 
@@ -246,7 +248,7 @@ export class APIController {
       console.error(" Error during MongoDB sync:", error);
       return {
         success: false,
-        message: `Error during sync: ${error.message}`,
+        message: `Error during sync: ${(error as Error).message}`,
         timestamp: new Date().toISOString(),
       };
     }
@@ -293,7 +295,7 @@ export class APIController {
       console.error(` Error getting ${ticketType} from MongoDB:`, error);
       return {
         success: false,
-        message: `Error getting ${ticketType}: ${error.message}`,
+        message: `Error getting ${ticketType}: ${(error as Error).message}`,
         timestamp: new Date().toISOString(),
       };
     }
@@ -311,7 +313,7 @@ export class APIController {
       console.error(" Error getting MongoDB stats:", error);
       return {
         success: false,
-        message: `Error getting stats: ${error.message}`,
+        message: `Error getting stats: ${(error as Error).message}`,
         timestamp: new Date().toISOString(),
       };
     }
@@ -330,7 +332,7 @@ export class APIController {
       console.error(" Error getting target groups:", error);
       return {
         success: false,
-        message: `Error getting groups: ${error.message}`,
+        message: `Error getting groups: ${(error as Error).message}`,
         timestamp: new Date().toISOString(),
       };
     }

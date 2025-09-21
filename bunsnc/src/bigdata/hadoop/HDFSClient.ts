@@ -104,7 +104,8 @@ export class HDFSClient extends EventEmitter {
     hdfsPath: string,
     options: HDFSOperationOptions = {},
   ): Promise<boolean> {
-    const timer = performanceMonitor.startTimer("hdfs_upload");
+    const timer = "hdfs_upload";
+    performanceMonitor.startTimer(timer);
 
     try {
       if (!existsSync(localPath)) {
@@ -187,7 +188,8 @@ export class HDFSClient extends EventEmitter {
     localPath: string,
     options: HDFSOperationOptions = {},
   ): Promise<boolean> {
-    const timer = performanceMonitor.startTimer("hdfs_download");
+    const timer = "hdfs_download";
+    performanceMonitor.startTimer(timer);
 
     try {
       this.stats.totalOperations++;
@@ -258,7 +260,8 @@ export class HDFSClient extends EventEmitter {
     hdfsPath: string,
     options: HDFSOperationOptions = {},
   ): Promise<boolean> {
-    const timer = performanceMonitor.startTimer("hdfs_mkdir");
+    const timer = "hdfs_mkdir";
+    performanceMonitor.startTimer(timer);
 
     try {
       this.stats.totalOperations++;
@@ -299,7 +302,8 @@ export class HDFSClient extends EventEmitter {
    * Delete file or directory from HDFS
    */
   async delete(hdfsPath: string, recursive: boolean = false): Promise<boolean> {
-    const timer = performanceMonitor.startTimer("hdfs_delete");
+    const timer = "hdfs_delete";
+    performanceMonitor.startTimer(timer);
 
     try {
       this.stats.totalOperations++;
@@ -342,7 +346,8 @@ export class HDFSClient extends EventEmitter {
    * Get file or directory status
    */
   async getFileStatus(hdfsPath: string): Promise<HDFSFileInfo | null> {
-    const timer = performanceMonitor.startTimer("hdfs_status");
+    const timer = "hdfs_status";
+    performanceMonitor.startTimer(timer);
 
     try {
       this.stats.totalOperations++;
@@ -388,7 +393,8 @@ export class HDFSClient extends EventEmitter {
    * List directory contents
    */
   async listDirectory(hdfsPath: string): Promise<HDFSFileInfo[]> {
-    const timer = performanceMonitor.startTimer("hdfs_list");
+    const timer = "hdfs_list";
+    performanceMonitor.startTimer(timer);
 
     try {
       this.stats.totalOperations++;
@@ -431,7 +437,8 @@ export class HDFSClient extends EventEmitter {
    * Rename file or directory
    */
   async rename(oldPath: string, newPath: string): Promise<boolean> {
-    const timer = performanceMonitor.startTimer("hdfs_rename");
+    const timer = "hdfs_rename";
+    performanceMonitor.startTimer(timer);
 
     try {
       this.stats.totalOperations++;
@@ -480,7 +487,8 @@ export class HDFSClient extends EventEmitter {
     hdfsPath: string,
     replication: number,
   ): Promise<boolean> {
-    const timer = performanceMonitor.startTimer("hdfs_set_replication");
+    const timer = "hdfs_set_replication";
+    performanceMonitor.startTimer(timer);
 
     try {
       this.stats.totalOperations++;

@@ -662,10 +662,10 @@ export class TaskWorker {
       );
 
       const taskError: TaskError = {
-        message: error.message,
-        stack: error.stack,
+        message: (error as Error).message,
+        stack: (error as Error).stack,
         timestamp: new Date(),
-        retryable: this.isRetryableError(error),
+        retryable: this.isRetryableError(error as Error),
       };
 
       // Check if should retry

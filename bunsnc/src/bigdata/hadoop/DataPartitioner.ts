@@ -93,7 +93,8 @@ export class DataPartitioner extends EventEmitter {
     records: any[],
     config?: Partial<PartitionConfig>,
   ): Promise<PartitionPlan> {
-    const timer = performanceMonitor.startTimer("partition_planning");
+    const timer = "partition_planning";
+    performanceMonitor.startTimer(timer);
     const effectiveConfig = { ...this.defaultConfig, ...config };
 
     try {
@@ -177,7 +178,8 @@ export class DataPartitioner extends EventEmitter {
     plan: PartitionPlan,
     dataFiles: string[],
   ): Promise<boolean> {
-    const timer = performanceMonitor.startTimer("partition_execution");
+    const timer = "partition_execution";
+    performanceMonitor.startTimer(timer);
 
     try {
       logger.info(`Executing partition plan for table ${plan.table}`);
@@ -299,7 +301,8 @@ export class DataPartitioner extends EventEmitter {
     table: string,
     minPartitionSize: number = 64 * 1024 * 1024, // 64MB
   ): Promise<boolean> {
-    const timer = performanceMonitor.startTimer("partition_compaction");
+    const timer = "partition_compaction";
+    performanceMonitor.startTimer(timer);
 
     try {
       logger.info(`Starting partition compaction for table ${table}`);
@@ -364,7 +367,8 @@ export class DataPartitioner extends EventEmitter {
     table: string,
     retentionDays?: number,
   ): Promise<number> {
-    const timer = performanceMonitor.startTimer("partition_cleanup");
+    const timer = "partition_cleanup";
+    performanceMonitor.startTimer(timer);
     const retention = retentionDays || this.defaultConfig.retentionDays;
     const cutoffTime = Date.now() - retention * 24 * 60 * 60 * 1000;
 

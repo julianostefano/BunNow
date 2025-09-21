@@ -309,7 +309,8 @@ export class BigDataServer {
           .post(
             "/export/:table",
             async ({ params, body, services, user }) => {
-              const timer = performanceMonitor.startTimer("parquet_export");
+              const timer = "parquet_export";
+              performanceMonitor.startTimer(timer);
 
               try {
                 const { records, options = {} } = body as any;

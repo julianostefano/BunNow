@@ -50,7 +50,7 @@ export class TicketController {
     } catch (error) {
       console.warn(
         "Could not initialize ConsolidatedDataService:",
-        error.message,
+        (error as Error).message,
       );
     }
   }
@@ -82,7 +82,7 @@ export class TicketController {
       return this.processTicketData(ticket);
     } catch (error) {
       console.error("Error fetching ticket details:", error);
-      throw new Error(`Failed to load ticket: ${error.message}`);
+      throw new Error(`Failed to load ticket: ${(error as Error).message}`);
     }
   }
 

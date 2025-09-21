@@ -93,7 +93,7 @@ export class ServiceNowOpenSearchFactory {
 
     try {
       // Test connectivity first
-      const connected = await this.client.testConnection();
+      const connected = await this.client.ping();
       if (!connected) {
         result.errors.push({
           table: "all",
@@ -211,7 +211,7 @@ export class ServiceNowOpenSearchFactory {
 
       // Refresh index if requested
       if (options.refreshIndex) {
-        await this.client.refreshIndex(result.indexName);
+        await this.client.indices.refresh({ index: result.indexName });
       }
 
       // Update mappings if needed

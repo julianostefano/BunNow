@@ -332,7 +332,7 @@ export class ParquetWriter {
         recordCount: 0,
         fileSize: 0,
         schema: null,
-        errors: [error.message],
+        errors: [(error as Error).message],
       };
     }
   }

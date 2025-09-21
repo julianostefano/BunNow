@@ -499,7 +499,7 @@ export class OpenSearchClient extends EventEmitter {
 
       return null;
     } catch (error) {
-      if (error.statusCode === 404) {
+      if ((error as any).statusCode === 404) {
         return null; // Document not found
       }
 
@@ -598,7 +598,7 @@ export class OpenSearchClient extends EventEmitter {
 
       return success;
     } catch (error) {
-      if (error.statusCode === 404) {
+      if ((error as any).statusCode === 404) {
         return true; // Already deleted
       }
 
