@@ -351,7 +351,7 @@ export class AttachmentAPI implements IAttachmentAPI {
       // Fallback: try to get sys_id from response body
       if (!attachmentId) {
         try {
-          const result = await response.json();
+          const result = await response.json() as { result?: { sys_id?: string } };
           if (result.result && result.result.sys_id) {
             attachmentId = result.result.sys_id;
           }
@@ -383,8 +383,8 @@ export class AttachmentAPI implements IAttachmentAPI {
 
       return attachmentId;
     } catch (error) {
-      operation.error("Attachment upload failed", error);
-      handleServiceNowError(error, "upload attachment");
+      operation.error("Attachment upload failed", error as Error);
+      handleServiceNowError(error as Error, "upload attachment");
     }
   }
 
@@ -456,8 +456,8 @@ export class AttachmentAPI implements IAttachmentAPI {
 
       return response;
     } catch (error) {
-      operation.error("Get attachment file failed", error);
-      handleServiceNowError(error, "get attachment file");
+      operation.error("Get attachment file failed", error as Error);
+      handleServiceNowError(error as Error, "get attachment file");
     }
   }
 
@@ -469,7 +469,7 @@ export class AttachmentAPI implements IAttachmentAPI {
       const response = await this.getFile(sysId);
       return await response.arrayBuffer();
     } catch (error) {
-      handleServiceNowError(error, "get attachment content");
+      handleServiceNowError(error as Error, "get attachment content");
     }
   }
 
@@ -481,7 +481,7 @@ export class AttachmentAPI implements IAttachmentAPI {
       const response = await this.getFile(sysId);
       return await response.blob();
     } catch (error) {
-      handleServiceNowError(error, "get attachment as blob");
+      handleServiceNowError(error as Error, "get attachment as blob");
     }
   }
 
@@ -529,8 +529,8 @@ export class AttachmentAPI implements IAttachmentAPI {
 
       return success;
     } catch (error) {
-      operation.error("Delete attachment failed", error);
-      handleServiceNowError(error, "delete attachment");
+      operation.error("Delete attachment failed", error as Error);
+      handleServiceNowError(error as Error, "delete attachment");
     }
   }
 
@@ -545,7 +545,7 @@ export class AttachmentAPI implements IAttachmentAPI {
       const response = await this.getFile(sysId);
       return await response.text();
     } catch (error) {
-      handleServiceNowError(error, "get attachment as text");
+      handleServiceNowError(error as Error, "get attachment as text");
     }
   }
 
@@ -651,7 +651,7 @@ export class AttachmentAPI implements IAttachmentAPI {
       operation.success("Attachment streaming started");
       return response.body;
     } catch (error) {
-      operation.error("Stream download failed", error);
+      operation.error("Stream download failed", error as Error);
       throw error;
     }
   }
@@ -744,7 +744,7 @@ export class AttachmentAPI implements IAttachmentAPI {
 
       return results;
     } catch (error) {
-      operation.error("Bulk delete failed", error);
+      operation.error("Bulk delete failed", error as Error);
       throw error;
     }
   }

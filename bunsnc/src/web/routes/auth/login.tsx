@@ -73,7 +73,7 @@ const LoginPage = ({ error }: { error?: string }) => (
         >
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
-              <label for="username" className="sr-only">
+              <label htmlFor="username" className="sr-only">
                 Username
               </label>
               <input
@@ -86,7 +86,7 @@ const LoginPage = ({ error }: { error?: string }) => (
               />
             </div>
             <div>
-              <label for="password" className="sr-only">
+              <label htmlFor="password" className="sr-only">
                 Password
               </label>
               <input
@@ -109,7 +109,7 @@ const LoginPage = ({ error }: { error?: string }) => (
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
               <label
-                for="remember-me"
+                htmlFor="remember-me"
                 className="ml-2 block text-sm text-gray-900"
               >
                 Remember me
