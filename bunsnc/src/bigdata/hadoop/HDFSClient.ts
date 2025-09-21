@@ -88,7 +88,7 @@ export class HDFSClient extends EventEmitter {
 
     this.baseUrl = `${this.config.namenode}/webhdfs/v1`;
 
-    logger.info("HDFSClient initialized with config:", {
+    logger.info("HDFSClient initialized with config:", "HDFSClient", {
       namenode: this.config.namenode,
       user: this.config.user,
       replicationFactor: this.config.replicationFactor,
@@ -273,7 +273,7 @@ export class HDFSClient extends EventEmitter {
         throw new Error(`Failed to create directory: ${response.statusText}`);
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as any;
       const success = result.boolean === true;
 
       if (success) {
@@ -314,7 +314,7 @@ export class HDFSClient extends EventEmitter {
         throw new Error(`Failed to delete: ${response.statusText}`);
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as any;
       const success = result.boolean === true;
 
       if (success) {
@@ -357,7 +357,7 @@ export class HDFSClient extends EventEmitter {
         throw new Error(`Failed to get file status: ${response.statusText}`);
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as any;
       const status = result.FileStatus;
 
       this.stats.successfulOperations++;
@@ -400,7 +400,7 @@ export class HDFSClient extends EventEmitter {
         throw new Error(`Failed to list directory: ${response.statusText}`);
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as any;
       const fileStatuses = result.FileStatuses.FileStatus;
 
       this.stats.successfulOperations++;
@@ -446,7 +446,7 @@ export class HDFSClient extends EventEmitter {
         throw new Error(`Failed to rename: ${response.statusText}`);
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as any;
       const success = result.boolean === true;
 
       if (success) {
@@ -495,7 +495,7 @@ export class HDFSClient extends EventEmitter {
         throw new Error(`Failed to set replication: ${response.statusText}`);
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as any;
       const success = result.boolean === true;
 
       if (success) {
@@ -545,7 +545,7 @@ export class HDFSClient extends EventEmitter {
         );
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as any;
       const beans = result.beans[0];
 
       return {

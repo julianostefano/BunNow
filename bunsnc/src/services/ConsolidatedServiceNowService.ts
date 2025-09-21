@@ -169,7 +169,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         );
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as any;
       const record = result.result || result;
 
       logger.info(` [ServiceNow] Created record in ${table}: ${record.sys_id}`);
@@ -198,7 +198,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         );
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as any;
       const record = result.result || result;
 
       logger.debug(` [ServiceNow] Read record from ${table}: ${sysId}`);
@@ -227,7 +227,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         );
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as any;
       const record = result.result || result;
 
       logger.info(` [ServiceNow] Updated record in ${table}: ${sysId}`);
@@ -292,7 +292,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         );
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as any;
       const records = result.result || [];
 
       logger.info(
@@ -638,7 +638,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         throw new Error(`Upload failed: ${response.status} - ${error}`);
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as any;
       const attachment = result.result || result;
 
       logger.info(

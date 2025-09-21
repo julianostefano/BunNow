@@ -597,6 +597,7 @@ export class BigDataServer {
 
               logger.info(
                 `OpenSearch indexing completed for table ${params.table}`,
+                "BigDataServer",
                 {
                   user: (user as any)?.username || "unknown",
                   indexed: result.indexed,
@@ -688,10 +689,14 @@ export class BigDataServer {
               const pipelineConfig = body as any;
               services.pipeline.registerPipeline(pipelineConfig);
 
-              logger.info(`Pipeline registered: ${pipelineConfig.name}`, {
-                user: (user as any)?.username || "unknown",
-                pipelineId: pipelineConfig.id,
-              });
+              logger.info(
+                `Pipeline registered: ${pipelineConfig.name}`,
+                "BigDataServer",
+                {
+                  user: (user as any)?.username || "unknown",
+                  pipelineId: pipelineConfig.id,
+                },
+              );
 
               return { success: true, pipelineId: pipelineConfig.id };
             },
@@ -710,11 +715,15 @@ export class BigDataServer {
                 options,
               );
 
-              logger.info(`Pipeline executed: ${params.pipelineId}`, {
-                user: (user as any)?.username || "unknown",
-                executionId: execution.id,
-                status: execution.status,
-              });
+              logger.info(
+                `Pipeline executed: ${params.pipelineId}`,
+                "BigDataServer",
+                {
+                  user: (user as any)?.username || "unknown",
+                  executionId: execution.id,
+                  status: execution.status,
+                },
+              );
 
               return execution;
             },
@@ -812,11 +821,15 @@ export class BigDataServer {
                 type,
               );
 
-              logger.info(`Stream processor created: ${name}`, {
-                user: (user as any)?.username || "unknown",
-                type,
-                batchSize: config.batchSize,
-              });
+              logger.info(
+                `Stream processor created: ${name}`,
+                "BigDataServer",
+                {
+                  user: (user as any)?.username || "unknown",
+                  type,
+                  batchSize: config.batchSize,
+                },
+              );
 
               return { success: true, processorName: name, type };
             },
@@ -846,10 +859,14 @@ export class BigDataServer {
                   config,
                 );
 
-              logger.info(`Incident processing pipeline created`, {
-                user: (user as any)?.username || "unknown",
-                streamKey: pipeline.streamKey,
-              });
+              logger.info(
+                `Incident processing pipeline created`,
+                "BigDataServer",
+                {
+                  user: (user as any)?.username || "unknown",
+                  streamKey: pipeline.streamKey,
+                },
+              );
 
               return { success: true, streamKey: pipeline.streamKey };
             },
@@ -865,7 +882,7 @@ export class BigDataServer {
               const config = body as any;
               await services.streaming.createDataExportPipeline(config);
 
-              logger.info(`Data export pipeline created`, {
+              logger.info(`Data export pipeline created`, "BigDataServer", {
                 user: (user as any)?.username || "unknown",
                 tables: config.tables,
               });
@@ -912,7 +929,7 @@ export class BigDataServer {
             async ({ services, user }) => {
               await services.streaming.startAll();
 
-              logger.info("Streaming platform started", {
+              logger.info("Streaming platform started", "BigDataServer", {
                 user: (user as any)?.username || "unknown",
               });
 
@@ -928,7 +945,7 @@ export class BigDataServer {
             async ({ services, user }) => {
               await services.streaming.stopAll();
 
-              logger.info("Streaming platform stopped", {
+              logger.info("Streaming platform stopped", "BigDataServer", {
                 user: (user as any)?.username || "unknown",
               });
 
@@ -972,7 +989,7 @@ export class BigDataServer {
 
       // Request logging
       .onBeforeHandle(({ request, set }) => {
-        logger.info(`${request.method} ${request.url}`, {
+        logger.info(`${request.method} ${request.url}`, "BigDataServer", {
           method: request.method,
           url: request.url,
           userAgent: request.headers.get("user-agent"),
@@ -1069,7 +1086,7 @@ export class BigDataServer {
       return {
         healthy: false,
         latency: Date.now() - startTime,
-        details: error.message,
+        details: (error as Error).message,
       };
     }
   }
@@ -1087,14 +1104,14 @@ export class BigDataServer {
         latency,
         details: {
           totalOperations: stats.cache.totalOperations,
-          streamCount: stats.stream.totalStreams,
+          streamCount: stats.streams.totalStreams,
         },
       };
     } catch (error) {
       return {
         healthy: false,
         latency: Date.now() - startTime,
-        details: error.message,
+        details: (error as Error).message,
       };
     }
   }
@@ -1121,7 +1138,7 @@ export class BigDataServer {
       return {
         healthy: false,
         latency: Date.now() - startTime,
-        details: error.message,
+        details: (error as Error).message,
       };
     }
   }
@@ -1149,7 +1166,7 @@ export class BigDataServer {
       return {
         healthy: false,
         latency: Date.now() - startTime,
-        details: error.message,
+        details: (error as Error).message,
       };
     }
   }
@@ -1173,7 +1190,7 @@ export class BigDataServer {
       return {
         healthy: false,
         latency: Date.now() - startTime,
-        details: error.message,
+        details: (error as Error).message,
       };
     }
   }
@@ -1199,7 +1216,7 @@ export class BigDataServer {
       return {
         healthy: false,
         latency: Date.now() - startTime,
-        details: error.message,
+        details: (error as Error).message,
       };
     }
   }

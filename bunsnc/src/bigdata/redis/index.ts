@@ -61,6 +61,10 @@ export class ServiceNowRedisIntegration {
     return this.factory.disconnect();
   }
 
+  async shutdown() {
+    return this.factory.disconnect();
+  }
+
   async addMessage(
     streamKey: string,
     data: any,
@@ -85,6 +89,12 @@ export class ServiceNowRedisIntegration {
     cache: any;
     pubsub: any;
     health: any;
+    system: {
+      uptimeSeconds: number;
+      connectivity: {
+        redis: boolean;
+      };
+    };
   }> {
     const pipeline = this.getDataPipeline();
     const health = await this.getHealth();
@@ -95,6 +105,12 @@ export class ServiceNowRedisIntegration {
       cache: stats.cache,
       pubsub: stats.pubsub,
       health,
+      system: {
+        uptimeSeconds: Math.floor(process.uptime()),
+        connectivity: {
+          redis: health.connected,
+        },
+      },
     };
   }
 }

@@ -248,7 +248,7 @@ export class EmbeddingClient {
         throw new Error(`Similarity calculation failed: ${response.status}`);
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as any;
       return result.similarity || this.cosineSimilarity(embedding1, embedding2);
     } catch (error) {
       logger.warn(

@@ -836,8 +836,8 @@ describe("ServiceNowRedisIntegration End-to-End with Elysia", () => {
     );
     const stats = await response.json();
 
-    expect(stats.stream).toBeDefined();
-    expect(stats.stream.totalStreams).toBeGreaterThan(0);
+    expect(stats.streams).toBeDefined();
+    expect(stats.streams.totalStreams).toBeGreaterThan(0);
     expect(stats.cache).toBeDefined();
     expect(stats.cache.totalOperations).toBeGreaterThan(0);
     expect(stats.pubsub).toBeDefined();

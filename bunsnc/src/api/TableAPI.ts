@@ -66,7 +66,7 @@ export class TableAPI implements ITableAPI {
         throw createExceptionFromResponse(response.status, errorText, response);
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as any;
       return result.result || result;
     } catch (error) {
       handleServiceNowError(error, "get record");
@@ -92,7 +92,7 @@ export class TableAPI implements ITableAPI {
         throw createExceptionFromResponse(response.status, errorText, response);
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as any;
       return result.result || result;
     } catch (error) {
       handleServiceNowError(error, "create record");
@@ -119,7 +119,7 @@ export class TableAPI implements ITableAPI {
         throw createExceptionFromResponse(response.status, errorText, response);
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as any;
       return result.result || result;
     } catch (error) {
       handleServiceNowError(error, "update record");
@@ -146,7 +146,7 @@ export class TableAPI implements ITableAPI {
         throw createExceptionFromResponse(response.status, errorText, response);
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as any;
       return result.result || result;
     } catch (error) {
       handleServiceNowError(error, "patch record");
@@ -232,7 +232,7 @@ export class TableAPI implements ITableAPI {
         throw createExceptionFromResponse(response.status, errorText, response);
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as any;
       return result.result || [];
     } catch (error) {
       handleServiceNowError(error, "query records");
@@ -327,7 +327,7 @@ export class TableAPI implements ITableAPI {
         results.push(result);
       } catch (error) {
         // Include error in results for batch processing
-        results.push({ error: error.message, operation: op });
+        results.push({ error: (error as Error).message, operation: op });
       }
     }
 
@@ -356,7 +356,7 @@ export class TableAPI implements ITableAPI {
         return { status: "error", instance: this.instanceUrl };
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as any;
       const version = result.result?.[0]?.value;
 
       return {
