@@ -3,16 +3,16 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import htmxDashboardClean from './htmx-dashboard-clean';
-import htmxDashboardEnhanced from './htmx-dashboard-enhanced';
-import waitingAnalysisHtmx from './waiting-analysis-htmx';
-import { createTicketDetailsRoutes } from '../routes/TicketDetailsRoutes';
-import { createTicketActionsRoutes } from '../routes/TicketActionsRoutes';
-import { createTicketListRoutes } from '../routes/TicketListRoutes';
-import { createIncidentNotesRoutes } from '../routes/IncidentNotesRoutes';
-import { authRoutes } from '../routes/auth';
+import htmxDashboardClean from "./htmx-dashboard-clean";
+import htmxDashboardEnhanced from "./htmx-dashboard-enhanced";
+import waitingAnalysisHtmx from "./waiting-analysis-htmx";
+import { createTicketDetailsRoutes } from "../routes/TicketDetailsRoutes";
+import { createTicketActionsRoutes } from "../routes/TicketActionsRoutes";
+import { createTicketListRoutes } from "../routes/TicketListRoutes";
+import { createIncidentNotesRoutes } from "../routes/IncidentNotesRoutes";
+import { authRoutes } from "../routes/auth";
 
-import { WebServerController } from '../controllers/WebServerController';
+import { WebServerController } from "../controllers/WebServerController";
 
 interface WebServerConfig {
   port: number;
@@ -41,7 +41,7 @@ interface WebServerConfig {
   };
   parquet: {
     outputPath: string;
-    compressionType: 'snappy' | 'gzip' | 'lz4' | 'none';
+    compressionType: "snappy" | "gzip" | "lz4" | "none";
   };
   mongodb: {
     host: string;
@@ -51,10 +51,9 @@ interface WebServerConfig {
     database: string;
   };
 }
-import { APIController } from '../controllers/APIController';
-import { DashboardController } from '../controllers/DashboardController';
-import { StreamingController } from '../controllers/StreamingController';
-
+import { APIController } from "../controllers/APIController";
+import { DashboardController } from "../controllers/DashboardController";
+import { StreamingController } from "../controllers/StreamingController";
 
 export class ServiceNowWebServer {
   private webServerController: WebServerController;
@@ -63,22 +62,22 @@ export class ServiceNowWebServer {
   private streamingController: StreamingController;
 
   constructor(config: WebServerConfig) {
-    console.log('🏗️ Initializing modular ServiceNow Web Server...');
+    console.log("🏗️ Initializing modular ServiceNow Web Server...");
 
     this.webServerController = new WebServerController(config);
-    
+
     this.apiController = new APIController(
       this.webServerController.getServiceNowClient(),
-      this.webServerController.getConfig()
+      this.webServerController.getConfig(),
     );
-    
+
     this.dashboardController = new DashboardController(config);
-    
+
     this.streamingController = new StreamingController(this.apiController);
 
     this.setupRoutes();
-    
-    console.log(' Modular ServiceNow Web Server initialized');
+
+    console.log(" Modular ServiceNow Web Server initialized");
   }
 
   private setupRoutes(): void {
@@ -89,111 +88,137 @@ export class ServiceNowWebServer {
       .use(htmxDashboardClean)
       .use(htmxDashboardEnhanced)
       .use(waitingAnalysisHtmx)
-      .use(createTicketActionsRoutes(this.webServerController.getServiceNowAuthClient()))
-      .use(createTicketListRoutes(this.webServerController.getServiceNowAuthClient()))
-      .use(createTicketDetailsRoutes(
-        this.webServerController.getServiceNowAuthClient(),
-        this.webServerController.getConsolidatedDataService(),
-        this.webServerController.getRedisStreams()
-      ))
-      .use(createIncidentNotesRoutes(
-        this.webServerController.getServiceNowAuthClient(),
-        this.webServerController.getSLATrackingService()
-      ))
-      
-      .get('/', () => {
+      .use(
+        createTicketActionsRoutes(
+          this.webServerController.getServiceNowAuthClient(),
+        ),
+      )
+      .use(
+        createTicketListRoutes(
+          this.webServerController.getServiceNowAuthClient(),
+        ),
+      )
+      .use(
+        createTicketDetailsRoutes(
+          this.webServerController.getServiceNowAuthClient(),
+          this.webServerController.getConsolidatedDataService(),
+          this.webServerController.getRedisStreams(),
+        ),
+      )
+      .use(
+        createIncidentNotesRoutes(
+          this.webServerController.getServiceNowAuthClient(),
+          this.webServerController.getSLATrackingService(),
+        ),
+      )
+
+      .get("/", () => {
         return new Response(null, {
           status: 302,
           headers: {
-            'Location': '/htmx/',
+            Location: "/htmx/",
           },
         });
       })
-      .head('/', () => {
+      .head("/", () => {
         return new Response(null, {
           status: 302,
           headers: {
-            'Location': '/htmx/',
+            Location: "/htmx/",
           },
         });
       })
 
-      .get('/dashboard', () => {
+      .get("/dashboard", () => {
         return new Response(null, {
           status: 302,
           headers: {
-            'Location': '/clean/',
+            Location: "/clean/",
           },
         });
       })
-      .head('/dashboard', () => {
+      .head("/dashboard", () => {
         return new Response(null, {
           status: 302,
           headers: {
-            'Location': '/clean/',
+            Location: "/clean/",
           },
         });
       })
 
-      .get('/dashboard/incidents', () => {
+      .get("/dashboard/incidents", () => {
         const data = {
-          message: 'Incidents dashboard - modularized version',
-          incidents: []
+          message: "Incidents dashboard - modularized version",
+          incidents: [],
         };
         return new Response(JSON.stringify(data), {
           status: 200,
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         });
       })
-      .get('/dashboard/problems', () => {
+      .get("/dashboard/problems", () => {
         const data = {
-          message: 'Problems dashboard - modularized version',
-          problems: []
+          message: "Problems dashboard - modularized version",
+          problems: [],
         };
         return new Response(JSON.stringify(data), {
           status: 200,
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         });
       })
-      .get('/dashboard/changes', () => {
+      .get("/dashboard/changes", () => {
         const data = {
-          message: 'Changes dashboard - modularized version',
-          changes: []
+          message: "Changes dashboard - modularized version",
+          changes: [],
         };
         return new Response(JSON.stringify(data), {
           status: 200,
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         });
       })
-      
-      .get('/events/stream', (context) => this.streamingController.handleSSEStream(context))
-      
-      .ws('/ws/control', {
-        message: (ws, message) => this.streamingController.handleWebSocketMessage(ws, message),
+
+      .get("/events/stream", (context) =>
+        this.streamingController.handleSSEStream(context),
+      )
+
+      .ws("/ws/control", {
+        message: (ws, message) =>
+          this.streamingController.handleWebSocketMessage(ws, message),
         open: (ws) => this.streamingController.handleWebSocketOpen(ws),
         close: (ws) => this.streamingController.handleWebSocketClose(ws),
       })
-      
-      .group('/api/v1', (app) => app
-        .get('/incidents', () => this.apiController.getIncidents())
-        .get('/problems', () => this.apiController.getProblems())
-        .get('/changes', () => this.apiController.getChanges())
-        .post('/process/parquet/:table', ({ params }) => this.apiController.processToParquet(params.table))
-        .post('/process/pipeline/:pipeline', ({ params }) => this.apiController.executePipeline(params.pipeline))
-        .get('/analytics/dashboard', () => this.apiController.getDashboardAnalytics())
-        .post('/mongodb/sync', () => this.apiController.syncCurrentMonthTickets())
-        .get('/mongodb/tickets/:type', ({ params, query }) => this.apiController.getTicketsFromMongoDB(params.type, query))
-        .get('/mongodb/stats', () => this.apiController.getMongoDBStats())
-        .get('/mongodb/groups', () => this.apiController.getTargetGroups())
+
+      .group("/api/v1", (app) =>
+        app
+          .get("/incidents", () => this.apiController.getIncidents())
+          .get("/problems", () => this.apiController.getProblems())
+          .get("/changes", () => this.apiController.getChanges())
+          .post("/process/parquet/:table", ({ params }) =>
+            this.apiController.processToParquet(params.table),
+          )
+          .post("/process/pipeline/:pipeline", ({ params }) =>
+            this.apiController.executePipeline(params.pipeline),
+          )
+          .get("/analytics/dashboard", () =>
+            this.apiController.getDashboardAnalytics(),
+          )
+          .post("/mongodb/sync", () =>
+            this.apiController.syncCurrentMonthTickets(),
+          )
+          .get("/mongodb/tickets/:type", ({ params, query }) =>
+            this.apiController.getTicketsFromMongoDB(params.type, query),
+          )
+          .get("/mongodb/stats", () => this.apiController.getMongoDBStats())
+          .get("/mongodb/groups", () => this.apiController.getTargetGroups()),
       );
 
-    console.log('🔗 Routes configured with modular controllers');
+    console.log("🔗 Routes configured with modular controllers");
   }
 
   public async start(): Promise<void> {

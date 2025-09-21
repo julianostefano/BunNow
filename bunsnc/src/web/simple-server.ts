@@ -3,32 +3,36 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { Elysia } from 'elysia';
-import { html } from '@elysiajs/html';
-import { staticPlugin } from '@elysiajs/static';
-import { cors } from '@elysiajs/cors';
+import { Elysia } from "elysia";
+import { html } from "@elysiajs/html";
+import { staticPlugin } from "@elysiajs/static";
+import { cors } from "@elysiajs/cors";
 
 const app = new Elysia()
   .use(cors())
   .use(html())
-  .use(staticPlugin({
-    assets: "./src/web/public",
-    prefix: "/public",
-  }))
-  
+  .use(
+    staticPlugin({
+      assets: "./src/web/public",
+      prefix: "/public",
+    }),
+  )
+
   // Health check
-  .get('/health', () => ({
-    status: 'healthy',
+  .get("/health", () => ({
+    status: "healthy",
     timestamp: new Date().toISOString(),
-    version: '1.0.0',
+    version: "1.0.0",
     services: {
-      web: 'running',
-      elysia: 'ok'
-    }
+      web: "running",
+      elysia: "ok",
+    },
   }))
-  
+
   // Main dashboard
-  .get('/', () => `
+  .get(
+    "/",
+    () => `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -138,41 +142,57 @@ const app = new Elysia()
     </div>
 </body>
 </html>
-  `)
-  
+  `,
+  )
+
   // Test API endpoints
-  .get('/api/test', () => ({
+  .get("/api/test", () => ({
     success: true,
-    message: 'API connection successful!',
+    message: "API connection successful!",
     timestamp: new Date().toISOString(),
-    server: 'Elysia.js',
-    version: '1.0.0'
+    server: "Elysia.js",
+    version: "1.0.0",
   }))
-  
-  .get('/api/mock-data', () => ({
+
+  .get("/api/mock-data", () => ({
     success: true,
     data: {
       incidents: [
-        { number: 'INC0000001', priority: 'High', state: 'New', created: new Date().toISOString() },
-        { number: 'INC0000002', priority: 'Medium', state: 'In Progress', created: new Date().toISOString() },
-        { number: 'INC0000003', priority: 'Low', state: 'Resolved', created: new Date().toISOString() }
+        {
+          number: "INC0000001",
+          priority: "High",
+          state: "New",
+          created: new Date().toISOString(),
+        },
+        {
+          number: "INC0000002",
+          priority: "Medium",
+          state: "In Progress",
+          created: new Date().toISOString(),
+        },
+        {
+          number: "INC0000003",
+          priority: "Low",
+          state: "Resolved",
+          created: new Date().toISOString(),
+        },
       ],
       stats: {
         total: 42,
         active: 28,
-        resolved: 14
-      }
+        resolved: 14,
+      },
     },
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   }))
-  
+
   .onError(({ error, code }) => {
     console.error(`Error ${code}:`, error);
     return {
-      error: 'Server Error',
+      error: "Server Error",
       message: error.message,
       code,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   });
 
@@ -181,19 +201,18 @@ const PORT = 3008;
 
 try {
   app.listen(PORT);
-  
-  console.log(' ServiceNow Web Interface - Simple Server');
-  console.log('');
+
+  console.log(" ServiceNow Web Interface - Simple Server");
+  console.log("");
   console.log(` Server running on port ${PORT}`);
   console.log(` Dashboard: http://localhost:${PORT}`);
   console.log(` Health Check: http://localhost:${PORT}/health`);
   console.log(`🧪 Test API: http://localhost:${PORT}/api/test`);
-  console.log('');
-  console.log('Phase 5 - Modern Web Interface');
-  console.log('Built with Elysia.js + HTMX + TailwindCSS + Alpine.js');
-  console.log('');
-  
+  console.log("");
+  console.log("Phase 5 - Modern Web Interface");
+  console.log("Built with Elysia.js + HTMX + TailwindCSS + Alpine.js");
+  console.log("");
 } catch (error) {
-  console.error(' Failed to start server:', error);
+  console.error(" Failed to start server:", error);
   process.exit(1);
 }

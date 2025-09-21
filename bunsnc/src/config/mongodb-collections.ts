@@ -82,16 +82,17 @@ export interface GroupDocument {
 
 // Collection names following Python scripts pattern
 export const COLLECTION_NAMES = {
-  INCIDENTS: 'sn_incidents_collection',
-  CHANGE_TASKS: 'sn_ctasks_collection', 
-  SC_TASKS: 'sn_sctasks_collection',
-  GROUPS: 'sn_groups'
+  INCIDENTS: "sn_incidents_collection",
+  CHANGE_TASKS: "sn_ctasks_collection",
+  SC_TASKS: "sn_sctasks_collection",
+  GROUPS: "sn_groups",
 } as const;
 
-export type CollectionName = typeof COLLECTION_NAMES[keyof typeof COLLECTION_NAMES];
+export type CollectionName =
+  (typeof COLLECTION_NAMES)[keyof typeof COLLECTION_NAMES];
 
-import { MongoClient, Db, Collection, IndexSpecification } from 'mongodb';
-import { dataService } from '../services/ConsolidatedDataService';
+import { MongoClient, Db, Collection, IndexSpecification } from "mongodb";
+import { dataService } from "../services/ConsolidatedDataService";
 
 export interface CollectionConfig {
   name: string;
@@ -106,105 +107,111 @@ export const COLLECTION_CONFIGS: CollectionConfig[] = [
     indexes: [
       { sys_id: 1 }, // Primary lookup
       { number: 1 }, // Ticket number lookup
-      { 'data.incident.state': 1, updated_at: -1 }, // State-based queries
-      { 'data.incident.priority': 1, created_at: -1 }, // Priority sorting
-      { 'data.incident.assignment_group': 1 }, // Group-based queries
+      { "data.incident.state": 1, updated_at: -1 }, // State-based queries
+      { "data.incident.priority": 1, created_at: -1 }, // Priority sorting
+      { "data.incident.assignment_group": 1 }, // Group-based queries
       { sys_id_prefix: 1, created_at: -1 }, // Partitioning support
       { updated_at: -1 }, // Time-based queries
-      { 'data.sync_timestamp': -1 }, // Sync tracking
+      { "data.sync_timestamp": -1 }, // Sync tracking
       // Compound indexes for complex queries
-      { 'data.incident.state': 1, 'data.incident.priority': 1, updated_at: -1 },
-      { 'data.incident.assignment_group': 1, 'data.incident.state': 1 }
+      { "data.incident.state": 1, "data.incident.priority": 1, updated_at: -1 },
+      { "data.incident.assignment_group": 1, "data.incident.state": 1 },
     ],
     shardKey: { sys_id_prefix: 1, sys_id: 1 },
     validation: {
       $jsonSchema: {
-        bsonType: 'object',
-        required: ['sys_id', 'number', 'data', 'created_at', 'updated_at'],
+        bsonType: "object",
+        required: ["sys_id", "number", "data", "created_at", "updated_at"],
         properties: {
-          sys_id: { bsonType: 'string', minLength: 32, maxLength: 32 },
-          number: { bsonType: 'string', pattern: '^INC[0-9]{7}$' },
+          sys_id: { bsonType: "string", minLength: 32, maxLength: 32 },
+          number: { bsonType: "string", pattern: "^INC[0-9]{7}$" },
           data: {
-            bsonType: 'object',
-            required: ['incident', 'slms', 'sync_timestamp'],
+            bsonType: "object",
+            required: ["incident", "slms", "sync_timestamp"],
             properties: {
-              sync_timestamp: { bsonType: 'string' },
-              collection_version: { bsonType: 'string' }
-            }
-          }
-        }
-      }
-    }
+              sync_timestamp: { bsonType: "string" },
+              collection_version: { bsonType: "string" },
+            },
+          },
+        },
+      },
+    },
   },
   {
     name: COLLECTION_NAMES.CHANGE_TASKS,
     indexes: [
       { sys_id: 1 },
       { number: 1 },
-      { 'data.change_task.state': 1, updated_at: -1 },
-      { 'data.change_task.priority': 1, created_at: -1 },
-      { 'data.change_task.assignment_group': 1 },
-      { 'data.change_task.change_request': 1 }, // Parent change reference
+      { "data.change_task.state": 1, updated_at: -1 },
+      { "data.change_task.priority": 1, created_at: -1 },
+      { "data.change_task.assignment_group": 1 },
+      { "data.change_task.change_request": 1 }, // Parent change reference
       { sys_id_prefix: 1, created_at: -1 },
       { updated_at: -1 },
-      { 'data.sync_timestamp': -1 }
+      { "data.sync_timestamp": -1 },
     ],
-    shardKey: { sys_id_prefix: 1, sys_id: 1 }
+    shardKey: { sys_id_prefix: 1, sys_id: 1 },
   },
   {
     name: COLLECTION_NAMES.SC_TASKS,
     indexes: [
       { sys_id: 1 },
       { number: 1 },
-      { 'data.sc_task.state': 1, updated_at: -1 },
-      { 'data.sc_task.priority': 1, created_at: -1 },
-      { 'data.sc_task.assignment_group': 1 },
-      { 'data.sc_task.request': 1 }, // Parent service request
+      { "data.sc_task.state": 1, updated_at: -1 },
+      { "data.sc_task.priority": 1, created_at: -1 },
+      { "data.sc_task.assignment_group": 1 },
+      { "data.sc_task.request": 1 }, // Parent service request
       { sys_id_prefix: 1, created_at: -1 },
       { updated_at: -1 },
-      { 'data.sync_timestamp': -1 }
+      { "data.sync_timestamp": -1 },
     ],
-    shardKey: { sys_id_prefix: 1, sys_id: 1 }
+    shardKey: { sys_id_prefix: 1, sys_id: 1 },
   },
   {
     name: COLLECTION_NAMES.GROUPS,
     indexes: [
       { id: 1 }, // Primary key
-      { 'data.nome': 1 }, // Group name search
-      { 'data.tags': 1 }, // Tag-based search
-      { 'data.responsavel': 1 }, // Responsible person search
-      { 'data.temperatura': 1 }, // Temperature-based filtering
+      { "data.nome": 1 }, // Group name search
+      { "data.tags": 1 }, // Tag-based search
+      { "data.responsavel": 1 }, // Responsible person search
+      { "data.temperatura": 1 }, // Temperature-based filtering
       { created_at: -1 }, // Time-based sorting
       { updated_at: -1 },
       // Compound indexes for complex queries
-      { 'data.nome': 1, 'data.temperatura': 1 },
-      { 'data.responsavel': 1, created_at: -1 }
+      { "data.nome": 1, "data.temperatura": 1 },
+      { "data.responsavel": 1, created_at: -1 },
     ],
     validation: {
       $jsonSchema: {
-        bsonType: 'object',
-        required: ['id', 'data', 'raw_data', 'created_at', 'updated_at'],
+        bsonType: "object",
+        required: ["id", "data", "raw_data", "created_at", "updated_at"],
         properties: {
-          id: { bsonType: 'number' },
+          id: { bsonType: "number" },
           data: {
-            bsonType: 'object',
-            required: ['nome', 'tags', 'descricao', 'responsavel', 'temperatura'],
+            bsonType: "object",
+            required: [
+              "nome",
+              "tags",
+              "descricao",
+              "responsavel",
+              "temperatura",
+            ],
             properties: {
-              nome: { bsonType: 'string', minLength: 1 },
-              tags: { bsonType: 'array', items: { bsonType: 'string' } },
-              descricao: { bsonType: 'string' },
-              responsavel: { bsonType: 'string', minLength: 1 },
-              temperatura: { bsonType: 'number', minimum: 1, maximum: 10 }
-            }
+              nome: { bsonType: "string", minLength: 1 },
+              tags: { bsonType: "array", items: { bsonType: "string" } },
+              descricao: { bsonType: "string" },
+              responsavel: { bsonType: "string", minLength: 1 },
+              temperatura: { bsonType: "number", minimum: 1, maximum: 10 },
+            },
           },
-          raw_data: { bsonType: 'string', minLength: 1 }
-        }
-      }
-    }
+          raw_data: { bsonType: "string", minLength: 1 },
+        },
+      },
+    },
   },
   // SLA Collections
   {
-    name: 'slas',
+    name: "slas",
     indexes: [
       { ticket_sys_id: 1 }, // Primary SLA lookup by ticket
       { sys_id: 1 },
@@ -215,48 +222,48 @@ export const COLLECTION_CONFIGS: CollectionConfig[] = [
       { updated_at: -1 },
       // Compound indexes for analytics
       { ticket_table: 1, priority: 1, breached: 1 },
-      { created_at: 1, ticket_table: 1, priority: 1 }
-    ]
+      { created_at: 1, ticket_table: 1, priority: 1 },
+    ],
   },
   // System Collections
   {
-    name: 'access_logs',
+    name: "access_logs",
     indexes: [
       { timestamp: -1 },
       { user: 1, timestamp: -1 },
       { endpoint: 1, timestamp: -1 },
-      { status_code: 1, timestamp: -1 }
-    ]
+      { status_code: 1, timestamp: -1 },
+    ],
   },
   {
-    name: 'error_logs',
+    name: "error_logs",
     indexes: [
       { timestamp: -1 },
       { level: 1, timestamp: -1 },
-      { service: 1, timestamp: -1 }
-    ]
+      { service: 1, timestamp: -1 },
+    ],
   },
   {
-    name: 'sync_status',
+    name: "sync_status",
     indexes: [
       { table_name: 1, timestamp: -1 },
       { status: 1, timestamp: -1 },
-      { timestamp: -1 }
-    ]
+      { timestamp: -1 },
+    ],
   },
   {
-    name: 'performance_metrics',
+    name: "performance_metrics",
     indexes: [
       { timestamp: -1 },
       { operation: 1, timestamp: -1 },
-      { endpoint: 1, timestamp: -1 }
-    ]
-  }
+      { endpoint: 1, timestamp: -1 },
+    ],
+  },
 ];
 
 export class MongoDBCollectionManager {
   private db: Db | null = null;
-  
+
   constructor() {
     // Do not initialize database in constructor - use lazy loading
   }
@@ -268,10 +275,12 @@ export class MongoDBCollectionManager {
         if (dataService && dataService.mongoManager) {
           this.db = dataService.mongoManager.getDb();
         } else {
-          throw new Error('DataService or mongoManager not initialized');
+          throw new Error("DataService or mongoManager not initialized");
         }
       } catch (error) {
-        throw new Error(`MongoDB collections manager requires dataService.mongoManager to be initialized: ${error.message}`);
+        throw new Error(
+          `MongoDB collections manager requires dataService.mongoManager to be initialized: ${error.message}`,
+        );
       }
     }
     return this.db;
@@ -281,19 +290,22 @@ export class MongoDBCollectionManager {
    * Initialize all collections with indexes and configurations
    */
   async initializeCollections(): Promise<void> {
-    console.log('📂 [MongoDB] Initializing collections and indexes...');
-    
+    console.log("📂 [MongoDB] Initializing collections and indexes...");
+
     for (const config of COLLECTION_CONFIGS) {
       try {
         await this.ensureCollection(config);
         console.log(` [MongoDB] Collection '${config.name}' configured`);
       } catch (error) {
-        console.error(` [MongoDB] Failed to configure collection '${config.name}':`, error);
+        console.error(
+          ` [MongoDB] Failed to configure collection '${config.name}':`,
+          error,
+        );
         throw error;
       }
     }
-    
-    console.log('🎯 [MongoDB] All collections initialized successfully');
+
+    console.log("🎯 [MongoDB] All collections initialized successfully");
   }
 
   /**
@@ -301,15 +313,15 @@ export class MongoDBCollectionManager {
    */
   private async ensureCollection(config: CollectionConfig): Promise<void> {
     const collection = this.getDatabase().collection(config.name);
-    
+
     // Create collection if it doesn't exist
     try {
       await this.getDatabase().createCollection(config.name, {
-        validator: config.validation
+        validator: config.validation,
       });
     } catch (error: any) {
       // Collection might already exist, that's fine
-      if (!error.message.includes('already exists')) {
+      if (!error.message.includes("already exists")) {
         throw error;
       }
     }
@@ -322,14 +334,19 @@ export class MongoDBCollectionManager {
     // Configure sharding if specified
     if (config.shardKey) {
       try {
-        await this.getDatabase().admin().command({
-          shardCollection: `${this.getDatabase().databaseName}.${config.name}`,
-          key: config.shardKey
-        });
+        await this.getDatabase()
+          .admin()
+          .command({
+            shardCollection: `${this.getDatabase().databaseName}.${config.name}`,
+            key: config.shardKey,
+          });
       } catch (error: any) {
         // Sharding might not be available or already configured
-        if (!error.message.includes('already sharded')) {
-          console.warn(` [MongoDB] Sharding not available for ${config.name}:`, error.message);
+        if (!error.message.includes("already sharded")) {
+          console.warn(
+            ` [MongoDB] Sharding not available for ${config.name}:`,
+            error.message,
+          );
         }
       }
     }
@@ -338,7 +355,10 @@ export class MongoDBCollectionManager {
   /**
    * Create indexes safely with conflict resolution
    */
-  private async createIndexesSafely(collection: Collection, indexSpecs: any[]): Promise<void> {
+  private async createIndexesSafely(
+    collection: Collection,
+    indexSpecs: any[],
+  ): Promise<void> {
     try {
       // Get existing indexes to check for conflicts
       const existingIndexes = await collection.indexInformation();
@@ -349,7 +369,7 @@ export class MongoDBCollectionManager {
           const isUniqueIndex = this.shouldBeUniqueIndex(indexSpec);
 
           const indexOptions: any = {
-            background: true
+            background: true,
           };
 
           if (isUniqueIndex) {
@@ -365,24 +385,35 @@ export class MongoDBCollectionManager {
 
             // Check if the existing index has different options (like unique)
             if (this.isIndexConflicting(existingIndex, indexOptions)) {
-              console.log(` [MongoDB] Dropping conflicting index '${indexName}' to recreate with correct options`);
+              console.log(
+                ` [MongoDB] Dropping conflicting index '${indexName}' to recreate with correct options`,
+              );
               await collection.dropIndex(indexName);
             } else {
-              console.log(` [MongoDB] Index '${indexName}' already exists with correct configuration`);
+              console.log(
+                ` [MongoDB] Index '${indexName}' already exists with correct configuration`,
+              );
               continue;
             }
           }
 
           // Create the index
           await collection.createIndex(indexSpec, indexOptions);
-          console.log(` [MongoDB] Created index '${indexName}'${isUniqueIndex ? ' (unique)' : ''}`);
-
+          console.log(
+            ` [MongoDB] Created index '${indexName}'${isUniqueIndex ? " (unique)" : ""}`,
+          );
         } catch (indexError: any) {
           // Handle specific MongoDB errors gracefully
-          if (indexError.code === 86) { // IndexKeySpecsConflict
-            console.warn(` [MongoDB] Index conflict for ${JSON.stringify(indexSpec)}: ${indexError.message}`);
+          if (indexError.code === 86) {
+            // IndexKeySpecsConflict
+            console.warn(
+              ` [MongoDB] Index conflict for ${JSON.stringify(indexSpec)}: ${indexError.message}`,
+            );
           } else {
-            console.warn(` [MongoDB] Failed to create index ${JSON.stringify(indexSpec)}:`, indexError.message);
+            console.warn(
+              ` [MongoDB] Failed to create index ${JSON.stringify(indexSpec)}:`,
+              indexError.message,
+            );
           }
         }
       }
@@ -396,7 +427,7 @@ export class MongoDBCollectionManager {
    */
   private shouldBeUniqueIndex(indexSpec: any): boolean {
     // Check if this is a sys_id index
-    if (typeof indexSpec === 'object' && indexSpec.sys_id === 1) {
+    if (typeof indexSpec === "object" && indexSpec.sys_id === 1) {
       return true;
     }
     return false;
@@ -406,12 +437,12 @@ export class MongoDBCollectionManager {
    * Generate index name the same way MongoDB does
    */
   private generateIndexName(indexSpec: any): string {
-    if (typeof indexSpec === 'object') {
+    if (typeof indexSpec === "object") {
       const parts: string[] = [];
       for (const [key, value] of Object.entries(indexSpec)) {
         parts.push(`${key}_${value}`);
       }
-      return parts.join('_');
+      return parts.join("_");
     }
     return String(indexSpec);
   }
@@ -445,10 +476,12 @@ export class MongoDBCollectionManager {
   }
 
   /**
-   * Get change tasks collection  
+   * Get change tasks collection
    */
   getChangeTasksCollection(): Collection<ChangeTaskDocument> {
-    return this.getCollection<ChangeTaskDocument>(COLLECTION_NAMES.CHANGE_TASKS);
+    return this.getCollection<ChangeTaskDocument>(
+      COLLECTION_NAMES.CHANGE_TASKS,
+    );
   }
 
   /**
@@ -470,25 +503,27 @@ export class MongoDBCollectionManager {
    */
   async getCollectionStats(): Promise<any> {
     const stats: any = {};
-    
+
     for (const config of COLLECTION_CONFIGS) {
       try {
         const collection = this.getCollection(config.name);
-        const collStats = await this.getDatabase().command({ collStats: config.name });
+        const collStats = await this.getDatabase().command({
+          collStats: config.name,
+        });
         const indexStats = await collection.indexInformation();
-        
+
         stats[config.name] = {
           documents: collStats.count,
           size: collStats.size,
           avgObjSize: collStats.avgObjSize,
           indexes: Object.keys(indexStats).length,
-          indexSizes: collStats.indexSizes
+          indexSizes: collStats.indexSizes,
         };
       } catch (error) {
         stats[config.name] = { error: String(error) };
       }
     }
-    
+
     return stats;
   }
 
@@ -496,20 +531,30 @@ export class MongoDBCollectionManager {
    * Cleanup old documents based on retention policy
    */
   async cleanupOldDocuments(retentionDays: number = 90): Promise<void> {
-    const cutoffDate = new Date(Date.now() - (retentionDays * 24 * 60 * 60 * 1000));
-    
-    console.log(`🧹 [MongoDB] Cleaning up documents older than ${retentionDays} days...`);
-    
-    const loggingCollections = ['access_logs', 'error_logs', 'performance_metrics'];
-    
+    const cutoffDate = new Date(
+      Date.now() - retentionDays * 24 * 60 * 60 * 1000,
+    );
+
+    console.log(
+      `🧹 [MongoDB] Cleaning up documents older than ${retentionDays} days...`,
+    );
+
+    const loggingCollections = [
+      "access_logs",
+      "error_logs",
+      "performance_metrics",
+    ];
+
     for (const collectionName of loggingCollections) {
       try {
         const collection = this.getCollection(collectionName);
         const result = await collection.deleteMany({
-          timestamp: { $lt: cutoffDate }
+          timestamp: { $lt: cutoffDate },
         });
-        
-        console.log(`🗑️ [MongoDB] Cleaned ${result.deletedCount} old documents from ${collectionName}`);
+
+        console.log(
+          `🗑️ [MongoDB] Cleaned ${result.deletedCount} old documents from ${collectionName}`,
+        );
       } catch (error) {
         console.error(` [MongoDB] Error cleaning ${collectionName}:`, error);
       }

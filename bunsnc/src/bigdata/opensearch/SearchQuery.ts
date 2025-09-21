@@ -3,7 +3,7 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { logger } from '../../utils/Logger';
+import { logger } from "../../utils/Logger";
 
 export interface SearchOptions {
   size?: number;
@@ -21,7 +21,7 @@ export interface AggregationConfig {
     terms?: {
       field: string;
       size?: number;
-      order?: Record<string, 'asc' | 'desc'>;
+      order?: Record<string, "asc" | "desc">;
     };
     date_histogram?: {
       field: string;
@@ -62,7 +62,18 @@ export interface AggregationConfig {
 
 export interface FilterCondition {
   field: string;
-  operator: 'equals' | 'not_equals' | 'in' | 'not_in' | 'range' | 'exists' | 'not_exists' | 'wildcard' | 'regexp' | 'fuzzy' | 'prefix';
+  operator:
+    | "equals"
+    | "not_equals"
+    | "in"
+    | "not_in"
+    | "range"
+    | "exists"
+    | "not_exists"
+    | "wildcard"
+    | "regexp"
+    | "fuzzy"
+    | "prefix";
   value?: any;
   values?: any[];
   options?: {
@@ -76,9 +87,14 @@ export interface FilterCondition {
 export interface TextSearchConfig {
   fields: string[];
   query: string;
-  type?: 'match' | 'match_phrase' | 'multi_match' | 'query_string' | 'simple_query_string';
+  type?:
+    | "match"
+    | "match_phrase"
+    | "multi_match"
+    | "query_string"
+    | "simple_query_string";
   boost?: number;
-  operator?: 'and' | 'or';
+  operator?: "and" | "or";
   minimumShouldMatch?: string | number;
   fuzziness?: string | number;
   analyzer?: string;
@@ -90,7 +106,7 @@ export interface DateRangeFilter {
   to?: string | Date;
   format?: string;
   timeZone?: string;
-  relation?: 'within' | 'intersects' | 'contains';
+  relation?: "within" | "intersects" | "contains";
 }
 
 export class SearchQuery {
@@ -100,7 +116,7 @@ export class SearchQuery {
   private should: any[] = [];
   private aggregations: AggregationConfig = {};
   private options: SearchOptions = {};
-  
+
   /**
    * Create a new search query builder
    */
@@ -113,15 +129,15 @@ export class SearchQuery {
    */
   search(config: TextSearchConfig): SearchQuery {
     const searchQuery = this.buildTextQuery(config);
-    
+
     if (this.query.match_all) {
       this.query = searchQuery;
     } else {
       // Combine with existing query
       this.query = {
         bool: {
-          must: [this.query, searchQuery]
-        }
+          must: [this.query, searchQuery],
+        },
       };
     }
 
@@ -131,33 +147,53 @@ export class SearchQuery {
   /**
    * Add ServiceNow-specific incident search
    */
-  searchIncidents(searchTerm: string, options: {
-    includeResolved?: boolean;
-    priority?: string[];
-    assignmentGroup?: string[];
-    dateRange?: DateRangeFilter;
-  } = {}): SearchQuery {
+  searchIncidents(
+    searchTerm: string,
+    options: {
+      includeResolved?: boolean;
+      priority?: string[];
+      assignmentGroup?: string[];
+      dateRange?: DateRangeFilter;
+    } = {},
+  ): SearchQuery {
     // Text search in incident fields
     this.search({
-      fields: ['number^3', 'short_description^2', 'description', 'caller_id.text'],
+      fields: [
+        "number^3",
+        "short_description^2",
+        "description",
+        "caller_id.text",
+      ],
       query: searchTerm,
-      type: 'multi_match',
-      operator: 'and'
+      type: "multi_match",
+      operator: "and",
     });
 
     // Filter by state if not including resolved
     if (!options.includeResolved) {
-      this.filter({ field: 'state', operator: 'not_in', values: ['6', '7', '8'] }); // Resolved, Closed, Canceled
+      this.filter({
+        field: "state",
+        operator: "not_in",
+        values: ["6", "7", "8"],
+      }); // Resolved, Closed, Canceled
     }
 
     // Filter by priority
     if (options.priority && options.priority.length > 0) {
-      this.filter({ field: 'priority', operator: 'in', values: options.priority });
+      this.filter({
+        field: "priority",
+        operator: "in",
+        values: options.priority,
+      });
     }
 
     // Filter by assignment group
     if (options.assignmentGroup && options.assignmentGroup.length > 0) {
-      this.filter({ field: 'assignment_group', operator: 'in', values: options.assignmentGroup });
+      this.filter({
+        field: "assignment_group",
+        operator: "in",
+        values: options.assignmentGroup,
+      });
     }
 
     // Filter by date range
@@ -171,29 +207,40 @@ export class SearchQuery {
   /**
    * Add ServiceNow-specific problem search
    */
-  searchProblems(searchTerm: string, options: {
-    includeResolved?: boolean;
-    priority?: string[];
-    stateFilter?: string[];
-  } = {}): SearchQuery {
+  searchProblems(
+    searchTerm: string,
+    options: {
+      includeResolved?: boolean;
+      priority?: string[];
+      stateFilter?: string[];
+    } = {},
+  ): SearchQuery {
     // Text search in problem fields
     this.search({
-      fields: ['number^3', 'short_description^2', 'description', 'root_cause'],
+      fields: ["number^3", "short_description^2", "description", "root_cause"],
       query: searchTerm,
-      type: 'multi_match',
-      operator: 'and'
+      type: "multi_match",
+      operator: "and",
     });
 
     // Filter by state
     if (options.stateFilter) {
-      this.filter({ field: 'state', operator: 'in', values: options.stateFilter });
+      this.filter({
+        field: "state",
+        operator: "in",
+        values: options.stateFilter,
+      });
     } else if (!options.includeResolved) {
-      this.filter({ field: 'state', operator: 'not_in', values: ['3', '4'] }); // Resolved, Closed
+      this.filter({ field: "state", operator: "not_in", values: ["3", "4"] }); // Resolved, Closed
     }
 
     // Filter by priority
     if (options.priority && options.priority.length > 0) {
-      this.filter({ field: 'priority', operator: 'in', values: options.priority });
+      this.filter({
+        field: "priority",
+        operator: "in",
+        values: options.priority,
+      });
     }
 
     return this;
@@ -212,7 +259,7 @@ export class SearchQuery {
    * Add multiple filter conditions (AND logic)
    */
   filters(conditions: FilterCondition[]): SearchQuery {
-    conditions.forEach(condition => this.filter(condition));
+    conditions.forEach((condition) => this.filter(condition));
     return this;
   }
 
@@ -222,18 +269,18 @@ export class SearchQuery {
   dateRange(range: DateRangeFilter): SearchQuery {
     const rangeQuery: any = {
       range: {
-        [range.field]: {}
-      }
+        [range.field]: {},
+      },
     };
 
     if (range.from) {
-      rangeQuery.range[range.field].gte = range.from instanceof Date ? 
-        range.from.toISOString() : range.from;
+      rangeQuery.range[range.field].gte =
+        range.from instanceof Date ? range.from.toISOString() : range.from;
     }
 
     if (range.to) {
-      rangeQuery.range[range.field].lte = range.to instanceof Date ? 
-        range.to.toISOString() : range.to;
+      rangeQuery.range[range.field].lte =
+        range.to instanceof Date ? range.to.toISOString() : range.to;
     }
 
     if (range.format) {
@@ -267,7 +314,7 @@ export class SearchQuery {
   should(condition: FilterCondition, minimumShouldMatch?: number): SearchQuery {
     const filterQuery = this.buildFilterQuery(condition);
     this.should.push(filterQuery);
-    
+
     if (minimumShouldMatch !== undefined) {
       this.options.minimumShouldMatch = minimumShouldMatch;
     }
@@ -298,51 +345,52 @@ export class SearchQuery {
     return this.aggregations({
       by_state: {
         terms: {
-          field: 'state',
-          size: 20
-        }
+          field: "state",
+          size: 20,
+        },
       },
       by_priority: {
         terms: {
-          field: 'priority',
-          size: 10
-        }
+          field: "priority",
+          size: 10,
+        },
       },
       by_assignment_group: {
         terms: {
-          field: 'assignment_group',
+          field: "assignment_group",
           size: 50,
-          order: { _count: 'desc' }
-        }
+          order: { _count: "desc" },
+        },
       },
       by_category: {
         terms: {
-          field: 'category',
-          size: 30
-        }
+          field: "category",
+          size: 30,
+        },
       },
       created_over_time: {
         date_histogram: {
-          field: 'sys_created_on',
-          calendar_interval: '1d',
-          format: 'yyyy-MM-dd',
-          time_zone: 'UTC'
-        }
+          field: "sys_created_on",
+          calendar_interval: "1d",
+          format: "yyyy-MM-dd",
+          time_zone: "UTC",
+        },
       },
       resolution_stats: {
         filter: {
-          exists: { field: 'resolved_at' }
+          exists: { field: "resolved_at" },
         },
         aggs: {
           avg_resolution_time: {
             avg: {
               script: {
-                source: "(doc['resolved_at'].value.millis - doc['sys_created_on'].value.millis) / 1000 / 3600"
-              }
-            }
-          }
-        }
-      }
+                source:
+                  "(doc['resolved_at'].value.millis - doc['sys_created_on'].value.millis) / 1000 / 3600",
+              },
+            },
+          },
+        },
+      },
     });
   }
 
@@ -353,38 +401,38 @@ export class SearchQuery {
     return this.aggregations({
       by_type: {
         terms: {
-          field: 'type',
-          size: 20
-        }
+          field: "type",
+          size: 20,
+        },
       },
       by_risk: {
         terms: {
-          field: 'risk',
-          size: 10
-        }
+          field: "risk",
+          size: 10,
+        },
       },
       by_state: {
         terms: {
-          field: 'state',
-          size: 15
-        }
+          field: "state",
+          size: 15,
+        },
       },
       success_rate: {
         filters: {
           filters: {
-            successful: { term: { state: 'successful' } },
-            failed: { term: { state: 'failed' } },
-            cancelled: { term: { state: 'cancelled' } }
-          }
-        }
+            successful: { term: { state: "successful" } },
+            failed: { term: { state: "failed" } },
+            cancelled: { term: { state: "cancelled" } },
+          },
+        },
       },
       changes_over_time: {
         date_histogram: {
-          field: 'start_date',
-          calendar_interval: '1w',
-          format: 'yyyy-MM-dd'
-        }
-      }
+          field: "start_date",
+          calendar_interval: "1w",
+          format: "yyyy-MM-dd",
+        },
+      },
     });
   }
 
@@ -400,16 +448,20 @@ export class SearchQuery {
   /**
    * Set sorting
    */
-  sort(field: string, order: 'asc' | 'desc' = 'desc', options?: { unmapped_type?: string }): SearchQuery {
+  sort(
+    field: string,
+    order: "asc" | "desc" = "desc",
+    options?: { unmapped_type?: string },
+  ): SearchQuery {
     if (!this.options.sort) {
       this.options.sort = [];
     }
-    
+
     const sortConfig: any = { [field]: { order } };
     if (options?.unmapped_type) {
       sortConfig[field].unmapped_type = options.unmapped_type;
     }
-    
+
     this.options.sort.push(sortConfig);
     return this;
   }
@@ -417,12 +469,18 @@ export class SearchQuery {
   /**
    * Set multiple sorting criteria
    */
-  sortBy(sorts: Array<{ field: string; order: 'asc' | 'desc'; unmapped_type?: string }>): SearchQuery {
-    this.options.sort = sorts.map(s => ({
+  sortBy(
+    sorts: Array<{
+      field: string;
+      order: "asc" | "desc";
+      unmapped_type?: string;
+    }>,
+  ): SearchQuery {
+    this.options.sort = sorts.map((s) => ({
       [s.field]: {
         order: s.order,
-        ...(s.unmapped_type && { unmapped_type: s.unmapped_type })
-      }
+        ...(s.unmapped_type && { unmapped_type: s.unmapped_type }),
+      },
     }));
     return this;
   }
@@ -448,15 +506,15 @@ export class SearchQuery {
     const highlightFields = config.fields.reduce((acc, field) => {
       acc[field] = {
         fragment_size: config.fragmentSize || 150,
-        number_of_fragments: config.numberOfFragments || 3
+        number_of_fragments: config.numberOfFragments || 3,
       };
       return acc;
     }, {} as any);
 
     this.options.highlight = {
-      pre_tags: [config.preTag || '<em>'],
-      post_tags: [config.postTag || '</em>'],
-      fields: highlightFields
+      pre_tags: [config.preTag || "<em>"],
+      post_tags: [config.postTag || "</em>"],
+      fields: highlightFields,
     };
 
     return this;
@@ -495,60 +553,61 @@ export class SearchQuery {
 
     return SearchQuery.builder()
       .dateRange({
-        field: 'sys_created_on',
+        field: "sys_created_on",
         from: fromDate.toISOString(),
-        to: new Date().toISOString()
+        to: new Date().toISOString(),
       })
       .aggregations({
         daily_incidents: {
           date_histogram: {
-            field: 'sys_created_on',
-            calendar_interval: '1d',
-            format: 'yyyy-MM-dd'
+            field: "sys_created_on",
+            calendar_interval: "1d",
+            format: "yyyy-MM-dd",
           },
           aggs: {
             by_priority: {
               terms: {
-                field: 'priority',
-                size: 5
-              }
+                field: "priority",
+                size: 5,
+              },
             },
             avg_resolution_time: {
               avg: {
                 script: {
-                  source: "if (doc['resolved_at'].size() > 0) { (doc['resolved_at'].value.millis - doc['sys_created_on'].value.millis) / 1000 / 3600 } else { null }"
-                }
-              }
-            }
-          }
+                  source:
+                    "if (doc['resolved_at'].size() > 0) { (doc['resolved_at'].value.millis - doc['sys_created_on'].value.millis) / 1000 / 3600 } else { null }",
+                },
+              },
+            },
+          },
         },
         top_categories: {
           terms: {
-            field: 'category',
+            field: "category",
             size: 10,
-            order: { _count: 'desc' }
-          }
+            order: { _count: "desc" },
+          },
         },
         resolution_stats: {
           filter: {
-            exists: { field: 'resolved_at' }
+            exists: { field: "resolved_at" },
           },
           aggs: {
             resolution_time_ranges: {
               range: {
-                field: 'resolved_at',
+                field: "resolved_at",
                 ranges: [
-                  { to: 3600000, key: '< 1 hour' },
-                  { from: 3600000, to: 86400000, key: '1-24 hours' },
-                  { from: 86400000, to: 259200000, key: '1-3 days' },
-                  { from: 259200000, key: '> 3 days' }
-                ]
-              }
-            }
-          }
-        }
+                  { to: 3600000, key: "< 1 hour" },
+                  { from: 3600000, to: 86400000, key: "1-24 hours" },
+                  { from: 86400000, to: 259200000, key: "1-3 days" },
+                  { from: 259200000, key: "> 3 days" },
+                ],
+              },
+            },
+          },
+        },
       })
-      .sort('sys_created_on', 'desc')
+      .sort("sys_created_on", "desc")
       .size(0); // Only aggregations, no individual results
   }
 
@@ -561,53 +620,53 @@ export class SearchQuery {
 
     return SearchQuery.builder()
       .dateRange({
-        field: '@timestamp',
+        field: "@timestamp",
         from: fromDate.toISOString(),
-        to: new Date().toISOString()
+        to: new Date().toISOString(),
       })
       .aggregations({
         error_rate: {
           filters: {
             filters: {
               errors: { range: { response_code: { gte: 400 } } },
-              total: { match_all: {} }
-            }
-          }
+              total: { match_all: {} },
+            },
+          },
         },
         response_time_stats: {
           stats: {
-            field: 'response_time'
-          }
+            field: "response_time",
+          },
         },
         response_time_percentiles: {
           range: {
-            field: 'response_time',
+            field: "response_time",
             ranges: [
-              { to: 100, key: '< 100ms' },
-              { from: 100, to: 500, key: '100-500ms' },
-              { from: 500, to: 1000, key: '500ms-1s' },
-              { from: 1000, to: 5000, key: '1-5s' },
-              { from: 5000, key: '> 5s' }
-            ]
-          }
+              { to: 100, key: "< 100ms" },
+              { from: 100, to: 500, key: "100-500ms" },
+              { from: 500, to: 1000, key: "500ms-1s" },
+              { from: 1000, to: 5000, key: "1-5s" },
+              { from: 5000, key: "> 5s" },
+            ],
+          },
         },
         hourly_activity: {
           date_histogram: {
-            field: '@timestamp',
-            calendar_interval: '1h',
-            format: 'HH:mm'
+            field: "@timestamp",
+            calendar_interval: "1h",
+            format: "HH:mm",
           },
           aggs: {
             avg_response_time: {
-              avg: { field: 'response_time' }
+              avg: { field: "response_time" },
             },
             error_count: {
               filter: {
-                range: { response_code: { gte: 400 } }
-              }
-            }
-          }
-        }
+                range: { response_code: { gte: 400 } },
+              },
+            },
+          },
+        },
       });
   }
 
@@ -618,15 +677,22 @@ export class SearchQuery {
     const finalQuery: any = {};
 
     // Build the main query with bool logic
-    if (this.filters.length > 0 || this.mustNot.length > 0 || this.should.length > 0 || !this.query.match_all) {
+    if (
+      this.filters.length > 0 ||
+      this.mustNot.length > 0 ||
+      this.should.length > 0 ||
+      !this.query.match_all
+    ) {
       finalQuery.query = {
         bool: {
           ...(this.query.match_all ? {} : { must: [this.query] }),
           ...(this.filters.length > 0 && { filter: this.filters }),
           ...(this.mustNot.length > 0 && { must_not: this.mustNot }),
           ...(this.should.length > 0 && { should: this.should }),
-          ...(this.options.minimumShouldMatch !== undefined && { minimum_should_match: this.options.minimumShouldMatch })
-        }
+          ...(this.options.minimumShouldMatch !== undefined && {
+            minimum_should_match: this.options.minimumShouldMatch,
+          }),
+        },
       };
     } else {
       finalQuery.query = this.query;
@@ -670,7 +736,9 @@ export class SearchQuery {
     // Describe aggregations
     const aggCount = Object.keys(this.aggregations).length;
     if (aggCount > 0) {
-      parts.push(`${aggCount} aggregation(s): ${Object.keys(this.aggregations).join(', ')}`);
+      parts.push(
+        `${aggCount} aggregation(s): ${Object.keys(this.aggregations).join(", ")}`,
+      );
     }
 
     // Describe pagination/sorting
@@ -679,78 +747,80 @@ export class SearchQuery {
     }
 
     if (this.options.sort && this.options.sort.length > 0) {
-      const sortFields = this.options.sort.map((s: any) => Object.keys(s)[0]).join(', ');
+      const sortFields = this.options.sort
+        .map((s: any) => Object.keys(s)[0])
+        .join(", ");
       parts.push(`Sorted by: ${sortFields}`);
     }
 
-    return parts.length > 0 ? parts.join('; ') : 'Match all documents';
+    return parts.length > 0 ? parts.join("; ") : "Match all documents";
   }
 
   private buildTextQuery(config: TextSearchConfig): any {
     const baseQuery: any = {
-      boost: config.boost || 1.0
+      boost: config.boost || 1.0,
     };
 
-    switch (config.type || 'multi_match') {
-      case 'match':
+    switch (config.type || "multi_match") {
+      case "match":
         return {
           match: {
             [config.fields[0]]: {
               query: config.query,
-              operator: config.operator || 'or',
+              operator: config.operator || "or",
               fuzziness: config.fuzziness,
               minimum_should_match: config.minimumShouldMatch,
               analyzer: config.analyzer,
-              ...baseQuery
-            }
-          }
+              ...baseQuery,
+            },
+          },
         };
 
-      case 'match_phrase':
+      case "match_phrase":
         return {
           match_phrase: {
             [config.fields[0]]: {
               query: config.query,
               analyzer: config.analyzer,
-              ...baseQuery
-            }
-          }
+              ...baseQuery,
+            },
+          },
         };
 
-      case 'multi_match':
+      case "multi_match":
         return {
           multi_match: {
             query: config.query,
             fields: config.fields,
-            type: 'best_fields',
-            operator: config.operator || 'or',
+            type: "best_fields",
+            operator: config.operator || "or",
             fuzziness: config.fuzziness,
             minimum_should_match: config.minimumShouldMatch,
             analyzer: config.analyzer,
-            ...baseQuery
-          }
+            ...baseQuery,
+          },
         };
 
-      case 'query_string':
+      case "query_string":
         return {
           query_string: {
             query: config.query,
             fields: config.fields,
-            default_operator: config.operator?.toUpperCase() || 'OR',
+            default_operator: config.operator?.toUpperCase() || "OR",
             analyzer: config.analyzer,
-            ...baseQuery
-          }
+            ...baseQuery,
+          },
         };
 
-      case 'simple_query_string':
+      case "simple_query_string":
         return {
           simple_query_string: {
             query: config.query,
             fields: config.fields,
-            default_operator: config.operator || 'or',
+            default_operator: config.operator || "or",
             analyzer: config.analyzer,
-            ...baseQuery
-          }
+            ...baseQuery,
+          },
         };
 
       default:
@@ -758,8 +828,8 @@ export class SearchQuery {
           multi_match: {
             query: config.query,
             fields: config.fields,
-            ...baseQuery
-          }
+            ...baseQuery,
+          },
         };
     }
   }
@@ -768,69 +838,69 @@ export class SearchQuery {
     const { field, operator, value, values, options } = condition;
 
     switch (operator) {
-      case 'equals':
+      case "equals":
         return { term: { [field]: { value, boost: options?.boost } } };
 
-      case 'not_equals':
+      case "not_equals":
         return { bool: { must_not: [{ term: { [field]: value } }] } };
 
-      case 'in':
+      case "in":
         return { terms: { [field]: values, boost: options?.boost } };
 
-      case 'not_in':
+      case "not_in":
         return { bool: { must_not: [{ terms: { [field]: values } }] } };
 
-      case 'range':
+      case "range":
         return { range: { [field]: value } };
 
-      case 'exists':
+      case "exists":
         return { exists: { field } };
 
-      case 'not_exists':
+      case "not_exists":
         return { bool: { must_not: [{ exists: { field } }] } };
 
-      case 'wildcard':
-        return { 
-          wildcard: { 
-            [field]: { 
+      case "wildcard":
+        return {
+          wildcard: {
+            [field]: {
               value,
               boost: options?.boost,
-              case_insensitive: options?.caseInsensitive
-            } 
-          } 
+              case_insensitive: options?.caseInsensitive,
+            },
+          },
         };
 
-      case 'regexp':
-        return { 
-          regexp: { 
-            [field]: { 
+      case "regexp":
+        return {
+          regexp: {
+            [field]: {
               value,
               boost: options?.boost,
-              case_insensitive: options?.caseInsensitive
-            } 
-          } 
+              case_insensitive: options?.caseInsensitive,
+            },
+          },
         };
 
-      case 'fuzzy':
-        return { 
-          fuzzy: { 
-            [field]: { 
+      case "fuzzy":
+        return {
+          fuzzy: {
+            [field]: {
               value,
-              fuzziness: options?.fuzziness || 'AUTO',
-              boost: options?.boost
-            } 
-          } 
+              fuzziness: options?.fuzziness || "AUTO",
+              boost: options?.boost,
+            },
+          },
         };
 
-      case 'prefix':
-        return { 
-          prefix: { 
-            [field]: { 
+      case "prefix":
+        return {
+          prefix: {
+            [field]: {
               value,
               boost: options?.boost,
-              case_insensitive: options?.caseInsensitive
-            } 
-          } 
+              case_insensitive: options?.caseInsensitive,
+            },
+          },
         };
 
       default:
@@ -845,141 +915,175 @@ export class ServiceNowSearchPatterns {
   /**
    * Search for incidents created in the last N days with specific criteria
    */
-  static recentIncidents(days: number = 7, criteria: {
-    priority?: string[];
-    state?: string[];
-    assignmentGroup?: string[];
-    searchText?: string;
-  } = {}): SearchQuery {
+  static recentIncidents(
+    days: number = 7,
+    criteria: {
+      priority?: string[];
+      state?: string[];
+      assignmentGroup?: string[];
+      searchText?: string;
+    } = {},
+  ): SearchQuery {
     const fromDate = new Date();
     fromDate.setDate(fromDate.getDate() - days);
 
-    let query = SearchQuery.builder()
-      .dateRange({
-        field: 'sys_created_on',
-        from: fromDate.toISOString(),
-        to: new Date().toISOString()
-      });
+    let query = SearchQuery.builder().dateRange({
+      field: "sys_created_on",
+      from: fromDate.toISOString(),
+      to: new Date().toISOString(),
+    });
 
     if (criteria.searchText) {
       query = query.searchIncidents(criteria.searchText, {
         priority: criteria.priority,
-        assignmentGroup: criteria.assignmentGroup
+        assignmentGroup: criteria.assignmentGroup,
       });
     } else {
       if (criteria.priority) {
-        query = query.filter({ field: 'priority', operator: 'in', values: criteria.priority });
+        query = query.filter({
+          field: "priority",
+          operator: "in",
+          values: criteria.priority,
+        });
       }
       if (criteria.state) {
-        query = query.filter({ field: 'state', operator: 'in', values: criteria.state });
+        query = query.filter({
+          field: "state",
+          operator: "in",
+          values: criteria.state,
+        });
       }
       if (criteria.assignmentGroup) {
-        query = query.filter({ field: 'assignment_group', operator: 'in', values: criteria.assignmentGroup });
+        query = query.filter({
+          field: "assignment_group",
+          operator: "in",
+          values: criteria.assignmentGroup,
+        });
       }
     }
 
-    return query
-      .sort('sys_created_on', 'desc')
-      .highlight({
-        fields: ['short_description', 'description'],
-        fragmentSize: 200,
-        numberOfFragments: 2
-      });
+    return query.sort("sys_created_on", "desc").highlight({
+      fields: ["short_description", "description"],
+      fragmentSize: 200,
+      numberOfFragments: 2,
+    });
   }
 
   /**
    * Search for high-priority open tickets
    */
-  static highPriorityOpenTickets(table: 'incident' | 'problem' | 'change_request' = 'incident'): SearchQuery {
+  static highPriorityOpenTickets(
+    table: "incident" | "problem" | "change_request" = "incident",
+  ): SearchQuery {
     const openStates = {
-      incident: ['1', '2', '3'], // New, In Progress, On Hold
-      problem: ['1', '2'], // Open, Known Error
-      change_request: ['1', '2', '3'] // New, Assess, Authorize
+      incident: ["1", "2", "3"], // New, In Progress, On Hold
+      problem: ["1", "2"], // Open, Known Error
+      change_request: ["1", "2", "3"], // New, Assess, Authorize
     };
 
     return SearchQuery.builder()
-      .filter({ field: 'priority', operator: 'in', values: ['1', '2'] }) // Critical, High
-      .filter({ field: 'state', operator: 'in', values: openStates[table] })
-      .sort('priority', 'asc')
-      .sort('sys_created_on', 'asc'); // Oldest first for high priority
+      .filter({ field: "priority", operator: "in", values: ["1", "2"] }) // Critical, High
+      .filter({ field: "state", operator: "in", values: openStates[table] })
+      .sort("priority", "asc")
+      .sort("sys_created_on", "asc"); // Oldest first for high priority
   }
 
   /**
    * Search for tickets assigned to specific user
    */
-  static userAssignedTickets(userId: string, options: {
-    includeGroup?: boolean;
-    states?: string[];
-    lastNDays?: number;
-  } = {}): SearchQuery {
-    let query = SearchQuery.builder()
-      .filter({ field: 'assigned_to', operator: 'equals', value: userId });
+  static userAssignedTickets(
+    userId: string,
+    options: {
+      includeGroup?: boolean;
+      states?: string[];
+      lastNDays?: number;
+    } = {},
+  ): SearchQuery {
+    let query = SearchQuery.builder().filter({
+      field: "assigned_to",
+      operator: "equals",
+      value: userId,
+    });
 
     if (options.includeGroup) {
       // Add OR condition for assignment group where user is member
-      query = query.should({ field: 'assignment_group.members', operator: 'equals', value: userId });
+      query = query.should({
+        field: "assignment_group.members",
+        operator: "equals",
+        value: userId,
+      });
     }
 
     if (options.states) {
-      query = query.filter({ field: 'state', operator: 'in', values: options.states });
+      query = query.filter({
+        field: "state",
+        operator: "in",
+        values: options.states,
+      });
     }
 
     if (options.lastNDays) {
       const fromDate = new Date();
       fromDate.setDate(fromDate.getDate() - options.lastNDays);
       query = query.dateRange({
-        field: 'sys_updated_on',
-        from: fromDate.toISOString()
+        field: "sys_updated_on",
+        from: fromDate.toISOString(),
       });
     }
 
-    return query.sort('priority', 'asc').sort('sys_updated_on', 'desc');
+    return query.sort("priority", "asc").sort("sys_updated_on", "desc");
   }
 
   /**
    * Search for tickets by customer/caller
    */
-  static customerTickets(customerId: string, options: {
-    ticketType?: 'incident' | 'problem' | 'change_request';
-    lastNMonths?: number;
-    includeResolved?: boolean;
-  } = {}): SearchQuery {
-    let query = SearchQuery.builder()
-      .filter({ field: 'caller_id', operator: 'equals', value: customerId });
+  static customerTickets(
+    customerId: string,
+    options: {
+      ticketType?: "incident" | "problem" | "change_request";
+      lastNMonths?: number;
+      includeResolved?: boolean;
+    } = {},
+  ): SearchQuery {
+    let query = SearchQuery.builder().filter({
+      field: "caller_id",
+      operator: "equals",
+      value: customerId,
+    });
 
     if (options.lastNMonths) {
       const fromDate = new Date();
       fromDate.setMonth(fromDate.getMonth() - options.lastNMonths);
       query = query.dateRange({
-        field: 'sys_created_on',
-        from: fromDate.toISOString()
+        field: "sys_created_on",
+        from: fromDate.toISOString(),
       });
     }
 
     if (!options.includeResolved) {
       // Exclude resolved/closed states (varies by ticket type)
       const excludedStates = {
-        incident: ['6', '7', '8'], // Resolved, Closed, Canceled
-        problem: ['3', '4'], // Resolved, Closed
-        change_request: ['3', '4', '7'] // Complete, Closed, Canceled
+        incident: ["6", "7", "8"], // Resolved, Closed, Canceled
+        problem: ["3", "4"], // Resolved, Closed
+        change_request: ["3", "4", "7"], // Complete, Closed, Canceled
       };
-      
+
       if (options.ticketType) {
-        query = query.filter({ 
-          field: 'state', 
-          operator: 'not_in', 
-          values: excludedStates[options.ticketType] 
+        query = query.filter({
+          field: "state",
+          operator: "not_in",
+          values: excludedStates[options.ticketType],
         });
       }
     }
 
     return query
-      .sort('sys_created_on', 'desc')
-      .aggregation('by_priority', {
-        terms: { field: 'priority', size: 5 }
+      .sort("sys_created_on", "desc")
+      .aggregation("by_priority", {
+        terms: { field: "priority", size: 5 },
       })
-      .aggregation('by_state', {
-        terms: { field: 'state', size: 10 }
+      .aggregation("by_state", {
+        terms: { field: "state", size: 10 },
       });
   }
 }

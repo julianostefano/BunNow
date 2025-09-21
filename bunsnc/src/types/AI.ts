@@ -43,7 +43,7 @@ export interface SearchContext {
 
 export interface SearchOptions {
   size?: number;
-  search_type?: 'neural' | 'sparse' | 'hybrid' | 'reranked';
+  search_type?: "neural" | "sparse" | "hybrid" | "reranked";
   filters?: Record<string, any>;
   include_source?: boolean;
 }
@@ -119,12 +119,12 @@ export interface EntityRelationship {
 
 export interface KnowledgeGraphNode {
   node_id: string;
-  type: 'document' | 'entity';
+  type: "document" | "entity";
   title: string;
   technology: string[];
   support_group: string[];
   document_type: string;
-  criticality: 'low' | 'medium' | 'high' | 'critical';
+  criticality: "low" | "medium" | "high" | "critical";
   metadata: any;
   related_documents?: string[];
   connections: number;
@@ -144,7 +144,12 @@ export interface KnowledgeGraphEdge {
 }
 
 export interface KnowledgeGraphQuery {
-  query_type: 'find_related_documents' | 'get_technology_map' | 'analyze_support_coverage' | 'find_knowledge_clusters' | 'get_expertise_mapping';
+  query_type:
+    | "find_related_documents"
+    | "get_technology_map"
+    | "analyze_support_coverage"
+    | "find_knowledge_clusters"
+    | "get_expertise_mapping";
   parameters: any;
 }
 
@@ -218,7 +223,7 @@ export interface DocumentChunk {
   parent_document_id: string;
   chunk_index: number;
   chunk_text: string;
-  chunk_type: 'paragraph' | 'table' | 'code' | 'list';
+  chunk_type: "paragraph" | "table" | "code" | "list";
   embeddings?: number[];
 }
 
@@ -235,7 +240,7 @@ export interface TicketClassification {
   technology: string[];
   category: string;
   subcategory?: string;
-  severity: 'Low' | 'Medium' | 'High' | 'Critical';
+  severity: "Low" | "Medium" | "High" | "Critical";
   support_group: string;
   confidence: number;
 }
@@ -252,7 +257,7 @@ export interface ResolutionSuggestion {
   id: string;
   title: string;
   description: string;
-  source_type: 'knowledge_base' | 'similar_ticket' | 'procedure';
+  source_type: "knowledge_base" | "similar_ticket" | "procedure";
   source_id: string;
   confidence: number;
   estimated_time: number;
@@ -268,7 +273,7 @@ export interface ChatResponse {
 }
 
 export interface ChatSource {
-  type: 'document' | 'ticket' | 'procedure';
+  type: "document" | "ticket" | "procedure";
   id: string;
   title: string;
   relevance_score: number;
@@ -295,7 +300,7 @@ export interface WorkflowAction {
 export interface KnowledgeGraphNode {
   id: string;
   label: string;
-  type: 'document' | 'technology' | 'group' | 'procedure';
+  type: "document" | "technology" | "group" | "procedure";
   properties: Record<string, any>;
 }
 
@@ -307,8 +312,8 @@ export interface KnowledgeGraphEdge {
 }
 
 export enum AIServiceType {
-  DOCUMENT_INTELLIGENCE = 'document-intelligence',
-  TICKET_INTELLIGENCE = 'ticket-intelligence',
-  AGENT_ASSISTANT = 'agent-assistant',
-  KNOWLEDGE_GRAPH = 'knowledge-graph'
+  DOCUMENT_INTELLIGENCE = "document-intelligence",
+  TICKET_INTELLIGENCE = "ticket-intelligence",
+  AGENT_ASSISTANT = "agent-assistant",
+  KNOWLEDGE_GRAPH = "knowledge-graph",
 }

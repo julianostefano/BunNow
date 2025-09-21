@@ -4,42 +4,45 @@
  */
 
 export enum TicketType {
-  INCIDENT = 'incident',
-  CTASK = 'ctask',
-  SCTASK = 'sctask'
+  INCIDENT = "incident",
+  CTASK = "ctask",
+  SCTASK = "sctask",
 }
 
 export enum MetricType {
-  RESPONSE_TIME = 'response_time',
-  RESOLUTION_TIME = 'resolution_time'
+  RESPONSE_TIME = "response_time",
+  RESOLUTION_TIME = "resolution_time",
 }
 
 export enum IncidentPriority {
-  SEVERIDADE_1 = 'Severidade 1',
-  SEVERIDADE_2 = 'Severidade 2',
-  SEVERIDADE_3 = 'Severidade 3',
-  P1 = 'P1',
-  P2 = 'P2',
-  P3 = 'P3',
-  P4 = 'P4'
+  SEVERIDADE_1 = "Severidade 1",
+  SEVERIDADE_2 = "Severidade 2",
+  SEVERIDADE_3 = "Severidade 3",
+  P1 = "P1",
+  P2 = "P2",
+  P3 = "P3",
+  P4 = "P4",
 }
 
 export enum ChangeTaskPriority {
-  P1 = 'P1',
-  P2 = 'P2',
-  P3 = 'P3',
-  P4 = 'P4'
+  P1 = "P1",
+  P2 = "P2",
+  P3 = "P3",
+  P4 = "P4",
 }
 
 export enum ServiceCatalogPriority {
-  NORMAL = 'Normal',
-  STANDARD = 'Standard',
-  P1 = 'P1',
-  P2 = 'P2',
-  P3 = 'P3'
+  NORMAL = "Normal",
+  STANDARD = "Standard",
+  P1 = "P1",
+  P2 = "P2",
+  P3 = "P3",
 }
 
-export type SLAPriority = IncidentPriority | ChangeTaskPriority | ServiceCatalogPriority;
+export type SLAPriority =
+  | IncidentPriority
+  | ChangeTaskPriority
+  | ServiceCatalogPriority;
 
 export interface ContractualSLA {
   id: number;
@@ -94,13 +97,13 @@ export interface SLAPriorityMetrics {
 }
 
 export interface BusinessHoursConfig {
-  monday: { start: string; end: string; };
-  tuesday: { start: string; end: string; };
-  wednesday: { start: string; end: string; };
-  thursday: { start: string; end: string; };
-  friday: { start: string; end: string; };
-  saturday?: { start: string; end: string; };
-  sunday?: { start: string; end: string; };
+  monday: { start: string; end: string };
+  tuesday: { start: string; end: string };
+  wednesday: { start: string; end: string };
+  thursday: { start: string; end: string };
+  friday: { start: string; end: string };
+  saturday?: { start: string; end: string };
+  sunday?: { start: string; end: string };
   holidays: string[];
   timezone: string;
 }
@@ -147,8 +150,8 @@ export interface SLADashboardData {
 
 export interface SLAAlert {
   id: string;
-  type: 'breach' | 'warning' | 'trend';
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  type: "breach" | "warning" | "trend";
+  severity: "low" | "medium" | "high" | "critical";
   ticket_id?: string;
   ticket_type: TicketType;
   priority: SLAPriority;
@@ -158,13 +161,13 @@ export interface SLAAlert {
 }
 
 export const DEFAULT_BUSINESS_HOURS: BusinessHoursConfig = {
-  monday: { start: '08:00', end: '17:00' },
-  tuesday: { start: '08:00', end: '17:00' },
-  wednesday: { start: '08:00', end: '17:00' },
-  thursday: { start: '08:00', end: '17:00' },
-  friday: { start: '08:00', end: '17:00' },
+  monday: { start: "08:00", end: "17:00" },
+  tuesday: { start: "08:00", end: "17:00" },
+  wednesday: { start: "08:00", end: "17:00" },
+  thursday: { start: "08:00", end: "17:00" },
+  friday: { start: "08:00", end: "17:00" },
   holidays: [],
-  timezone: 'America/Sao_Paulo'
+  timezone: "America/Sao_Paulo",
 };
 
 export const SLA_PRIORITY_MAPPING = {
@@ -175,19 +178,19 @@ export const SLA_PRIORITY_MAPPING = {
     IncidentPriority.P1,
     IncidentPriority.P2,
     IncidentPriority.P3,
-    IncidentPriority.P4
+    IncidentPriority.P4,
   ],
   [TicketType.CTASK]: [
     ChangeTaskPriority.P1,
     ChangeTaskPriority.P2,
     ChangeTaskPriority.P3,
-    ChangeTaskPriority.P4
+    ChangeTaskPriority.P4,
   ],
   [TicketType.SCTASK]: [
     ServiceCatalogPriority.NORMAL,
     ServiceCatalogPriority.STANDARD,
     ServiceCatalogPriority.P1,
     ServiceCatalogPriority.P2,
-    ServiceCatalogPriority.P3
-  ]
+    ServiceCatalogPriority.P3,
+  ],
 };

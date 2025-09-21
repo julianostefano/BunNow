@@ -3,9 +3,9 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { TicketDataCore } from './TicketDataCore';
-import { ServiceNowAuthClient } from '../ServiceNowAuthClient';
-import { logger } from '../../utils/Logger';
+import { TicketDataCore } from "./TicketDataCore";
+import { ServiceNowAuthClient } from "../ServiceNowAuthClient";
+import { logger } from "../../utils/Logger";
 
 export interface TicketSyncResult {
   success: boolean;
@@ -32,22 +32,35 @@ export class TicketSyncService extends TicketDataCore {
     try {
       const currentMonth = new Date().toISOString().slice(0, 7);
       const startDate = `${currentMonth}-01`;
-      const endDate = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().slice(0, 10);
+      const endDate = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth() + 1,
+        0,
+      )
+        .toISOString()
+        .slice(0, 10);
 
-      logger.info(`[TICKET-SYNC] Starting sync for tickets from ${startDate} to ${endDate}`);
+      logger.info(
+        `[TICKET-SYNC] Starting sync for tickets from ${startDate} to ${endDate}`,
+      );
 
       const stats = {
         incidents: { synced: 0, errors: 0 },
         change_tasks: { synced: 0, errors: 0 },
         sc_tasks: { synced: 0, errors: 0 },
-        groups: { synced: 0, errors: 0 }
+        groups: { synced: 0, errors: 0 },
       };
 
       // Sync all ticket types
       await Promise.all([
-        this.syncTicketsOfType('incident', startDate, endDate, stats.incidents),
-        this.syncTicketsOfType('change_task', startDate, endDate, stats.change_tasks),
-        this.syncTicketsOfType('sc_task', startDate, endDate, stats.sc_tasks)
+        this.syncTicketsOfType("incident", startDate, endDate, stats.incidents),
+        this.syncTicketsOfType(
+          "change_task",
+          startDate,
+          endDate,
+          stats.change_tasks,
+        ),
+        this.syncTicketsOfType("sc_task", startDate, endDate, stats.sc_tasks),
       ]);
 
       // Sync groups
@@ -56,7 +69,6 @@ export class TicketSyncService extends TicketDataCore {
       logger.info(`[TICKET-SYNC] Sync completed:`, stats);
 
       return { success: true, stats };
-
     } catch (error) {
       logger.error(`[TICKET-SYNC] Error during ticket sync:`, error);
       return {
@@ -65,8 +77,8 @@ export class TicketSyncService extends TicketDataCore {
           incidents: { synced: 0, errors: 1 },
           change_tasks: { synced: 0, errors: 1 },
           sc_tasks: { synced: 0, errors: 1 },
-          groups: { synced: 0, errors: 1 }
-        }
+          groups: { synced: 0, errors: 1 },
+        },
       };
     }
   }
@@ -74,13 +86,24 @@ export class TicketSyncService extends TicketDataCore {
   /**
    * Sync tickets of specific type for date range
    */
-  async syncTicketsOfType(table: string, startDate: string, endDate: string, stats: any): Promise<void> {
+  async syncTicketsOfType(
+    table: string,
+    startDate: string,
+    endDate: string,
+    stats: any,
+  ): Promise<void> {
     try {
       const query = `sys_created_on>=${startDate}^sys_created_on<=${endDate}`;
-      const response = await this.serviceNowClient.makeRequestFullFields(table, query, 1000);
+      const response = await this.serviceNowClient.makeRequestFullFields(
+        table,
+        query,
+        1000,
+      );
 
       if (response?.result) {
-        logger.info(`[TICKET-SYNC] Syncing ${response.result.length} ${table} tickets`);
+        logger.info(
+          `[TICKET-SYNC] Syncing ${response.result.length} ${table} tickets`,
+        );
 
         for (const ticket of response.result) {
           try {
@@ -94,7 +117,10 @@ export class TicketSyncService extends TicketDataCore {
         }
       }
     } catch (error) {
-      logger.error(`[TICKET-SYNC] Error syncing tickets of type ${table}:`, error);
+      logger.error(
+        `[TICKET-SYNC] Error syncing tickets of type ${table}:`,
+        error,
+      );
       stats.errors++;
     }
   }
@@ -104,24 +130,30 @@ export class TicketSyncService extends TicketDataCore {
    */
   async syncGroups(stats: any): Promise<void> {
     try {
-      const response = await this.serviceNowClient.makeRequestFullFields('sys_user_group', '', 1000);
+      const response = await this.serviceNowClient.makeRequestFullFields(
+        "sys_user_group",
+        "",
+        1000,
+      );
 
       if (response?.result) {
-        logger.info(`[TICKET-SYNC] Syncing ${response.result.length} user groups`);
+        logger.info(
+          `[TICKET-SYNC] Syncing ${response.result.length} user groups`,
+        );
 
         const db = this.getDatabase();
         for (const group of response.result) {
           try {
-            await db.collection('sys_user_groups').replaceOne(
+            await db.collection("sys_user_groups").replaceOne(
               { sys_id: group.sys_id },
               {
                 sys_id: group.sys_id,
                 name: group.name,
                 description: group.description,
                 raw_data: group,
-                updated_at: new Date()
+                updated_at: new Date(),
               },
-              { upsert: true }
+              { upsert: true },
             );
             stats.synced++;
           } catch (error) {
@@ -141,12 +173,14 @@ export class TicketSyncService extends TicketDataCore {
    */
   async syncTicketBySysId(sysId: string, table: string): Promise<boolean> {
     try {
-      logger.info(`[TICKET-SYNC] Syncing single ticket: ${sysId} from ${table}`);
+      logger.info(
+        `[TICKET-SYNC] Syncing single ticket: ${sysId} from ${table}`,
+      );
 
       const response = await this.serviceNowClient.makeRequestFullFields(
         table,
         `sys_id=${sysId}`,
-        1
+        1,
       );
 
       const ticket = response?.result?.[0];
@@ -160,7 +194,6 @@ export class TicketSyncService extends TicketDataCore {
 
       logger.info(`[TICKET-SYNC] Successfully synced ticket: ${sysId}`);
       return true;
-
     } catch (error) {
       logger.error(`[TICKET-SYNC] Error syncing ticket ${sysId}:`, error);
       return false;
@@ -170,28 +203,37 @@ export class TicketSyncService extends TicketDataCore {
   /**
    * Sync tickets by date range for all types
    */
-  async syncTicketsByDateRange(startDate: string, endDate: string): Promise<TicketSyncResult> {
+  async syncTicketsByDateRange(
+    startDate: string,
+    endDate: string,
+  ): Promise<TicketSyncResult> {
     try {
-      logger.info(`[TICKET-SYNC] Starting date range sync from ${startDate} to ${endDate}`);
+      logger.info(
+        `[TICKET-SYNC] Starting date range sync from ${startDate} to ${endDate}`,
+      );
 
       const stats = {
         incidents: { synced: 0, errors: 0 },
         change_tasks: { synced: 0, errors: 0 },
         sc_tasks: { synced: 0, errors: 0 },
-        groups: { synced: 0, errors: 0 }
+        groups: { synced: 0, errors: 0 },
       };
 
       // Sync all ticket types for the date range
       await Promise.all([
-        this.syncTicketsOfType('incident', startDate, endDate, stats.incidents),
-        this.syncTicketsOfType('change_task', startDate, endDate, stats.change_tasks),
-        this.syncTicketsOfType('sc_task', startDate, endDate, stats.sc_tasks)
+        this.syncTicketsOfType("incident", startDate, endDate, stats.incidents),
+        this.syncTicketsOfType(
+          "change_task",
+          startDate,
+          endDate,
+          stats.change_tasks,
+        ),
+        this.syncTicketsOfType("sc_task", startDate, endDate, stats.sc_tasks),
       ]);
 
       logger.info(`[TICKET-SYNC] Date range sync completed:`, stats);
 
       return { success: true, stats };
-
     } catch (error) {
       logger.error(`[TICKET-SYNC] Error during date range sync:`, error);
       return {
@@ -200,8 +242,8 @@ export class TicketSyncService extends TicketDataCore {
           incidents: { synced: 0, errors: 1 },
           change_tasks: { synced: 0, errors: 1 },
           sc_tasks: { synced: 0, errors: 1 },
-          groups: { synced: 0, errors: 1 }
-        }
+          groups: { synced: 0, errors: 1 },
+        },
       };
     }
   }
@@ -209,7 +251,10 @@ export class TicketSyncService extends TicketDataCore {
   /**
    * Sync tickets by assignment group
    */
-  async syncTicketsByGroup(groupName: string, maxRecords: number = 1000): Promise<{
+  async syncTicketsByGroup(
+    groupName: string,
+    maxRecords: number = 1000,
+  ): Promise<{
     synced: number;
     errors: number;
   }> {
@@ -219,10 +264,14 @@ export class TicketSyncService extends TicketDataCore {
       const syncResult = { synced: 0, errors: 0 };
 
       // Sync all ticket types for the group
-      for (const table of ['incident', 'change_task', 'sc_task']) {
+      for (const table of ["incident", "change_task", "sc_task"]) {
         try {
           const query = `assignment_group.name=${groupName}`;
-          const response = await this.serviceNowClient.makeRequestFullFields(table, query, maxRecords);
+          const response = await this.serviceNowClient.makeRequestFullFields(
+            table,
+            query,
+            maxRecords,
+          );
 
           if (response?.result) {
             for (const ticket of response.result) {
@@ -231,22 +280,33 @@ export class TicketSyncService extends TicketDataCore {
                 await this.storeTicketInMongoDB(processedTicket, table);
                 syncResult.synced++;
               } catch (error) {
-                logger.error(`[TICKET-SYNC] Error syncing ${table} ticket for group ${groupName}:`, error);
+                logger.error(
+                  `[TICKET-SYNC] Error syncing ${table} ticket for group ${groupName}:`,
+                  error,
+                );
                 syncResult.errors++;
               }
             }
           }
         } catch (error) {
-          logger.error(`[TICKET-SYNC] Error syncing ${table} tickets for group ${groupName}:`, error);
+          logger.error(
+            `[TICKET-SYNC] Error syncing ${table} tickets for group ${groupName}:`,
+            error,
+          );
           syncResult.errors++;
         }
       }
 
-      logger.info(`[TICKET-SYNC] Group sync completed for ${groupName}:`, syncResult);
+      logger.info(
+        `[TICKET-SYNC] Group sync completed for ${groupName}:`,
+        syncResult,
+      );
       return syncResult;
-
     } catch (error) {
-      logger.error(`[TICKET-SYNC] Error during group sync for ${groupName}:`, error);
+      logger.error(
+        `[TICKET-SYNC] Error during group sync for ${groupName}:`,
+        error,
+      );
       return { synced: 0, errors: 1 };
     }
   }

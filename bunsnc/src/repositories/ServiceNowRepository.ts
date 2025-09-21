@@ -3,7 +3,7 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { db, query, transaction, type QueryResult } from '../config/database';
+import { db, query, transaction, type QueryResult } from "../config/database";
 
 export interface ServiceNowStatusQuery {
   tipo_chamado: string;
@@ -42,11 +42,13 @@ export interface ServiceNowMetrics {
 }
 
 export class ServiceNowRepository {
-  
   /**
    * Get all resolved/closed/cancelled tickets with Portuguese status descriptions
    */
-  async getResolvedTickets(limit = 1000, offset = 0): Promise<ServiceNowStatusQuery[]> {
+  async getResolvedTickets(
+    limit = 1000,
+    offset = 0,
+  ): Promise<ServiceNowStatusQuery[]> {
     const sql = `
       SELECT 
           'incident' as tipo_chamado,
@@ -116,7 +118,10 @@ export class ServiceNowRepository {
   /**
    * Get all active tickets (NOT resolved/closed/cancelled)
    */
-  async getActiveTickets(limit = 1000, offset = 0): Promise<ServiceNowStatusQuery[]> {
+  async getActiveTickets(
+    limit = 1000,
+    offset = 0,
+  ): Promise<ServiceNowStatusQuery[]> {
     const sql = `
       SELECT 
           'incident' as tipo_chamado,
@@ -265,7 +270,7 @@ export class ServiceNowRepository {
           (SELECT COUNT(*) FROM sn_ctasks_collection) +
           (SELECT COUNT(*) FROM sn_sctasks_collection) as total
       `),
-      
+
       // Resolved tickets count
       query(`
         SELECT 
@@ -273,7 +278,7 @@ export class ServiceNowRepository {
           (SELECT COUNT(*) FROM sn_ctasks_collection WHERE data->'ctask'->>'state' IN ('4', '7', '8')) +
           (SELECT COUNT(*) FROM sn_sctasks_collection WHERE data->'sctask'->>'state' IN ('4', '7')) as resolved
       `),
-      
+
       // Tickets by type
       query(`
         SELECT 
@@ -281,7 +286,7 @@ export class ServiceNowRepository {
           (SELECT COUNT(*) FROM sn_ctasks_collection) as change_tasks,
           (SELECT COUNT(*) FROM sn_sctasks_collection) as service_catalog_tasks
       `),
-      
+
       // Average response time (using update timestamps)
       query(`
         SELECT AVG(EXTRACT(EPOCH FROM (updated_at - created_at))/3600) as avg_hours
@@ -293,7 +298,7 @@ export class ServiceNowRepository {
           SELECT created_at, updated_at FROM sn_sctasks_collection
         ) all_tickets
         WHERE updated_at IS NOT NULL AND created_at IS NOT NULL
-      `)
+      `),
     ]);
 
     const totalTickets = metricsQueries[0].rows[0]?.total || 0;
@@ -309,7 +314,7 @@ export class ServiceNowRepository {
       resolved_tickets: resolvedTickets,
       closed_tickets: resolvedTickets, // Same as resolved in this context
       cancelled_tickets: statusStats
-        .filter(s => s.status_portugues === 'Cancelado')
+        .filter((s) => s.status_portugues === "Cancelado")
         .reduce((sum, s) => sum + s.total_chamados, 0),
       active_tickets: totalTickets - resolvedTickets,
       by_type: {
@@ -333,7 +338,7 @@ export class ServiceNowRepository {
     dateFrom?: string,
     dateTo?: string,
     limit = 100,
-    offset = 0
+    offset = 0,
   ): Promise<ServiceNowStatusQuery[]> {
     let whereConditions: string[] = [];
     let params: any[] = [];
@@ -368,13 +373,14 @@ export class ServiceNowRepository {
       paramIndex++;
     }
 
-    const whereClause = whereConditions.length > 0 ? `AND ${whereConditions.join(' AND ')}` : '';
+    const whereClause =
+      whereConditions.length > 0 ? `AND ${whereConditions.join(" AND ")}` : "";
 
     let unionQueries: string[] = [];
 
     // Include incidents if no specific type or if type is incident
-    if (!ticketType || ticketType === 'incident') {
-      let incidentStatusFilter = '';
+    if (!ticketType || ticketType === "incident") {
+      let incidentStatusFilter = "";
       if (status) {
         incidentStatusFilter = `AND data->'incident'->>'state' = $${paramIndex}`;
         params.push(status);
@@ -409,9 +415,9 @@ export class ServiceNowRepository {
     }
 
     // Include change tasks if no specific type or if type is change_task
-    if (!ticketType || ticketType === 'change_task') {
-      let ctaskStatusFilter = '';
-      if (status && ticketType === 'change_task') {
+    if (!ticketType || ticketType === "change_task") {
+      let ctaskStatusFilter = "";
+      if (status && ticketType === "change_task") {
         ctaskStatusFilter = `AND data->'ctask'->>'state' = $${paramIndex}`;
         params.push(status);
         paramIndex++;
@@ -443,9 +449,9 @@ export class ServiceNowRepository {
     }
 
     // Include service catalog tasks if no specific type or if type is sc_task
-    if (!ticketType || ticketType === 'sc_task') {
-      let sctaskStatusFilter = '';
-      if (status && ticketType === 'sc_task') {
+    if (!ticketType || ticketType === "sc_task") {
+      let sctaskStatusFilter = "";
+      if (status && ticketType === "sc_task") {
         sctaskStatusFilter = `AND data->'sctask'->>'state' = $${paramIndex}`;
         params.push(status);
         paramIndex++;
@@ -477,7 +483,7 @@ export class ServiceNowRepository {
 
     params.push(limit, offset);
     const sql = `
-      ${unionQueries.join(' UNION ALL ')}
+      ${unionQueries.join(" UNION ALL ")}
       ORDER BY updated_at DESC NULLS LAST
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
@@ -490,20 +496,20 @@ export class ServiceNowRepository {
    * Get ticket details by sys_id and type
    */
   async getTicketDetails(sysId: string, ticketType: string): Promise<any> {
-    let sql = '';
-    let tableName = '';
+    let sql = "";
+    let tableName = "";
 
     switch (ticketType) {
-      case 'incident':
-        tableName = 'sn_incidents_collection';
+      case "incident":
+        tableName = "sn_incidents_collection";
         sql = `SELECT data->'incident' as ticket_data, created_at, updated_at FROM ${tableName} WHERE data->'incident'->>'sys_id' = $1`;
         break;
-      case 'change_task':
-        tableName = 'sn_ctasks_collection';
+      case "change_task":
+        tableName = "sn_ctasks_collection";
         sql = `SELECT data->'ctask' as ticket_data, created_at, updated_at FROM ${tableName} WHERE data->'ctask'->>'sys_id' = $1`;
         break;
-      case 'sc_task':
-        tableName = 'sn_sctasks_collection';
+      case "sc_task":
+        tableName = "sn_sctasks_collection";
         sql = `SELECT data->'sctask' as ticket_data, created_at, updated_at FROM ${tableName} WHERE data->'sctask'->>'sys_id' = $1`;
         break;
       default:

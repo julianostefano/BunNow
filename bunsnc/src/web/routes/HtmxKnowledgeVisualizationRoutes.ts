@@ -3,15 +3,15 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { Elysia } from 'elysia';
-import { html } from '@elysiajs/html';
-import { KnowledgeGraphService } from '../../services/ai/KnowledgeGraphService';
-import { DocumentLifecycleService } from '../../services/ai/DocumentLifecycleService';
+import { Elysia } from "elysia";
+import { html } from "@elysiajs/html";
+import { KnowledgeGraphService } from "../../services/ai/KnowledgeGraphService";
+import { DocumentLifecycleService } from "../../services/ai/DocumentLifecycleService";
 
-export const knowledgeVisualizationRoutes = new Elysia({ prefix: '/knowledge' })
+export const knowledgeVisualizationRoutes = new Elysia({ prefix: "/knowledge" })
   .use(html())
 
-  .get('/graph', async ({ html }) => {
+  .get("/graph", async ({ html }) => {
     const knowledgeGraph = new KnowledgeGraphService();
     const analytics = await knowledgeGraph.getGraphAnalytics();
 
@@ -43,9 +43,13 @@ export const knowledgeVisualizationRoutes = new Elysia({ prefix: '/knowledge' })
                     hx-include="[name='support_group']"
                     name="technology">
               <option value="">All Technologies</option>
-              ${analytics.most_connected_technologies.map(tech => `
+              ${analytics.most_connected_technologies
+                .map(
+                  (tech) => `
                 <option value="${tech.name}">${tech.name} (${tech.connections})</option>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </select>
           </div>
 
@@ -85,15 +89,19 @@ export const knowledgeVisualizationRoutes = new Elysia({ prefix: '/knowledge' })
           <div class="insight-section">
             <h3>Technology Clusters</h3>
             <div class="cluster-grid">
-              ${analytics.cluster_analysis.map(cluster => `
+              ${analytics.cluster_analysis
+                .map(
+                  (cluster) => `
                 <div class="cluster-card"
                      hx-get="/knowledge/cluster/${cluster.cluster_id}"
                      hx-target="#cluster-details">
-                  <h4>${cluster.cluster_id.replace('cluster_', '').replace(/_/g, ' ')}</h4>
-                  <p class="cluster-tech">${cluster.technologies.join(', ')}</p>
+                  <h4>${cluster.cluster_id.replace("cluster_", "").replace(/_/g, " ")}</h4>
+                  <p class="cluster-tech">${cluster.technologies.join(", ")}</p>
                   <span class="cluster-size">${cluster.size} documents</span>
                 </div>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </div>
           </div>
 
@@ -300,7 +308,7 @@ export const knowledgeVisualizationRoutes = new Elysia({ prefix: '/knowledge' })
     `);
   })
 
-  .get('/analytics/gaps', async ({ html }) => {
+  .get("/analytics/gaps", async ({ html }) => {
     const documentService = new DocumentLifecycleService();
     const gaps = await documentService.detectDocumentationGaps();
 
@@ -322,7 +330,9 @@ export const knowledgeVisualizationRoutes = new Elysia({ prefix: '/knowledge' })
           <div class="gap-section">
             <h4>Missing Topics (${gaps.missing_topics.length})</h4>
             <div class="topic-list">
-              ${gaps.missing_topics.map((topic: any) => `
+              ${gaps.missing_topics
+                .map(
+                  (topic: any) => `
                 <div class="topic-item severity-${topic.gap_severity}">
                   <div class="topic-info">
                     <span class="topic-name">${topic.topic}</span>
@@ -330,14 +340,18 @@ export const knowledgeVisualizationRoutes = new Elysia({ prefix: '/knowledge' })
                   </div>
                   <span class="severity-badge ${topic.gap_severity}">${topic.gap_severity}</span>
                 </div>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </div>
           </div>
 
           <div class="gap-section">
             <h4>Suggested Documents (${gaps.suggested_documents.length})</h4>
             <div class="suggestion-list">
-              ${gaps.suggested_documents.map((doc: any) => `
+              ${gaps.suggested_documents
+                .map(
+                  (doc: any) => `
                 <div class="suggestion-item">
                   <div class="suggestion-info">
                     <span class="doc-title">${doc.title}</span>
@@ -345,19 +359,25 @@ export const knowledgeVisualizationRoutes = new Elysia({ prefix: '/knowledge' })
                   </div>
                   <span class="priority-badge ${doc.priority}">${doc.priority}</span>
                 </div>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </div>
           </div>
 
           <div class="gap-section">
             <h4>Documents Needing Updates (${gaps.update_candidates.length})</h4>
             <div class="update-list">
-              ${gaps.update_candidates.map((update: any) => `
+              ${gaps.update_candidates
+                .map(
+                  (update: any) => `
                 <div class="update-item">
                   <span class="tech-name">${update.technology}</span>
                   <span class="update-reason">${update.reason}</span>
                 </div>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </div>
           </div>
         </div>
@@ -365,9 +385,13 @@ export const knowledgeVisualizationRoutes = new Elysia({ prefix: '/knowledge' })
         <div class="recommendations">
           <h4>Recommendations</h4>
           <ul class="recommendation-list">
-            ${gaps.recommendations.map((rec: string) => `
+            ${gaps.recommendations
+              .map(
+                (rec: string) => `
               <li>${rec}</li>
-            `).join('')}
+            `,
+              )
+              .join("")}
           </ul>
         </div>
       </div>

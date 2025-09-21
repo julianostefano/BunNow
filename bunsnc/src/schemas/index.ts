@@ -1,7 +1,7 @@
 /**
  * Schemas Index - Central export point for all validation schemas
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
- * 
+ *
  * Following MVC Guidelines:
  * - ≤ 500 lines per file
  * - Centralized exports
@@ -9,53 +9,51 @@
  */
 
 // ===== CORE SCHEMAS =====
-export * from './core/base.schemas';
-export * from './core/servicenow.schemas';
+export * from "./core/base.schemas";
+export * from "./core/servicenow.schemas";
 
 // ===== TICKET SCHEMAS =====
-export * from './tickets/incident.schemas';
-export * from './tickets/change-task.schemas';
-export * from './tickets/sc-task.schemas';
+export * from "./tickets/incident.schemas";
+export * from "./tickets/change-task.schemas";
+export * from "./tickets/sc-task.schemas";
 
 // ===== INFRASTRUCTURE SCHEMAS =====
-export * from './infrastructure/mongodb.schemas';
-export * from './infrastructure/redis.schemas';
-export * from './infrastructure/opensearch.schemas';
-export * from './infrastructure/hadoop.schemas';
+export * from "./infrastructure/mongodb.schemas";
+export * from "./infrastructure/redis.schemas";
+export * from "./infrastructure/opensearch.schemas";
+export * from "./infrastructure/hadoop.schemas";
 
 // ===== API SCHEMAS =====
-export * from './api/request.schemas';
-export * from './api/response.schemas';
+export * from "./api/request.schemas";
+export * from "./api/response.schemas";
 
 // ===== VALIDATIONS =====
-export * from './validations/advanced.validations';
+export * from "./validations/advanced.validations";
 
 // ===== EXAMPLES =====
-export * from './examples/zod-integration.examples';
+export * from "./examples/zod-integration.examples";
 
 // ===== UTILITIES =====
-export * from './utils/zod-typebox-adapter';
-export * from './utils/schema-registry';
+export * from "./utils/zod-typebox-adapter";
+export * from "./utils/schema-registry";
 
 // ===== RE-EXPORTS FROM REGISTRY =====
-export { 
+export {
   unifiedRegistry,
   CommonSchemas,
   ElysiaSchemas,
   getSchemaForTable,
-  SchemaCategory
-} from './utils/schema-registry';
+  SchemaCategory,
+} from "./utils/schema-registry";
 
 // ===== TYPE EXPORTS =====
 export type {
   HybridSchema,
   ValidationResult,
-  SchemaMetadata
-} from './utils/schema-registry';
+  SchemaMetadata,
+} from "./utils/schema-registry";
 
-export type {
-  TypeMappingConfig
-} from './utils/zod-typebox-adapter';
+export type { TypeMappingConfig } from "./utils/zod-typebox-adapter";
 
 // ===== CONVENIENCE FUNCTIONS =====
 

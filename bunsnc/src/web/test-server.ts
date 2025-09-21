@@ -16,10 +16,12 @@ const app = new Elysia()
   .use(html())
 
   // Static files
-  .use(staticPlugin({
-    assets: "public",
-    prefix: "/public"
-  }))
+  .use(
+    staticPlugin({
+      assets: "public",
+      prefix: "/public",
+    }),
+  )
 
   // Routes
   .use(dashboardRoute)
@@ -30,7 +32,7 @@ const app = new Elysia()
   .get("/health", () => ({
     status: "healthy",
     timestamp: new Date().toISOString(),
-    service: "glass-design-test"
+    service: "glass-design-test",
   }))
 
   .listen(3009);

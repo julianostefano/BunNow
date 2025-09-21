@@ -3,10 +3,10 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { Collection, MongoClient } from 'mongodb';
-import { logger } from '../utils/Logger';
-import { ContractualSLAService } from './ContractualSLAService';
-import { BusinessHoursCalculator } from '../utils/BusinessHoursCalculator';
+import { Collection, MongoClient } from "mongodb";
+import { logger } from "../utils/Logger";
+import { ContractualSLAService } from "./ContractualSLAService";
+import { BusinessHoursCalculator } from "../utils/BusinessHoursCalculator";
 import {
   TicketType,
   MetricType,
@@ -16,8 +16,8 @@ import {
   TicketSLAStatus,
   SLADashboardData,
   SLAAlert,
-  DEFAULT_BUSINESS_HOURS
-} from '../types/ContractualSLA';
+  DEFAULT_BUSINESS_HOURS,
+} from "../types/ContractualSLA";
 
 interface TicketRecord {
   sys_id: string;
@@ -65,27 +65,40 @@ export class EnhancedMetricsService {
   constructor(
     private mongoClient: MongoClient,
     private databaseName: string,
-    contractualSLAService: ContractualSLAService
+    contractualSLAService: ContractualSLAService,
   ) {
     this.contractualSLAService = contractualSLAService;
-    this.businessHoursCalculator = new BusinessHoursCalculator(DEFAULT_BUSINESS_HOURS);
+    this.businessHoursCalculator = new BusinessHoursCalculator(
+      DEFAULT_BUSINESS_HOURS,
+    );
 
     const db = this.mongoClient.db(this.databaseName);
-    this.incidentCollection = db.collection<MongoTicketDocument>('sn_incidents_collection');
-    this.ctaskCollection = db.collection<MongoTicketDocument>('sn_ctasks_collection');
-    this.sctaskCollection = db.collection<MongoTicketDocument>('sn_sctasks_collection');
+    this.incidentCollection = db.collection<MongoTicketDocument>(
+      "sn_incidents_collection",
+    );
+    this.ctaskCollection = db.collection<MongoTicketDocument>(
+      "sn_ctasks_collection",
+    );
+    this.sctaskCollection = db.collection<MongoTicketDocument>(
+      "sn_sctasks_collection",
+    );
   }
 
   static getInstance(
     mongoClient?: MongoClient,
     databaseName?: string,
-    contractualSLAService?: ContractualSLAService
+    contractualSLAService?: ContractualSLAService,
   ): EnhancedMetricsService {
-    if (!EnhancedMetricsService.instance && mongoClient && databaseName && contractualSLAService) {
+    if (
+      !EnhancedMetricsService.instance &&
+      mongoClient &&
+      databaseName &&
+      contractualSLAService
+    ) {
       EnhancedMetricsService.instance = new EnhancedMetricsService(
         mongoClient,
         databaseName,
-        contractualSLAService
+        contractualSLAService,
       );
     }
     return EnhancedMetricsService.instance;
@@ -96,7 +109,7 @@ export class EnhancedMetricsService {
    */
   async calculateTicketSLA(
     ticketId: string,
-    ticketType: TicketType
+    ticketType: TicketType,
   ): Promise<TicketSLAStatus | null> {
     try {
       const ticket = await this.getTicketRecord(ticketId, ticketType);
@@ -107,7 +120,9 @@ export class EnhancedMetricsService {
 
       const priority = this.mapPriority(ticket.priority, ticketType);
       if (!priority) {
-        logger.warn(` [EnhancedMetrics] Invalid priority ${ticket.priority} for ticket ${ticketId}`);
+        logger.warn(
+          ` [EnhancedMetrics] Invalid priority ${ticket.priority} for ticket ${ticketId}`,
+        );
         return null;
       }
 
@@ -116,7 +131,7 @@ export class EnhancedMetricsService {
       if (ticket.first_response_date) {
         const responseHours = this.calculateHoursDifference(
           ticket.sys_created_on,
-          ticket.first_response_date
+          ticket.first_response_date,
         );
 
         responseSLA = await this.contractualSLAService.calculateCompliance(
@@ -125,7 +140,10 @@ export class EnhancedMetricsService {
           priority,
           MetricType.RESPONSE_TIME,
           responseHours,
-          { include_business_hours_only: true, penalty_calculation_enabled: true }
+          {
+            include_business_hours_only: true,
+            penalty_calculation_enabled: true,
+          },
         );
       }
 
@@ -135,7 +153,7 @@ export class EnhancedMetricsService {
       if (resolutionDate) {
         const resolutionHours = this.calculateHoursDifference(
           ticket.sys_created_on,
-          resolutionDate
+          resolutionDate,
         );
 
         resolutionSLA = await this.contractualSLAService.calculateCompliance(
@@ -144,16 +162,20 @@ export class EnhancedMetricsService {
           priority,
           MetricType.RESOLUTION_TIME,
           resolutionHours,
-          { include_business_hours_only: true, penalty_calculation_enabled: true }
+          {
+            include_business_hours_only: true,
+            penalty_calculation_enabled: true,
+          },
         );
       }
 
-      const overallCompliance = (
+      const overallCompliance =
         (!responseSLA || responseSLA.is_compliant) &&
-        (!resolutionSLA || resolutionSLA.is_compliant)
-      );
+        (!resolutionSLA || resolutionSLA.is_compliant);
 
-      const totalPenalty = (responseSLA?.penalty_percentage || 0) + (resolutionSLA?.penalty_percentage || 0);
+      const totalPenalty =
+        (responseSLA?.penalty_percentage || 0) +
+        (resolutionSLA?.penalty_percentage || 0);
 
       return {
         ticket_id: ticketId,
@@ -166,11 +188,13 @@ export class EnhancedMetricsService {
         response_sla: responseSLA,
         resolution_sla: resolutionSLA,
         overall_compliance: overallCompliance,
-        total_penalty_percentage: totalPenalty
+        total_penalty_percentage: totalPenalty,
       };
-
     } catch (error) {
-      logger.error(` [EnhancedMetrics] Error calculating SLA for ticket ${ticketId}:`, error);
+      logger.error(
+        ` [EnhancedMetrics] Error calculating SLA for ticket ${ticketId}:`,
+        error,
+      );
       return null;
     }
   }
@@ -181,10 +205,12 @@ export class EnhancedMetricsService {
   async generateSLAMetrics(
     startDate: Date,
     endDate: Date,
-    ticketType?: TicketType
+    ticketType?: TicketType,
   ): Promise<SLAMetrics[]> {
     try {
-      const ticketTypes = ticketType ? [ticketType] : [TicketType.INCIDENT, TicketType.CTASK, TicketType.SCTASK];
+      const ticketTypes = ticketType
+        ? [ticketType]
+        : [TicketType.INCIDENT, TicketType.CTASK, TicketType.SCTASK];
       const metricsResults: SLAMetrics[] = [];
 
       for (const type of ticketTypes) {
@@ -202,12 +228,16 @@ export class EnhancedMetricsService {
           }
         }
 
-        const metrics = this.aggregateSLAMetrics(slaResults, startDate, endDate, type);
+        const metrics = this.aggregateSLAMetrics(
+          slaResults,
+          startDate,
+          endDate,
+          type,
+        );
         metricsResults.push(metrics);
       }
 
       return metricsResults;
-
     } catch (error) {
       logger.error(` [EnhancedMetrics] Error generating SLA metrics:`, error);
       return [];
@@ -219,7 +249,7 @@ export class EnhancedMetricsService {
    */
   async getDashboardData(
     startDate: Date,
-    endDate: Date
+    endDate: Date,
   ): Promise<SLADashboardData> {
     try {
       const metricsResults = await this.generateSLAMetrics(startDate, endDate);
@@ -231,7 +261,10 @@ export class EnhancedMetricsService {
       let compliantTickets = 0;
       let totalPenalties = 0;
 
-      const byTicketType: Record<TicketType, SLAMetrics> = {} as Record<TicketType, SLAMetrics>;
+      const byTicketType: Record<TicketType, SLAMetrics> = {} as Record<
+        TicketType,
+        SLAMetrics
+      >;
 
       for (const metrics of metricsResults) {
         totalTickets += metrics.total_tickets;
@@ -240,7 +273,8 @@ export class EnhancedMetricsService {
         byTicketType[metrics.ticket_type] = metrics;
       }
 
-      const overallCompliance = totalTickets > 0 ? (compliantTickets / totalTickets) * 100 : 0;
+      const overallCompliance =
+        totalTickets > 0 ? (compliantTickets / totalTickets) * 100 : 0;
 
       return {
         overall_metrics: {
@@ -248,21 +282,23 @@ export class EnhancedMetricsService {
           compliant_tickets: compliantTickets,
           breach_tickets: totalTickets - compliantTickets,
           compliance_percentage: Math.round(overallCompliance * 100) / 100,
-          total_penalties: Math.round(totalPenalties * 100) / 100
+          total_penalties: Math.round(totalPenalties * 100) / 100,
         },
         by_ticket_type: byTicketType,
         recent_breaches: recentBreaches,
         trending_metrics: {
-          period: '30d',
+          period: "30d",
           compliance_trend: await this.getComplianceTrend(30),
           penalty_trend: await this.getPenaltyTrend(30),
-          volume_trend: await this.getVolumeTrend(30)
+          volume_trend: await this.getVolumeTrend(30),
         },
-        alerts: alerts
+        alerts: alerts,
       };
-
     } catch (error) {
-      logger.error(` [EnhancedMetrics] Error generating dashboard data:`, error);
+      logger.error(
+        ` [EnhancedMetrics] Error generating dashboard data:`,
+        error,
+      );
       throw error;
     }
   }
@@ -276,11 +312,22 @@ export class EnhancedMetricsService {
       const recentDate = new Date();
       recentDate.setDate(recentDate.getDate() - 7); // Last 7 days
 
-      for (const ticketType of [TicketType.INCIDENT, TicketType.CTASK, TicketType.SCTASK]) {
-        const tickets = await this.getTicketsInPeriod(recentDate, new Date(), ticketType);
+      for (const ticketType of [
+        TicketType.INCIDENT,
+        TicketType.CTASK,
+        TicketType.SCTASK,
+      ]) {
+        const tickets = await this.getTicketsInPeriod(
+          recentDate,
+          new Date(),
+          ticketType,
+        );
 
         for (const ticket of tickets.slice(0, limit)) {
-          const slaStatus = await this.calculateTicketSLA(ticket.sys_id, ticketType);
+          const slaStatus = await this.calculateTicketSLA(
+            ticket.sys_id,
+            ticketType,
+          );
           if (slaStatus && !slaStatus.overall_compliance) {
             breaches.push(slaStatus);
           }
@@ -290,9 +337,8 @@ export class EnhancedMetricsService {
       return breaches
         .sort((a, b) => b.created_at.getTime() - a.created_at.getTime())
         .slice(0, limit);
-
     } catch (error) {
-      logger.error(' [EnhancedMetrics] Error getting recent breaches:', error);
+      logger.error(" [EnhancedMetrics] Error getting recent breaches:", error);
       return [];
     }
   }
@@ -307,39 +353,38 @@ export class EnhancedMetricsService {
       // Check for high penalty rate
       const recentMetrics = await this.generateSLAMetrics(
         new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
-        new Date()
+        new Date(),
       );
 
       for (const metrics of recentMetrics) {
         if (metrics.compliance_percentage < 80) {
           alerts.push({
             id: `compliance-${metrics.ticket_type}-${Date.now()}`,
-            type: 'warning',
-            severity: metrics.compliance_percentage < 60 ? 'critical' : 'high',
+            type: "warning",
+            severity: metrics.compliance_percentage < 60 ? "critical" : "high",
             ticket_type: metrics.ticket_type,
-            priority: 'P1' as SLAPriority,
+            priority: "P1" as SLAPriority,
             message: `${metrics.ticket_type.toUpperCase()} SLA compliance is ${metrics.compliance_percentage.toFixed(1)}% (last 24h)`,
             created_at: new Date(),
-            acknowledged: false
+            acknowledged: false,
           });
         }
 
         if (metrics.total_penalty_percentage > 2.0) {
           alerts.push({
             id: `penalty-${metrics.ticket_type}-${Date.now()}`,
-            type: 'breach',
-            severity: 'critical',
+            type: "breach",
+            severity: "critical",
             ticket_type: metrics.ticket_type,
-            priority: 'P1' as SLAPriority,
+            priority: "P1" as SLAPriority,
             message: `High penalty rate: ${metrics.total_penalty_percentage.toFixed(2)}% for ${metrics.ticket_type.toUpperCase()}`,
             created_at: new Date(),
-            acknowledged: false
+            acknowledged: false,
           });
         }
       }
-
     } catch (error) {
-      logger.error(' [EnhancedMetrics] Error generating alerts:', error);
+      logger.error(" [EnhancedMetrics] Error generating alerts:", error);
     }
 
     return alerts;
@@ -348,7 +393,10 @@ export class EnhancedMetricsService {
   /**
    * Helper methods
    */
-  private async getTicketRecord(ticketId: string, ticketType: TicketType): Promise<TicketRecord | null> {
+  private async getTicketRecord(
+    ticketId: string,
+    ticketType: TicketType,
+  ): Promise<TicketRecord | null> {
     const collection = this.getCollectionForTicketType(ticketType);
     const document = await collection.findOne({ sys_id: ticketId });
 
@@ -375,36 +423,50 @@ export class EnhancedMetricsService {
       ...ticketData,
       sys_created_on: new Date(ticketData.sys_created_on),
       sys_updated_on: new Date(ticketData.sys_updated_on),
-      resolved_at: ticketData.resolved_at ? new Date(ticketData.resolved_at) : undefined,
-      closed_at: ticketData.closed_at ? new Date(ticketData.closed_at) : undefined,
-      first_response_date: ticketData.first_response_date ? new Date(ticketData.first_response_date) : undefined
+      resolved_at: ticketData.resolved_at
+        ? new Date(ticketData.resolved_at)
+        : undefined,
+      closed_at: ticketData.closed_at
+        ? new Date(ticketData.closed_at)
+        : undefined,
+      first_response_date: ticketData.first_response_date
+        ? new Date(ticketData.first_response_date)
+        : undefined,
     };
   }
 
-  private getCollectionForTicketType(ticketType: TicketType): Collection<MongoTicketDocument> {
+  private getCollectionForTicketType(
+    ticketType: TicketType,
+  ): Collection<MongoTicketDocument> {
     switch (ticketType) {
-      case TicketType.INCIDENT: return this.incidentCollection;
-      case TicketType.CTASK: return this.ctaskCollection;
-      case TicketType.SCTASK: return this.sctaskCollection;
+      case TicketType.INCIDENT:
+        return this.incidentCollection;
+      case TicketType.CTASK:
+        return this.ctaskCollection;
+      case TicketType.SCTASK:
+        return this.sctaskCollection;
     }
   }
 
   private async getTicketsInPeriod(
     startDate: Date,
     endDate: Date,
-    ticketType: TicketType
+    ticketType: TicketType,
   ): Promise<TicketRecord[]> {
     const collection = this.getCollectionForTicketType(ticketType);
 
     // Create the field path based on ticket type
-    const fieldPath = this.getFieldPath(ticketType, 'sys_created_on');
+    const fieldPath = this.getFieldPath(ticketType, "sys_created_on");
 
-    const documents = await collection.find({
-      [fieldPath]: {
-        $gte: startDate.toISOString(),
-        $lte: endDate.toISOString()
-      }
-    }).sort({ [fieldPath]: -1 }).toArray();
+    const documents = await collection
+      .find({
+        [fieldPath]: {
+          $gte: startDate.toISOString(),
+          $lte: endDate.toISOString(),
+        },
+      })
+      .sort({ [fieldPath]: -1 })
+      .toArray();
 
     // Extract and convert ticket records from documents
     const tickets: TicketRecord[] = [];
@@ -429,7 +491,10 @@ export class EnhancedMetricsService {
     }
   }
 
-  private extractTicketDataFromDocument(document: MongoTicketDocument, ticketType: TicketType): TicketRecord | null {
+  private extractTicketDataFromDocument(
+    document: MongoTicketDocument,
+    ticketType: TicketType,
+  ): TicketRecord | null {
     let ticketData: TicketRecord | undefined;
 
     switch (ticketType) {
@@ -451,45 +516,57 @@ export class EnhancedMetricsService {
       ...ticketData,
       sys_created_on: new Date(ticketData.sys_created_on),
       sys_updated_on: new Date(ticketData.sys_updated_on),
-      resolved_at: ticketData.resolved_at ? new Date(ticketData.resolved_at) : undefined,
-      closed_at: ticketData.closed_at ? new Date(ticketData.closed_at) : undefined,
-      first_response_date: ticketData.first_response_date ? new Date(ticketData.first_response_date) : undefined
+      resolved_at: ticketData.resolved_at
+        ? new Date(ticketData.resolved_at)
+        : undefined,
+      closed_at: ticketData.closed_at
+        ? new Date(ticketData.closed_at)
+        : undefined,
+      first_response_date: ticketData.first_response_date
+        ? new Date(ticketData.first_response_date)
+        : undefined,
     };
   }
 
-  private mapPriority(priority: string, ticketType: TicketType): SLAPriority | null {
+  private mapPriority(
+    priority: string,
+    ticketType: TicketType,
+  ): SLAPriority | null {
     // Map ServiceNow priority values to our SLA priority types
-    const priorityMap: Record<string, Record<TicketType, SLAPriority | null>> = {
-      '1': {
-        [TicketType.INCIDENT]: 'P1' as SLAPriority,
-        [TicketType.CTASK]: 'P1' as SLAPriority,
-        [TicketType.SCTASK]: 'P1' as SLAPriority
+    const priorityMap: Record<
+      string,
+      Record<TicketType, SLAPriority | null>
+    > = {
+      "1": {
+        [TicketType.INCIDENT]: "P1" as SLAPriority,
+        [TicketType.CTASK]: "P1" as SLAPriority,
+        [TicketType.SCTASK]: "P1" as SLAPriority,
       },
-      '2': {
-        [TicketType.INCIDENT]: 'P2' as SLAPriority,
-        [TicketType.CTASK]: 'P2' as SLAPriority,
-        [TicketType.SCTASK]: 'P2' as SLAPriority
+      "2": {
+        [TicketType.INCIDENT]: "P2" as SLAPriority,
+        [TicketType.CTASK]: "P2" as SLAPriority,
+        [TicketType.SCTASK]: "P2" as SLAPriority,
       },
-      '3': {
-        [TicketType.INCIDENT]: 'P3' as SLAPriority,
-        [TicketType.CTASK]: 'P3' as SLAPriority,
-        [TicketType.SCTASK]: 'P3' as SLAPriority
+      "3": {
+        [TicketType.INCIDENT]: "P3" as SLAPriority,
+        [TicketType.CTASK]: "P3" as SLAPriority,
+        [TicketType.SCTASK]: "P3" as SLAPriority,
       },
-      '4': {
-        [TicketType.INCIDENT]: 'P4' as SLAPriority,
-        [TicketType.CTASK]: 'P4' as SLAPriority,
-        [TicketType.SCTASK]: null
+      "4": {
+        [TicketType.INCIDENT]: "P4" as SLAPriority,
+        [TicketType.CTASK]: "P4" as SLAPriority,
+        [TicketType.SCTASK]: null,
       },
-      'Normal': {
+      Normal: {
         [TicketType.INCIDENT]: null,
         [TicketType.CTASK]: null,
-        [TicketType.SCTASK]: 'Normal' as SLAPriority
+        [TicketType.SCTASK]: "Normal" as SLAPriority,
       },
-      'Standard': {
+      Standard: {
         [TicketType.INCIDENT]: null,
         [TicketType.CTASK]: null,
-        [TicketType.SCTASK]: 'Standard' as SLAPriority
-      }
+        [TicketType.SCTASK]: "Standard" as SLAPriority,
+      },
     };
 
     return priorityMap[priority]?.[ticketType] || null;
@@ -504,23 +581,29 @@ export class EnhancedMetricsService {
     slaResults: TicketSLAStatus[],
     periodStart: Date,
     periodEnd: Date,
-    ticketType: TicketType
+    ticketType: TicketType,
   ): SLAMetrics {
     const totalTickets = slaResults.length;
-    const compliantTickets = slaResults.filter(r => r.overall_compliance).length;
+    const compliantTickets = slaResults.filter(
+      (r) => r.overall_compliance,
+    ).length;
     const breachedTickets = totalTickets - compliantTickets;
-    const compliancePercentage = totalTickets > 0 ? (compliantTickets / totalTickets) * 100 : 0;
+    const compliancePercentage =
+      totalTickets > 0 ? (compliantTickets / totalTickets) * 100 : 0;
 
-    const totalPenalty = slaResults.reduce((sum, r) => sum + r.total_penalty_percentage, 0);
+    const totalPenalty = slaResults.reduce(
+      (sum, r) => sum + r.total_penalty_percentage,
+      0,
+    );
     const totalResponseTime = slaResults
-      .filter(r => r.response_sla)
+      .filter((r) => r.response_sla)
       .reduce((sum, r) => sum + (r.response_sla?.actual_hours || 0), 0);
     const totalResolutionTime = slaResults
-      .filter(r => r.resolution_sla)
+      .filter((r) => r.resolution_sla)
       .reduce((sum, r) => sum + (r.resolution_sla?.actual_hours || 0), 0);
 
-    const responseTickets = slaResults.filter(r => r.response_sla).length;
-    const resolutionTickets = slaResults.filter(r => r.resolution_sla).length;
+    const responseTickets = slaResults.filter((r) => r.response_sla).length;
+    const resolutionTickets = slaResults.filter((r) => r.resolution_sla).length;
 
     return {
       period_start: periodStart,
@@ -531,9 +614,15 @@ export class EnhancedMetricsService {
       breached_tickets: breachedTickets,
       compliance_percentage: Math.round(compliancePercentage * 100) / 100,
       total_penalty_percentage: Math.round(totalPenalty * 100) / 100,
-      average_response_time: responseTickets > 0 ? Math.round((totalResponseTime / responseTickets) * 100) / 100 : 0,
-      average_resolution_time: resolutionTickets > 0 ? Math.round((totalResolutionTime / resolutionTickets) * 100) / 100 : 0,
-      metrics_by_priority: this.aggregateByPriority(slaResults)
+      average_response_time:
+        responseTickets > 0
+          ? Math.round((totalResponseTime / responseTickets) * 100) / 100
+          : 0,
+      average_resolution_time:
+        resolutionTickets > 0
+          ? Math.round((totalResolutionTime / resolutionTickets) * 100) / 100
+          : 0,
+      metrics_by_priority: this.aggregateByPriority(slaResults),
     };
   }
 
@@ -549,18 +638,24 @@ export class EnhancedMetricsService {
 
     return Array.from(priorityGroups.entries()).map(([priority, results]) => {
       const total = results.length;
-      const compliant = results.filter((r: TicketSLAStatus) => r.overall_compliance).length;
-      const totalPenalty = results.reduce((sum: number, r: TicketSLAStatus) => sum + r.total_penalty_percentage, 0);
+      const compliant = results.filter(
+        (r: TicketSLAStatus) => r.overall_compliance,
+      ).length;
+      const totalPenalty = results.reduce(
+        (sum: number, r: TicketSLAStatus) => sum + r.total_penalty_percentage,
+        0,
+      );
 
       return {
         priority,
         total_tickets: total,
         compliant_tickets: compliant,
         breached_tickets: total - compliant,
-        compliance_percentage: total > 0 ? Math.round((compliant / total) * 10000) / 100 : 0,
+        compliance_percentage:
+          total > 0 ? Math.round((compliant / total) * 10000) / 100 : 0,
         penalty_percentage: Math.round(totalPenalty * 100) / 100,
         average_response_time: 0, // TODO: Calculate from results
-        average_resolution_time: 0 // TODO: Calculate from results
+        average_resolution_time: 0, // TODO: Calculate from results
       };
     });
   }

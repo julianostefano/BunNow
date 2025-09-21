@@ -3,73 +3,73 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { Elysia } from 'elysia';
-import { html } from '@elysiajs/html';
-import { htmx } from '@gtramontina.com/elysia-htmx';
-import { serviceNowAuthClient } from '../services/ServiceNowAuthClient';
+import { Elysia } from "elysia";
+import { html } from "@elysiajs/html";
+import { htmx } from "@gtramontina.com/elysia-htmx";
+import { serviceNowAuthClient } from "../services/ServiceNowAuthClient";
 
 const FALLBACK_GROUPS = [
-    "L2-NE-IT APP AND DATABASE",
-    "L2-NE-IT SAP BASIS", 
-    "L2-NE-IT APP AND SERVICES",
-    "L2-NE-IT PROCESSING",
-    "L2-NE-IT NETWORK SECURITY",
-    "L2-NE-IT NETWORK",
-    "L2-NE-CLOUDSERVICES",
-    "L2-NE-IT MONITORY",
-    "L2-NE-IT SO UNIX",
-    "L2-NE-IT BOC",
-    "L2-NE-IT MIDDLEWARE",
-    "L2-NE-IT BACKUP",
-    "L2-NE-IT STORAGE",
-    "L2-NE-IT VOIP",
-    "L2-NE-IT NOC",
-    "L2-NE-IT PCP PRODUCTION"
+  "L2-NE-IT APP AND DATABASE",
+  "L2-NE-IT SAP BASIS",
+  "L2-NE-IT APP AND SERVICES",
+  "L2-NE-IT PROCESSING",
+  "L2-NE-IT NETWORK SECURITY",
+  "L2-NE-IT NETWORK",
+  "L2-NE-CLOUDSERVICES",
+  "L2-NE-IT MONITORY",
+  "L2-NE-IT SO UNIX",
+  "L2-NE-IT BOC",
+  "L2-NE-IT MIDDLEWARE",
+  "L2-NE-IT BACKUP",
+  "L2-NE-IT STORAGE",
+  "L2-NE-IT VOIP",
+  "L2-NE-IT NOC",
+  "L2-NE-IT PCP PRODUCTION",
 ];
 
 interface WaitingTicketSummary {
-    grupo: string;
-    incidents_waiting: number;
-    ctasks_waiting: number;
-    sctasks_waiting: number;
-    total_waiting: number;
+  grupo: string;
+  incidents_waiting: number;
+  ctasks_waiting: number;
+  sctasks_waiting: number;
+  total_waiting: number;
 }
 
 async function getRealWaitingData(): Promise<WaitingTicketSummary[]> {
-    try {
-        return await serviceNowAuthClient.getWaitingTicketsSummary(FALLBACK_GROUPS);
-    } catch (error) {
-        console.error('Error getting real ServiceNow data:', error);
-        // Fallback to empty array if ServiceNow is unavailable
-        return FALLBACK_GROUPS.map(grupo => ({
-            grupo,
-            incidents_waiting: 0,
-            ctasks_waiting: 0,
-            sctasks_waiting: 0,
-            total_waiting: 0
-        }));
-    }
+  try {
+    return await serviceNowAuthClient.getWaitingTicketsSummary(FALLBACK_GROUPS);
+  } catch (error) {
+    console.error("Error getting real ServiceNow data:", error);
+    // Fallback to empty array if ServiceNow is unavailable
+    return FALLBACK_GROUPS.map((grupo) => ({
+      grupo,
+      incidents_waiting: 0,
+      ctasks_waiting: 0,
+      sctasks_waiting: 0,
+      total_waiting: 0,
+    }));
+  }
 }
 
 async function getRealTicketDetails(group?: string): Promise<any[]> {
-    try {
-        const groupsToQuery = group ? [group] : FALLBACK_GROUPS;
-        return await serviceNowAuthClient.getWaitingTicketsDetails(groupsToQuery);
-    } catch (error) {
-        console.error('Error getting real ServiceNow ticket details:', error);
-        // Return empty array if ServiceNow is unavailable
-        return [];
-    }
+  try {
+    const groupsToQuery = group ? [group] : FALLBACK_GROUPS;
+    return await serviceNowAuthClient.getWaitingTicketsDetails(groupsToQuery);
+  } catch (error) {
+    console.error("Error getting real ServiceNow ticket details:", error);
+    // Return empty array if ServiceNow is unavailable
+    return [];
+  }
 }
 
-export const waitingAnalysisHtmx = new Elysia({ prefix: '/waiting-analysis' })
+export const waitingAnalysisHtmx = new Elysia({ prefix: "/waiting-analysis" })
   .use(html())
   .use(htmx())
-  
+
   /**
    * Main waiting analysis page
    */
-  .get('/', ({ hx, set }) => {
+  .get("/", ({ hx, set }) => {
     if (!hx.isHTMX) {
       // Full page for direct access
       return `
@@ -106,7 +106,7 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: '/waiting-analysis' })
                         <div class="text-right">
                             <div class="text-sm text-gray-500">Última atualização:</div>
                             <div class="text-sm font-medium text-gray-900" id="last-update">
-                                ${new Date().toLocaleString('pt-BR')}
+                                ${new Date().toLocaleString("pt-BR")}
                             </div>
                         </div>
                     </div>
@@ -187,32 +187,37 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: '/waiting-analysis' })
         </html>
       `;
     }
-    
+
     // HTMX partial response
-    return '<div>Waiting Analysis Dashboard updated via HTMX</div>';
+    return "<div>Waiting Analysis Dashboard updated via HTMX</div>";
   })
 
   /**
    * Summary by groups component
    */
-  .get('/summary', async () => {
+  .get("/summary", async () => {
     const data = await getRealWaitingData();
     data.sort((a, b) => b.total_waiting - a.total_waiting);
-    
+
     let totalIncidents = 0;
     let totalCtasks = 0;
     let totalSctasks = 0;
     let totalWaiting = 0;
-    
-    const groupCards = data.map(item => {
+
+    const groupCards = data
+      .map((item) => {
         totalIncidents += item.incidents_waiting;
         totalCtasks += item.ctasks_waiting;
         totalSctasks += item.sctasks_waiting;
         totalWaiting += item.total_waiting;
-        
-        const statusColor = item.total_waiting === 0 ? 'green' : 
-                           item.total_waiting >= 5 ? 'red' : 'yellow';
-        
+
+        const statusColor =
+          item.total_waiting === 0
+            ? "green"
+            : item.total_waiting >= 5
+              ? "red"
+              : "yellow";
+
         return `
             <div class="group-card border-l-4 border-${statusColor}-500"
                  hx-get="/waiting-analysis/group-details?group=${encodeURIComponent(item.grupo)}"
@@ -238,11 +243,12 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: '/waiting-analysis' })
                     <div class="ml-4 text-right">
                         <div class="text-2xl font-bold text-gray-900">${item.total_waiting}</div>
                         <div class="text-sm text-gray-500">Total</div>
-                        ${item.total_waiting > 0 ? 
-                            `<div class="text-xs px-2 py-1 mt-1 bg-${statusColor}-100 text-${statusColor}-800 rounded">
-                                ${item.total_waiting >= 5 ? 'Alto' : 'Médio'}
-                            </div>` : 
-                            `<div class="text-xs px-2 py-1 mt-1 bg-green-100 text-green-800 rounded">
+                        ${
+                          item.total_waiting > 0
+                            ? `<div class="text-xs px-2 py-1 mt-1 bg-${statusColor}-100 text-${statusColor}-800 rounded">
+                                ${item.total_waiting >= 5 ? "Alto" : "Médio"}
+                            </div>`
+                            : `<div class="text-xs px-2 py-1 mt-1 bg-green-100 text-green-800 rounded">
                                 OK
                             </div>`
                         }
@@ -250,7 +256,8 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: '/waiting-analysis' })
                 </div>
             </div>
         `;
-    }).join('');
+      })
+      .join("");
 
     return `
         <div>
@@ -279,12 +286,14 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: '/waiting-analysis' })
                 ${groupCards}
             </div>
             
-            ${totalWaiting === 0 ? 
-                `<div class="text-center py-8">
+            ${
+              totalWaiting === 0
+                ? `<div class="text-center py-8">
                     <div class="text-6xl mb-4">🎉</div>
                     <h3 class="text-xl font-semibold text-green-600 mb-2">Excelente!</h3>
                     <p class="text-gray-600">Nenhum chamado em espera nos grupos de fallback!</p>
-                </div>` : ''
+                </div>`
+                : ""
             }
         </div>
     `;
@@ -293,20 +302,27 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: '/waiting-analysis' })
   /**
    * Detailed tickets view
    */
-  .get('/details', async ({ query }) => {
+  .get("/details", async ({ query }) => {
     const group = query.group as string;
     const tickets = await getRealTicketDetails(group);
-    
-    const ticketsHtml = tickets.map((ticket, index) => {
-        const priorityClass = 
-            ticket.prioridade.includes('Critical') ? 'priority-critical' :
-            ticket.prioridade.includes('High') ? 'priority-high' :
-            ticket.prioridade.includes('Moderate') ? 'priority-moderate' : 'priority-low';
-            
-        const typeIcon = 
-            ticket.tipo_chamado === 'incident' ? '🎫' :
-            ticket.tipo_chamado === 'change_task' ? '' : '📋';
-            
+
+    const ticketsHtml = tickets
+      .map((ticket, index) => {
+        const priorityClass = ticket.prioridade.includes("Critical")
+          ? "priority-critical"
+          : ticket.prioridade.includes("High")
+            ? "priority-high"
+            : ticket.prioridade.includes("Moderate")
+              ? "priority-moderate"
+              : "priority-low";
+
+        const typeIcon =
+          ticket.tipo_chamado === "incident"
+            ? "🎫"
+            : ticket.tipo_chamado === "change_task"
+              ? ""
+              : "📋";
+
         return `
             <div class="ticket-card">
                 <div class="flex justify-between items-start mb-3">
@@ -318,7 +334,7 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: '/waiting-analysis' })
                         </span>
                     </div>
                     <div class="text-sm text-gray-500">
-                        ${new Date(ticket.data_criacao).toLocaleDateString('pt-BR')}
+                        ${new Date(ticket.data_criacao).toLocaleDateString("pt-BR")}
                     </div>
                 </div>
                 
@@ -335,7 +351,7 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: '/waiting-analysis' })
                         <span class="font-medium">Aberto por:</span> ${ticket.opened_by}
                     </div>
                     <div>
-                        <span class="font-medium">Tipo:</span> ${ticket.tipo_chamado.replace('_', ' ').toUpperCase()}
+                        <span class="font-medium">Tipo:</span> ${ticket.tipo_chamado.replace("_", " ").toUpperCase()}
                     </div>
                 </div>
                 
@@ -349,13 +365,14 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: '/waiting-analysis' })
                 </div>
             </div>
         `;
-    }).join('');
+      })
+      .join("");
 
     return `
         <div>
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-semibold text-gray-900">
-                    ${group ? `Chamados em Espera - ${group}` : 'Todos os Chamados em Espera'}
+                    ${group ? `Chamados em Espera - ${group}` : "Todos os Chamados em Espera"}
                 </h2>
                 <div class="text-sm text-gray-600">
                     ${tickets.length} chamados encontrados
@@ -372,13 +389,16 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: '/waiting-analysis' })
   /**
    * Critical tickets only
    */
-  .get('/critical', async () => {
+  .get("/critical", async () => {
     const allTickets = await getRealTicketDetails();
-    const tickets = allTickets.filter(t => 
-        t.prioridade?.includes('Critical') || t.prioridade?.includes('High')
+    const tickets = allTickets.filter(
+      (t) =>
+        t.prioridade?.includes("Critical") || t.prioridade?.includes("High"),
     );
-    
-    const criticalHtml = tickets.map(ticket => `
+
+    const criticalHtml = tickets
+      .map(
+        (ticket) => `
         <div class="ticket-card border-l-4 border-red-500">
             <div class="flex justify-between items-start mb-3">
                 <div class="flex items-center space-x-2">
@@ -405,7 +425,9 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: '/waiting-analysis' })
                 </button>
             </div>
         </div>
-    `).join('');
+    `,
+      )
+      .join("");
 
     return `
         <div>
@@ -416,9 +438,10 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: '/waiting-analysis' })
                 </div>
             </div>
             
-            ${tickets.length > 0 ? 
-                `<div class="space-y-4">${criticalHtml}</div>` :
-                `<div class="text-center py-8">
+            ${
+              tickets.length > 0
+                ? `<div class="space-y-4">${criticalHtml}</div>`
+                : `<div class="text-center py-8">
                     <div class="text-6xl mb-4"></div>
                     <h3 class="text-xl font-semibold text-green-600 mb-2">Ótimo!</h3>
                     <p class="text-gray-600">Nenhum chamado crítico em espera no momento.</p>
@@ -431,12 +454,12 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: '/waiting-analysis' })
   /**
    * Group details
    */
-  .get('/group-details', async ({ query }) => {
+  .get("/group-details", async ({ query }) => {
     const group = query.group as string;
-    if (!group) return '<div>Grupo não especificado</div>';
-    
+    if (!group) return "<div>Grupo não especificado</div>";
+
     const tickets = await getRealTicketDetails(group);
-    
+
     return `
         <div>
             <div class="mb-6">
@@ -450,28 +473,38 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: '/waiting-analysis' })
             </div>
             
             <div class="space-y-4">
-                ${tickets.map(ticket => `
+                ${tickets
+                  .map(
+                    (ticket) => `
                     <div class="ticket-card">
                         <div class="flex justify-between items-start">
                             <div class="flex-1">
                                 <div class="flex items-center space-x-2 mb-2">
                                     <span class="font-semibold">${ticket.numero}</span>
                                     <span class="px-2 py-1 text-xs rounded border ${
-                                        ticket.prioridade.includes('Critical') ? 'priority-critical' :
-                                        ticket.prioridade.includes('High') ? 'priority-high' :
-                                        ticket.prioridade.includes('Moderate') ? 'priority-moderate' : 'priority-low'
+                                      ticket.prioridade.includes("Critical")
+                                        ? "priority-critical"
+                                        : ticket.prioridade.includes("High")
+                                          ? "priority-high"
+                                          : ticket.prioridade.includes(
+                                                "Moderate",
+                                              )
+                                            ? "priority-moderate"
+                                            : "priority-low"
                                     }">
                                         ${ticket.prioridade}
                                     </span>
                                 </div>
                                 <p class="text-gray-700 mb-2">${ticket.descricao}</p>
                                 <div class="text-sm text-gray-500">
-                                    Criado em ${new Date(ticket.data_criacao).toLocaleString('pt-BR')} por ${ticket.opened_by}
+                                    Criado em ${new Date(ticket.data_criacao).toLocaleString("pt-BR")} por ${ticket.opened_by}
                                 </div>
                             </div>
                         </div>
                     </div>
-                `).join('')}
+                `,
+                  )
+                  .join("")}
             </div>
         </div>
     `;
@@ -480,10 +513,10 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: '/waiting-analysis' })
   /**
    * Cache metrics endpoint
    */
-  .get('/cache-metrics', async () => {
+  .get("/cache-metrics", async () => {
     try {
       const metrics = serviceNowAuthClient.getCacheMetrics();
-      
+
       return `
         <div class="bg-white p-6 rounded-lg shadow">
           <h3 class="text-lg font-semibold mb-4"> Métricas do Redis Cache</h3>

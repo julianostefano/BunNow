@@ -3,14 +3,14 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { EventEmitter } from 'events';
-import { logger } from '../../utils/Logger';
+import { EventEmitter } from "events";
+import { logger } from "../../utils/Logger";
 import {
   AIRequest,
   AIResponse,
   AIServiceMetrics,
-  AIContext
-} from '../../types/AI';
+  AIContext,
+} from "../../types/AI";
 
 export abstract class AIService extends EventEmitter {
   protected name: string;
@@ -24,7 +24,7 @@ export abstract class AIService extends EventEmitter {
       requests_total: 0,
       requests_successful: 0,
       avg_response_time_ms: 0,
-      last_request_time: null
+      last_request_time: null,
     };
   }
 
@@ -54,15 +54,17 @@ export abstract class AIService extends EventEmitter {
 
       return {
         ...response,
-        processing_time_ms: processingTime
+        processing_time_ms: processingTime,
       };
-
     } catch (error) {
-      logger.error(` [AIService:${this.name}] Error processing request:`, error);
+      logger.error(
+        ` [AIService:${this.name}] Error processing request:`,
+        error,
+      );
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
-        processing_time_ms: Date.now() - startTime
+        processing_time_ms: Date.now() - startTime,
       };
     }
   }
@@ -79,7 +81,7 @@ export class AIServiceManager extends EventEmitter {
 
   private constructor() {
     super();
-    logger.info(' [AIServiceManager] Initializing AI Service Manager...');
+    logger.info(" [AIServiceManager] Initializing AI Service Manager...");
   }
 
   static getInstance(): AIServiceManager {
@@ -93,46 +95,53 @@ export class AIServiceManager extends EventEmitter {
     if (this.initialized) return;
 
     try {
-      logger.info(' [AIServiceManager] Loading AI services...');
+      logger.info(" [AIServiceManager] Loading AI services...");
 
       // Services will be registered by their respective modules
       // This allows for lazy loading and better dependency management
 
       this.initialized = true;
-      logger.info(' [AIServiceManager] AI Service Manager initialized successfully');
+      logger.info(
+        " [AIServiceManager] AI Service Manager initialized successfully",
+      );
 
-      this.emit('initialized');
+      this.emit("initialized");
     } catch (error) {
-      logger.error(' [AIServiceManager] Failed to initialize:', error);
+      logger.error(" [AIServiceManager] Failed to initialize:", error);
       throw error;
     }
   }
 
   registerService(serviceId: string, service: AIService): void {
     if (this.services.has(serviceId)) {
-      logger.warn(` [AIServiceManager] Service ${serviceId} already registered, replacing...`);
+      logger.warn(
+        ` [AIServiceManager] Service ${serviceId} already registered, replacing...`,
+      );
     }
 
     this.services.set(serviceId, service);
     logger.info(` [AIServiceManager] Service '${serviceId}' registered`);
 
     // Setup service event forwarding
-    service.on('error', (error) => {
-      this.emit('service-error', { serviceId, error });
+    service.on("error", (error) => {
+      this.emit("service-error", { serviceId, error });
     });
 
-    service.on('metrics-update', (metrics) => {
-      this.emit('service-metrics', { serviceId, metrics });
+    service.on("metrics-update", (metrics) => {
+      this.emit("service-metrics", { serviceId, metrics });
     });
   }
 
-  async processRequest(serviceId: string, request: AIRequest): Promise<AIResponse> {
+  async processRequest(
+    serviceId: string,
+    request: AIRequest,
+  ): Promise<AIResponse> {
     const service = this.services.get(serviceId);
 
     if (!service) {
       return {
         success: false,
-        error: `Service '${serviceId}' not found. Available services: ${Array.from(this.services.keys()).join(', ')}`
+        error: `Service '${serviceId}' not found. Available services: ${Array.from(this.services.keys()).join(", ")}`,
       };
     }
 
@@ -140,18 +149,21 @@ export class AIServiceManager extends EventEmitter {
       const response = await service.execute(request);
 
       // Emit metrics for monitoring
-      this.emit('request-processed', {
+      this.emit("request-processed", {
         serviceId,
         success: response.success,
-        processingTime: response.processing_time_ms
+        processingTime: response.processing_time_ms,
       });
 
       return response;
     } catch (error) {
-      logger.error(` [AIServiceManager] Error processing request for service '${serviceId}':`, error);
+      logger.error(
+        ` [AIServiceManager] Error processing request for service '${serviceId}':`,
+        error,
+      );
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -163,7 +175,10 @@ export class AIServiceManager extends EventEmitter {
       try {
         healthStatus[serviceId] = await service.healthCheck();
       } catch (error) {
-        logger.error(` [AIServiceManager] Health check failed for '${serviceId}':`, error);
+        logger.error(
+          ` [AIServiceManager] Health check failed for '${serviceId}':`,
+          error,
+        );
         healthStatus[serviceId] = false;
       }
     }
@@ -190,23 +205,28 @@ export class AIServiceManager extends EventEmitter {
   }
 
   async shutdown(): Promise<void> {
-    logger.info(' [AIServiceManager] Shutting down AI services...');
+    logger.info(" [AIServiceManager] Shutting down AI services...");
 
     // Give services a chance to clean up
     for (const [serviceId, service] of this.services.entries()) {
       try {
-        if (typeof (service as any).shutdown === 'function') {
+        if (typeof (service as any).shutdown === "function") {
           await (service as any).shutdown();
         }
-        logger.info(` [AIServiceManager] Service '${serviceId}' shutdown complete`);
+        logger.info(
+          ` [AIServiceManager] Service '${serviceId}' shutdown complete`,
+        );
       } catch (error) {
-        logger.error(` [AIServiceManager] Error shutting down service '${serviceId}':`, error);
+        logger.error(
+          ` [AIServiceManager] Error shutting down service '${serviceId}':`,
+          error,
+        );
       }
     }
 
     this.services.clear();
     this.initialized = false;
-    this.emit('shutdown');
+    this.emit("shutdown");
   }
 }
 

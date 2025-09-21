@@ -1,7 +1,7 @@
 /**
  * DashboardLayout - Main Dashboard Template
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
- * 
+ *
  * Main layout template for the clean HTMX dashboard interface.
  * Provides the core structure including header, navigation, and content areas.
  */
@@ -11,15 +11,17 @@
  * @param options Layout configuration options
  * @returns Complete HTML layout string
  */
-export function generateDashboardLayout(options: {
-  title?: string;
-  showServiceStatus?: boolean;
-  enableAutoRefresh?: boolean;
-} = {}): string {
-  const { 
-    title = 'BunSNC Dashboard', 
-    showServiceStatus = true, 
-    enableAutoRefresh = true 
+export function generateDashboardLayout(
+  options: {
+    title?: string;
+    showServiceStatus?: boolean;
+    enableAutoRefresh?: boolean;
+  } = {},
+): string {
+  const {
+    title = "BunSNC Dashboard",
+    showServiceStatus = true,
+    enableAutoRefresh = true,
   } = options;
 
   return `
@@ -81,7 +83,7 @@ export function generateDashboardLayout(options: {
             <!-- Metrics Section -->
             <div id="metrics-section" 
                  hx-get="/clean/metrics" 
-                 hx-trigger="load${enableAutoRefresh ? ', every 60s[document.visibilityState === \'visible\']' : ''}"
+                 hx-trigger="load${enableAutoRefresh ? ", every 60s[document.visibilityState === 'visible']" : ""}"
                  class="mb-8">
                 <div class="text-center py-8">
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-elysia-blue mx-auto mb-4"></div>
@@ -135,7 +137,9 @@ function generateHeader(options: { showServiceStatus: boolean }): string {
                         <p class="text-sm text-gray-300">ServiceNow Real-time Management powered by Elysia</p>
                     </div>
                 </div>
-                ${options.showServiceStatus ? `
+                ${
+                  options.showServiceStatus
+                    ? `
                 <div class="text-right">
                     <div class="flex items-center justify-end space-x-2 mb-1">
                         <div id="servicenow-status" class="flex items-center space-x-2">
@@ -151,7 +155,9 @@ function generateHeader(options: { showServiceStatus: boolean }): string {
                         <div class="text-xs text-gray-500 font-mono">Bun + HTMX</div>
                     </div>
                 </div>
-                ` : ''}
+                `
+                    : ""
+                }
             </div>
         </div>
     </header>
@@ -287,7 +293,9 @@ function generateTicketTabs(): string {
 /**
  * Generate dashboard scripts
  */
-function generateDashboardScripts(options: { enableAutoRefresh: boolean }): string {
+function generateDashboardScripts(options: {
+  enableAutoRefresh: boolean;
+}): string {
   return `
     <script>
         // Alpine.js Dashboard Data

@@ -90,7 +90,8 @@ export interface TicketWithSLMs<T = BaseTicketRecord> {
 
 export interface IncidentWithSLMs extends TicketWithSLMs<IncidentRecord> {}
 export interface ChangeTaskWithSLMs extends TicketWithSLMs<ChangeTaskRecord> {}
-export interface ServiceCatalogTaskWithSLMs extends TicketWithSLMs<ServiceCatalogTaskRecord> {}
+export interface ServiceCatalogTaskWithSLMs
+  extends TicketWithSLMs<ServiceCatalogTaskRecord> {}
 
 // SLA Analysis Types
 export interface SLABreachInfo {
@@ -133,7 +134,16 @@ export interface ServiceNowSingleResponse<T = ServiceNowRecord> {
 // Query Builder Types
 export interface ServiceNowQuery {
   field: string;
-  operator: 'equals' | 'not_equals' | 'contains' | 'starts_with' | 'ends_with' | 'greater_than' | 'less_than' | 'in' | 'not_in';
+  operator:
+    | "equals"
+    | "not_equals"
+    | "contains"
+    | "starts_with"
+    | "ends_with"
+    | "greater_than"
+    | "less_than"
+    | "in"
+    | "not_in";
   value: string | string[];
 }
 
@@ -144,7 +154,7 @@ export interface ServiceNowQueryBuilder {
   limit?: number;
   offset?: number;
   orderBy?: string;
-  orderDirection?: 'asc' | 'desc';
+  orderDirection?: "asc" | "desc";
 }
 
 // Collection Types for Storage Services
@@ -152,7 +162,7 @@ export interface TicketCollectionDocument {
   id?: string;
   sys_id: string;
   number: string;
-  ticket_type: 'incident' | 'change_task' | 'sc_task';
+  ticket_type: "incident" | "change_task" | "sc_task";
   data: TicketWithSLMs;
   created_at: Date;
   updated_at: Date;
@@ -175,6 +185,6 @@ export interface SLMCollectionOptions {
   includeRawData?: boolean;
   limit?: number;
   offset?: number;
-  sortBy?: 'start_time' | 'end_time' | 'business_percentage';
-  sortOrder?: 'asc' | 'desc';
+  sortBy?: "start_time" | "end_time" | "business_percentage";
+  sortOrder?: "asc" | "desc";
 }

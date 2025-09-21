@@ -4,8 +4,8 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { TicketData } from '../services/ConsolidatedDataService';
-import { ServiceNowNote } from '../services/ConsolidatedServiceNowService';
+import { TicketData } from "../services/ConsolidatedDataService";
+import { ServiceNowNote } from "../services/ConsolidatedServiceNowService";
 
 export interface SLAData {
   sys_id: string;
@@ -68,7 +68,7 @@ export class EnhancedTicketModalView {
           ${this.generateModalFooter(props.ticket)}
         </div>
         
-        ${props.showRealTime ? this.generateRealTimeScript(props.ticket.sys_id) : ''}
+        ${props.showRealTime ? this.generateRealTimeScript(props.ticket.sys_id) : ""}
       </div>
       
       <!-- Modal Styles -->
@@ -83,7 +83,7 @@ export class EnhancedTicketModalView {
     const priorityColor = this.getPriorityColor(ticket.priority);
     const stateColor = this.getStateColor(ticket.state);
     const stateText = this.getStateText(ticket.state);
-    
+
     return `
       <div class="bg-gray-50 border-b border-gray-200 px-6 py-4 flex justify-between items-center">
         <div class="flex items-center space-x-4">
@@ -219,22 +219,22 @@ export class EnhancedTicketModalView {
             <div class="space-y-3">
               <div class="flex justify-between">
                 <span class="font-medium text-gray-700">Grupo:</span>
-                <span class="text-gray-900">${ticket.assignment_group?.display_value || 'Não atribuído'}</span>
+                <span class="text-gray-900">${ticket.assignment_group?.display_value || "Não atribuído"}</span>
               </div>
               
               <div class="flex justify-between">
                 <span class="font-medium text-gray-700">Atribuído a:</span>
-                <span class="text-gray-900">${ticket.assigned_to?.display_value || 'Não atribuído'}</span>
+                <span class="text-gray-900">${ticket.assigned_to?.display_value || "Não atribuído"}</span>
               </div>
               
               <div class="flex justify-between">
                 <span class="font-medium text-gray-700">Solicitante:</span>
-                <span class="text-gray-900">${ticket.caller_id?.display_value || 'N/A'}</span>
+                <span class="text-gray-900">${ticket.caller_id?.display_value || "N/A"}</span>
               </div>
               
               <div class="flex justify-between">
                 <span class="font-medium text-gray-700">Aberto por:</span>
-                <span class="text-gray-900">${ticket.opened_by?.display_value || 'N/A'}</span>
+                <span class="text-gray-900">${ticket.opened_by?.display_value || "N/A"}</span>
               </div>
             </div>
           </div>
@@ -250,7 +250,7 @@ export class EnhancedTicketModalView {
           </h3>
           
           <div class="bg-gray-50 p-4 rounded-md">
-            <p class="text-gray-900 whitespace-pre-wrap">${ticket.short_description || 'Sem descrição disponível'}</p>
+            <p class="text-gray-900 whitespace-pre-wrap">${ticket.short_description || "Sem descrição disponível"}</p>
           </div>
         </div>
       </div>
@@ -270,7 +270,9 @@ export class EnhancedTicketModalView {
       `;
     }
 
-    const slaCards = slaData.map(sla => `
+    const slaCards = slaData
+      .map(
+        (sla) => `
       <div class="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
         <div class="flex justify-between items-start mb-4">
           <h3 class="text-lg font-semibold text-gray-900">${sla.taskslatable_sla}</h3>
@@ -290,7 +292,7 @@ export class EnhancedTicketModalView {
               <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-20 animate-pulse"></div>
             </div>
             <div class="absolute inset-0 flex items-center justify-center">
-              <span class="text-xs font-bold ${parseFloat(sla.taskslatable_business_percentage) > 50 ? 'text-white' : 'text-gray-700'}">
+              <span class="text-xs font-bold ${parseFloat(sla.taskslatable_business_percentage) > 50 ? "text-white" : "text-gray-700"}">
                 ${sla.taskslatable_business_percentage}%
               </span>
             </div>
@@ -315,7 +317,7 @@ export class EnhancedTicketModalView {
             
             <div>
               <span class="text-sm font-medium text-gray-500">Grupo:</span>
-              <p class="text-sm text-gray-900">${sla.assignment_group || 'N/A'}</p>
+              <p class="text-sm text-gray-900">${sla.assignment_group || "N/A"}</p>
             </div>
           </div>
           
@@ -330,7 +332,9 @@ export class EnhancedTicketModalView {
           </div>
         </div>
       </div>
-    `).join('');
+    `,
+      )
+      .join("");
 
     return `
       <div class="space-y-6">
@@ -359,9 +363,15 @@ export class EnhancedTicketModalView {
     `;
   }
 
-  private static generateNotesTab(notes: ServiceNowNote[], ticket: TicketData): string {
-    const notesHtml = notes && notes.length > 0 
-      ? notes.map(note => `
+  private static generateNotesTab(
+    notes: ServiceNowNote[],
+    ticket: TicketData,
+  ): string {
+    const notesHtml =
+      notes && notes.length > 0
+        ? notes
+            .map(
+              (note) => `
           <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
             <div class="flex justify-between items-start mb-3">
               <div class="flex items-center space-x-2">
@@ -371,22 +381,24 @@ export class EnhancedTicketModalView {
                   </svg>
                 </div>
                 <div>
-                  <p class="text-sm font-medium text-gray-900">${note.sys_created_by || 'Sistema'}</p>
+                  <p class="text-sm font-medium text-gray-900">${note.sys_created_by || "Sistema"}</p>
                   <p class="text-xs text-gray-500">${this.formatDateTime(note.sys_created_on)}</p>
                 </div>
               </div>
               
               <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded">
-                ${note.element || 'Nota'}
+                ${note.element || "Nota"}
               </span>
             </div>
             
             <div class="prose prose-sm max-w-none">
-              <p class="text-gray-700 whitespace-pre-wrap">${note.value || 'Nota vazia'}</p>
+              <p class="text-gray-700 whitespace-pre-wrap">${note.value || "Nota vazia"}</p>
             </div>
           </div>
-        `).join('')
-      : `
+        `,
+            )
+            .join("")
+        : `
         <div class="text-center py-8">
           <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10m0 0V6a2 2 0 00-2-2H9a2 2 0 00-2 2v2m10 0v10a2 2 0 01-2 2H9a2 2 0 01-2-2V8m10 0H7"></path>
@@ -632,7 +644,7 @@ export class EnhancedTicketModalView {
         }
         
         function openServiceNow(sysId, table) {
-          const baseUrl = '${process.env.SNC_INSTANCE_URL || 'https://iberdrola.service-now.com'}';
+          const baseUrl = '${process.env.SNC_INSTANCE_URL || "https://iberdrola.service-now.com"}';
           const url = \`\${baseUrl}/nav_to.do?uri=\${table}.do?sys_id=\${sysId}\`;
           window.open(url, '_blank');
         }
@@ -679,49 +691,66 @@ export class EnhancedTicketModalView {
   // Utility methods
   private static getPriorityColor(priority: string): string {
     switch (priority) {
-      case '1': return 'red';
-      case '2': return 'yellow';
-      case '3': return 'blue';
-      case '4': return 'green';
-      default: return 'gray';
+      case "1":
+        return "red";
+      case "2":
+        return "yellow";
+      case "3":
+        return "blue";
+      case "4":
+        return "green";
+      default:
+        return "gray";
     }
   }
 
   private static getStateColor(state: string): string {
     switch (state) {
-      case '1': return 'blue';    // New
-      case '2': return 'yellow';  // In Progress
-      case '3': return 'orange';  // On Hold
-      case '6': return 'green';   // Resolved
-      case '7': return 'gray';    // Closed
-      default: return 'gray';
+      case "1":
+        return "blue"; // New
+      case "2":
+        return "yellow"; // In Progress
+      case "3":
+        return "orange"; // On Hold
+      case "6":
+        return "green"; // Resolved
+      case "7":
+        return "gray"; // Closed
+      default:
+        return "gray";
     }
   }
 
   private static getStateText(state: string): string {
     switch (state) {
-      case '1': return 'Novo';
-      case '2': return 'Em Andamento';
-      case '3': return 'Em Espera';
-      case '6': return 'Resolvido';
-      case '7': return 'Fechado';
-      default: return `Estado ${state}`;
+      case "1":
+        return "Novo";
+      case "2":
+        return "Em Andamento";
+      case "3":
+        return "Em Espera";
+      case "6":
+        return "Resolvido";
+      case "7":
+        return "Fechado";
+      default:
+        return `Estado ${state}`;
     }
   }
 
   private static getSLAStatusColor(sla: SLAData): string {
-    if (sla.taskslatable_has_breached) return 'text-red-600';
+    if (sla.taskslatable_has_breached) return "text-red-600";
     const percentage = parseFloat(sla.taskslatable_business_percentage);
-    if (percentage >= 90) return 'text-red-600';
-    if (percentage >= 70) return 'text-yellow-600';
-    return 'text-green-600';
+    if (percentage >= 90) return "text-red-600";
+    if (percentage >= 70) return "text-yellow-600";
+    return "text-green-600";
   }
 
   private static getSLAStatusText(sla: SLAData): string {
-    if (sla.taskslatable_has_breached) return 'VIOLADO';
+    if (sla.taskslatable_has_breached) return "VIOLADO";
     const percentage = parseFloat(sla.taskslatable_business_percentage);
-    if (percentage >= 100) return 'CUMPRIDO';
-    return 'EM ANDAMENTO';
+    if (percentage >= 100) return "CUMPRIDO";
+    return "EM ANDAMENTO";
   }
 
   private static generateSLAStatusIcon(sla: SLAData): string {
@@ -736,22 +765,22 @@ export class EnhancedTicketModalView {
   }
 
   private static getSLAProgressColor(sla: SLAData): string {
-    if (sla.taskslatable_has_breached) return 'red';
+    if (sla.taskslatable_has_breached) return "red";
     const percentage = parseFloat(sla.taskslatable_business_percentage);
-    if (percentage >= 90) return 'red';
-    if (percentage >= 70) return 'yellow';
-    return 'green';
+    if (percentage >= 90) return "red";
+    if (percentage >= 70) return "yellow";
+    return "green";
   }
 
   private static getSLATimeColor(sla: SLAData): string {
-    if (sla.taskslatable_has_breached) return 'text-red-600';
+    if (sla.taskslatable_has_breached) return "text-red-600";
     const endTime = new Date(sla.taskslatable_end_time).getTime();
     const now = Date.now();
     const remaining = endTime - now;
-    
-    if (remaining <= 0) return 'text-red-600';
-    if (remaining <= 3600000) return 'text-yellow-600'; // 1 hour
-    return 'text-green-600';
+
+    if (remaining <= 0) return "text-red-600";
+    if (remaining <= 3600000) return "text-yellow-600"; // 1 hour
+    return "text-green-600";
   }
 
   private static calculateTimeRemaining(endTime: string): string {
@@ -759,7 +788,7 @@ export class EnhancedTicketModalView {
     const now = Date.now();
     const remaining = end - now;
 
-    if (remaining <= 0) return 'Expirado';
+    if (remaining <= 0) return "Expirado";
 
     const hours = Math.floor(remaining / (1000 * 60 * 60));
     const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
@@ -773,14 +802,14 @@ export class EnhancedTicketModalView {
   }
 
   private static formatDateTime(dateTime: string): string {
-    if (!dateTime) return 'N/A';
+    if (!dateTime) return "N/A";
     try {
-      return new Date(dateTime).toLocaleString('pt-BR', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
+      return new Date(dateTime).toLocaleString("pt-BR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
       });
     } catch {
       return dateTime;

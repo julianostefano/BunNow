@@ -47,7 +47,7 @@ export class RecordController {
     const encodedQuery = queryBuilder.generateQuery();
     return this.service.query({
       table,
-      filter: encodedQuery
+      filter: encodedQuery,
     });
   }
 }

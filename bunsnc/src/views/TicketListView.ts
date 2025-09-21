@@ -1,7 +1,7 @@
 /**
  * Ticket List View - Template generation following Development Guidelines
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
- * 
+ *
  * Following guidelines:
  * - Extract HTML generation to separate functions
  * - Simple template patterns
@@ -9,7 +9,6 @@
  */
 
 export class TicketListView {
-  
   /**
    * Generate ticket cards HTML
    */
@@ -17,31 +16,33 @@ export class TicketListView {
     if (!tickets || tickets.length === 0) {
       return this.generateEmptyState();
     }
-    
-    const cards = tickets.map(ticket => this.generateSingleCard(ticket)).join('');
-    
+
+    const cards = tickets
+      .map((ticket) => this.generateSingleCard(ticket))
+      .join("");
+
     return `
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         ${cards}
       </div>
     `;
   }
-  
+
   /**
    * Generate single ticket card
    */
   static generateSingleCard(ticket: any): string {
-    const number = ticket.number || 'N/A';
-    const shortDescription = ticket.short_description || 'Sem descricao';
-    const state = ticket.state || '1';
-    const priority = ticket.priority || '3';
-    const assignedTo = ticket.assigned_to || 'Nao atribuido';
-    const sysId = ticket.sys_id || '';
-    const table = ticket.sys_class_name || 'incident';
-    
+    const number = ticket.number || "N/A";
+    const shortDescription = ticket.short_description || "Sem descricao";
+    const state = ticket.state || "1";
+    const priority = ticket.priority || "3";
+    const assignedTo = ticket.assigned_to || "Nao atribuido";
+    const sysId = ticket.sys_id || "";
+    const table = ticket.sys_class_name || "incident";
+
     const stateClass = this.getStateClass(state);
     const priorityClass = this.getPriorityClass(priority);
-    
+
     return `
       <div class="bg-gray-800 rounded-lg border border-gray-700 p-4 hover:border-gray-600 transition-colors">
         <div class="flex justify-between items-start mb-3">
@@ -72,7 +73,7 @@ export class TicketListView {
       </div>
     `;
   }
-  
+
   /**
    * Generate empty state
    */
@@ -89,7 +90,7 @@ export class TicketListView {
       </div>
     `;
   }
-  
+
   /**
    * Generate count badge
    */
@@ -100,7 +101,7 @@ export class TicketListView {
       </span>
     `;
   }
-  
+
   /**
    * Generate error badge
    */
@@ -111,7 +112,7 @@ export class TicketListView {
       </span>
     `;
   }
-  
+
   /**
    * Generate error card
    */
@@ -131,64 +132,64 @@ export class TicketListView {
       </div>
     `;
   }
-  
+
   /**
    * Get state CSS class
    */
   private static getStateClass(state: string): string {
     const stateClasses: Record<string, string> = {
-      '1': 'bg-blue-100 text-blue-800',
-      '2': 'bg-yellow-100 text-yellow-800',
-      '3': 'bg-green-100 text-green-800',
-      '6': 'bg-gray-100 text-gray-800',
-      '7': 'bg-red-100 text-red-800'
+      "1": "bg-blue-100 text-blue-800",
+      "2": "bg-yellow-100 text-yellow-800",
+      "3": "bg-green-100 text-green-800",
+      "6": "bg-gray-100 text-gray-800",
+      "7": "bg-red-100 text-red-800",
     };
-    
-    return stateClasses[state] || 'bg-gray-100 text-gray-800';
+
+    return stateClasses[state] || "bg-gray-100 text-gray-800";
   }
-  
+
   /**
    * Get priority CSS class
    */
   private static getPriorityClass(priority: string): string {
     const priorityClasses: Record<string, string> = {
-      '1': 'bg-red-100 text-red-800',
-      '2': 'bg-orange-100 text-orange-800',
-      '3': 'bg-yellow-100 text-yellow-800',
-      '4': 'bg-green-100 text-green-800',
-      '5': 'bg-blue-100 text-blue-800'
+      "1": "bg-red-100 text-red-800",
+      "2": "bg-orange-100 text-orange-800",
+      "3": "bg-yellow-100 text-yellow-800",
+      "4": "bg-green-100 text-green-800",
+      "5": "bg-blue-100 text-blue-800",
     };
-    
-    return priorityClasses[priority] || 'bg-gray-100 text-gray-800';
+
+    return priorityClasses[priority] || "bg-gray-100 text-gray-800";
   }
-  
+
   /**
    * Get state label
    */
   private static getStateLabel(state: string): string {
     const stateLabels: Record<string, string> = {
-      '1': 'Novo',
-      '2': 'Em Progresso',
-      '3': 'Resolvido',
-      '6': 'Fechado',
-      '7': 'Cancelado'
+      "1": "Novo",
+      "2": "Em Progresso",
+      "3": "Resolvido",
+      "6": "Fechado",
+      "7": "Cancelado",
     };
-    
-    return stateLabels[state] || 'Desconhecido';
+
+    return stateLabels[state] || "Desconhecido";
   }
-  
+
   /**
    * Get priority label
    */
   private static getPriorityLabel(priority: string): string {
     const priorityLabels: Record<string, string> = {
-      '1': 'Critica',
-      '2': 'Alta',
-      '3': 'Media',
-      '4': 'Baixa',
-      '5': 'Planejamento'
+      "1": "Critica",
+      "2": "Alta",
+      "3": "Media",
+      "4": "Baixa",
+      "5": "Planejamento",
     };
-    
-    return priorityLabels[priority] || 'Desconhecida';
+
+    return priorityLabels[priority] || "Desconhecida";
   }
 }

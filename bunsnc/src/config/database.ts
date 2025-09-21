@@ -38,20 +38,24 @@ export class BunPostgreSQL {
 
   constructor(config?: Partial<DatabaseConfig>) {
     this.config = {
-      host: process.env.DATABASE_HOST || '10.219.8.210',
-      port: parseInt(process.env.DATABASE_PORT || '5432'),
-      database: process.env.DATABASE_NAME || 'vector',
-      username: process.env.DATABASE_USER || 'nexcdc',
-      password: process.env.DATABASE_PASSWORD || 'nexcdc_2025',
+      host: process.env.DATABASE_HOST || "10.219.8.210",
+      port: parseInt(process.env.DATABASE_PORT || "5432"),
+      database: process.env.DATABASE_NAME || "vector",
+      username: process.env.DATABASE_USER || "nexcdc",
+      password: process.env.DATABASE_PASSWORD || "nexcdc_2025",
       pool: {
-        min: parseInt(process.env.DATABASE_POOL_MIN || '5'),
-        max: parseInt(process.env.DATABASE_POOL_MAX || '20'),
-        acquireTimeout: parseInt(process.env.DATABASE_ACQUIRE_TIMEOUT || '30000'),
-        idleTimeout: parseInt(process.env.DATABASE_IDLE_TIMEOUT || '300000'),
+        min: parseInt(process.env.DATABASE_POOL_MIN || "5"),
+        max: parseInt(process.env.DATABASE_POOL_MAX || "20"),
+        acquireTimeout: parseInt(
+          process.env.DATABASE_ACQUIRE_TIMEOUT || "30000",
+        ),
+        idleTimeout: parseInt(process.env.DATABASE_IDLE_TIMEOUT || "300000"),
       },
-      ssl: process.env.DATABASE_SSL === 'true',
-      connectionTimeout: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || '30000'),
-      queryTimeout: parseInt(process.env.DATABASE_QUERY_TIMEOUT || '60000'),
+      ssl: process.env.DATABASE_SSL === "true",
+      connectionTimeout: parseInt(
+        process.env.DATABASE_CONNECTION_TIMEOUT || "30000",
+      ),
+      queryTimeout: parseInt(process.env.DATABASE_QUERY_TIMEOUT || "60000"),
       ...config,
     };
   }
@@ -62,8 +66,8 @@ export class BunPostgreSQL {
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
 
-    console.log('🔗 Initializing Bun PostgreSQL connection pool...');
-    
+    console.log("🔗 Initializing Bun PostgreSQL connection pool...");
+
     try {
       // Create minimum number of connections
       for (let i = 0; i < this.config.pool.min; i++) {
@@ -73,12 +77,15 @@ export class BunPostgreSQL {
       }
 
       this.isInitialized = true;
-      
-      console.log(` PostgreSQL pool initialized: ${this.config.pool.min} connections`);
-      console.log(` Database: ${this.config.database}@${this.config.host}:${this.config.port}`);
 
+      console.log(
+        ` PostgreSQL pool initialized: ${this.config.pool.min} connections`,
+      );
+      console.log(
+        ` Database: ${this.config.database}@${this.config.host}:${this.config.port}`,
+      );
     } catch (error) {
-      console.error(' Failed to initialize PostgreSQL pool:', error);
+      console.error(" Failed to initialize PostgreSQL pool:", error);
       throw error;
     }
   }
@@ -88,21 +95,20 @@ export class BunPostgreSQL {
    */
   private async createConnection(): Promise<Database> {
     const connectionString = this.buildConnectionString();
-    
+
     try {
       // Note: Bun SQLite interface is used as reference, but actual PostgreSQL connection
       // would use Bun's built-in PostgreSQL support when available
       // For now, we'll use a connection string approach
-      
+
       const connection = new Database(connectionString);
-      
+
       // Test the connection
       await this.testConnection(connection);
-      
+
       return connection;
-      
     } catch (error) {
-      console.error('Failed to create database connection:', error);
+      console.error("Failed to create database connection:", error);
       throw error;
     }
   }
@@ -112,25 +118,28 @@ export class BunPostgreSQL {
    */
   private buildConnectionString(): string {
     const { host, port, database, username, password, ssl } = this.config;
-    
+
     let connectionString = `postgresql://${username}:${password}@${host}:${port}/${database}`;
-    
+
     const params = new URLSearchParams();
-    
+
     if (ssl) {
-      params.append('sslmode', 'require');
+      params.append("sslmode", "require");
     } else {
-      params.append('sslmode', 'disable');
+      params.append("sslmode", "disable");
     }
-    
-    params.append('connect_timeout', (this.config.connectionTimeout! / 1000).toString());
-    params.append('application_name', 'bunsnc-api');
-    params.append('client_encoding', 'utf8');
-    
+
+    params.append(
+      "connect_timeout",
+      (this.config.connectionTimeout! / 1000).toString(),
+    );
+    params.append("application_name", "bunsnc-api");
+    params.append("client_encoding", "utf8");
+
     if (params.size > 0) {
       connectionString += `?${params.toString()}`;
     }
-    
+
     return connectionString;
   }
 
@@ -142,7 +151,7 @@ export class BunPostgreSQL {
       // Test query - in a real implementation, this would be a PostgreSQL-specific test
       const result = connection.query("SELECT 1 as test").get();
       if (!result || result.test !== 1) {
-        throw new Error('Connection test failed');
+        throw new Error("Connection test failed");
       }
     } catch (error) {
       throw new Error(`Connection test failed: ${error}`);
@@ -158,7 +167,7 @@ export class BunPostgreSQL {
     }
 
     const startTime = Date.now();
-    
+
     while (Date.now() - startTime < this.config.pool.acquireTimeout) {
       // Check for available connections
       if (this.availableConnections.length > 0) {
@@ -175,15 +184,15 @@ export class BunPostgreSQL {
           this.busyConnections.add(connection);
           return connection;
         } catch (error) {
-          console.error('Failed to create new connection:', error);
+          console.error("Failed to create new connection:", error);
         }
       }
 
       // Wait a bit before retrying
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
-    throw new Error('Failed to acquire database connection: timeout');
+    throw new Error("Failed to acquire database connection: timeout");
   }
 
   /**
@@ -197,46 +206,53 @@ export class BunPostgreSQL {
   /**
    * Execute a query with automatic connection management
    */
-  async query<T = any>(sql: string, params: any[] = []): Promise<QueryResult<T>> {
+  async query<T = any>(
+    sql: string,
+    params: any[] = [],
+  ): Promise<QueryResult<T>> {
     const connection = await this.acquireConnection();
-    
+
     try {
       const startTime = Date.now();
-      
+
       // Execute query with timeout
       const queryPromise = new Promise<QueryResult<T>>((resolve, reject) => {
         try {
           // In a real Bun PostgreSQL implementation, this would use the appropriate method
           const statement = connection.query(sql);
-          const result = params.length > 0 ? statement.all(...params) : statement.all();
-          
+          const result =
+            params.length > 0 ? statement.all(...params) : statement.all();
+
           resolve({
             rows: result as T[],
             rowCount: Array.isArray(result) ? result.length : 1,
-            command: sql.trim().split(' ')[0].toUpperCase(),
-            fields: [] // Would include field metadata in real implementation
+            command: sql.trim().split(" ")[0].toUpperCase(),
+            fields: [], // Would include field metadata in real implementation
           });
-          
         } catch (error) {
           reject(error);
         }
       });
 
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Query timeout')), this.config.queryTimeout);
+        setTimeout(
+          () => reject(new Error("Query timeout")),
+          this.config.queryTimeout,
+        );
       });
 
       const result = await Promise.race([queryPromise, timeoutPromise]);
-      
+
       const duration = Date.now() - startTime;
-      console.log(` Query executed in ${duration}ms: ${sql.substring(0, 100)}...`);
+      console.log(
+        ` Query executed in ${duration}ms: ${sql.substring(0, 100)}...`,
+      );
 
       return result;
-
     } catch (error) {
-      console.error('Query execution failed:', error);
-      console.error('SQL:', sql);
-      console.error('Params:', params);
+      console.error("Query execution failed:", error);
+      console.error("SQL:", sql);
+      console.error("Params:", params);
       throw error;
     } finally {
       this.releaseConnection(connection);
@@ -246,37 +262,44 @@ export class BunPostgreSQL {
   /**
    * Execute a transaction
    */
-  async transaction<T>(callback: (query: (sql: string, params?: any[]) => Promise<QueryResult>) => Promise<T>): Promise<T> {
+  async transaction<T>(
+    callback: (
+      query: (sql: string, params?: any[]) => Promise<QueryResult>,
+    ) => Promise<T>,
+  ): Promise<T> {
     const connection = await this.acquireConnection();
-    
+
     try {
       // Begin transaction
       connection.query("BEGIN").run();
-      
-      const transactionQuery = async (sql: string, params: any[] = []): Promise<QueryResult> => {
+
+      const transactionQuery = async (
+        sql: string,
+        params: any[] = [],
+      ): Promise<QueryResult> => {
         const statement = connection.query(sql);
-        const result = params.length > 0 ? statement.all(...params) : statement.all();
-        
+        const result =
+          params.length > 0 ? statement.all(...params) : statement.all();
+
         return {
           rows: result as any[],
           rowCount: Array.isArray(result) ? result.length : 1,
-          command: sql.trim().split(' ')[0].toUpperCase(),
+          command: sql.trim().split(" ")[0].toUpperCase(),
         };
       };
 
       const result = await callback(transactionQuery);
-      
+
       // Commit transaction
       connection.query("COMMIT").run();
-      
-      return result;
 
+      return result;
     } catch (error) {
       try {
         // Rollback transaction
         connection.query("ROLLBACK").run();
       } catch (rollbackError) {
-        console.error('Rollback failed:', rollbackError);
+        console.error("Rollback failed:", rollbackError);
       }
       throw error;
     } finally {
@@ -304,8 +327,8 @@ export class BunPostgreSQL {
    * Close all connections and clean up
    */
   async close(): Promise<void> {
-    console.log(' Closing PostgreSQL connection pool...');
-    
+    console.log(" Closing PostgreSQL connection pool...");
+
     try {
       // Close all connections
       for (const connection of this.connectionPool) {
@@ -317,10 +340,9 @@ export class BunPostgreSQL {
       this.busyConnections.clear();
       this.isInitialized = false;
 
-      console.log(' PostgreSQL pool closed successfully');
-
+      console.log(" PostgreSQL pool closed successfully");
     } catch (error) {
-      console.error(' Error closing PostgreSQL pool:', error);
+      console.error(" Error closing PostgreSQL pool:", error);
       throw error;
     }
   }
@@ -328,16 +350,21 @@ export class BunPostgreSQL {
   /**
    * Health check
    */
-  async healthCheck(): Promise<{ status: 'healthy' | 'unhealthy'; details: any }> {
+  async healthCheck(): Promise<{
+    status: "healthy" | "unhealthy";
+    details: any;
+  }> {
     try {
       const startTime = Date.now();
-      const result = await this.query('SELECT 1 as health_check, NOW() as server_time');
+      const result = await this.query(
+        "SELECT 1 as health_check, NOW() as server_time",
+      );
       const duration = Date.now() - startTime;
 
       const stats = this.getPoolStats();
 
       return {
-        status: 'healthy',
+        status: "healthy",
         details: {
           queryDuration: duration,
           poolStats: stats,
@@ -345,10 +372,9 @@ export class BunPostgreSQL {
           connectionString: `postgresql://${this.config.username}@${this.config.host}:${this.config.port}/${this.config.database}`,
         },
       };
-
     } catch (error) {
       return {
-        status: 'unhealthy',
+        status: "unhealthy",
         details: {
           error: error instanceof Error ? error.message : String(error),
           poolStats: this.getPoolStats(),
@@ -363,10 +389,13 @@ export const db = new BunPostgreSQL();
 
 // Export helper functions
 export const query = (sql: string, params?: any[]) => db.query(sql, params);
-export const transaction = <T>(callback: (query: (sql: string, params?: any[]) => Promise<QueryResult>) => Promise<T>) => 
-  db.transaction(callback);
+export const transaction = <T>(
+  callback: (
+    query: (sql: string, params?: any[]) => Promise<QueryResult>,
+  ) => Promise<T>,
+) => db.transaction(callback);
 
 // Initialize on import
-db.initialize().catch(error => {
-  console.error('Failed to initialize database on import:', error);
+db.initialize().catch((error) => {
+  console.error("Failed to initialize database on import:", error);
 });

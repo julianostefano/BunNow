@@ -4,8 +4,8 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { EventEmitter } from 'events';
-import { logger } from '../utils/Logger';
+import { EventEmitter } from "events";
+import { logger } from "../utils/Logger";
 import type {
   QueryOptions,
   ServiceNowRecord,
@@ -13,7 +13,7 @@ import type {
   TaskSLAQueryOptions,
   TaskSLAResponse,
   SLABreachInfo,
-  TicketSLASummary
+  TicketSLASummary,
 } from "../types/servicenow";
 
 // Action-related interfaces
@@ -50,7 +50,7 @@ export interface AssignTicketRequest {
 export interface UpdatePriorityRequest {
   table: string;
   sysId: string;
-  newPriority: '1' | '2' | '3' | '4' | '5';
+  newPriority: "1" | "2" | "3" | "4" | "5";
   justification: string;
 }
 
@@ -85,7 +85,7 @@ export interface CreateNoteRequest {
 
 // Batch operation interfaces
 export interface BatchOperation {
-  op: 'create' | 'read' | 'update' | 'delete';
+  op: "create" | "read" | "update" | "delete";
   table: string;
   data?: Record<string, any>;
   sys_id?: string;
@@ -137,9 +137,11 @@ export class ConsolidatedServiceNowService extends EventEmitter {
     this.baseUrl = `${config.instanceUrl}/api/now/table`;
     this.attachmentUrl = `${config.instanceUrl}/api/now/attachment`;
     this.headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': config.authToken.startsWith('Bearer ') ? config.authToken : `Bearer ${config.authToken}`
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: config.authToken.startsWith("Bearer ")
+        ? config.authToken
+        : `Bearer ${config.authToken}`,
     };
 
     if (config.rateLimiting?.enabled) {
@@ -149,24 +151,29 @@ export class ConsolidatedServiceNowService extends EventEmitter {
 
   // ==================== CORE CRUD OPERATIONS ====================
 
-  async create(table: string, data: ServiceNowRecord): Promise<ServiceNowRecord> {
+  async create(
+    table: string,
+    data: ServiceNowRecord,
+  ): Promise<ServiceNowRecord> {
     return this.executeRequest(async () => {
       const response = await fetch(`${this.baseUrl}/${table}`, {
-        method: 'POST',
+        method: "POST",
         headers: this.headers,
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`ServiceNow API Error (${response.status}): ${errorText}`);
+        throw new Error(
+          `ServiceNow API Error (${response.status}): ${errorText}`,
+        );
       }
 
       const result = await response.json();
       const record = result.result || result;
 
       logger.info(` [ServiceNow] Created record in ${table}: ${record.sys_id}`);
-      this.emit('recordCreated', { table, sysId: record.sys_id, data: record });
+      this.emit("recordCreated", { table, sysId: record.sys_id, data: record });
 
       return record;
     });
@@ -175,8 +182,8 @@ export class ConsolidatedServiceNowService extends EventEmitter {
   async read(table: string, sysId: string): Promise<ServiceNowRecord | null> {
     return this.executeRequest(async () => {
       const response = await fetch(`${this.baseUrl}/${table}/${sysId}`, {
-        method: 'GET',
-        headers: this.headers
+        method: "GET",
+        headers: this.headers,
       });
 
       if (response.status === 404) {
@@ -186,37 +193,45 @@ export class ConsolidatedServiceNowService extends EventEmitter {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`ServiceNow API Error (${response.status}): ${errorText}`);
+        throw new Error(
+          `ServiceNow API Error (${response.status}): ${errorText}`,
+        );
       }
 
       const result = await response.json();
       const record = result.result || result;
 
       logger.debug(` [ServiceNow] Read record from ${table}: ${sysId}`);
-      this.emit('recordRead', { table, sysId, data: record });
+      this.emit("recordRead", { table, sysId, data: record });
 
       return record;
     });
   }
 
-  async update(table: string, sysId: string, data: Partial<ServiceNowRecord>): Promise<ServiceNowRecord> {
+  async update(
+    table: string,
+    sysId: string,
+    data: Partial<ServiceNowRecord>,
+  ): Promise<ServiceNowRecord> {
     return this.executeRequest(async () => {
       const response = await fetch(`${this.baseUrl}/${table}/${sysId}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: this.headers,
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`ServiceNow API Error (${response.status}): ${errorText}`);
+        throw new Error(
+          `ServiceNow API Error (${response.status}): ${errorText}`,
+        );
       }
 
       const result = await response.json();
       const record = result.result || result;
 
       logger.info(` [ServiceNow] Updated record in ${table}: ${sysId}`);
-      this.emit('recordUpdated', { table, sysId, data: record });
+      this.emit("recordUpdated", { table, sysId, data: record });
 
       return record;
     });
@@ -225,22 +240,26 @@ export class ConsolidatedServiceNowService extends EventEmitter {
   async delete(table: string, sysId: string): Promise<boolean> {
     return this.executeRequest(async () => {
       const response = await fetch(`${this.baseUrl}/${table}/${sysId}`, {
-        method: 'DELETE',
-        headers: this.headers
+        method: "DELETE",
+        headers: this.headers,
       });
 
       if (response.status === 404) {
-        logger.warn(` [ServiceNow] Record not found for deletion: ${table}/${sysId}`);
+        logger.warn(
+          ` [ServiceNow] Record not found for deletion: ${table}/${sysId}`,
+        );
         return false;
       }
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`ServiceNow API Error (${response.status}): ${errorText}`);
+        throw new Error(
+          `ServiceNow API Error (${response.status}): ${errorText}`,
+        );
       }
 
       logger.info(`🗑️ [ServiceNow] Deleted record from ${table}: ${sysId}`);
-      this.emit('recordDeleted', { table, sysId });
+      this.emit("recordDeleted", { table, sysId });
 
       return true;
     });
@@ -250,29 +269,40 @@ export class ConsolidatedServiceNowService extends EventEmitter {
     return this.executeRequest(async () => {
       const params = new URLSearchParams();
 
-      if (options.filter) params.append('sysparm_query', options.filter);
-      if (options.limit) params.append('sysparm_limit', options.limit.toString());
-      if (options.offset) params.append('sysparm_offset', options.offset.toString());
-      if (options.fields) params.append('sysparm_fields', options.fields.join(','));
-      if (options.orderBy) params.append('sysparm_order_by', options.orderBy);
+      if (options.filter) params.append("sysparm_query", options.filter);
+      if (options.limit)
+        params.append("sysparm_limit", options.limit.toString());
+      if (options.offset)
+        params.append("sysparm_offset", options.offset.toString());
+      if (options.fields)
+        params.append("sysparm_fields", options.fields.join(","));
+      if (options.orderBy) params.append("sysparm_order_by", options.orderBy);
 
       const url = `${this.baseUrl}/${options.table}?${params.toString()}`;
 
       const response = await fetch(url, {
-        method: 'GET',
-        headers: this.headers
+        method: "GET",
+        headers: this.headers,
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`ServiceNow API Error (${response.status}): ${errorText}`);
+        throw new Error(
+          `ServiceNow API Error (${response.status}): ${errorText}`,
+        );
       }
 
       const result = await response.json();
       const records = result.result || [];
 
-      logger.info(` [ServiceNow] Queried ${records.length} records from ${options.table}`);
-      this.emit('recordsQueried', { table: options.table, count: records.length, filter: options.filter });
+      logger.info(
+        ` [ServiceNow] Queried ${records.length} records from ${options.table}`,
+      );
+      this.emit("recordsQueried", {
+        table: options.table,
+        count: records.length,
+        filter: options.filter,
+      });
 
       return records;
     });
@@ -280,9 +310,13 @@ export class ConsolidatedServiceNowService extends EventEmitter {
 
   // ==================== TICKET ACTIONS ====================
 
-  async resolveTicket(request: ResolveTicketRequest): Promise<TicketActionResponse> {
+  async resolveTicket(
+    request: ResolveTicketRequest,
+  ): Promise<TicketActionResponse> {
     try {
-      logger.info(` [ServiceNow] Resolving ticket ${request.table}/${request.sysId}`);
+      logger.info(
+        ` [ServiceNow] Resolving ticket ${request.table}/${request.sysId}`,
+      );
 
       // Get current ticket state
       const currentTicket = await this.read(request.table, request.sysId);
@@ -294,10 +328,10 @@ export class ConsolidatedServiceNowService extends EventEmitter {
 
       // Prepare update data
       const updateData: Record<string, string> = {
-        state: '6', // Resolved
+        state: "6", // Resolved
         resolution_code: request.resolutionCode,
         resolved_at: new Date().toISOString(),
-        resolved_by: 'system'
+        resolved_by: "system",
       };
 
       if (request.closeCode) {
@@ -313,7 +347,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
           table: request.table,
           sysId: request.sysId,
           noteText: `Resolution Notes: ${request.resolutionNotes}`,
-          workNotes: false
+          workNotes: false,
         });
       }
 
@@ -321,24 +355,28 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         success: true,
         sysId: request.sysId,
         previousState,
-        newState: '6',
-        message: 'Ticket resolved successfully',
-        timestamp: new Date().toISOString()
+        newState: "6",
+        message: "Ticket resolved successfully",
+        timestamp: new Date().toISOString(),
       };
 
       logger.info(` [ServiceNow] Ticket resolved: ${request.sysId}`);
-      this.emit('ticketResolved', response);
+      this.emit("ticketResolved", response);
 
       return response;
     } catch (error) {
-      logger.error(' [ServiceNow] Failed to resolve ticket:', error);
+      logger.error(" [ServiceNow] Failed to resolve ticket:", error);
       throw error;
     }
   }
 
-  async closeTicket(request: CloseTicketRequest): Promise<TicketActionResponse> {
+  async closeTicket(
+    request: CloseTicketRequest,
+  ): Promise<TicketActionResponse> {
     try {
-      logger.info(` [ServiceNow] Closing ticket ${request.table}/${request.sysId}`);
+      logger.info(
+        ` [ServiceNow] Closing ticket ${request.table}/${request.sysId}`,
+      );
 
       const currentTicket = await this.read(request.table, request.sysId);
       if (!currentTicket) {
@@ -349,10 +387,10 @@ export class ConsolidatedServiceNowService extends EventEmitter {
 
       // Update ticket to closed state
       const updateData = {
-        state: '7', // Closed
+        state: "7", // Closed
         close_code: request.closeCode,
         closed_at: new Date().toISOString(),
-        closed_by: 'system'
+        closed_by: "system",
       };
 
       await this.update(request.table, request.sysId, updateData);
@@ -362,31 +400,35 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         table: request.table,
         sysId: request.sysId,
         noteText: `Close Notes: ${request.closeNotes}`,
-        workNotes: false
+        workNotes: false,
       });
 
       const response: TicketActionResponse = {
         success: true,
         sysId: request.sysId,
         previousState,
-        newState: '7',
-        message: 'Ticket closed successfully',
-        timestamp: new Date().toISOString()
+        newState: "7",
+        message: "Ticket closed successfully",
+        timestamp: new Date().toISOString(),
       };
 
       logger.info(` [ServiceNow] Ticket closed: ${request.sysId}`);
-      this.emit('ticketClosed', response);
+      this.emit("ticketClosed", response);
 
       return response;
     } catch (error) {
-      logger.error(' [ServiceNow] Failed to close ticket:', error);
+      logger.error(" [ServiceNow] Failed to close ticket:", error);
       throw error;
     }
   }
 
-  async reopenTicket(request: ReopenTicketRequest): Promise<TicketActionResponse> {
+  async reopenTicket(
+    request: ReopenTicketRequest,
+  ): Promise<TicketActionResponse> {
     try {
-      logger.info(` [ServiceNow] Reopening ticket ${request.table}/${request.sysId}`);
+      logger.info(
+        ` [ServiceNow] Reopening ticket ${request.table}/${request.sysId}`,
+      );
 
       const currentTicket = await this.read(request.table, request.sysId);
       if (!currentTicket) {
@@ -397,9 +439,9 @@ export class ConsolidatedServiceNowService extends EventEmitter {
 
       // Update ticket to reopened state
       const updateData = {
-        state: '2', // In Progress
+        state: "2", // In Progress
         reopened_at: new Date().toISOString(),
-        reopened_by: 'system'
+        reopened_by: "system",
       };
 
       await this.update(request.table, request.sysId, updateData);
@@ -409,31 +451,35 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         table: request.table,
         sysId: request.sysId,
         noteText: `Ticket reopened. Reason: ${request.reason}. Notes: ${request.reopenNotes}`,
-        workNotes: false
+        workNotes: false,
       });
 
       const response: TicketActionResponse = {
         success: true,
         sysId: request.sysId,
         previousState,
-        newState: '2',
-        message: 'Ticket reopened successfully',
-        timestamp: new Date().toISOString()
+        newState: "2",
+        message: "Ticket reopened successfully",
+        timestamp: new Date().toISOString(),
       };
 
       logger.info(` [ServiceNow] Ticket reopened: ${request.sysId}`);
-      this.emit('ticketReopened', response);
+      this.emit("ticketReopened", response);
 
       return response;
     } catch (error) {
-      logger.error(' [ServiceNow] Failed to reopen ticket:', error);
+      logger.error(" [ServiceNow] Failed to reopen ticket:", error);
       throw error;
     }
   }
 
-  async assignTicket(request: AssignTicketRequest): Promise<TicketActionResponse> {
+  async assignTicket(
+    request: AssignTicketRequest,
+  ): Promise<TicketActionResponse> {
     try {
-      logger.info(` [ServiceNow] Assigning ticket ${request.table}/${request.sysId}`);
+      logger.info(
+        ` [ServiceNow] Assigning ticket ${request.table}/${request.sysId}`,
+      );
 
       const updateData: Record<string, string> = {};
 
@@ -455,85 +501,114 @@ export class ConsolidatedServiceNowService extends EventEmitter {
           table: request.table,
           sysId: request.sysId,
           noteText: `Assignment Notes: ${request.assignmentNotes}`,
-          workNotes: true
+          workNotes: true,
         });
       }
 
       const response: TicketActionResponse = {
         success: true,
         sysId: request.sysId,
-        message: 'Ticket assigned successfully',
-        timestamp: new Date().toISOString()
+        message: "Ticket assigned successfully",
+        timestamp: new Date().toISOString(),
       };
 
       logger.info(` [ServiceNow] Ticket assigned: ${request.sysId}`);
-      this.emit('ticketAssigned', response);
+      this.emit("ticketAssigned", response);
 
       return response;
     } catch (error) {
-      logger.error(' [ServiceNow] Failed to assign ticket:', error);
+      logger.error(" [ServiceNow] Failed to assign ticket:", error);
       throw error;
     }
   }
 
   // ==================== NOTES OPERATIONS ====================
 
-  async getTicketNotes(table: string, sysId: string): Promise<ServiceNowNote[]> {
+  async getTicketNotes(
+    table: string,
+    sysId: string,
+  ): Promise<ServiceNowNote[]> {
     try {
       logger.debug(` [ServiceNow] Fetching notes for ${table}/${sysId}`);
 
       const response = await this.query({
-        table: 'sys_journal_field',
+        table: "sys_journal_field",
         filter: `element_id=${sysId}`,
-        orderBy: 'sys_created_on',
-        limit: 100
+        orderBy: "sys_created_on",
+        limit: 100,
       });
 
-      const notes: ServiceNowNote[] = response.map((note: ServiceNowRecord) => ({
-        sys_id: this.extractValue(note.sys_id),
-        value: this.extractValue(note.value),
-        sys_created_on: this.extractValue(note.sys_created_on),
-        sys_created_by: {
-          display_value: this.extractValue(note.sys_created_by?.display_value) || 'Sistema',
-          value: this.extractValue(note.sys_created_by?.value) || 'system'
-        },
-        element_id: this.extractValue(note.element_id),
-        work_notes: note.element === 'work_notes'
-      }));
+      const notes: ServiceNowNote[] = response.map(
+        (note: ServiceNowRecord) => ({
+          sys_id: this.extractValue(note.sys_id),
+          value: this.extractValue(note.value),
+          sys_created_on: this.extractValue(note.sys_created_on),
+          sys_created_by: {
+            display_value:
+              this.extractValue(note.sys_created_by?.display_value) ||
+              "Sistema",
+            value: this.extractValue(note.sys_created_by?.value) || "system",
+          },
+          element_id: this.extractValue(note.element_id),
+          work_notes: note.element === "work_notes",
+        }),
+      );
 
-      logger.debug(` [ServiceNow] Retrieved ${notes.length} notes for ${table}/${sysId}`);
+      logger.debug(
+        ` [ServiceNow] Retrieved ${notes.length} notes for ${table}/${sysId}`,
+      );
       return notes;
     } catch (error) {
-      logger.error(` [ServiceNow] Failed to fetch notes for ${table}/${sysId}:`, error);
+      logger.error(
+        ` [ServiceNow] Failed to fetch notes for ${table}/${sysId}:`,
+        error,
+      );
       throw error;
     }
   }
 
   async addTicketNote(request: CreateNoteRequest): Promise<string> {
     try {
-      logger.debug(` [ServiceNow] Adding note to ${request.table}/${request.sysId}`);
+      logger.debug(
+        ` [ServiceNow] Adding note to ${request.table}/${request.sysId}`,
+      );
 
-      const noteField = request.workNotes ? 'work_notes' : 'comments';
+      const noteField = request.workNotes ? "work_notes" : "comments";
 
       const updateData = {
-        [noteField]: request.noteText
+        [noteField]: request.noteText,
       };
 
-      const response = await this.update(request.table, request.sysId, updateData);
+      const response = await this.update(
+        request.table,
+        request.sysId,
+        updateData,
+      );
 
-      logger.info(` [ServiceNow] Note added to ${request.table}/${request.sysId}`);
-      this.emit('noteAdded', { table: request.table, sysId: request.sysId, noteText: request.noteText });
+      logger.info(
+        ` [ServiceNow] Note added to ${request.table}/${request.sysId}`,
+      );
+      this.emit("noteAdded", {
+        table: request.table,
+        sysId: request.sysId,
+        noteText: request.noteText,
+      });
 
       return response.sys_id;
     } catch (error) {
-      logger.error(` [ServiceNow] Failed to add note to ${request.table}/${request.sysId}:`, error);
+      logger.error(
+        ` [ServiceNow] Failed to add note to ${request.table}/${request.sysId}:`,
+        error,
+      );
       throw error;
     }
   }
 
   // ==================== ATTACHMENT OPERATIONS ====================
 
-  async uploadAttachment(request: AttachmentUploadRequest): Promise<AttachmentInfo> {
+  async uploadAttachment(
+    request: AttachmentUploadRequest,
+  ): Promise<AttachmentInfo> {
     return this.executeRequest(async () => {
       const url = `${this.attachmentUrl}/file?table_name=${encodeURIComponent(request.table)}&table_sys_id=${encodeURIComponent(request.sysId)}&file_name=${encodeURIComponent(request.fileName)}`;
 
@@ -548,14 +623,14 @@ export class ConsolidatedServiceNowService extends EventEmitter {
       }
 
       const uploadHeaders = {
-        "Accept": "application/json",
-        "Authorization": this.headers.Authorization as string
+        Accept: "application/json",
+        Authorization: this.headers.Authorization as string,
       };
 
       const response = await fetch(url, {
         method: "POST",
         headers: uploadHeaders,
-        body: formData
+        body: formData,
       });
 
       if (!response.ok) {
@@ -566,15 +641,21 @@ export class ConsolidatedServiceNowService extends EventEmitter {
       const result = await response.json();
       const attachment = result.result || result;
 
-      logger.info(`📎 [ServiceNow] Attachment uploaded: ${request.fileName} to ${request.table}/${request.sysId}`);
-      this.emit('attachmentUploaded', { table: request.table, sysId: request.sysId, attachment });
+      logger.info(
+        `📎 [ServiceNow] Attachment uploaded: ${request.fileName} to ${request.table}/${request.sysId}`,
+      );
+      this.emit("attachmentUploaded", {
+        table: request.table,
+        sysId: request.sysId,
+        attachment,
+      });
 
       return {
         sys_id: attachment.sys_id,
         file_name: attachment.file_name,
         content_type: attachment.content_type,
         size_bytes: attachment.size_bytes,
-        download_link: `${this.attachmentUrl}/${attachment.sys_id}/file`
+        download_link: `${this.attachmentUrl}/${attachment.sys_id}/file`,
       };
     });
   }
@@ -586,9 +667,9 @@ export class ConsolidatedServiceNowService extends EventEmitter {
       const response = await fetch(url, {
         method: "GET",
         headers: {
-          "Accept": "application/octet-stream",
-          "Authorization": this.headers.Authorization as string
-        }
+          Accept: "application/octet-stream",
+          Authorization: this.headers.Authorization as string,
+        },
       });
 
       if (!response.ok) {
@@ -599,29 +680,35 @@ export class ConsolidatedServiceNowService extends EventEmitter {
       const arrayBuffer = await response.arrayBuffer();
 
       logger.info(`📥 [ServiceNow] Attachment downloaded: ${attachmentId}`);
-      this.emit('attachmentDownloaded', { attachmentId });
+      this.emit("attachmentDownloaded", { attachmentId });
 
       return new Uint8Array(arrayBuffer);
     });
   }
 
-  async listAttachments(table: string, sysId: string): Promise<AttachmentInfo[]> {
+  async listAttachments(
+    table: string,
+    sysId: string,
+  ): Promise<AttachmentInfo[]> {
     try {
       const response = await this.query({
-        table: 'sys_attachment',
+        table: "sys_attachment",
         filter: `table_name=${table}^table_sys_id=${sysId}`,
-        fields: ['sys_id', 'file_name', 'content_type', 'size_bytes']
+        fields: ["sys_id", "file_name", "content_type", "size_bytes"],
       });
 
-      return response.map(att => ({
+      return response.map((att) => ({
         sys_id: att.sys_id,
         file_name: att.file_name,
         content_type: att.content_type,
         size_bytes: parseInt(att.size_bytes) || 0,
-        download_link: `${this.attachmentUrl}/${att.sys_id}/file`
+        download_link: `${this.attachmentUrl}/${att.sys_id}/file`,
       }));
     } catch (error) {
-      logger.error(` [ServiceNow] Failed to list attachments for ${table}/${sysId}:`, error);
+      logger.error(
+        ` [ServiceNow] Failed to list attachments for ${table}/${sysId}:`,
+        error,
+      );
       throw error;
     }
   }
@@ -630,9 +717,16 @@ export class ConsolidatedServiceNowService extends EventEmitter {
 
   async executeBatch(operations: BatchOperation[]): Promise<any[]> {
     try {
-      logger.info(` [ServiceNow] Executing batch of ${operations.length} operations`);
+      logger.info(
+        ` [ServiceNow] Executing batch of ${operations.length} operations`,
+      );
 
-      const results: Array<{ success: boolean; operation: BatchOperation; result?: any; error?: string }> = [];
+      const results: Array<{
+        success: boolean;
+        operation: BatchOperation;
+        result?: any;
+        error?: string;
+      }> = [];
 
       for (let i = 0; i < operations.length; i++) {
         const operation = operations[i];
@@ -648,7 +742,11 @@ export class ConsolidatedServiceNowService extends EventEmitter {
               result = await this.read(operation.table, operation.sys_id!);
               break;
             case "update":
-              result = await this.update(operation.table, operation.sys_id!, operation.data);
+              result = await this.update(
+                operation.table,
+                operation.sys_id!,
+                operation.data,
+              );
               break;
             case "delete":
               result = await this.delete(operation.table, operation.sys_id!);
@@ -661,27 +759,35 @@ export class ConsolidatedServiceNowService extends EventEmitter {
             success: true,
             operation: operation.op,
             index: i,
-            data: result
+            data: result,
           });
-
         } catch (error: unknown) {
-          logger.error(` [ServiceNow] Batch operation failed:`, operation, error);
+          logger.error(
+            ` [ServiceNow] Batch operation failed:`,
+            operation,
+            error,
+          );
           results.push({
             success: false,
             operation: operation.op,
             index: i,
             table: operation.table,
-            error: error?.message || String(error)
+            error: error?.message || String(error),
           });
         }
       }
 
-      logger.info(` [ServiceNow] Batch completed: ${results.filter(r => r.success).length}/${operations.length} successful`);
-      this.emit('batchExecuted', { totalOperations: operations.length, successful: results.filter(r => r.success).length });
+      logger.info(
+        ` [ServiceNow] Batch completed: ${results.filter((r) => r.success).length}/${operations.length} successful`,
+      );
+      this.emit("batchExecuted", {
+        totalOperations: operations.length,
+        successful: results.filter((r) => r.success).length,
+      });
 
       return results;
     } catch (error) {
-      logger.error(' [ServiceNow] Batch execution failed:', error);
+      logger.error(" [ServiceNow] Batch execution failed:", error);
       throw error;
     }
   }
@@ -690,36 +796,45 @@ export class ConsolidatedServiceNowService extends EventEmitter {
 
   async getTaskSLAs(options: TaskSLAQueryOptions): Promise<TaskSLAResponse> {
     try {
-      logger.debug(` [ServiceNow] Getting SLAs for task: ${options.taskNumber}`);
+      logger.debug(
+        ` [ServiceNow] Getting SLAs for task: ${options.taskNumber}`,
+      );
 
       const response = await this.query({
-        table: 'task_sla',
+        table: "task_sla",
         filter: `task.number=${options.taskNumber}`,
-        limit: options.limit
+        limit: options.limit,
       });
 
       const slmRecords: SLMRecord[] = response.map((sla: ServiceNowRecord) => ({
         sys_id: this.extractValue(sla.sys_id),
-        task_number: this.extractValue(sla['task.number']),
-        taskslatable_business_percentage: this.extractValue(sla.business_percentage),
+        task_number: this.extractValue(sla["task.number"]),
+        taskslatable_business_percentage: this.extractValue(
+          sla.business_percentage,
+        ),
         taskslatable_start_time: this.extractValue(sla.start_time),
         taskslatable_end_time: this.extractValue(sla.end_time),
         taskslatable_sla: this.extractValue(sla.sla),
         taskslatable_stage: this.extractValue(sla.stage),
         taskslatable_has_breached: this.extractValue(sla.has_breached),
-        task_assignment_group: this.extractValue(sla['task.assignment_group']),
-        raw_data: sla
+        task_assignment_group: this.extractValue(sla["task.assignment_group"]),
+        raw_data: sla,
       }));
 
-      logger.debug(` [ServiceNow] Found ${slmRecords.length} SLAs for task ${options.taskNumber}`);
+      logger.debug(
+        ` [ServiceNow] Found ${slmRecords.length} SLAs for task ${options.taskNumber}`,
+      );
 
       return {
         result: slmRecords,
         totalCount: slmRecords.length,
-        hasMore: false
+        hasMore: false,
       };
     } catch (error) {
-      logger.error(` [ServiceNow] Error getting SLAs for task ${options.taskNumber}:`, error);
+      logger.error(
+        ` [ServiceNow] Error getting SLAs for task ${options.taskNumber}:`,
+        error,
+      );
       throw error;
     }
   }
@@ -728,38 +843,53 @@ export class ConsolidatedServiceNowService extends EventEmitter {
     try {
       const slaResponse = await this.getTaskSLAs({
         taskNumber,
-        includeDisplayValues: true
+        includeDisplayValues: true,
       });
 
       const slas = slaResponse.result;
-      const breachedCount = slas.filter(sla => this.parseBoolean(sla.taskslatable_has_breached)).length;
-      const activeCount = slas.filter(sla => sla.taskslatable_stage && sla.taskslatable_stage !== 'completed').length;
+      const breachedCount = slas.filter((sla) =>
+        this.parseBoolean(sla.taskslatable_has_breached),
+      ).length;
+      const activeCount = slas.filter(
+        (sla) =>
+          sla.taskslatable_stage && sla.taskslatable_stage !== "completed",
+      ).length;
 
-      const slaBreachInfos: SLABreachInfo[] = slas.map(sla => ({
-        sla_name: sla.taskslatable_sla || 'Unknown SLA',
+      const slaBreachInfos: SLABreachInfo[] = slas.map((sla) => ({
+        sla_name: sla.taskslatable_sla || "Unknown SLA",
         has_breached: this.parseBoolean(sla.taskslatable_has_breached),
-        business_percentage: this.parsePercentage(sla.taskslatable_business_percentage),
+        business_percentage: this.parsePercentage(
+          sla.taskslatable_business_percentage,
+        ),
         start_time: sla.taskslatable_start_time,
         end_time: sla.taskslatable_end_time,
-        stage: sla.taskslatable_stage || 'unknown',
-        breach_time: this.parseBoolean(sla.taskslatable_has_breached) ? sla.taskslatable_end_time : undefined
+        stage: sla.taskslatable_stage || "unknown",
+        breach_time: this.parseBoolean(sla.taskslatable_has_breached)
+          ? sla.taskslatable_end_time
+          : undefined,
       }));
 
-      const worstSla = slaBreachInfos
-        .filter(sla => sla.has_breached)
-        .sort((a, b) => b.business_percentage - a.business_percentage)[0] || null;
+      const worstSla =
+        slaBreachInfos
+          .filter((sla) => sla.has_breached)
+          .sort((a, b) => b.business_percentage - a.business_percentage)[0] ||
+        null;
 
       return {
         ticket_number: taskNumber,
         total_slas: slas.length,
         active_slas: activeCount,
         breached_slas: breachedCount,
-        breach_percentage: slas.length > 0 ? (breachedCount / slas.length) * 100 : 0,
+        breach_percentage:
+          slas.length > 0 ? (breachedCount / slas.length) * 100 : 0,
         worst_sla: worstSla,
-        all_slas: slaBreachInfos
+        all_slas: slaBreachInfos,
       };
     } catch (error) {
-      logger.error(` [ServiceNow] Error getting SLA summary for task ${taskNumber}:`, error);
+      logger.error(
+        ` [ServiceNow] Error getting SLA summary for task ${taskNumber}:`,
+        error,
+      );
       throw error;
     }
   }
@@ -808,9 +938,12 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         }
 
         const delay = baseDelay * Math.pow(2, attempt - 1);
-        logger.warn(` [ServiceNow] Request failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms:`, lastError.message);
+        logger.warn(
+          ` [ServiceNow] Request failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms:`,
+          lastError.message,
+        );
 
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
 
@@ -829,17 +962,20 @@ export class ConsolidatedServiceNowService extends EventEmitter {
 
       // Clean old requests from tracker
       for (const [key, timestamps] of this.rateLimitTracker) {
-        this.rateLimitTracker.set(key, timestamps.filter(t => t > windowStart));
+        this.rateLimitTracker.set(
+          key,
+          timestamps.filter((t) => t > windowStart),
+        );
       }
 
-      const recentRequests = this.rateLimitTracker.get('global') || [];
+      const recentRequests = this.rateLimitTracker.get("global") || [];
 
       if (recentRequests.length >= rateLimiting.maxRequests) {
         const oldestRequest = Math.min(...recentRequests);
-        const waitTime = (oldestRequest + rateLimiting.timeWindow) - now;
+        const waitTime = oldestRequest + rateLimiting.timeWindow - now;
 
         if (waitTime > 0) {
-          await new Promise(resolve => setTimeout(resolve, waitTime));
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
           continue;
         }
       }
@@ -847,10 +983,10 @@ export class ConsolidatedServiceNowService extends EventEmitter {
       const request = this.requestQueue.shift();
       if (request) {
         // Track this request
-        if (!this.rateLimitTracker.has('global')) {
-          this.rateLimitTracker.set('global', []);
+        if (!this.rateLimitTracker.has("global")) {
+          this.rateLimitTracker.set("global", []);
         }
-        this.rateLimitTracker.get('global')!.push(now);
+        this.rateLimitTracker.get("global")!.push(now);
 
         await request();
       }
@@ -870,21 +1006,21 @@ export class ConsolidatedServiceNowService extends EventEmitter {
   // ==================== UTILITY METHODS ====================
 
   private extractValue(field: unknown): string {
-    if (typeof field === 'string') return field;
-    if (field && typeof field === 'object') {
-      return field.display_value || field.value || '';
+    if (typeof field === "string") return field;
+    if (field && typeof field === "object") {
+      return field.display_value || field.value || "";
     }
-    return '';
+    return "";
   }
 
   private parseBoolean(value: string | boolean): boolean {
-    if (typeof value === 'boolean') return value;
-    return value === 'true' || value === '1';
+    if (typeof value === "boolean") return value;
+    return value === "true" || value === "1";
   }
 
   private parsePercentage(value: string | null): number {
     if (!value) return 0;
-    const cleaned = value.replace('%', '').trim();
+    const cleaned = value.replace("%", "").trim();
     const parsed = parseFloat(cleaned);
     return isNaN(parsed) ? 0 : parsed;
   }
@@ -898,12 +1034,12 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         rate_limiting_enabled: this.config.rateLimiting?.enabled || false,
         retry_policy_enabled: this.config.retryPolicy?.enabled || false,
         is_processing_queue: this.isProcessingQueue,
-        recent_request_count: this.rateLimitTracker.get('global')?.length || 0,
+        recent_request_count: this.rateLimitTracker.get("global")?.length || 0,
         base_url: this.baseUrl,
-        instance_url: this.config.instanceUrl
+        instance_url: this.config.instanceUrl,
       };
     } catch (error) {
-      logger.error(' [ServiceNow] Failed to get stats:', error);
+      logger.error(" [ServiceNow] Failed to get stats:", error);
       return {};
     }
   }
@@ -912,13 +1048,13 @@ export class ConsolidatedServiceNowService extends EventEmitter {
     try {
       // Simple health check - try to read a system table
       const response = await fetch(`${this.baseUrl}/sys_user?sysparm_limit=1`, {
-        method: 'GET',
-        headers: this.headers
+        method: "GET",
+        headers: this.headers,
       });
 
       return response.ok;
     } catch (error) {
-      logger.error(' [ServiceNow] Health check failed:', error);
+      logger.error(" [ServiceNow] Health check failed:", error);
       return false;
     }
   }
@@ -927,36 +1063,39 @@ export class ConsolidatedServiceNowService extends EventEmitter {
     this.requestQueue.length = 0;
     this.rateLimitTracker.clear();
     this.isProcessingQueue = false;
-    logger.info('🧹 [ServiceNow] Cleanup completed');
+    logger.info("🧹 [ServiceNow] Cleanup completed");
   }
 }
 
 // ==================== SINGLETON INSTANCE ====================
 
-import { ServiceNowAuthClient } from './ServiceNowAuthClient';
+import { ServiceNowAuthClient } from "./ServiceNowAuthClient";
 
-const instanceUrl = process.env.SERVICENOW_INSTANCE_URL || 'https://iberdrola.service-now.com';
+const instanceUrl =
+  process.env.SERVICENOW_INSTANCE_URL || "https://iberdrola.service-now.com";
 
 // Use ServiceNowAuthClient with broker authentication
 const authClient = new ServiceNowAuthClient();
 
 if (!authClient.isAuthValid()) {
-  console.warn('[ConsolidatedServiceNowService] Authentication broker not available, will initialize with URL only');
+  console.warn(
+    "[ConsolidatedServiceNowService] Authentication broker not available, will initialize with URL only",
+  );
 }
 
 const consolidatedServiceNowService = new ConsolidatedServiceNowService({
   instanceUrl,
-  authToken: process.env.AUTH_SERVICE_URL || 'http://10.219.8.210:8000/auth',
+  authToken: process.env.AUTH_SERVICE_URL || "http://10.219.8.210:8000/auth",
   rateLimiting: {
     enabled: true,
-    maxRequests: parseInt(process.env.SERVICENOW_RATE_LIMIT || '95'),
-    timeWindow: 60000 // 1 minute
+    maxRequests: parseInt(process.env.SERVICENOW_RATE_LIMIT || "95"),
+    timeWindow: 60000, // 1 minute
   },
   retryPolicy: {
     enabled: true,
     maxRetries: 3,
-    baseDelay: 1000
-  }
+    baseDelay: 1000,
+  },
 });
 
 export { consolidatedServiceNowService };

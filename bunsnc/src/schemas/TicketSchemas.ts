@@ -36,12 +36,12 @@ export interface BaseTicketSchema {
   correlation_display?: string;
   // Metadados de sincronização
   last_synced: Date;
-  sync_status: 'synced' | 'pending' | 'error';
+  sync_status: "synced" | "pending" | "error";
   sync_error?: string;
 }
 
 export interface IncidentSchema extends BaseTicketSchema {
-  table: 'incident';
+  table: "incident";
   problem_id?: string;
   rfc?: string;
   caused_by?: string;
@@ -50,7 +50,7 @@ export interface IncidentSchema extends BaseTicketSchema {
 }
 
 export interface ChangeTaskSchema extends BaseTicketSchema {
-  table: 'change_task';
+  table: "change_task";
   change_request?: string;
   change_request_number?: string;
   task_type?: string;
@@ -64,7 +64,7 @@ export interface ChangeTaskSchema extends BaseTicketSchema {
 }
 
 export interface ServiceRequestTaskSchema extends BaseTicketSchema {
-  table: 'sc_task';
+  table: "sc_task";
   request?: string;
   request_number?: string;
   catalog_item?: string;
@@ -73,34 +73,45 @@ export interface ServiceRequestTaskSchema extends BaseTicketSchema {
   delivery_task?: string;
 }
 
-export type TicketSchema = IncidentSchema | ChangeTaskSchema | ServiceRequestTaskSchema;
+export type TicketSchema =
+  | IncidentSchema
+  | ChangeTaskSchema
+  | ServiceRequestTaskSchema;
 
 // Validation schemas for different ticket types
 export const TicketValidation = {
   required: {
-    all: ['sys_id', 'number', 'table', 'state', 'short_description', 'priority', 'opened_at'],
-    incident: ['caller_id'],
-    change_task: ['change_request'],
-    sc_task: ['request', 'requested_for']
+    all: [
+      "sys_id",
+      "number",
+      "table",
+      "state",
+      "short_description",
+      "priority",
+      "opened_at",
+    ],
+    incident: ["caller_id"],
+    change_task: ["change_request"],
+    sc_task: ["request", "requested_for"],
   },
-  
+
   states: {
-    incident: ['1', '2', '3', '6', '7', '8'], // New, In Progress, On Hold, Resolved, Closed, Canceled
-    change_task: ['-5', '1', '2', '3', '4', '7'], // Pending, Open, Work in Progress, Closed Complete, Closed Incomplete, Closed Skipped
-    sc_task: ['1', '2', '3', '4', '7'] // Pending, Open, Work in Progress, Closed Complete, Closed Incomplete
+    incident: ["1", "2", "3", "6", "7", "8"], // New, In Progress, On Hold, Resolved, Closed, Canceled
+    change_task: ["-5", "1", "2", "3", "4", "7"], // Pending, Open, Work in Progress, Closed Complete, Closed Incomplete, Closed Skipped
+    sc_task: ["1", "2", "3", "4", "7"], // Pending, Open, Work in Progress, Closed Complete, Closed Incomplete
   },
-  
-  priorities: ['1', '2', '3', '4', '5'], // Critical, High, Moderate, Low, Planning
-  
-  syncStatuses: ['synced', 'pending', 'error'] as const
+
+  priorities: ["1", "2", "3", "4", "5"], // Critical, High, Moderate, Low, Planning
+
+  syncStatuses: ["synced", "pending", "error"] as const,
 };
 
 // MongoDB collection names
 export const TicketCollections = {
-  INCIDENTS: 'incidents',
-  CHANGE_TASKS: 'change_tasks', 
-  SERVICE_REQUESTS: 'service_request_tasks',
-  AUDIT_LOG: 'ticket_audit_log'
+  INCIDENTS: "incidents",
+  CHANGE_TASKS: "change_tasks",
+  SERVICE_REQUESTS: "service_request_tasks",
+  AUDIT_LOG: "ticket_audit_log",
 } as const;
 
 // Audit log schema for tracking changes
@@ -109,10 +120,18 @@ export interface TicketAuditLog {
   ticket_sys_id: string;
   ticket_table: string;
   ticket_number: string;
-  action: 'created' | 'updated' | 'resolved' | 'closed' | 'reopened' | 'assigned' | 'priority_changed' | 'category_changed';
+  action:
+    | "created"
+    | "updated"
+    | "resolved"
+    | "closed"
+    | "reopened"
+    | "assigned"
+    | "priority_changed"
+    | "category_changed";
   changes: Record<string, { old_value?: any; new_value: any }>;
   performed_by: string;
   performed_at: Date;
-  source: 'servicenow' | 'bunsnc' | 'sync';
+  source: "servicenow" | "bunsnc" | "sync";
   metadata?: Record<string, any>;
 }

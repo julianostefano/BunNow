@@ -30,14 +30,14 @@ export interface SAMLAuthenticationData {
   createdAt: Date;
   expiresAt?: Date;
   lastValidated?: Date;
-  validationStatus: 'valid' | 'invalid' | 'expired' | 'pending';
+  validationStatus: "valid" | "invalid" | "expired" | "pending";
 }
 
 export interface SAMLAuthenticationRecord {
   id?: string;
   config: SAMLConfig;
   authData?: SAMLAuthenticationData;
-  status: 'active' | 'inactive' | 'error' | 'expired';
+  status: "active" | "inactive" | "error" | "expired";
   errorCount: number;
   lastError?: string;
   lastErrorAt?: Date;
@@ -67,7 +67,7 @@ export interface SAMLFormData {
 
 export interface SAMLRedirectInfo {
   url: string;
-  method: 'GET' | 'POST';
+  method: "GET" | "POST";
   data?: SAMLFormData;
   proxy?: string;
 }
@@ -104,36 +104,37 @@ export interface SAMLDomainRule {
 }
 
 export const SAML_NO_PROXY_DOMAINS: string[] = [
-  'ibfs.iberdrola.com',
-  'corp.iberdrola.com',
-  'neoenergia.com',
-  'elektro.com.br'
+  "ibfs.iberdrola.com",
+  "corp.iberdrola.com",
+  "neoenergia.com",
+  "elektro.com.br",
 ];
 
 export const SAML_CONNECTION_STRATEGIES: SAMLConnectionStrategy[] = [
   {
-    name: 'saml_smart_proxy',
-    description: 'Smart proxy selection per domain'
+    name: "saml_smart_proxy",
+    description: "Smart proxy selection per domain",
   },
   {
-    name: 'direct',
+    name: "direct",
     proxy: undefined,
-    description: 'Direct connection fallback'
-  }
+    description: "Direct connection fallback",
+  },
 ];
 
 export const SAML_TIMEOUTS = {
   DEFAULT: 60000, // 60 seconds
   FORM_SUBMIT: 60000, // 60 seconds
-  VALIDATION: 30000 // 30 seconds
+  VALIDATION: 30000, // 30 seconds
 } as const;
 
 export const SAML_HTTP_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-  'Accept-Language': 'en-US,en;q=0.5',
-  'Accept-Encoding': 'gzip, deflate',
-  'DNT': '1',
-  'Connection': 'keep-alive',
-  'Upgrade-Insecure-Requests': '1'
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.5",
+  "Accept-Encoding": "gzip, deflate",
+  DNT: "1",
+  Connection: "keep-alive",
+  "Upgrade-Insecure-Requests": "1",
 } as const;

@@ -4,11 +4,11 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { ConsolidatedDataService } from '../services/ConsolidatedDataService';
-import { ConsolidatedDataService } from '../services/ConsolidatedDataService';
-import { ServiceNowAuthClient } from '../services/ServiceNowAuthClient';
-import { ServiceNowStreams } from '../config/redis-streams';
-import { EnhancedTicketModalView } from '../views/EnhancedTicketModalView';
+import { ConsolidatedDataService } from "../services/ConsolidatedDataService";
+import { ConsolidatedDataService } from "../services/ConsolidatedDataService";
+import { ServiceNowAuthClient } from "../services/ServiceNowAuthClient";
+import { ServiceNowStreams } from "../config/redis-streams";
+import { EnhancedTicketModalView } from "../views/EnhancedTicketModalView";
 
 export class EnhancedTicketController {
   private hybridDataService: ConsolidatedDataService;
@@ -16,12 +16,12 @@ export class EnhancedTicketController {
   constructor(
     serviceNowAuthClient: ServiceNowAuthClient,
     mongoService: ConsolidatedDataService,
-    redisStreams: ServiceNowStreams
+    redisStreams: ServiceNowStreams,
   ) {
     this.hybridDataService = new ConsolidatedDataService(
       mongoService,
       serviceNowAuthClient,
-      redisStreams
+      redisStreams,
     );
   }
 
@@ -34,13 +34,19 @@ export class EnhancedTicketController {
       console.log(`🎯 Getting enhanced modal for ${table}/${sysId}`);
 
       // Get ticket data with SLMs and Notes using ConsolidatedDataService
-      const ticketData = await this.hybridDataService.getTicketDetails(sysId, table, {
-        includeSLMs: true,
-        includeNotes: true
-      });
+      const ticketData = await this.hybridDataService.getTicketDetails(
+        sysId,
+        table,
+        {
+          includeSLMs: true,
+          includeNotes: true,
+        },
+      );
 
       if (!ticketData) {
-        return this.generateErrorModal(`Ticket ${table}/${sysId} não encontrado`);
+        return this.generateErrorModal(
+          `Ticket ${table}/${sysId} não encontrado`,
+        );
       }
 
       // Generate enhanced modal with SLA tabs and Notes
@@ -49,12 +55,16 @@ export class EnhancedTicketController {
         slaData: ticketData.slms || [],
         notes: ticketData.notes || [],
         history: [],
-        isRealTime: true
+        isRealTime: true,
       });
-
     } catch (error) {
-      console.error(` Error generating enhanced modal for ${table}/${sysId}:`, error);
-      return this.generateErrorModal(`Erro ao carregar ticket: ${error.message}`);
+      console.error(
+        ` Error generating enhanced modal for ${table}/${sysId}:`,
+        error,
+      );
+      return this.generateErrorModal(
+        `Erro ao carregar ticket: ${error.message}`,
+      );
     }
   }
 

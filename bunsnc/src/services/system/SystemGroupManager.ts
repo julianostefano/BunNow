@@ -4,8 +4,8 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { MongoClient, Db, Collection } from 'mongodb';
-import { logger } from '../../utils/Logger';
+import { MongoClient, Db, Collection } from "mongodb";
+import { logger } from "../../utils/Logger";
 
 export interface GroupDocument {
   _id?: any;
@@ -40,7 +40,7 @@ export class SystemGroupManager {
   constructor(mongoConfig: any) {
     this.client = mongoConfig.client;
     this.db = this.client.db(mongoConfig.database);
-    this.collection = this.db.collection<GroupDocument>('sys_user_groups');
+    this.collection = this.db.collection<GroupDocument>("sys_user_groups");
   }
 
   /**
@@ -50,15 +50,15 @@ export class SystemGroupManager {
     if (this.isInitialized) return;
 
     try {
-      logger.info('🏷️ [SystemGroups] Initializing group manager...');
+      logger.info("🏷️ [SystemGroups] Initializing group manager...");
 
       // Create indexes for better performance
       await this.createIndexes();
 
       this.isInitialized = true;
-      logger.info(' [SystemGroups] Group manager initialized');
+      logger.info(" [SystemGroups] Group manager initialized");
     } catch (error) {
-      logger.error(' [SystemGroups] Failed to initialize:', error);
+      logger.error(" [SystemGroups] Failed to initialize:", error);
       throw error;
     }
   }
@@ -74,11 +74,14 @@ export class SystemGroupManager {
         this.collection.createIndex({ type: 1 }),
         this.collection.createIndex({ active: 1 }),
         this.collection.createIndex({ manager: 1 }),
-        this.collection.createIndex({ updated_at: -1 })
+        this.collection.createIndex({ updated_at: -1 }),
       ]);
-      logger.debug(' [SystemGroups] Database indexes created');
+      logger.debug(" [SystemGroups] Database indexes created");
     } catch (error) {
-      logger.warn(' [SystemGroups] Failed to create indexes (non-critical):', error);
+      logger.warn(
+        " [SystemGroups] Failed to create indexes (non-critical):",
+        error,
+      );
     }
   }
 
@@ -95,7 +98,7 @@ export class SystemGroupManager {
 
       if (filters) {
         if (filters.name) {
-          query.name = new RegExp(filters.name, 'i');
+          query.name = new RegExp(filters.name, "i");
         }
         if (filters.type) {
           query.type = filters.type;
@@ -116,9 +119,8 @@ export class SystemGroupManager {
 
       this.setCachedResult(cacheKey, groups);
       return groups;
-
     } catch (error) {
-      logger.error(' [SystemGroups] Failed to get groups:', error);
+      logger.error(" [SystemGroups] Failed to get groups:", error);
       throw error;
     }
   }
@@ -139,9 +141,8 @@ export class SystemGroupManager {
       }
 
       return group;
-
     } catch (error) {
-      logger.error(' [SystemGroups] Failed to get group:', error);
+      logger.error(" [SystemGroups] Failed to get group:", error);
       throw error;
     }
   }
@@ -151,21 +152,23 @@ export class SystemGroupManager {
    */
   async createGroup(groupData: Partial<GroupDocument>): Promise<string> {
     try {
-      const sysId = groupData.sys_id || `group_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      const sysId =
+        groupData.sys_id ||
+        `group_${Date.now()}_${Math.random().toString(36).substring(7)}`;
       const now = new Date();
 
       const group: GroupDocument = {
         sys_id: sysId,
-        name: groupData.name || 'Unnamed Group',
+        name: groupData.name || "Unnamed Group",
         description: groupData.description,
         active: groupData.active !== false,
-        type: groupData.type || 'standard',
+        type: groupData.type || "standard",
         manager: groupData.manager,
         members: groupData.members || [],
         email: groupData.email,
         created_at: now,
         updated_at: now,
-        raw_data: groupData.raw_data
+        raw_data: groupData.raw_data,
       };
 
       await this.collection.insertOne(group);
@@ -173,9 +176,8 @@ export class SystemGroupManager {
 
       logger.info(` [SystemGroups] Group created: ${group.name} (${sysId})`);
       return sysId;
-
     } catch (error) {
-      logger.error(' [SystemGroups] Failed to create group:', error);
+      logger.error(" [SystemGroups] Failed to create group:", error);
       throw error;
     }
   }
@@ -183,11 +185,14 @@ export class SystemGroupManager {
   /**
    * Update group
    */
-  async updateGroup(groupId: string, updates: Partial<GroupDocument>): Promise<boolean> {
+  async updateGroup(
+    groupId: string,
+    updates: Partial<GroupDocument>,
+  ): Promise<boolean> {
     try {
       const updateData: any = {
         ...updates,
-        updated_at: new Date()
+        updated_at: new Date(),
       };
 
       // Remove fields that shouldn't be updated directly
@@ -197,7 +202,7 @@ export class SystemGroupManager {
 
       const result = await this.collection.updateOne(
         { sys_id: groupId },
-        { $set: updateData }
+        { $set: updateData },
       );
 
       if (result.matchedCount > 0) {
@@ -207,9 +212,8 @@ export class SystemGroupManager {
       }
 
       return false;
-
     } catch (error) {
-      logger.error(' [SystemGroups] Failed to update group:', error);
+      logger.error(" [SystemGroups] Failed to update group:", error);
       throw error;
     }
   }
@@ -228,9 +232,8 @@ export class SystemGroupManager {
       }
 
       return false;
-
     } catch (error) {
-      logger.error(' [SystemGroups] Failed to delete group:', error);
+      logger.error(" [SystemGroups] Failed to delete group:", error);
       throw error;
     }
   }
@@ -244,20 +247,21 @@ export class SystemGroupManager {
         { sys_id: groupId },
         {
           $addToSet: { members: memberSysId },
-          $set: { updated_at: new Date() }
-        }
+          $set: { updated_at: new Date() },
+        },
       );
 
       if (result.matchedCount > 0) {
         this.clearCache();
-        logger.info(` [SystemGroups] Member added to group: ${memberSysId} -> ${groupId}`);
+        logger.info(
+          ` [SystemGroups] Member added to group: ${memberSysId} -> ${groupId}`,
+        );
         return true;
       }
 
       return false;
-
     } catch (error) {
-      logger.error(' [SystemGroups] Failed to add group member:', error);
+      logger.error(" [SystemGroups] Failed to add group member:", error);
       throw error;
     }
   }
@@ -265,26 +269,30 @@ export class SystemGroupManager {
   /**
    * Remove member from group
    */
-  async removeGroupMember(groupId: string, memberSysId: string): Promise<boolean> {
+  async removeGroupMember(
+    groupId: string,
+    memberSysId: string,
+  ): Promise<boolean> {
     try {
       const result = await this.collection.updateOne(
         { sys_id: groupId },
         {
           $pull: { members: memberSysId },
-          $set: { updated_at: new Date() }
-        }
+          $set: { updated_at: new Date() },
+        },
       );
 
       if (result.matchedCount > 0) {
         this.clearCache();
-        logger.info(` [SystemGroups] Member removed from group: ${memberSysId} -> ${groupId}`);
+        logger.info(
+          ` [SystemGroups] Member removed from group: ${memberSysId} -> ${groupId}`,
+        );
         return true;
       }
 
       return false;
-
     } catch (error) {
-      logger.error(' [SystemGroups] Failed to remove group member:', error);
+      logger.error(" [SystemGroups] Failed to remove group member:", error);
       throw error;
     }
   }
@@ -296,7 +304,7 @@ export class SystemGroupManager {
     try {
       return await this.collection.countDocuments({ active: { $ne: false } });
     } catch (error) {
-      logger.error(' [SystemGroups] Failed to get group count:', error);
+      logger.error(" [SystemGroups] Failed to get group count:", error);
       return 0;
     }
   }
@@ -312,18 +320,25 @@ export class SystemGroupManager {
 
       // Get group types distribution
       const typesPipeline = [
-        { $group: { _id: '$type', count: { $sum: 1 } } },
-        { $sort: { count: -1 } }
+        { $group: { _id: "$type", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
       ];
       const types = await this.collection.aggregate(typesPipeline).toArray();
 
       // Get groups with most members
       const membersPipeline = [
-        { $project: { name: 1, memberCount: { $size: { $ifNull: ['$members', []] } } } },
+        {
+          $project: {
+            name: 1,
+            memberCount: { $size: { $ifNull: ["$members", []] } },
+          },
+        },
         { $sort: { memberCount: -1 } },
-        { $limit: 5 }
+        { $limit: 5 },
       ];
-      const topGroups = await this.collection.aggregate(membersPipeline).toArray();
+      const topGroups = await this.collection
+        .aggregate(membersPipeline)
+        .toArray();
 
       return {
         total,
@@ -331,11 +346,10 @@ export class SystemGroupManager {
         inactive,
         types,
         topGroups,
-        cacheSize: this.cache.size
+        cacheSize: this.cache.size,
       };
-
     } catch (error) {
-      logger.error(' [SystemGroups] Failed to get stats:', error);
+      logger.error(" [SystemGroups] Failed to get stats:", error);
       return {};
     }
   }
@@ -345,7 +359,7 @@ export class SystemGroupManager {
    */
   private getCachedResult(key: string): any {
     const cached = this.cache.get(key);
-    if (cached && (Date.now() - cached.timestamp) < this.cacheExpiry) {
+    if (cached && Date.now() - cached.timestamp < this.cacheExpiry) {
       return cached.data;
     }
     return null;
@@ -354,7 +368,7 @@ export class SystemGroupManager {
   private setCachedResult(key: string, data: any): void {
     this.cache.set(key, {
       data,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -370,7 +384,7 @@ export class SystemGroupManager {
       await this.collection.countDocuments({}, { limit: 1 });
       return true;
     } catch (error) {
-      logger.error(' [SystemGroups] Health check failed:', error);
+      logger.error(" [SystemGroups] Health check failed:", error);
       return false;
     }
   }
@@ -380,6 +394,6 @@ export class SystemGroupManager {
    */
   async cleanup(): Promise<void> {
     this.clearCache();
-    logger.info('🧹 [SystemGroups] Cleanup completed');
+    logger.info("🧹 [SystemGroups] Cleanup completed");
   }
 }

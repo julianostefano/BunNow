@@ -7,7 +7,10 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 const program = new Command();
-program.name("bunsnc").description("CLI para ServiceNow via Bun/Elysia").version("1.0.0");
+program
+  .name("bunsnc")
+  .description("CLI para ServiceNow via Bun/Elysia")
+  .version("1.0.0");
 
 const getEnv = (key: string, fallback = "") => process.env[key] || fallback;
 
@@ -47,7 +50,6 @@ program
     console.log(result);
   });
 
-
 program
   .command("read <table> <sysId>")
   .description("Lê um registro pelo sysId")
@@ -83,7 +85,7 @@ program
     console.log(result);
   });
 
-program
+program;
 
 program
   .command("upload <table> <sysId> <file>")
@@ -93,16 +95,16 @@ program
     const token = getEnv("SNC_AUTH_TOKEN");
     const attachmentService = consolidatedServiceNowService;
     const fs = await import("fs/promises");
-  const fileBuffer = await fs.readFile(file);
-  // Converter Buffer para Uint8Array para o construtor File
-  const uint8 = new Uint8Array(fileBuffer);
-  const fileName = file.split("/").pop() || "upload.bin";
-  const fileObj = new File([uint8], fileName);
-  const result = await attachmentService.upload(table, sysId, fileObj);
-  console.log(result);
+    const fileBuffer = await fs.readFile(file);
+    // Converter Buffer para Uint8Array para o construtor File
+    const uint8 = new Uint8Array(fileBuffer);
+    const fileName = file.split("/").pop() || "upload.bin";
+    const fileObj = new File([uint8], fileName);
+    const result = await attachmentService.upload(table, sysId, fileObj);
+    console.log(result);
   });
 
-program
+program;
 
 program
   .command("download <attachmentId> <dest>")

@@ -16,7 +16,7 @@ interface User {
 }
 
 // Authentication middleware
-export const authMiddleware = new Elysia({ name: 'auth-middleware' })
+export const authMiddleware = new Elysia({ name: "auth-middleware" })
   .derive(({ cookie }) => {
     return {
       // Helper to get current user from cookie
@@ -41,8 +41,12 @@ export const authMiddleware = new Elysia({ name: 'auth-middleware' })
       // Helper to check user permissions
       hasPermission(permission: string): boolean {
         const user = this.getCurrentUser();
-        return user?.permissions?.includes(permission) || user?.role === 'admin' || false;
-      }
+        return (
+          user?.permissions?.includes(permission) ||
+          user?.role === "admin" ||
+          false
+        );
+      },
     };
   })
 
@@ -70,7 +74,7 @@ export const authMiddleware = new Elysia({ name: 'auth-middleware' })
           return {
             error: "Insufficient permissions",
             required: permission,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           };
         }
       });
@@ -81,24 +85,24 @@ export const authMiddleware = new Elysia({ name: 'auth-middleware' })
       onBeforeHandle(({ getCurrentUser, set }) => {
         const user = getCurrentUser();
 
-        if (!user || user.role !== 'admin') {
+        if (!user || user.role !== "admin") {
           set.status = 403;
           return {
             error: "Admin access required",
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           };
         }
       });
-    }
+    },
   }));
 
 // Protected route wrapper
-export const protectedRoute = new Elysia({ name: 'protected-route' })
+export const protectedRoute = new Elysia({ name: "protected-route" })
   .use(authMiddleware)
   .requireAuth();
 
 // Admin route wrapper
-export const adminRoute = new Elysia({ name: 'admin-route' })
+export const adminRoute = new Elysia({ name: "admin-route" })
   .use(authMiddleware)
   .requireAuth()
   .requireAdmin();

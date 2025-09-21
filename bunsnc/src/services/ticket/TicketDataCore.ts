@@ -3,11 +3,16 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { mongoCollectionManager, IncidentDocument, ChangeTaskDocument, SCTaskDocument } from '../../config/mongodb-collections';
-import { systemService } from '../SystemService';
-import { enhancedTicketStorageService } from '../index';
-import { logger } from '../../utils/Logger';
-import type { TicketData } from '../../types/TicketTypes';
+import {
+  mongoCollectionManager,
+  IncidentDocument,
+  ChangeTaskDocument,
+  SCTaskDocument,
+} from "../../config/mongodb-collections";
+import { systemService } from "../SystemService";
+import { enhancedTicketStorageService } from "../index";
+import { logger } from "../../utils/Logger";
+import type { TicketData } from "../../types/TicketTypes";
 
 export class TicketDataCore {
   protected client: any = null;
@@ -28,9 +33,12 @@ export class TicketDataCore {
     try {
       await this.initializeMongoDB();
       await this.groupService.initialize();
-      logger.info(' [TICKET-DATA] TicketDataCore initialized successfully');
+      logger.info(" [TICKET-DATA] TicketDataCore initialized successfully");
     } catch (error) {
-      logger.error(' [TICKET-DATA] Failed to initialize TicketDataCore:', error);
+      logger.error(
+        " [TICKET-DATA] Failed to initialize TicketDataCore:",
+        error,
+      );
       throw error;
     }
   }
@@ -40,9 +48,10 @@ export class TicketDataCore {
    */
   private async initializeMongoDB(): Promise<void> {
     try {
-      const { MongoClient } = await import('mongodb');
+      const { MongoClient } = await import("mongodb");
 
-      const connectionString = process.env.MONGODB_URL ||
+      const connectionString =
+        process.env.MONGODB_URL ||
         `mongodb://${process.env.MONGODB_USERNAME}:${process.env.MONGODB_PASSWORD}@${process.env.MONGODB_HOST}:${process.env.MONGODB_PORT}/${process.env.MONGODB_DATABASE}?authSource=${process.env.MONGODB_AUTH_SOURCE}`;
 
       this.client = new MongoClient(connectionString, {
@@ -52,18 +61,18 @@ export class TicketDataCore {
         family: 4,
         retryWrites: true,
         retryReads: true,
-        w: 'majority',
-        readPreference: 'primary',
-        readConcern: { level: 'majority' }
+        w: "majority",
+        readPreference: "primary",
+        readConcern: { level: "majority" },
       });
 
       await this.client.connect();
-      this.db = this.client.db('bunsnc');
+      this.db = this.client.db("bunsnc");
       this.isConnected = true;
 
-      logger.info(' [TICKET-DATA] MongoDB connection established');
+      logger.info(" [TICKET-DATA] MongoDB connection established");
     } catch (error) {
-      logger.error(' [TICKET-DATA] MongoDB connection failed:', error);
+      logger.error(" [TICKET-DATA] MongoDB connection failed:", error);
       throw error;
     }
   }
@@ -111,19 +120,20 @@ export class TicketDataCore {
     await this.ensureConnected();
 
     try {
-      const [incidentCount, changeTaskCount, scTaskCount, groupCount] = await Promise.all([
-        this.db.collection('incidents').countDocuments(),
-        this.db.collection('change_tasks').countDocuments(),
-        this.db.collection('sc_tasks').countDocuments(),
-        this.db.collection('sys_user_groups').countDocuments()
-      ]);
+      const [incidentCount, changeTaskCount, scTaskCount, groupCount] =
+        await Promise.all([
+          this.db.collection("incidents").countDocuments(),
+          this.db.collection("change_tasks").countDocuments(),
+          this.db.collection("sc_tasks").countDocuments(),
+          this.db.collection("sys_user_groups").countDocuments(),
+        ]);
 
       return {
         incidents: incidentCount,
         changeTasks: changeTaskCount,
         scTasks: scTaskCount,
         groups: groupCount,
-        lastSync: new Date().toISOString()
+        lastSync: new Date().toISOString(),
       };
     } catch (error) {
       logger.error(`[TICKET-DATA] Error getting collection stats:`, error);
@@ -132,7 +142,7 @@ export class TicketDataCore {
         changeTasks: 0,
         scTasks: 0,
         groups: 0,
-        lastSync: new Date().toISOString()
+        lastSync: new Date().toISOString(),
       };
     }
   }
@@ -140,26 +150,29 @@ export class TicketDataCore {
   /**
    * Get ticket from MongoDB
    */
-  async getTicketFromMongoDB(sysId: string, table: string): Promise<TicketData | null> {
+  async getTicketFromMongoDB(
+    sysId: string,
+    table: string,
+  ): Promise<TicketData | null> {
     await this.ensureConnected();
 
     try {
       let collection;
       switch (table) {
-        case 'incident':
+        case "incident":
           collection = mongoCollectionManager.getIncidentsCollection();
           break;
-        case 'change_task':
+        case "change_task":
           collection = mongoCollectionManager.getChangeTasksCollection();
           break;
-        case 'sc_task':
+        case "sc_task":
           collection = mongoCollectionManager.getSCTasksCollection();
           break;
         default:
           return null;
       }
 
-      const document = await collection.findOne({ 'raw_data.sys_id': sysId });
+      const document = await collection.findOne({ "raw_data.sys_id": sysId });
       if (!document) return null;
 
       return this.convertMongoDocumentToTicketData(document, table);
@@ -178,13 +191,13 @@ export class TicketDataCore {
     try {
       let collection;
       switch (table) {
-        case 'incident':
+        case "incident":
           collection = mongoCollectionManager.getIncidentsCollection();
           break;
-        case 'change_task':
+        case "change_task":
           collection = mongoCollectionManager.getChangeTasksCollection();
           break;
-        case 'sc_task':
+        case "sc_task":
           collection = mongoCollectionManager.getSCTasksCollection();
           break;
         default:
@@ -195,15 +208,12 @@ export class TicketDataCore {
         sys_id: ticket.sysId,
         raw_data: ticket,
         updated_at: new Date(),
-        synced_at: new Date()
+        synced_at: new Date(),
       };
 
-      await collection.replaceOne(
-        { sys_id: ticket.sysId },
-        document,
-        { upsert: true }
-      );
-
+      await collection.replaceOne({ sys_id: ticket.sysId }, document, {
+        upsert: true,
+      });
     } catch (error) {
       logger.error(`[TICKET-DATA] Error storing ticket in MongoDB:`, error);
     }
@@ -228,28 +238,45 @@ export class TicketDataCore {
    * Process raw ticket data from ServiceNow
    */
   processTicketData(rawTicket: any): TicketData {
-    const formattedCreatedOn = this.formatDate(rawTicket.sys_created_on?.display_value || rawTicket.sys_created_on || '');
+    const formattedCreatedOn = this.formatDate(
+      rawTicket.sys_created_on?.display_value || rawTicket.sys_created_on || "",
+    );
 
     return {
       sysId: this.extractValue(rawTicket.sys_id),
       number: this.extractValue(rawTicket.number),
-      shortDescription: this.extractValue(rawTicket.short_description) || 'Sem descrição',
-      description: this.extractValue(rawTicket.description) || 'Sem descrição detalhada',
-      state: this.extractValue(rawTicket.state) || '1',
-      priority: this.extractValue(rawTicket.priority) || '3',
-      assignedTo: this.extractValue(rawTicket.assigned_to) || 'Não atribuído',
-      assignmentGroup: this.extractValue(rawTicket.assignment_group) || 'Não atribuído',
-      caller: this.extractValue(rawTicket.caller_id) || this.extractValue(rawTicket.opened_by) || 'N/A',
+      shortDescription:
+        this.extractValue(rawTicket.short_description) || "Sem descrição",
+      description:
+        this.extractValue(rawTicket.description) || "Sem descrição detalhada",
+      state: this.extractValue(rawTicket.state) || "1",
+      priority: this.extractValue(rawTicket.priority) || "3",
+      assignedTo: this.extractValue(rawTicket.assigned_to) || "Não atribuído",
+      assignmentGroup:
+        this.extractValue(rawTicket.assignment_group) || "Não atribuído",
+      caller:
+        this.extractValue(rawTicket.caller_id) ||
+        this.extractValue(rawTicket.opened_by) ||
+        "N/A",
       createdOn: formattedCreatedOn,
-      table: this.extractValue(rawTicket.sys_class_name) || 'incident',
-      slaDue: this.extractValue(rawTicket.sla_due) === 'N/A' ? null : this.extractValue(rawTicket.sla_due),
-      businessStc: this.extractValue(rawTicket.business_stc) === 'N/A' ? null : this.extractValue(rawTicket.business_stc),
-      resolveTime: this.extractValue(rawTicket.resolve_time) === 'N/A' ? null : this.extractValue(rawTicket.resolve_time),
+      table: this.extractValue(rawTicket.sys_class_name) || "incident",
+      slaDue:
+        this.extractValue(rawTicket.sla_due) === "N/A"
+          ? null
+          : this.extractValue(rawTicket.sla_due),
+      businessStc:
+        this.extractValue(rawTicket.business_stc) === "N/A"
+          ? null
+          : this.extractValue(rawTicket.business_stc),
+      resolveTime:
+        this.extractValue(rawTicket.resolve_time) === "N/A"
+          ? null
+          : this.extractValue(rawTicket.resolve_time),
       updatedOn: this.extractValue(rawTicket.sys_updated_on),
       category: this.extractValue(rawTicket.category),
       subcategory: this.extractValue(rawTicket.subcategory),
-      urgency: this.extractValue(rawTicket.urgency) || '3',
-      impact: this.extractValue(rawTicket.impact) || '3'
+      urgency: this.extractValue(rawTicket.urgency) || "3",
+      impact: this.extractValue(rawTicket.impact) || "3",
     };
   }
 
@@ -257,11 +284,11 @@ export class TicketDataCore {
    * Utility: Extract value from ServiceNow field
    */
   extractValue(field: any): string {
-    if (!field) return 'N/A';
-    if (typeof field === 'string') return field;
-    if (typeof field === 'object' && field.display_value !== undefined)
+    if (!field) return "N/A";
+    if (typeof field === "string") return field;
+    if (typeof field === "object" && field.display_value !== undefined)
       return String(field.display_value);
-    if (typeof field === 'object' && field.value !== undefined)
+    if (typeof field === "object" && field.value !== undefined)
       return String(field.value);
     return String(field);
   }
@@ -270,17 +297,17 @@ export class TicketDataCore {
    * Utility: Format date string
    */
   formatDate(dateString: string): string {
-    if (!dateString) return 'N/A';
+    if (!dateString) return "N/A";
 
     try {
       const date = new Date(dateString);
       if (!isNaN(date.getTime())) {
-        return date.toLocaleDateString('pt-BR', {
-          year: 'numeric',
-          month: 'short',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit'
+        return date.toLocaleDateString("pt-BR", {
+          year: "numeric",
+          month: "short",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
         });
       }
     } catch (error) {
@@ -295,12 +322,12 @@ export class TicketDataCore {
    */
   getStatusLabel(state: string): string {
     const statusMap: Record<string, string> = {
-      '1': 'Novo',
-      '2': 'Em Progresso',
-      '6': 'Resolvido',
-      '7': 'Fechado'
+      "1": "Novo",
+      "2": "Em Progresso",
+      "6": "Resolvido",
+      "7": "Fechado",
     };
-    return statusMap[state] || 'Desconhecido';
+    return statusMap[state] || "Desconhecido";
   }
 
   /**
@@ -308,13 +335,13 @@ export class TicketDataCore {
    */
   getPriorityLabel(priority: string): string {
     const priorityMap: Record<string, string> = {
-      '1': 'Crítica',
-      '2': 'Alta',
-      '3': 'Moderada',
-      '4': 'Baixa',
-      '5': 'Planejamento'
+      "1": "Crítica",
+      "2": "Alta",
+      "3": "Moderada",
+      "4": "Baixa",
+      "5": "Planejamento",
     };
-    return priorityMap[priority] || 'N/A';
+    return priorityMap[priority] || "N/A";
   }
 
   /**
@@ -327,6 +354,6 @@ export class TicketDataCore {
       this.db = null;
       this.isConnected = false;
     }
-    logger.info('🧹 [TICKET-DATA] TicketDataCore cleaned up');
+    logger.info("🧹 [TICKET-DATA] TicketDataCore cleaned up");
   }
 }

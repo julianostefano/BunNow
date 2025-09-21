@@ -3,16 +3,21 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { TicketStorageCore, TicketDocument, TicketQuery, QueryResult } from './TicketStorageCore';
+import {
+  TicketStorageCore,
+  TicketDocument,
+  TicketQuery,
+  QueryResult,
+} from "./TicketStorageCore";
 
 export class TicketQueryService extends TicketStorageCore {
-
   /**
    * Advanced query with optimized filtering and pagination
    */
   async queryTickets(query: TicketQuery): Promise<QueryResult<TicketDocument>> {
     await this.ensureConnected();
-    if (!this.ticketsCollection) throw new Error('Tickets collection not initialized');
+    if (!this.ticketsCollection)
+      throw new Error("Tickets collection not initialized");
 
     try {
       // Build MongoDB filter
@@ -37,14 +42,14 @@ export class TicketQueryService extends TicketStorageCore {
       if (query.dateRange) {
         const dateField = query.dateRange.field;
         const dateFilter: any = {};
-        
+
         if (query.dateRange.start) {
           dateFilter.$gte = query.dateRange.start;
         }
         if (query.dateRange.end) {
           dateFilter.$lte = query.dateRange.end;
         }
-        
+
         if (Object.keys(dateFilter).length > 0) {
           filter[dateField] = dateFilter;
         }
@@ -68,7 +73,7 @@ export class TicketQueryService extends TicketStorageCore {
           .skip(skip)
           .limit(limit)
           .toArray(),
-        this.ticketsCollection.countDocuments(filter)
+        this.ticketsCollection.countDocuments(filter),
       ]);
 
       return {
@@ -76,11 +81,10 @@ export class TicketQueryService extends TicketStorageCore {
         total,
         hasMore: skip + data.length < total,
         page: Math.floor(skip / limit) + 1,
-        limit
+        limit,
       };
-
     } catch (error) {
-      console.error(' Error querying tickets:', error);
+      console.error(" Error querying tickets:", error);
       throw error;
     }
   }
@@ -90,7 +94,8 @@ export class TicketQueryService extends TicketStorageCore {
    */
   async getDashboardStats(groupBy?: string): Promise<any> {
     await this.ensureConnected();
-    if (!this.ticketsCollection) throw new Error('Tickets collection not initialized');
+    if (!this.ticketsCollection)
+      throw new Error("Tickets collection not initialized");
 
     try {
       const pipeline: any[] = [
@@ -99,16 +104,16 @@ export class TicketQueryService extends TicketStorageCore {
             _id: groupBy ? `$${groupBy}` : null,
             totalTickets: { $sum: 1 },
             activeTickets: {
-              $sum: { $cond: [{ $ne: ["$state", 7] }, 1, 0] } // Assuming 7 is closed
+              $sum: { $cond: [{ $ne: ["$state", 7] }, 1, 0] }, // Assuming 7 is closed
             },
             byType: {
               $push: {
                 ticketType: "$ticketType",
                 state: "$state",
-                priority: "$priority"
-              }
-            }
-          }
+                priority: "$priority",
+              },
+            },
+          },
         },
         {
           $project: {
@@ -120,42 +125,45 @@ export class TicketQueryService extends TicketStorageCore {
               $size: {
                 $filter: {
                   input: "$byType",
-                  cond: { $eq: ["$$this.ticketType", "incident"] }
-                }
-              }
+                  cond: { $eq: ["$$this.ticketType", "incident"] },
+                },
+              },
             },
             changeTaskCount: {
               $size: {
                 $filter: {
                   input: "$byType",
-                  cond: { $eq: ["$$this.ticketType", "change_task"] }
-                }
-              }
+                  cond: { $eq: ["$$this.ticketType", "change_task"] },
+                },
+              },
             },
             scTaskCount: {
               $size: {
                 $filter: {
                   input: "$byType",
-                  cond: { $eq: ["$$this.ticketType", "sc_task"] }
-                }
-              }
-            }
-          }
-        }
+                  cond: { $eq: ["$$this.ticketType", "sc_task"] },
+                },
+              },
+            },
+          },
+        },
       ];
 
-      const results = await this.ticketsCollection.aggregate(pipeline).toArray();
-      return results[0] || {
-        totalTickets: 0,
-        activeTickets: 0,
-        closedTickets: 0,
-        incidentCount: 0,
-        changeTaskCount: 0,
-        scTaskCount: 0
-      };
-
+      const results = await this.ticketsCollection
+        .aggregate(pipeline)
+        .toArray();
+      return (
+        results[0] || {
+          totalTickets: 0,
+          activeTickets: 0,
+          closedTickets: 0,
+          incidentCount: 0,
+          changeTaskCount: 0,
+          scTaskCount: 0,
+        }
+      );
     } catch (error) {
-      console.error(' Error getting dashboard stats:', error);
+      console.error(" Error getting dashboard stats:", error);
       throw error;
     }
   }
@@ -165,15 +173,18 @@ export class TicketQueryService extends TicketStorageCore {
    */
   async getHealthMetrics(): Promise<any> {
     await this.ensureConnected();
-    if (!this.db || !this.ticketsCollection) throw new Error('Service not initialized');
+    if (!this.db || !this.ticketsCollection)
+      throw new Error("Service not initialized");
 
     try {
       const [collStats, indexes, recentSyncs] = await Promise.all([
-        this.db.command({ collStats: 'tickets' }),
+        this.db.command({ collStats: "tickets" }),
         this.ticketsCollection.listIndexes().toArray(),
         this.ticketsCollection
-          .find({ _syncedAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } })
-          .count()
+          .find({
+            _syncedAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+          })
+          .count(),
       ]);
 
       return {
@@ -185,12 +196,11 @@ export class TicketQueryService extends TicketStorageCore {
         indexes: indexes.map((idx: any) => ({
           name: idx.name,
           key: idx.key,
-          unique: idx.unique || false
-        }))
+          unique: idx.unique || false,
+        })),
       };
-
     } catch (error) {
-      console.error(' Error getting health metrics:', error);
+      console.error(" Error getting health metrics:", error);
       throw error;
     }
   }
@@ -198,14 +208,17 @@ export class TicketQueryService extends TicketStorageCore {
   /**
    * Get tickets with SLA information
    */
-  async getTicketsWithSLAs(query: Partial<TicketQuery> = {}): Promise<QueryResult<TicketDocument>> {
+  async getTicketsWithSLAs(
+    query: Partial<TicketQuery> = {},
+  ): Promise<QueryResult<TicketDocument>> {
     await this.ensureConnected();
-    if (!this.ticketsCollection) throw new Error('Tickets collection not initialized');
+    if (!this.ticketsCollection)
+      throw new Error("Tickets collection not initialized");
 
     try {
       // Build filter with SLA-specific criteria
       const filter: any = {
-        'slms': { $exists: true, $not: { $size: 0 } }
+        slms: { $exists: true, $not: { $size: 0 } },
       };
 
       // Add query filters
@@ -231,7 +244,7 @@ export class TicketQueryService extends TicketStorageCore {
           .skip(skip)
           .limit(limit)
           .toArray(),
-        this.ticketsCollection.countDocuments(filter)
+        this.ticketsCollection.countDocuments(filter),
       ]);
 
       return {
@@ -239,11 +252,10 @@ export class TicketQueryService extends TicketStorageCore {
         total,
         hasMore: skip + data.length < total,
         page: Math.floor(skip / limit) + 1,
-        limit
+        limit,
       };
-
     } catch (error) {
-      console.error(' Error getting tickets with SLAs:', error);
+      console.error(" Error getting tickets with SLAs:", error);
       throw error;
     }
   }
@@ -252,58 +264,62 @@ export class TicketQueryService extends TicketStorageCore {
    * Advanced analytics - Tickets by time period
    */
   async getTicketsTrends(
-    period: 'day' | 'week' | 'month' = 'week',
-    ticketType?: 'incident' | 'change_task' | 'sc_task'
+    period: "day" | "week" | "month" = "week",
+    ticketType?: "incident" | "change_task" | "sc_task",
   ): Promise<any> {
     await this.ensureConnected();
-    if (!this.ticketsCollection) throw new Error('Tickets collection not initialized');
+    if (!this.ticketsCollection)
+      throw new Error("Tickets collection not initialized");
 
     try {
-      const dateFormat = period === 'day' ? '%Y-%m-%d' : 
-                        period === 'week' ? '%Y-%U' : '%Y-%m';
+      const dateFormat =
+        period === "day" ? "%Y-%m-%d" : period === "week" ? "%Y-%U" : "%Y-%m";
 
       const pipeline: any[] = [
         {
-          $match: ticketType ? { ticketType } : {}
+          $match: ticketType ? { ticketType } : {},
         },
         {
           $group: {
             _id: {
-              period: { $dateToString: { format: dateFormat, date: '$sys_created_on' } },
-              ticketType: '$ticketType'
+              period: {
+                $dateToString: { format: dateFormat, date: "$sys_created_on" },
+              },
+              ticketType: "$ticketType",
             },
             count: { $sum: 1 },
             activeCount: {
-              $sum: { $cond: [{ $ne: ['$state', 7] }, 1, 0] }
+              $sum: { $cond: [{ $ne: ["$state", 7] }, 1, 0] },
             },
             closedCount: {
-              $sum: { $cond: [{ $eq: ['$state', 7] }, 1, 0] }
-            }
-          }
+              $sum: { $cond: [{ $eq: ["$state", 7] }, 1, 0] },
+            },
+          },
         },
         {
-          $sort: { '_id.period': 1 }
+          $sort: { "_id.period": 1 },
         },
         {
-          $limit: 50
-        }
+          $limit: 50,
+        },
       ];
 
-      const results = await this.ticketsCollection.aggregate(pipeline).toArray();
-      
+      const results = await this.ticketsCollection
+        .aggregate(pipeline)
+        .toArray();
+
       return {
         period,
-        data: results.map(r => ({
+        data: results.map((r) => ({
           period: r._id.period,
           ticketType: r._id.ticketType,
           total: r.count,
           active: r.activeCount,
-          closed: r.closedCount
-        }))
+          closed: r.closedCount,
+        })),
       };
-
     } catch (error) {
-      console.error(' Error getting ticket trends:', error);
+      console.error(" Error getting ticket trends:", error);
       throw error;
     }
   }
@@ -313,69 +329,72 @@ export class TicketQueryService extends TicketStorageCore {
    */
   async getTicketsByAssignmentGroup(limit: number = 20): Promise<any> {
     await this.ensureConnected();
-    if (!this.ticketsCollection) throw new Error('Tickets collection not initialized');
+    if (!this.ticketsCollection)
+      throw new Error("Tickets collection not initialized");
 
     try {
       const pipeline = [
         {
           $group: {
-            _id: '$assignment_group',
+            _id: "$assignment_group",
             totalTickets: { $sum: 1 },
             activeTickets: {
-              $sum: { $cond: [{ $ne: ['$state', 7] }, 1, 0] }
+              $sum: { $cond: [{ $ne: ["$state", 7] }, 1, 0] },
             },
-            avgPriority: { $avg: '$priority' },
+            avgPriority: { $avg: "$priority" },
             ticketTypes: {
-              $push: '$ticketType'
+              $push: "$ticketType",
             },
-            lastUpdate: { $max: '$sys_updated_on' }
-          }
+            lastUpdate: { $max: "$sys_updated_on" },
+          },
         },
         {
           $project: {
             _id: 1,
             totalTickets: 1,
             activeTickets: 1,
-            closedTickets: { $subtract: ['$totalTickets', '$activeTickets'] },
-            avgPriority: { $round: ['$avgPriority', 2] },
+            closedTickets: { $subtract: ["$totalTickets", "$activeTickets"] },
+            avgPriority: { $round: ["$avgPriority", 2] },
             incidentCount: {
               $size: {
                 $filter: {
-                  input: '$ticketTypes',
-                  cond: { $eq: ['$$this', 'incident'] }
-                }
-              }
+                  input: "$ticketTypes",
+                  cond: { $eq: ["$$this", "incident"] },
+                },
+              },
             },
             changeTaskCount: {
               $size: {
                 $filter: {
-                  input: '$ticketTypes',
-                  cond: { $eq: ['$$this', 'change_task'] }
-                }
-              }
+                  input: "$ticketTypes",
+                  cond: { $eq: ["$$this", "change_task"] },
+                },
+              },
             },
             scTaskCount: {
               $size: {
                 $filter: {
-                  input: '$ticketTypes',
-                  cond: { $eq: ['$$this', 'sc_task'] }
-                }
-              }
+                  input: "$ticketTypes",
+                  cond: { $eq: ["$$this", "sc_task"] },
+                },
+              },
             },
-            lastUpdate: 1
-          }
+            lastUpdate: 1,
+          },
         },
         {
-          $sort: { totalTickets: -1 }
+          $sort: { totalTickets: -1 },
         },
         {
-          $limit: limit
-        }
+          $limit: limit,
+        },
       ];
 
-      const results = await this.ticketsCollection.aggregate(pipeline).toArray();
-      
-      return results.map(r => ({
+      const results = await this.ticketsCollection
+        .aggregate(pipeline)
+        .toArray();
+
+      return results.map((r) => ({
         assignmentGroup: r._id,
         totalTickets: r.totalTickets,
         activeTickets: r.activeTickets,
@@ -384,13 +403,12 @@ export class TicketQueryService extends TicketStorageCore {
         breakdown: {
           incidents: r.incidentCount,
           changeTasks: r.changeTaskCount,
-          scTasks: r.scTaskCount
+          scTasks: r.scTaskCount,
         },
-        lastUpdate: r.lastUpdate
+        lastUpdate: r.lastUpdate,
       }));
-
     } catch (error) {
-      console.error(' Error getting tickets by assignment group:', error);
+      console.error(" Error getting tickets by assignment group:", error);
       throw error;
     }
   }
@@ -400,23 +418,23 @@ export class TicketQueryService extends TicketStorageCore {
    */
   async searchTickets(
     searchText: string,
-    filters?: Partial<TicketQuery>
+    filters?: Partial<TicketQuery>,
   ): Promise<QueryResult<TicketDocument>> {
     await this.ensureConnected();
-    if (!this.ticketsCollection) throw new Error('Tickets collection not initialized');
+    if (!this.ticketsCollection)
+      throw new Error("Tickets collection not initialized");
 
     try {
       const query: TicketQuery = {
         textSearch: searchText,
         limit: filters?.limit || 50,
         skip: filters?.skip || 0,
-        ...filters
+        ...filters,
       };
 
       return await this.queryTickets(query);
-
     } catch (error) {
-      console.error(' Error searching tickets:', error);
+      console.error(" Error searching tickets:", error);
       throw error;
     }
   }

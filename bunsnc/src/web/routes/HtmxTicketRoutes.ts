@@ -3,27 +3,27 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { Elysia, t } from 'elysia';
-import { html } from '@elysiajs/html';
-import { htmx } from '@gtramontina.com/elysia-htmx';
-import { serviceNowAuthClient } from '../../services/ServiceNowAuthClient';
+import { Elysia, t } from "elysia";
+import { html } from "@elysiajs/html";
+import { htmx } from "@gtramontina.com/elysia-htmx";
+import { serviceNowAuthClient } from "../../services/ServiceNowAuthClient";
 
 export const htmxTicketRoutes = new Elysia()
   .use(html())
   .use(htmx())
-  
+
   /**
    * Tickets list component with pagination
    */
-  .get('/tickets', async ({ query: params, hx }) => {
+  .get("/tickets", async ({ query: params, hx }) => {
     const {
-      table = 'incident',
-      state = '',
-      priority = '',
-      assigned_to = '',
-      assignment_group = '',
-      page = '1',
-      limit = '20'
+      table = "incident",
+      state = "",
+      priority = "",
+      assigned_to = "",
+      assignment_group = "",
+      page = "1",
+      limit = "20",
     } = params as any;
 
     try {
@@ -36,9 +36,10 @@ export const htmxTicketRoutes = new Elysia()
       if (state) filters.push(`state=${state}`);
       if (priority) filters.push(`priority=${priority}`);
       if (assigned_to) filters.push(`assigned_to=${assigned_to}`);
-      if (assignment_group) filters.push(`assignment_group=${assignment_group}`);
+      if (assignment_group)
+        filters.push(`assignment_group=${assignment_group}`);
 
-      const filterQuery = filters.length > 0 ? filters.join('^') : '';
+      const filterQuery = filters.length > 0 ? filters.join("^") : "";
 
       const response = await serviceNowAuthClient.makeRequest(
         table,
@@ -46,8 +47,9 @@ export const htmxTicketRoutes = new Elysia()
         pageLimit,
         {
           sysparm_offset: offset,
-          sysparm_fields: 'sys_id,number,short_description,description,state,priority,urgency,impact,assignment_group,assigned_to,caller_id,sys_created_on,sys_updated_on'
-        }
+          sysparm_fields:
+            "sys_id,number,short_description,description,state,priority,urgency,impact,assignment_group,assigned_to,caller_id,sys_created_on,sys_updated_on",
+        },
       );
 
       const tickets = response.result || [];
@@ -64,7 +66,9 @@ export const htmxTicketRoutes = new Elysia()
         `;
       }
 
-      const ticketsList = tickets.map(ticket => `
+      const ticketsList = tickets
+        .map(
+          (ticket) => `
         <div class="ticket-card rounded-lg p-6 cursor-pointer transition-all duration-300 hover:shadow-lg border" 
              hx-get="/htmx/ticket/${ticket.sys_id}/${table}" 
              hx-target="#ticket-modal .modal-content" 
@@ -77,27 +81,36 @@ export const htmxTicketRoutes = new Elysia()
               <div class="flex items-center gap-3 mb-2">
                 <h3 class="text-lg font-semibold text-white">${ticket.number}</h3>
                 <span class="status-badge ${getStatusClass(ticket.state)}">${getStatusLabel(ticket.state)}</span>
-                <span class="priority-badge ${getPriorityClass(ticket.priority)}">P${ticket.priority || 'N/A'}</span>
+                <span class="priority-badge ${getPriorityClass(ticket.priority)}">P${ticket.priority || "N/A"}</span>
               </div>
-              <p class="text-sm text-gray-300 font-medium">${ticket.short_description || 'Sem título'}</p>
+              <p class="text-sm text-gray-300 font-medium">${ticket.short_description || "Sem título"}</p>
             </div>
             
             <div class="text-right text-xs text-gray-500">
-              <div>Criado: ${new Date(ticket.sys_created_on).toLocaleDateString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}</div>
-              ${ticket.sys_updated_on !== ticket.sys_created_on ? `
-                <div>Atualizado: ${new Date(ticket.sys_updated_on).toLocaleDateString('pt-BR', {
-                  day: '2-digit',
-                  month: '2-digit', 
-                  hour: '2-digit',
-                  minute: '2-digit'
+              <div>Criado: ${new Date(ticket.sys_created_on).toLocaleDateString(
+                "pt-BR",
+                {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                },
+              )}</div>
+              ${
+                ticket.sys_updated_on !== ticket.sys_created_on
+                  ? `
+                <div>Atualizado: ${new Date(
+                  ticket.sys_updated_on,
+                ).toLocaleDateString("pt-BR", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
                 })}</div>
-              ` : ''}
+              `
+                  : ""
+              }
             </div>
           </div>
 
@@ -105,28 +118,32 @@ export const htmxTicketRoutes = new Elysia()
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
               <span class="text-gray-400">Atribuído:</span>
-              <span class="text-gray-200 ml-2">${ticket.assigned_to || 'Não atribuído'}</span>
+              <span class="text-gray-200 ml-2">${ticket.assigned_to || "Não atribuído"}</span>
             </div>
             <div>
               <span class="text-gray-400">Grupo:</span>
-              <span class="text-gray-200 ml-2">${ticket.assignment_group || 'Não definido'}</span>
+              <span class="text-gray-200 ml-2">${ticket.assignment_group || "Não definido"}</span>
             </div>
             <div>
               <span class="text-gray-400">Solicitante:</span>
-              <span class="text-gray-200 ml-2">${ticket.caller_id || 'N/A'}</span>
+              <span class="text-gray-200 ml-2">${ticket.caller_id || "N/A"}</span>
             </div>
             <div>
               <span class="text-gray-400">Urgência/Impacto:</span>
-              <span class="text-gray-200 ml-2">${ticket.urgency || 'N/A'}/${ticket.impact || 'N/A'}</span>
+              <span class="text-gray-200 ml-2">${ticket.urgency || "N/A"}/${ticket.impact || "N/A"}</span>
             </div>
           </div>
 
           <!-- Description Preview -->
-          ${ticket.description ? `
+          ${
+            ticket.description
+              ? `
             <div class="mt-4 pt-4 border-t border-gray-700">
-              <p class="text-sm text-gray-400 line-clamp-2">${ticket.description.substring(0, 150)}${ticket.description.length > 150 ? '...' : ''}</p>
+              <p class="text-sm text-gray-400 line-clamp-2">${ticket.description.substring(0, 150)}${ticket.description.length > 150 ? "..." : ""}</p>
             </div>
-          ` : ''}
+          `
+              : ""
+          }
 
           <!-- Quick Actions -->
           <div class="mt-4 pt-4 border-t border-gray-700 flex justify-between items-center">
@@ -140,7 +157,9 @@ export const htmxTicketRoutes = new Elysia()
             </div>
           </div>
         </div>
-      `).join('');
+      `,
+        )
+        .join("");
 
       // Pagination
       const hasMore = tickets.length === pageLimit;
@@ -150,30 +169,37 @@ export const htmxTicketRoutes = new Elysia()
             Página ${pageNum} • ${tickets.length} tickets
           </div>
           <div class="flex gap-2">
-            ${pageNum > 1 ? `
+            ${
+              pageNum > 1
+                ? `
               <button 
                 class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                hx-get="/htmx/tickets?${new URLSearchParams({...params as any, page: String(pageNum - 1)}).toString()}"
+                hx-get="/htmx/tickets?${new URLSearchParams({ ...(params as any), page: String(pageNum - 1) }).toString()}"
                 hx-target="#tickets-list">
                 ← Anterior
               </button>
-            ` : ''}
-            ${hasMore ? `
+            `
+                : ""
+            }
+            ${
+              hasMore
+                ? `
               <button 
                 class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                hx-get="/htmx/tickets?${new URLSearchParams({...params as any, page: String(pageNum + 1)}).toString()}"
+                hx-get="/htmx/tickets?${new URLSearchParams({ ...(params as any), page: String(pageNum + 1) }).toString()}"
                 hx-target="#tickets-list">
                 Próxima →
               </button>
-            ` : ''}
+            `
+                : ""
+            }
           </div>
         </div>
       `;
 
       return ticketsList + pagination;
-
     } catch (error) {
-      console.error('Error loading tickets:', error);
+      console.error("Error loading tickets:", error);
       return `
         <div class="text-center py-12 text-red-600">
           <p>Erro ao carregar tickets. Tente novamente.</p>
@@ -185,7 +211,7 @@ export const htmxTicketRoutes = new Elysia()
   /**
    * Complete ticket details with SLA information
    */
-  .get('/ticket/:sysId/:table', async ({ params: { sysId, table } }) => {
+  .get("/ticket/:sysId/:table", async ({ params: { sysId, table } }) => {
     try {
       // Get ticket details
       const response = await serviceNowAuthClient.makeRequest(
@@ -193,8 +219,9 @@ export const htmxTicketRoutes = new Elysia()
         `sys_id=${sysId}`,
         1,
         {
-          sysparm_fields: 'sys_id,number,short_description,description,state,priority,urgency,impact,category,subcategory,assignment_group,assigned_to,caller_id,sys_created_on,sys_updated_on,work_notes,close_notes,resolution_code,resolved_at,closed_at'
-        }
+          sysparm_fields:
+            "sys_id,number,short_description,description,state,priority,urgency,impact,category,subcategory,assignment_group,assigned_to,caller_id,sys_created_on,sys_updated_on,work_notes,close_notes,resolution_code,resolved_at,closed_at",
+        },
       );
 
       if (!response.result || response.result.length === 0) {
@@ -211,69 +238,88 @@ export const htmxTicketRoutes = new Elysia()
       let slaInfo = [];
       try {
         const slaResponse = await serviceNowAuthClient.makeRequest(
-          'task_sla',
+          "task_sla",
           `task=${sysId}^active=true`,
           5,
           {
-            sysparm_fields: 'sys_id,sla,stage,percentage,business_percentage,has_breached,breach_time,business_time_left,time_left,start_time,end_time,business_duration,duration'
-          }
+            sysparm_fields:
+              "sys_id,sla,stage,percentage,business_percentage,has_breached,breach_time,business_time_left,time_left,start_time,end_time,business_duration,duration",
+          },
         );
-        
+
         if (slaResponse.result) {
           slaInfo = slaResponse.result;
         }
       } catch (slaError) {
-        console.warn('SLA information not available:', slaError);
+        console.warn("SLA information not available:", slaError);
       }
 
       // Format date helper
       const formatDate = (dateStr: string) => {
-        if (!dateStr) return 'N/A';
-        return new Date(dateStr).toLocaleString('pt-BR', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
+        if (!dateStr) return "N/A";
+        return new Date(dateStr).toLocaleString("pt-BR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
         });
       };
 
       // Get status info
       function getStateInfo(state: string) {
-        const states: Record<string, {label: string, color: string}> = {
-          '1': { label: 'Novo', color: 'bg-blue-100 text-blue-800' },
-          '2': { label: 'Em Andamento', color: 'bg-yellow-100 text-yellow-800' },
-          '3': { label: 'Trabalho em Progresso', color: 'bg-orange-100 text-orange-800' },
-          '6': { label: 'Resolvido', color: 'bg-green-100 text-green-800' },
-          '7': { label: 'Fechado', color: 'bg-gray-100 text-gray-800' },
-          '8': { label: 'Cancelado', color: 'bg-red-100 text-red-800' }
+        const states: Record<string, { label: string; color: string }> = {
+          "1": { label: "Novo", color: "bg-blue-100 text-blue-800" },
+          "2": {
+            label: "Em Andamento",
+            color: "bg-yellow-100 text-yellow-800",
+          },
+          "3": {
+            label: "Trabalho em Progresso",
+            color: "bg-orange-100 text-orange-800",
+          },
+          "6": { label: "Resolvido", color: "bg-green-100 text-green-800" },
+          "7": { label: "Fechado", color: "bg-gray-100 text-gray-800" },
+          "8": { label: "Cancelado", color: "bg-red-100 text-red-800" },
         };
-        return states[state] || { label: 'Desconhecido', color: 'bg-gray-100 text-gray-800' };
+        return (
+          states[state] || {
+            label: "Desconhecido",
+            color: "bg-gray-100 text-gray-800",
+          }
+        );
       }
 
       // Get priority info
       function getPriorityInfo(priority: string) {
-        const priorities: Record<string, {label: string, color: string}> = {
-          '1': { label: 'Crítica', color: 'bg-red-100 text-red-800' },
-          '2': { label: 'Alta', color: 'bg-orange-100 text-orange-800' },
-          '3': { label: 'Moderada', color: 'bg-yellow-100 text-yellow-800' },
-          '4': { label: 'Baixa', color: 'bg-green-100 text-green-800' },
-          '5': { label: 'Planejamento', color: 'bg-blue-100 text-blue-800' }
+        const priorities: Record<string, { label: string; color: string }> = {
+          "1": { label: "Crítica", color: "bg-red-100 text-red-800" },
+          "2": { label: "Alta", color: "bg-orange-100 text-orange-800" },
+          "3": { label: "Moderada", color: "bg-yellow-100 text-yellow-800" },
+          "4": { label: "Baixa", color: "bg-green-100 text-green-800" },
+          "5": { label: "Planejamento", color: "bg-blue-100 text-blue-800" },
         };
-        return priorities[priority] || { label: 'N/A', color: 'bg-gray-100 text-gray-800' };
+        return (
+          priorities[priority] || {
+            label: "N/A",
+            color: "bg-gray-100 text-gray-800",
+          }
+        );
       }
 
       // Format time remaining
       function formatTimeRemaining(timeStr: string) {
-        if (!timeStr) return 'N/A';
-        
+        if (!timeStr) return "N/A";
+
         // Parse duration (assuming format like "2 Days 3 Hours 45 Minutes")
-        const match = timeStr.match(/(\d+)\s*Days?\s*(\d+)\s*Hours?\s*(\d+)\s*Minutes?/i);
+        const match = timeStr.match(
+          /(\d+)\s*Days?\s*(\d+)\s*Hours?\s*(\d+)\s*Minutes?/i,
+        );
         if (match) {
-          const days = parseInt(match[1] || '0');
-          const hours = parseInt(match[2] || '0'); 
-          const minutes = parseInt(match[3] || '0');
-          
+          const days = parseInt(match[1] || "0");
+          const hours = parseInt(match[2] || "0");
+          const minutes = parseInt(match[3] || "0");
+
           if (days > 0) {
             return `${days}d ${hours}h ${minutes}m`;
           } else if (hours > 0) {
@@ -281,7 +327,7 @@ export const htmxTicketRoutes = new Elysia()
           }
           return `${minutes}m`;
         }
-        
+
         return timeStr;
       }
 
@@ -318,40 +364,44 @@ export const htmxTicketRoutes = new Elysia()
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
                   <span class="font-medium text-gray-600">Título:</span>
-                  <p class="mt-1 text-gray-900">${ticket.short_description || 'Sem título'}</p>
+                  <p class="mt-1 text-gray-900">${ticket.short_description || "Sem título"}</p>
                 </div>
                 <div>
                   <span class="font-medium text-gray-600">Categoria:</span>
-                  <p class="mt-1 text-gray-900">${ticket.category || 'N/A'} ${ticket.subcategory ? `/ ${ticket.subcategory}` : ''}</p>
+                  <p class="mt-1 text-gray-900">${ticket.category || "N/A"} ${ticket.subcategory ? `/ ${ticket.subcategory}` : ""}</p>
                 </div>
                 <div>
                   <span class="font-medium text-gray-600">Atribuído a:</span>
-                  <p class="mt-1 text-gray-900">${ticket.assigned_to || 'Não atribuído'}</p>
+                  <p class="mt-1 text-gray-900">${ticket.assigned_to || "Não atribuído"}</p>
                 </div>
                 <div>
                   <span class="font-medium text-gray-600">Grupo de Atribuição:</span>
-                  <p class="mt-1 text-gray-900">${ticket.assignment_group || 'Não definido'}</p>
+                  <p class="mt-1 text-gray-900">${ticket.assignment_group || "Não definido"}</p>
                 </div>
                 <div>
                   <span class="font-medium text-gray-600">Solicitante:</span>
-                  <p class="mt-1 text-gray-900">${ticket.caller_id || 'N/A'}</p>
+                  <p class="mt-1 text-gray-900">${ticket.caller_id || "N/A"}</p>
                 </div>
                 <div>
                   <span class="font-medium text-gray-600">Urgência / Impacto:</span>
-                  <p class="mt-1 text-gray-900">${ticket.urgency || 'N/A'} / ${ticket.impact || 'N/A'}</p>
+                  <p class="mt-1 text-gray-900">${ticket.urgency || "N/A"} / ${ticket.impact || "N/A"}</p>
                 </div>
               </div>
             </div>
 
             <!-- Description -->
-            ${ticket.description ? `
+            ${
+              ticket.description
+                ? `
               <div>
                 <h3 class="text-lg font-semibold text-gray-900 mb-3">Descrição</h3>
                 <div class="bg-gray-50 rounded-lg p-4">
                   <p class="text-gray-700 whitespace-pre-wrap">${ticket.description}</p>
                 </div>
               </div>
-            ` : ''}
+            `
+                : ""
+            }
 
             <!-- Timeline -->
             <div>
@@ -365,7 +415,9 @@ export const htmxTicketRoutes = new Elysia()
                   </div>
                 </div>
                 
-                ${ticket.sys_updated_on !== ticket.sys_created_on ? `
+                ${
+                  ticket.sys_updated_on !== ticket.sys_created_on
+                    ? `
                   <div class="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
                     <div class="w-2 h-2 bg-yellow-500 rounded-full"></div>
                     <div class="flex-1">
@@ -373,9 +425,13 @@ export const htmxTicketRoutes = new Elysia()
                       <p class="text-xs text-gray-600">${formatDate(ticket.sys_updated_on)}</p>
                     </div>
                   </div>
-                ` : ''}
+                `
+                    : ""
+                }
 
-                ${ticket.resolved_at ? `
+                ${
+                  ticket.resolved_at
+                    ? `
                   <div class="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
                     <div class="w-2 h-2 bg-green-500 rounded-full"></div>
                     <div class="flex-1">
@@ -383,9 +439,13 @@ export const htmxTicketRoutes = new Elysia()
                       <p class="text-xs text-gray-600">${formatDate(ticket.resolved_at)}</p>
                     </div>
                   </div>
-                ` : ''}
+                `
+                    : ""
+                }
 
-                ${ticket.closed_at ? `
+                ${
+                  ticket.closed_at
+                    ? `
                   <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                     <div class="w-2 h-2 bg-gray-500 rounded-full"></div>
                     <div class="flex-1">
@@ -393,23 +453,31 @@ export const htmxTicketRoutes = new Elysia()
                       <p class="text-xs text-gray-600">${formatDate(ticket.closed_at)}</p>
                     </div>
                   </div>
-                ` : ''}
+                `
+                    : ""
+                }
               </div>
             </div>
 
             <!-- SLA Information -->
-            ${slaInfo.length > 0 ? `
+            ${
+              slaInfo.length > 0
+                ? `
               <div>
                 <h3 class="text-lg font-semibold text-gray-900 mb-3">Informações de SLA</h3>
                 <div class="space-y-3">
-                  ${slaInfo.map(sla => `
-                    <div class="border border-gray-200 rounded-lg p-4 ${sla.has_breached === 'true' ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}">
+                  ${slaInfo
+                    .map(
+                      (sla) => `
+                    <div class="border border-gray-200 rounded-lg p-4 ${sla.has_breached === "true" ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}">
                       <div class="flex justify-between items-start mb-2">
-                        <h4 class="font-medium text-gray-900">${sla.sla || 'SLA'}</h4>
+                        <h4 class="font-medium text-gray-900">${sla.sla || "SLA"}</h4>
                         <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          sla.has_breached === 'true' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                          sla.has_breached === "true"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-green-100 text-green-800"
                         }">
-                          ${sla.has_breached === 'true' ? 'Violado' : 'No Prazo'}
+                          ${sla.has_breached === "true" ? "Violado" : "No Prazo"}
                         </span>
                       </div>
                       <div class="grid grid-cols-2 gap-4 text-sm">
@@ -428,41 +496,61 @@ export const htmxTicketRoutes = new Elysia()
                         </div>
                       </div>
                     </div>
-                  `).join('')}
+                  `,
+                    )
+                    .join("")}
                 </div>
               </div>
-            ` : ''}
+            `
+                : ""
+            }
 
             <!-- Work Notes -->
-            ${ticket.work_notes ? `
+            ${
+              ticket.work_notes
+                ? `
               <div>
                 <h3 class="text-lg font-semibold text-gray-900 mb-3">Notas de Trabalho</h3>
                 <div class="bg-gray-50 rounded-lg p-4">
                   <p class="text-gray-700 whitespace-pre-wrap">${ticket.work_notes}</p>
                 </div>
               </div>
-            ` : ''}
+            `
+                : ""
+            }
 
             <!-- Resolution Information -->
-            ${ticket.resolution_code || ticket.close_notes ? `
+            ${
+              ticket.resolution_code || ticket.close_notes
+                ? `
               <div>
                 <h3 class="text-lg font-semibold text-gray-900 mb-3">Resolução</h3>
                 <div class="bg-green-50 rounded-lg p-4">
-                  ${ticket.resolution_code ? `
+                  ${
+                    ticket.resolution_code
+                      ? `
                     <div class="mb-3">
                       <span class="font-medium text-gray-600">Código de Resolução:</span>
                       <p class="text-gray-900">${ticket.resolution_code}</p>
                     </div>
-                  ` : ''}
-                  ${ticket.close_notes ? `
+                  `
+                      : ""
+                  }
+                  ${
+                    ticket.close_notes
+                      ? `
                     <div>
                       <span class="font-medium text-gray-600">Notas de Fechamento:</span>
                       <p class="text-gray-700 whitespace-pre-wrap">${ticket.close_notes}</p>
                     </div>
-                  ` : ''}
+                  `
+                      : ""
+                  }
                 </div>
               </div>
-            ` : ''}
+            `
+                : ""
+            }
           </div>
 
           <!-- Modal Footer -->
@@ -486,7 +574,7 @@ export const htmxTicketRoutes = new Elysia()
         </div>
       `;
     } catch (error) {
-      console.error('Error loading ticket details:', error);
+      console.error("Error loading ticket details:", error);
       return `
         <div class="text-center py-8">
           <p class="text-red-600">Erro ao carregar detalhes do ticket</p>
@@ -505,11 +593,11 @@ export const htmxTicketRoutes = new Elysia()
    */
 
   // Incident Glass Template
-  .get('/glass/incident/:sys_id', async ({ params }) => {
+  .get("/glass/incident/:sys_id", async ({ params }) => {
     const { sys_id } = params;
 
     try {
-      const ticket = await serviceNowAuthClient.getRecord('incident', sys_id);
+      const ticket = await serviceNowAuthClient.getRecord("incident", sys_id);
 
       return `
         <div class="ticket-template ticket-template--incident glass-card" data-type="incident" data-sys-id="${sys_id}">
@@ -562,16 +650,16 @@ export const htmxTicketRoutes = new Elysia()
         </div>
       `;
     } catch (error) {
-      return renderGlassError('Failed to load incident template');
+      return renderGlassError("Failed to load incident template");
     }
   })
 
   // Problem Glass Template
-  .get('/glass/problem/:sys_id', async ({ params }) => {
+  .get("/glass/problem/:sys_id", async ({ params }) => {
     const { sys_id } = params;
 
     try {
-      const ticket = await serviceNowAuthClient.getRecord('problem', sys_id);
+      const ticket = await serviceNowAuthClient.getRecord("problem", sys_id);
 
       return `
         <div class="ticket-template ticket-template--problem glass-card" data-type="problem" data-sys-id="${sys_id}">
@@ -642,16 +730,19 @@ export const htmxTicketRoutes = new Elysia()
         </div>
       `;
     } catch (error) {
-      return renderGlassError('Failed to load problem template');
+      return renderGlassError("Failed to load problem template");
     }
   })
 
   // Change Request Glass Template
-  .get('/glass/change/:sys_id', async ({ params }) => {
+  .get("/glass/change/:sys_id", async ({ params }) => {
     const { sys_id } = params;
 
     try {
-      const ticket = await serviceNowAuthClient.getRecord('change_request', sys_id);
+      const ticket = await serviceNowAuthClient.getRecord(
+        "change_request",
+        sys_id,
+      );
 
       return `
         <div class="ticket-template ticket-template--change glass-card" data-type="change" data-sys-id="${sys_id}">
@@ -678,7 +769,7 @@ export const htmxTicketRoutes = new Elysia()
               </div>
               <div class="ticket-meta-item">
                 <span class="ticket-meta-label">Risk</span>
-                <span class="ticket-risk ticket-risk--${ticket.risk || 'medium'}">${formatRisk(ticket.risk)}</span>
+                <span class="ticket-risk ticket-risk--${ticket.risk || "medium"}">${formatRisk(ticket.risk)}</span>
               </div>
             </div>
           </div>
@@ -723,16 +814,16 @@ export const htmxTicketRoutes = new Elysia()
         </div>
       `;
     } catch (error) {
-      return renderGlassError('Failed to load change request template');
+      return renderGlassError("Failed to load change request template");
     }
   })
 
   // Service Request Glass Template
-  .get('/glass/request/:sys_id', async ({ params }) => {
+  .get("/glass/request/:sys_id", async ({ params }) => {
     const { sys_id } = params;
 
     try {
-      const ticket = await serviceNowAuthClient.getRecord('sc_request', sys_id);
+      const ticket = await serviceNowAuthClient.getRecord("sc_request", sys_id);
 
       return `
         <div class="ticket-template ticket-template--request glass-card" data-type="request" data-sys-id="${sys_id}">
@@ -759,7 +850,7 @@ export const htmxTicketRoutes = new Elysia()
               </div>
               <div class="ticket-meta-item">
                 <span class="ticket-meta-label">Requested For</span>
-                <span class="ticket-meta-value">${ticket.requested_for?.display_value || 'N/A'}</span>
+                <span class="ticket-meta-value">${ticket.requested_for?.display_value || "N/A"}</span>
               </div>
             </div>
           </div>
@@ -799,7 +890,7 @@ export const htmxTicketRoutes = new Elysia()
         </div>
       `;
     } catch (error) {
-      return renderGlassError('Failed to load service request template');
+      return renderGlassError("Failed to load service request template");
     }
   });
 
@@ -816,31 +907,31 @@ function renderGlassError(message: string): string {
 
 function getPriorityLabel(priority: string): string {
   const labels: Record<string, string> = {
-    '1': 'Critical',
-    '2': 'High',
-    '3': 'Moderate',
-    '4': 'Low',
-    '5': 'Planning'
+    "1": "Critical",
+    "2": "High",
+    "3": "Moderate",
+    "4": "Low",
+    "5": "Planning",
   };
-  return labels[priority] || 'Unknown';
+  return labels[priority] || "Unknown";
 }
 
 function formatRisk(risk: string): string {
   const riskLabels: Record<string, string> = {
-    'high': 'High Risk',
-    'medium': 'Medium Risk',
-    'low': 'Low Risk'
+    high: "High Risk",
+    medium: "Medium Risk",
+    low: "Low Risk",
   };
-  return riskLabels[risk] || 'Moderate Risk';
+  return riskLabels[risk] || "Moderate Risk";
 }
 
 function calculateProgress(stage: string): number {
   const stageProgress: Record<string, number> = {
-    '1': 25,  // Submitted
-    '2': 50,  // Approved
-    '3': 75,  // In Progress
-    '4': 100, // Fulfilled
-    '6': 100  // Closed Complete
+    "1": 25, // Submitted
+    "2": 50, // Approved
+    "3": 75, // In Progress
+    "4": 100, // Fulfilled
+    "6": 100, // Closed Complete
   };
   return stageProgress[stage] || 0;
 }
@@ -848,26 +939,26 @@ function calculateProgress(stage: string): number {
 // Helper functions
 function getStatusClass(state: string): string {
   const classes: Record<string, string> = {
-    '1': 'status-1',
-    '2': 'status-2',
-    '3': 'status-3', 
-    '6': 'status-6',
-    '7': 'status-7',
-    '8': 'status-8'
+    "1": "status-1",
+    "2": "status-2",
+    "3": "status-3",
+    "6": "status-6",
+    "7": "status-7",
+    "8": "status-8",
   };
-  return classes[state] || 'status-badge';
+  return classes[state] || "status-badge";
 }
 
 function getStatusLabel(state: string): string {
   const states: Record<string, string> = {
-    '1': 'Novo',
-    '2': 'Em Andamento',
-    '3': 'Trabalho em Progresso',
-    '6': 'Resolvido', 
-    '7': 'Fechado',
-    '8': 'Cancelado'
+    "1": "Novo",
+    "2": "Em Andamento",
+    "3": "Trabalho em Progresso",
+    "6": "Resolvido",
+    "7": "Fechado",
+    "8": "Cancelado",
   };
-  return states[state] || 'Desconhecido';
+  return states[state] || "Desconhecido";
 }
 
 function getPriorityClass(priority: string): string {
@@ -876,11 +967,11 @@ function getPriorityClass(priority: string): string {
 
 function getTableLabel(table: string): string {
   const labels: Record<string, string> = {
-    'incident': 'Incidente',
-    'change_request': 'Mudança',
-    'sc_req_item': 'Item Solicitação',
-    'sc_task': 'Tarefa Solicitação', 
-    'change_task': 'Tarefa Mudança'
+    incident: "Incidente",
+    change_request: "Mudança",
+    sc_req_item: "Item Solicitação",
+    sc_task: "Tarefa Solicitação",
+    change_task: "Tarefa Mudança",
   };
   return labels[table] || table;
 }

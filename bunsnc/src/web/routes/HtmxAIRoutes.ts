@@ -3,17 +3,17 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { Elysia, t } from 'elysia';
-import { html } from '@elysiajs/html';
-import { logger } from '../../utils/Logger';
+import { Elysia, t } from "elysia";
+import { html } from "@elysiajs/html";
+import { logger } from "../../utils/Logger";
 
-const AI_SERVER_URL = process.env.AI_SERVER_URL || 'http://localhost:3001';
+const AI_SERVER_URL = process.env.AI_SERVER_URL || "http://localhost:3001";
 
-export const htmxAIRoutes = new Elysia({ prefix: '/ai' })
+export const htmxAIRoutes = new Elysia({ prefix: "/ai" })
   .use(html())
 
   // AI Dashboard Main Page
-  .get('/dashboard', async ({ html }) => {
+  .get("/dashboard", async ({ html }) => {
     return html(`
       <!DOCTYPE html>
       <html lang="pt-BR">
@@ -351,34 +351,58 @@ export const htmxAIRoutes = new Elysia({ prefix: '/ai' })
   })
 
   // AI Services Status Component
-  .get('/services/status', async ({ html }) => {
+  .get("/services/status", async ({ html }) => {
     try {
       const response = await fetch(`${AI_SERVER_URL}/api/ai/services/status`);
       const data = await response.json();
 
       if (data.success) {
         const services = [
-          { name: 'Apache Tika', status: data.services.tika?.status || 'unknown', description: 'Document OCR & Text Extraction' },
-          { name: 'OpenSearch', status: data.services.opensearch?.status || 'unknown', description: 'Neural Search Engine' },
-          { name: 'Embedding Service', status: data.services.embedding?.status || 'unknown', description: 'BGE-Large-EN-v1.5' },
-          { name: 'Rerank Service', status: data.services.rerank?.status || 'unknown', description: 'BAAI/bge-reranker-v2-m3' },
-          { name: 'LLM Service', status: data.services.llm?.status || 'unknown', description: 'DeepSeek Models' }
+          {
+            name: "Apache Tika",
+            status: data.services.tika?.status || "unknown",
+            description: "Document OCR & Text Extraction",
+          },
+          {
+            name: "OpenSearch",
+            status: data.services.opensearch?.status || "unknown",
+            description: "Neural Search Engine",
+          },
+          {
+            name: "Embedding Service",
+            status: data.services.embedding?.status || "unknown",
+            description: "BGE-Large-EN-v1.5",
+          },
+          {
+            name: "Rerank Service",
+            status: data.services.rerank?.status || "unknown",
+            description: "BAAI/bge-reranker-v2-m3",
+          },
+          {
+            name: "LLM Service",
+            status: data.services.llm?.status || "unknown",
+            description: "DeepSeek Models",
+          },
         ];
 
-        const serviceHTML = services.map(service => `
+        const serviceHTML = services
+          .map(
+            (service) => `
           <div class="ai-metric">
             <div style="display: flex; align-items: center; gap: 8px;">
-              <div class="status-dot ${service.status === 'healthy' ? '' : service.status === 'unknown' ? 'loading' : 'error'}"></div>
+              <div class="status-dot ${service.status === "healthy" ? "" : service.status === "unknown" ? "loading" : "error"}"></div>
               <div>
                 <div style="font-weight: 500;">${service.name}</div>
                 <div style="font-size: 12px; color: #6b7280;">${service.description}</div>
               </div>
             </div>
-            <span class="metric-value" style="color: ${service.status === 'healthy' ? '#10b981' : service.status === 'unknown' ? '#f59e0b' : '#ef4444'};">
-              ${service.status === 'healthy' ? '' : service.status === 'unknown' ? '' : ''}
+            <span class="metric-value" style="color: ${service.status === "healthy" ? "#10b981" : service.status === "unknown" ? "#f59e0b" : "#ef4444"};">
+              ${service.status === "healthy" ? "" : service.status === "unknown" ? "" : ""}
             </span>
           </div>
-        `).join('');
+        `,
+          )
+          .join("");
 
         return html(`
           ${serviceHTML}
@@ -395,9 +419,8 @@ export const htmxAIRoutes = new Elysia({ prefix: '/ai' })
           <span style="color: #ef4444;">Erro ao verificar status dos serviços</span>
         </div>
       `);
-
     } catch (error) {
-      logger.error('[HtmxAI] Services status check failed:', error);
+      logger.error("[HtmxAI] Services status check failed:", error);
       return html(`
         <div class="ai-metric">
           <span style="color: #ef4444;">Serviços AI indisponíveis</span>
@@ -407,32 +430,43 @@ export const htmxAIRoutes = new Elysia({ prefix: '/ai' })
   })
 
   // Quick Search Component
-  .post('/search/quick', async ({ body, html }) => {
-    try {
-      if (!body || typeof body !== 'object' || !('query' in body)) {
-        return html('<p style="color: #6b7280; text-align: center; padding: 20px;">Digite uma consulta para buscar</p>');
-      }
+  .post(
+    "/search/quick",
+    async ({ body, html }) => {
+      try {
+        if (!body || typeof body !== "object" || !("query" in body)) {
+          return html(
+            '<p style="color: #6b7280; text-align: center; padding: 20px;">Digite uma consulta para buscar</p>',
+          );
+        }
 
-      const query = (body as any).query;
-      if (!query || query.length < 3) {
-        return html('<p style="color: #6b7280; text-align: center; padding: 20px;">Digite pelo menos 3 caracteres</p>');
-      }
+        const query = (body as any).query;
+        if (!query || query.length < 3) {
+          return html(
+            '<p style="color: #6b7280; text-align: center; padding: 20px;">Digite pelo menos 3 caracteres</p>',
+          );
+        }
 
-      const searchResponse = await fetch(`${AI_SERVER_URL}/api/search/intelligent`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: query,
-          max_results: 5,
-          targets: ['documents', 'tickets'],
-          enable_reranking: true
-        })
-      });
+        const searchResponse = await fetch(
+          `${AI_SERVER_URL}/api/search/intelligent`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              query: query,
+              max_results: 5,
+              targets: ["documents", "tickets"],
+              enable_reranking: true,
+            }),
+          },
+        );
 
-      const searchData = await searchResponse.json();
+        const searchData = await searchResponse.json();
 
-      if (searchData.success && searchData.data.results.length > 0) {
-        const resultsHTML = searchData.data.results.map((result: any) => `
+        if (searchData.success && searchData.data.results.length > 0) {
+          const resultsHTML = searchData.data.results
+            .map(
+              (result: any) => `
           <div style="
             border: 1px solid #e2e8f0;
             border-radius: 8px;
@@ -442,21 +476,21 @@ export const htmxAIRoutes = new Elysia({ prefix: '/ai' })
           ">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
               <h4 style="margin: 0; color: #1f2937; font-size: 14px; font-weight: 600;">
-                ${result.title || 'Resultado'}
+                ${result.title || "Resultado"}
               </h4>
               <span style="
-                background: ${result.type === 'document' ? '#10b981' : '#3b82f6'};
+                background: ${result.type === "document" ? "#10b981" : "#3b82f6"};
                 color: white;
                 padding: 2px 8px;
                 border-radius: 12px;
                 font-size: 11px;
                 font-weight: 500;
               ">
-                ${result.type === 'document' ? '📄 Doc' : '🎫 Ticket'}
+                ${result.type === "document" ? "📄 Doc" : "🎫 Ticket"}
               </span>
             </div>
             <p style="margin: 8px 0; color: #4b5563; font-size: 13px; line-height: 1.4;">
-              ${result.content ? result.content.substring(0, 200) + '...' : 'Sem descrição disponível'}
+              ${result.content ? result.content.substring(0, 200) + "..." : "Sem descrição disponível"}
             </p>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
               <span style="font-size: 11px; color: #6b7280;">
@@ -470,9 +504,11 @@ export const htmxAIRoutes = new Elysia({ prefix: '/ai' })
               ">Ver detalhes →</a>
             </div>
           </div>
-        `).join('');
+        `,
+            )
+            .join("");
 
-        return html(`
+          return html(`
           <div style="margin-top: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
               <h4 style="margin: 0; color: #1f2937;">Resultados (${searchData.data.results.length})</h4>
@@ -488,25 +524,26 @@ export const htmxAIRoutes = new Elysia({ prefix: '/ai' })
             </div>
           </div>
         `);
-      }
+        }
 
-      return html(`
+        return html(`
         <div style="text-align: center; padding: 20px; color: #6b7280;">
           <p>Nenhum resultado encontrado para "${query}"</p>
           <p style="font-size: 12px; margin-top: 8px;">Tente termos como: "Oracle", "backup", "rede", "PostgreSQL"</p>
         </div>
       `);
-
-    } catch (error) {
-      logger.error('[HtmxAI] Quick search failed:', error);
-      return html(`
+      } catch (error) {
+        logger.error("[HtmxAI] Quick search failed:", error);
+        return html(`
         <div style="text-align: center; padding: 20px; color: #ef4444;">
           <p>Erro na busca. Tente novamente.</p>
         </div>
       `);
-    }
-  }, {
-    body: t.Object({
-      query: t.String()
-    })
-  });
+      }
+    },
+    {
+      body: t.Object({
+        query: t.String(),
+      }),
+    },
+  );

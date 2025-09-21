@@ -3,23 +3,23 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { Elysia, t } from 'elysia';
-import { html } from '@elysiajs/html';
-import { htmx } from '@gtramontina.com/elysia-htmx';
-import { serviceNowAuthClient } from '../services/ServiceNowAuthClient';
+import { Elysia, t } from "elysia";
+import { html } from "@elysiajs/html";
+import { htmx } from "@gtramontina.com/elysia-htmx";
+import { serviceNowAuthClient } from "../services/ServiceNowAuthClient";
 
-import { htmxSearchRoutes } from './routes/HtmxSearchRoutes';
-import { htmxTicketRoutes } from './routes/HtmxTicketRoutes';
-import { htmxStatisticsRoutes } from './routes/HtmxStatisticsRoutes';
+import { htmxSearchRoutes } from "./routes/HtmxSearchRoutes";
+import { htmxTicketRoutes } from "./routes/HtmxTicketRoutes";
+import { htmxStatisticsRoutes } from "./routes/HtmxStatisticsRoutes";
 
-export const htmxDashboard = new Elysia({ prefix: '/htmx' })
+export const htmxDashboard = new Elysia({ prefix: "/htmx" })
   .use(html())
   .use(htmx())
-  
+
   /**
    * Main dashboard page with ServiceNow ticket search
    */
-  .get('/', ({ hx, set }) => {
+  .get("/", ({ hx, set }) => {
     if (!hx.isHTMX) {
       // Full page for direct access
       return `
@@ -224,24 +224,29 @@ export const htmxDashboard = new Elysia({ prefix: '/htmx' })
         </html>
       `;
     }
-    
+
     // HTMX partial response
-    return '<div>Dashboard updated via HTMX</div>';
+    return "<div>Dashboard updated via HTMX</div>";
   })
 
   /**
    * Health status component
    */
-  .get('/health', async () => {
-    const dbHealth = { connected: true, queries: 0, performance: 'good' };
-    const streamHealth = { status: 'connected', streams: ['incident', 'problem', 'change'] };
-    const rateLimitHealth = // Rate limiting now handled internally: getHealthStatus();
+  .get("/health", async () => {
+    const dbHealth = { connected: true, queries: 0, performance: "good" };
+    const streamHealth = {
+      status: "connected",
+      streams: ["incident", "problem", "change"],
+    };
+    const rateLimitHealth = { status: "healthy" }; // Rate limiting now handled internally: getHealthStatus();
 
-    const overallStatus = 
-      streamHealth.status === 'healthy' && 
-      rateLimitHealth.status === 'healthy' ? 'healthy' : 'degraded';
+    const overallStatus =
+      streamHealth.status === "connected" &&
+      rateLimitHealth.status === "healthy"
+        ? "healthy"
+        : "degraded";
 
-    const statusColor = overallStatus === 'healthy' ? 'green' : 'yellow';
+    const statusColor = overallStatus === "healthy" ? "green" : "yellow";
 
     return `
       <div class="flex items-center space-x-4 p-3 bg-${statusColor}-50 border border-${statusColor}-200 rounded-lg">
@@ -250,7 +255,7 @@ export const htmxDashboard = new Elysia({ prefix: '/htmx' })
         </div>
         <div class="flex-1">
           <div class="text-sm font-medium text-${statusColor}-800">
-            Sistema: ${overallStatus === 'healthy' ? 'Operacional' : 'Degradado'}
+            Sistema: ${overallStatus === "healthy" ? "Operacional" : "Degradado"}
           </div>
           <div class="text-xs text-${statusColor}-600">
             Streams: ${streamHealth.status} | 
@@ -258,23 +263,26 @@ export const htmxDashboard = new Elysia({ prefix: '/htmx' })
           </div>
         </div>
         <div class="text-xs text-${statusColor}-600">
-          ${new Date().toLocaleTimeString('pt-BR')}
+          ${new Date().toLocaleTimeString("pt-BR")}
         </div>
       </div>
     `;
   })
 
   // Route to serve CSS styles
-  .get('/styles', () => {
+  .get("/styles", () => {
     return new Response(
-      require('fs').readFileSync('/storage/enviroments/integrations/nex/BunNow/bunsnc/src/web/styles/htmx-dashboard.css', 'utf8'),
-      { headers: { 'Content-Type': 'text/css' } }
+      require("fs").readFileSync(
+        "/storage/enviroments/integrations/nex/BunNow/bunsnc/src/web/styles/htmx-dashboard.css",
+        "utf8",
+      ),
+      { headers: { "Content-Type": "text/css" } },
     );
   })
 
   // Mount modular routes
   .use(htmxSearchRoutes)
-  .use(htmxTicketRoutes) 
+  .use(htmxTicketRoutes)
   .use(htmxStatisticsRoutes);
 
 export default htmxDashboard;

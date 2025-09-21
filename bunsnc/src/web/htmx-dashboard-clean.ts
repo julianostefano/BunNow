@@ -3,23 +3,23 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { Elysia, t } from 'elysia';
-import { html } from '@elysiajs/html';
-import { htmx } from '@gtramontina.com/elysia-htmx';
-import { serviceNowAuthClient } from '../services/ServiceNowAuthClient';
+import { Elysia, t } from "elysia";
+import { html } from "@elysiajs/html";
+import { htmx } from "@gtramontina.com/elysia-htmx";
+import { serviceNowAuthClient } from "../services/ServiceNowAuthClient";
 
 // Temporarily commenting out problematic imports to isolate circular dependency issue
 // import { HybridTicketService } from '../services/HybridTicketService';
 // import { ConsolidatedDataService } from '../services/ConsolidatedDataService';
 // Note: TicketDetailsRoutes handled by main app to avoid circular dependency
 // import { createTicketListRoutes } from '../routes/TicketListRoutes';
-// import { 
-//   TICKET_TYPES, 
-//   getStatusConfig, 
-//   getActiveStatuses, 
+// import {
+//   TICKET_TYPES,
+//   getStatusConfig,
+//   getActiveStatuses,
 //   getAllStatuses,
 //   getUserActions,
-//   STATUS_FILTERS 
+//   STATUS_FILTERS
 // } from '../config/servicenow-status';
 
 // Helper function to initialize services safely - temporarily disabled for circular dependency fix
@@ -29,7 +29,7 @@ async function initializeCleanServices() {
     // const hybridService = new HybridTicketService(mongoService, serviceNowAuthClient);
     return { mongoService: null, hybridService: null, error: null };
   } catch (error) {
-    console.error(' Clean Dashboard Services initialization error:', error);
+    console.error(" Clean Dashboard Services initialization error:", error);
     return { mongoService: null, hybridService: null, error };
   }
 }
@@ -48,142 +48,142 @@ interface StatusConfig {
 // Unified state mapping - source of truth for all status conversions
 const UNIFIED_STATUS_MAP: Record<string, StatusConfig> = {
   // Named states (used by frontend)
-  'new': { 
-    label: 'Novo', 
-    color: 'text-blue-300', 
-    bgColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-    numericCode: '1'
+  new: {
+    label: "Novo",
+    color: "text-blue-300",
+    bgColor: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+    numericCode: "1",
   },
-  'in_progress': { 
-    label: 'Em Andamento', 
-    color: 'text-yellow-300', 
-    bgColor: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
-    numericCode: '2'
+  in_progress: {
+    label: "Em Andamento",
+    color: "text-yellow-300",
+    bgColor: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
+    numericCode: "2",
   },
-  'designated': { 
-    label: 'Designado', 
-    color: 'text-indigo-300', 
-    bgColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
-    numericCode: '18'
+  designated: {
+    label: "Designado",
+    color: "text-indigo-300",
+    bgColor: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
+    numericCode: "18",
   },
-  'assigned': { 
-    label: 'Atribuído', 
-    color: 'text-purple-300', 
-    bgColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-    numericCode: '18'  // Same as designated - ServiceNow uses same code
+  assigned: {
+    label: "Atribuído",
+    color: "text-purple-300",
+    bgColor: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+    numericCode: "18", // Same as designated - ServiceNow uses same code
   },
-  'waiting': { 
-    label: 'Em Espera', 
-    color: 'text-orange-300', 
-    bgColor: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
-    numericCode: '3'
+  waiting: {
+    label: "Em Espera",
+    color: "text-orange-300",
+    bgColor: "bg-orange-500/20 text-orange-300 border-orange-500/30",
+    numericCode: "3",
   },
-  'awaiting': { 
-    label: 'Aguardando', 
-    color: 'text-amber-300', 
-    bgColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-    numericCode: '3'  // Same as waiting - ServiceNow uses same code
+  awaiting: {
+    label: "Aguardando",
+    color: "text-amber-300",
+    bgColor: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+    numericCode: "3", // Same as waiting - ServiceNow uses same code
   },
-  'resolved': { 
-    label: 'Resolvido', 
-    color: 'text-green-300', 
-    bgColor: 'bg-green-500/20 text-green-300 border-green-500/30',
-    numericCode: '6'
+  resolved: {
+    label: "Resolvido",
+    color: "text-green-300",
+    bgColor: "bg-green-500/20 text-green-300 border-green-500/30",
+    numericCode: "6",
   },
-  'closed': { 
-    label: 'Fechado', 
-    color: 'text-gray-300', 
-    bgColor: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
-    numericCode: '7'
+  closed: {
+    label: "Fechado",
+    color: "text-gray-300",
+    bgColor: "bg-gray-500/20 text-gray-300 border-gray-500/30",
+    numericCode: "7",
   },
-  'cancelled': { 
-    label: 'Cancelado', 
-    color: 'text-red-300', 
-    bgColor: 'bg-red-500/20 text-red-300 border-red-500/30',
-    numericCode: '8'
+  cancelled: {
+    label: "Cancelado",
+    color: "text-red-300",
+    bgColor: "bg-red-500/20 text-red-300 border-red-500/30",
+    numericCode: "8",
   },
   // Additional states for Change Tasks
-  'scheduled': { 
-    label: 'Agendado', 
-    color: 'text-purple-300', 
-    bgColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-    numericCode: '4'
+  scheduled: {
+    label: "Agendado",
+    color: "text-purple-300",
+    bgColor: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+    numericCode: "4",
   },
-  'complete': { 
-    label: 'Completo', 
-    color: 'text-emerald-300', 
-    bgColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-    numericCode: '6'
+  complete: {
+    label: "Completo",
+    color: "text-emerald-300",
+    bgColor: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+    numericCode: "6",
   },
   // Additional states for SC Tasks
-  'closed_complete': { 
-    label: 'Fechado Completo', 
-    color: 'text-green-300', 
-    bgColor: 'bg-green-500/20 text-green-300 border-green-500/30',
-    numericCode: '3'
+  closed_complete: {
+    label: "Fechado Completo",
+    color: "text-green-300",
+    bgColor: "bg-green-500/20 text-green-300 border-green-500/30",
+    numericCode: "3",
   },
-  'closed_incomplete': { 
-    label: 'Fechado Incompleto', 
-    color: 'text-amber-300', 
-    bgColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-    numericCode: '4'
+  closed_incomplete: {
+    label: "Fechado Incompleto",
+    color: "text-amber-300",
+    bgColor: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+    numericCode: "4",
   },
-  'closed_skipped': { 
-    label: 'Fechado Ignorado', 
-    color: 'text-gray-400', 
-    bgColor: 'bg-gray-600/20 text-gray-400 border-gray-600/30',
-    numericCode: '7'
+  closed_skipped: {
+    label: "Fechado Ignorado",
+    color: "text-gray-400",
+    bgColor: "bg-gray-600/20 text-gray-400 border-gray-600/30",
+    numericCode: "7",
   },
   // Numeric states (returned by ServiceNow API) - mapped back to same config
-  '1': { 
-    label: 'Novo', 
-    color: 'text-blue-300', 
-    bgColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-    numericCode: '1'
+  "1": {
+    label: "Novo",
+    color: "text-blue-300",
+    bgColor: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+    numericCode: "1",
   },
-  '2': { 
-    label: 'Em Andamento', 
-    color: 'text-yellow-300', 
-    bgColor: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
-    numericCode: '2'
+  "2": {
+    label: "Em Andamento",
+    color: "text-yellow-300",
+    bgColor: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
+    numericCode: "2",
   },
-  '18': { 
-    label: 'Designado', 
-    color: 'text-indigo-300', 
-    bgColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
-    numericCode: '18'
+  "18": {
+    label: "Designado",
+    color: "text-indigo-300",
+    bgColor: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
+    numericCode: "18",
   },
-  '3': { 
-    label: 'Em Espera', 
-    color: 'text-orange-300', 
-    bgColor: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
-    numericCode: '3'
+  "3": {
+    label: "Em Espera",
+    color: "text-orange-300",
+    bgColor: "bg-orange-500/20 text-orange-300 border-orange-500/30",
+    numericCode: "3",
   },
-  '6': { 
-    label: 'Resolvido', 
-    color: 'text-green-300', 
-    bgColor: 'bg-green-500/20 text-green-300 border-green-500/30',
-    numericCode: '6'
+  "6": {
+    label: "Resolvido",
+    color: "text-green-300",
+    bgColor: "bg-green-500/20 text-green-300 border-green-500/30",
+    numericCode: "6",
   },
-  '7': { 
-    label: 'Fechado', 
-    color: 'text-gray-300', 
-    bgColor: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
-    numericCode: '7'
+  "7": {
+    label: "Fechado",
+    color: "text-gray-300",
+    bgColor: "bg-gray-500/20 text-gray-300 border-gray-500/30",
+    numericCode: "7",
   },
-  '8': { 
-    label: 'Cancelado', 
-    color: 'text-red-300', 
-    bgColor: 'bg-red-500/20 text-red-300 border-red-500/30',
-    numericCode: '8'
+  "8": {
+    label: "Cancelado",
+    color: "text-red-300",
+    bgColor: "bg-red-500/20 text-red-300 border-red-500/30",
+    numericCode: "8",
   },
   // Additional numeric codes for extended states
-  '4': { 
-    label: 'Agendado/Incompleto', 
-    color: 'text-purple-300', 
-    bgColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-    numericCode: '4'
-  }
+  "4": {
+    label: "Agendado/Incompleto",
+    color: "text-purple-300",
+    bgColor: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+    numericCode: "4",
+  },
 };
 
 /**
@@ -196,10 +196,10 @@ function getUnifiedStatusConfig(state: string): StatusConfig {
   if (!config) {
     console.warn(`Unknown state: ${state}, using default`);
     return {
-      label: 'Desconhecido',
-      color: 'text-gray-300',
-      bgColor: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
-      numericCode: '1'
+      label: "Desconhecido",
+      color: "text-gray-300",
+      bgColor: "bg-gray-500/20 text-gray-300 border-gray-500/30",
+      numericCode: "1",
     };
   }
   return config;
@@ -211,29 +211,35 @@ function getUnifiedStatusConfig(state: string): StatusConfig {
  * @returns Formatted date string or fallback message
  */
 function formatSafeDate(dateValue: any): string {
-  if (!dateValue || dateValue === 'null' || dateValue === '' || dateValue === 'undefined') {
-    return 'Data não informada';
+  if (
+    !dateValue ||
+    dateValue === "null" ||
+    dateValue === "" ||
+    dateValue === "undefined"
+  ) {
+    return "Data não informada";
   }
-  
+
   try {
     // Handle ServiceNow object format {display_value: "date", value: "date"}
-    const dateToFormat = (typeof dateValue === 'object' && dateValue.display_value) 
-      ? dateValue.display_value 
-      : dateValue;
-    
+    const dateToFormat =
+      typeof dateValue === "object" && dateValue.display_value
+        ? dateValue.display_value
+        : dateValue;
+
     const date = new Date(dateToFormat);
     if (isNaN(date.getTime())) {
-      return 'Data não disponível';
+      return "Data não disponível";
     }
-    
-    return date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
+
+    return date.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
     });
   } catch (error) {
-    console.warn('Date formatting error:', error, 'for value:', dateValue);
-    return 'Data não disponível';
+    console.warn("Date formatting error:", error, "for value:", dateValue);
+    return "Data não disponível";
   }
 }
 
@@ -247,27 +253,31 @@ function stateToNumeric(namedState: string): string {
   if (/^\d+$/.test(namedState)) {
     return namedState;
   }
-  
+
   const config = getUnifiedStatusConfig(namedState);
-  console.log(` State mapping: ${namedState} → ${config.numericCode} (${config.label})`);
+  console.log(
+    ` State mapping: ${namedState} → ${config.numericCode} (${config.label})`,
+  );
   return config.numericCode;
 }
 
-export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
+export const htmxDashboardClean = new Elysia({ prefix: "/clean" })
   .use(html())
   .use(htmx())
-  .decorate('serviceNowAuthClient', serviceNowAuthClient)
+  .decorate("serviceNowAuthClient", serviceNowAuthClient)
   // Global error handler to prevent "_r_r is not defined" Elysia bug
-  .onError({ as: 'global' }, (context) => {
+  .onError({ as: "global" }, (context) => {
     const { code, error, set } = context;
-    
-    console.error(`🚨 [GLOBAL ERROR HANDLER] Code: ${code}, Error: ${error?.message || 'Unknown'}`);
-    
+
+    console.error(
+      `🚨 [GLOBAL ERROR HANDLER] Code: ${code}, Error: ${error?.message || "Unknown"}`,
+    );
+
     // Handle NOT_FOUND errors that trigger the _r_r bug
-    if (code === 'NOT_FOUND') {
+    if (code === "NOT_FOUND") {
       set.status = 404;
-      set.headers['content-type'] = 'text/html; charset=utf-8';
-      
+      set.headers["content-type"] = "text/html; charset=utf-8";
+
       return `
         <!DOCTYPE html>
         <html lang="pt-BR" class="h-full">
@@ -288,11 +298,11 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
         </html>
       `;
     }
-    
+
     // Handle other errors safely
     set.status = error?.status || 500;
-    set.headers['content-type'] = 'text/html; charset=utf-8';
-    
+    set.headers["content-type"] = "text/html; charset=utf-8";
+
     return `
       <!DOCTYPE html>
       <html lang="pt-BR">
@@ -316,16 +326,18 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
       </html>
     `;
   })
-  
+
   // Serve CSS using Bun.file() - correct Elysia pattern
-  .get('/styles.css', () => {
-    return Bun.file('/storage/enviroments/integrations/nex/BunNow/bunsnc/public/styles.css');
+  .get("/styles.css", () => {
+    return Bun.file(
+      "/storage/enviroments/integrations/nex/BunNow/bunsnc/public/styles.css",
+    );
   })
-  
+
   /**
    * Main dashboard page - Clean ElysiaJS Theme
    */
-  .get('/', async ({ hx, set }) => {
+  .get("/", async ({ hx, set }) => {
     try {
       // Initialize services safely - will be used by HTMX endpoints
       const services = await initializeCleanServices();
@@ -366,9 +378,9 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
           </html>
         `;
       }
-      
-    if (!hx.isHTMX) {
-      return `
+
+      if (!hx.isHTMX) {
+        return `
         <!DOCTYPE html>
         <html lang="pt-BR" class="h-full">
         <head>
@@ -920,9 +932,9 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
         </body>
         </html>
       `;
-    }
+      }
     } catch (error) {
-      console.error(' Clean Dashboard Error:', error);
+      console.error(" Clean Dashboard Error:", error);
       set.status = 503;
       return `
         <!DOCTYPE html>
@@ -961,31 +973,34 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
   /**
    * Metrics component with ServiceNow connection status
    */
-  .get('/metrics', async () => {
+  .get("/metrics", async () => {
     try {
       const rateLimitMetrics = {}; // Rate limiting now handled internally
-      
+
       // Provide default values if metrics are undefined
       const totalRequests = rateLimitMetrics.totalRequests || 0;
       const successfulRequests = rateLimitMetrics.successfulRequests || 0;
       const currentRate = rateLimitMetrics.currentRate || 0;
       const concurrentRequests = rateLimitMetrics.concurrentRequests || 0;
-      const successRate = totalRequests > 0 ? Math.round((successfulRequests / totalRequests) * 100) : 100;
-      
+      const successRate =
+        totalRequests > 0
+          ? Math.round((successfulRequests / totalRequests) * 100)
+          : 100;
+
       // Test ServiceNow connectivity
-      let serviceNowStatus = 'connected';
+      let serviceNowStatus = "connected";
       let lastTestTime = new Date().toISOString();
-      
+
       try {
-        await serviceNowAuthClient.makeRequest('incident', 'GET', { 
+        await serviceNowAuthClient.makeRequest("incident", "GET", {
           sysparm_limit: 1,
-          sysparm_fields: 'sys_id'
+          sysparm_fields: "sys_id",
         });
       } catch (error) {
-        serviceNowStatus = 'disconnected';
-        console.warn('ServiceNow connectivity test failed:', error);
+        serviceNowStatus = "disconnected";
+        console.warn("ServiceNow connectivity test failed:", error);
       }
-      
+
       return `
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div class="card-gradient rounded-xl border border-gray-600 p-6 text-center hover:border-elysia-blue transition-all duration-300">
@@ -1018,19 +1033,19 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-white">System Status</h3>
             <div class="flex items-center space-x-2">
-              <div class="w-3 h-3 ${serviceNowStatus === 'connected' ? 'bg-green-400 animate-pulse' : 'bg-red-400 animate-bounce'} rounded-full"></div>
-              <span class="text-sm ${serviceNowStatus === 'connected' ? 'text-green-400' : 'text-red-400'}">${serviceNowStatus === 'connected' ? 'Online' : 'Offline'}</span>
+              <div class="w-3 h-3 ${serviceNowStatus === "connected" ? "bg-green-400 animate-pulse" : "bg-red-400 animate-bounce"} rounded-full"></div>
+              <span class="text-sm ${serviceNowStatus === "connected" ? "text-green-400" : "text-red-400"}">${serviceNowStatus === "connected" ? "Online" : "Offline"}</span>
             </div>
           </div>
           
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
             <div>
               <div class="text-gray-400 mb-1">ServiceNow</div>
-              <div class="${serviceNowStatus === 'connected' ? 'text-green-400' : 'text-red-400'} font-medium flex items-center">
-                <i data-lucide="${serviceNowStatus === 'connected' ? 'check-circle' : 'x-circle'}" class="w-4 h-4 mr-1"></i> 
-                ${serviceNowStatus === 'connected' ? 'Connected' : 'Disconnected'}
+              <div class="${serviceNowStatus === "connected" ? "text-green-400" : "text-red-400"} font-medium flex items-center">
+                <i data-lucide="${serviceNowStatus === "connected" ? "check-circle" : "x-circle"}" class="w-4 h-4 mr-1"></i> 
+                ${serviceNowStatus === "connected" ? "Connected" : "Disconnected"}
               </div>
-              <div class="text-xs text-gray-500 mt-1">${new Date(lastTestTime).toLocaleTimeString('pt-BR')}</div>
+              <div class="text-xs text-gray-500 mt-1">${new Date(lastTestTime).toLocaleTimeString("pt-BR")}</div>
             </div>
             <div>
               <div class="text-gray-400 mb-1">Redis Cache</div>
@@ -1044,7 +1059,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
             </div>
             <div>
               <div class="text-gray-400 mb-1">Current Load</div>
-              <div class="text-${concurrentRequests > 15 ? 'orange' : concurrentRequests > 10 ? 'yellow' : 'green'}-400 font-medium flex items-center">
+              <div class="text-${concurrentRequests > 15 ? "orange" : concurrentRequests > 10 ? "yellow" : "green"}-400 font-medium flex items-center">
                 <i data-lucide="zap" class="w-4 h-4 mr-1"></i> ${concurrentRequests} active
               </div>
               <div class="text-xs text-gray-500 mt-1">Max: 25 concurrent</div>
@@ -1065,21 +1080,21 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                 <span>${currentRate}/25 req/s</span>
               </div>
               <div class="w-full bg-gray-700 rounded-full h-2">
-                <div class="h-2 rounded-full transition-all duration-300 ${currentRate > 80 ? 'bg-red-500' : currentRate > 60 ? 'bg-orange-500' : 'bg-green-500'}" 
+                <div class="h-2 rounded-full transition-all duration-300 ${currentRate > 80 ? "bg-red-500" : currentRate > 60 ? "bg-orange-500" : "bg-green-500"}" 
                      style="width: ${Math.min((currentRate / 25) * 100, 100)}%"></div>
               </div>
             </div>
             <div class="flex items-center space-x-2">
-              <div class="w-3 h-3 ${currentRate > 20 ? 'bg-red-400 animate-pulse' : currentRate > 15 ? 'bg-orange-400' : 'bg-green-400'} rounded-full"></div>
-              <span class="text-xs ${currentRate > 20 ? 'text-red-400' : currentRate > 15 ? 'text-orange-400' : 'text-green-400'}">
-                ${currentRate > 20 ? 'High Load' : currentRate > 15 ? 'Medium Load' : 'Normal'}
+              <div class="w-3 h-3 ${currentRate > 20 ? "bg-red-400 animate-pulse" : currentRate > 15 ? "bg-orange-400" : "bg-green-400"} rounded-full"></div>
+              <span class="text-xs ${currentRate > 20 ? "text-red-400" : currentRate > 15 ? "text-orange-400" : "text-green-400"}">
+                ${currentRate > 20 ? "High Load" : currentRate > 15 ? "Medium Load" : "Normal"}
               </span>
             </div>
           </div>
         </div>
       `;
     } catch (error) {
-      console.error('Error getting metrics:', error);
+      console.error("Error getting metrics:", error);
       return `
         <div class="glass-effect rounded-xl border border-red-600 p-6 text-center">
           <i data-lucide="alert-triangle" class="w-16 h-16 mx-auto mb-4 text-red-400"></i>
@@ -1093,9 +1108,9 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
   /**
    * Search tickets
    */
-  .get('/search', async ({ query }) => {
+  .get("/search", async ({ query }) => {
     const { query: searchQuery } = query as any;
-    
+
     if (!searchQuery || searchQuery.trim().length < 2) {
       return `
         <div class="text-center py-12 text-gray-400">
@@ -1109,7 +1124,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
       // Target groups for filtering
       const targetGroups = [
         "L2-NE-IT APP AND DATABASE",
-        "L2-NE-IT SAP BASIS", 
+        "L2-NE-IT SAP BASIS",
         "L2-NE-IT APP AND SERVICES",
         "L2-NE-IT PROCESSING",
         "L2-NE-IT NETWORK SECURITY",
@@ -1123,7 +1138,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
         "L2-NE-IT STORAGE",
         "L2-NE-IT VOIP",
         "L2-NE-IT NOC",
-        "L2-NE-IT PCP PRODUCTION"
+        "L2-NE-IT PCP PRODUCTION",
       ];
 
       // Detect ticket number pattern - include CHG for change requests
@@ -1132,43 +1147,55 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
 
       let results = [];
       // Use same query syntax as Python scripts
-      const groupQuery = targetGroups.map(group => `assignment_group.nameCONTAINS${group}`).join('^OR');
+      const groupQuery = targetGroups
+        .map((group) => `assignment_group.nameCONTAINS${group}`)
+        .join("^OR");
 
       if (isTicketNumber) {
         // Search by exact ticket number (with group filter)
         // Use exact table names from Python scripts
-        let tables = ['incident', 'sc_task', 'change_task'];
-        
+        let tables = ["incident", "sc_task", "change_task"];
+
         // Add change_request table for CHG tickets based on ServiceNow standard tables
-        if (searchQuery.trim().toUpperCase().startsWith('CHG')) {
-          tables = ['change_request'];
-          console.log(` [SEARCH CHG] Searching for CHG ticket: ${searchQuery.trim()}`);
+        if (searchQuery.trim().toUpperCase().startsWith("CHG")) {
+          tables = ["change_request"];
+          console.log(
+            ` [SEARCH CHG] Searching for CHG ticket: ${searchQuery.trim()}`,
+          );
         }
-        
+
         for (const table of tables) {
           try {
-            console.log(` [SEARCH] Table: ${table}, Query: number=${searchQuery.trim()}`);
-            
+            console.log(
+              ` [SEARCH] Table: ${table}, Query: number=${searchQuery.trim()}`,
+            );
+
             // For ticket number search, don't restrict by groups to find any ticket
             const response = await serviceNowAuthClient.makeRequest(
               table,
-              'GET',
-              { 
+              "GET",
+              {
                 sysparm_query: `number=${searchQuery.trim()}`,
-                sysparm_fields: 'sys_id,number,short_description,description,state,priority,urgency,impact,category,subcategory,assignment_group,assigned_to,caller_id,sys_created_on,sys_updated_on',
-                sysparm_display_value: 'all', // Same as Python default
-                sysparm_exclude_reference_link: 'true',
-                sysparm_limit: 1
-              }
+                sysparm_fields:
+                  "sys_id,number,short_description,description,state,priority,urgency,impact,category,subcategory,assignment_group,assigned_to,caller_id,sys_created_on,sys_updated_on",
+                sysparm_display_value: "all", // Same as Python default
+                sysparm_exclude_reference_link: "true",
+                sysparm_limit: 1,
+              },
             );
-            
-            console.log(` [SEARCH RESULT] Table: ${table}, Results: ${response?.result?.length || 0}`);
-            
+
+            console.log(
+              ` [SEARCH RESULT] Table: ${table}, Results: ${response?.result?.length || 0}`,
+            );
+
             if (response?.result && response.result.length > 0) {
-              console.log(` [SEARCH FOUND] Ticket found in ${table}:`, response.result[0].number);
+              console.log(
+                ` [SEARCH FOUND] Ticket found in ${table}:`,
+                response.result[0].number,
+              );
               results.push({
                 ...response.result[0],
-                table_name: table
+                table_name: table,
               });
             }
           } catch (error) {
@@ -1177,27 +1204,30 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
         }
       } else {
         // Search by description across tables (with group filter) - use exact table names from Python scripts
-        const tables = ['incident', 'sc_task', 'change_task', 'change_request'];
-        
+        const tables = ["incident", "sc_task", "change_task", "change_request"];
+
         for (const table of tables) {
           try {
             const response = await serviceNowAuthClient.makeRequest(
               table,
-              'GET',
-              { 
+              "GET",
+              {
                 sysparm_query: `(short_descriptionCONTAINS${searchQuery.trim()}^ORdescriptionCONTAINS${searchQuery.trim()})^(${groupQuery})`,
-                sysparm_fields: 'sys_id,number,short_description,description,state,priority,urgency,impact,category,subcategory,assignment_group,assigned_to,caller_id,sys_created_on,sys_updated_on',
-                sysparm_display_value: 'all', // Same as Python default
-                sysparm_exclude_reference_link: 'true',
-                sysparm_limit: 5
-              }
+                sysparm_fields:
+                  "sys_id,number,short_description,description,state,priority,urgency,impact,category,subcategory,assignment_group,assigned_to,caller_id,sys_created_on,sys_updated_on",
+                sysparm_display_value: "all", // Same as Python default
+                sysparm_exclude_reference_link: "true",
+                sysparm_limit: 5,
+              },
             );
-            
+
             if (response?.result && response.result.length > 0) {
-              results.push(...response.result.map(item => ({
-                ...item,
-                table_name: table
-              })));
+              results.push(
+                ...response.result.map((item) => ({
+                  ...item,
+                  table_name: table,
+                })),
+              );
             }
           } catch (error) {
             console.warn(`Error searching ${table}:`, error);
@@ -1218,13 +1248,13 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
       // Priority color helper function
       function getPriorityColor(priority) {
         const priorities = {
-          '1': 'bg-red-500/20 text-red-300',
-          '2': 'bg-orange-500/20 text-orange-300',
-          '3': 'bg-yellow-500/20 text-yellow-300',
-          '4': 'bg-blue-500/20 text-blue-300',
-          '5': 'bg-gray-500/20 text-gray-300'
+          "1": "bg-red-500/20 text-red-300",
+          "2": "bg-orange-500/20 text-orange-300",
+          "3": "bg-yellow-500/20 text-yellow-300",
+          "4": "bg-blue-500/20 text-blue-300",
+          "5": "bg-gray-500/20 text-gray-300",
         };
-        return priorities[priority] || 'bg-gray-500/20 text-gray-300';
+        return priorities[priority] || "bg-gray-500/20 text-gray-300";
       }
 
       return `
@@ -1237,69 +1267,154 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
           </div>
           
           <div class="grid gap-4">
-            ${results.map(ticket => {
-              // Safe data extraction with proper null checks
-              const ticketNumber = ticket.number || 'N/A';
-              const priority = ticket.priority?.value || ticket.priority || 'N/A';
-              const urgency = ticket.urgency?.value || ticket.urgency || '';
-              const state = ticket.state?.value || ticket.state || '1';
-              const shortDescription = ticket.short_description?.value || ticket.short_description || 'Sem descrição';
-              const assignmentGroup = ticket.assignment_group?.display_value || 'Não atribuído';
-              const assignedTo = (ticket.assigned_to && typeof ticket.assigned_to === 'object' && ticket.assigned_to.display_value) 
-                ? ticket.assigned_to.display_value 
-                : (ticket.assigned_to && typeof ticket.assigned_to === 'string') 
-                  ? `User (${ticket.assigned_to.slice(0, 8)}...)` 
-                  : 'Não atribuído';
-              const createdOn = ticket.sys_created_on?.value || ticket.sys_created_on;
-              
-              return `
+            ${results
+              .map((ticket) => {
+                // Safe data extraction with proper null checks
+                const ticketNumber = ticket.number || "N/A";
+                const priority =
+                  ticket.priority?.value || ticket.priority || "N/A";
+                const urgency = ticket.urgency?.value || ticket.urgency || "";
+                const state = ticket.state?.value || ticket.state || "1";
+                const shortDescription =
+                  ticket.short_description?.value ||
+                  ticket.short_description ||
+                  "Sem descrição";
+                const assignmentGroup =
+                  ticket.assignment_group?.display_value || "Não atribuído";
+                const assignedTo =
+                  ticket.assigned_to &&
+                  typeof ticket.assigned_to === "object" &&
+                  ticket.assigned_to.display_value
+                    ? ticket.assigned_to.display_value
+                    : ticket.assigned_to &&
+                        typeof ticket.assigned_to === "string"
+                      ? `User (${ticket.assigned_to.slice(0, 8)}...)`
+                      : "Não atribuído";
+                const createdOn =
+                  ticket.sys_created_on?.value || ticket.sys_created_on;
+
+                return `
                 <div class="card-gradient rounded-xl border border-gray-600 p-6 hover:border-elysia-blue transition-all duration-300 cursor-pointer group" 
-                     onclick="showTicketDetails('${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}', '${ticket.table_name}')">
+                     onclick="showTicketDetails('${typeof ticket.sys_id === "object" ? ticket.sys_id.value : ticket.sys_id}', '${ticket.table_name}')">
                   <div class="flex justify-between items-start mb-4">
                     <div class="flex items-center space-x-3">
                       <span class="text-lg font-bold text-elysia-cyan">${ticketNumber}</span>
                       <span class="px-3 py-1 rounded-full text-xs font-medium border ${(() => {
                         const states = {
-                          '1': { label: 'Novo', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
-                          '2': { label: 'Em Andamento', color: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
-                          '18': { label: 'Designado', color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
-                          '3': { label: 'Em Espera', color: 'bg-orange-500/20 text-orange-300 border-orange-500/30' },
-                          '6': { label: 'Resolvido', color: 'bg-green-500/20 text-green-300 border-green-500/30' },
-                          '7': { label: 'Fechado', color: 'bg-gray-500/20 text-gray-300 border-gray-500/30' },
-                          '8': { label: 'Cancelado', color: 'bg-red-500/20 text-red-300 border-red-500/30' }
+                          "1": {
+                            label: "Novo",
+                            color:
+                              "bg-blue-500/20 text-blue-300 border-blue-500/30",
+                          },
+                          "2": {
+                            label: "Em Andamento",
+                            color:
+                              "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
+                          },
+                          "18": {
+                            label: "Designado",
+                            color:
+                              "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
+                          },
+                          "3": {
+                            label: "Em Espera",
+                            color:
+                              "bg-orange-500/20 text-orange-300 border-orange-500/30",
+                          },
+                          "6": {
+                            label: "Resolvido",
+                            color:
+                              "bg-green-500/20 text-green-300 border-green-500/30",
+                          },
+                          "7": {
+                            label: "Fechado",
+                            color:
+                              "bg-gray-500/20 text-gray-300 border-gray-500/30",
+                          },
+                          "8": {
+                            label: "Cancelado",
+                            color:
+                              "bg-red-500/20 text-red-300 border-red-500/30",
+                          },
                         };
-                        return (states[state] || { label: 'Desconhecido', color: 'bg-gray-500/20 text-gray-300 border-gray-500/30' }).color;
+                        return (
+                          states[state] || {
+                            label: "Desconhecido",
+                            color:
+                              "bg-gray-500/20 text-gray-300 border-gray-500/30",
+                          }
+                        ).color;
                       })()}">
                         ${(() => {
-                        const states = {
-                          '1': { label: 'Novo', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
-                          '2': { label: 'Em Andamento', color: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
-                          '18': { label: 'Designado', color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
-                          '3': { label: 'Em Espera', color: 'bg-orange-500/20 text-orange-300 border-orange-500/30' },
-                          '6': { label: 'Resolvido', color: 'bg-green-500/20 text-green-300 border-green-500/30' },
-                          '7': { label: 'Fechado', color: 'bg-gray-500/20 text-gray-300 border-gray-500/30' },
-                          '8': { label: 'Cancelado', color: 'bg-red-500/20 text-red-300 border-red-500/30' }
-                        };
-                        return (states[state] || { label: 'Desconhecido', color: 'bg-gray-500/20 text-gray-300 border-gray-500/30' }).label;
-                      })()}
+                          const states = {
+                            "1": {
+                              label: "Novo",
+                              color:
+                                "bg-blue-500/20 text-blue-300 border-blue-500/30",
+                            },
+                            "2": {
+                              label: "Em Andamento",
+                              color:
+                                "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
+                            },
+                            "18": {
+                              label: "Designado",
+                              color:
+                                "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
+                            },
+                            "3": {
+                              label: "Em Espera",
+                              color:
+                                "bg-orange-500/20 text-orange-300 border-orange-500/30",
+                            },
+                            "6": {
+                              label: "Resolvido",
+                              color:
+                                "bg-green-500/20 text-green-300 border-green-500/30",
+                            },
+                            "7": {
+                              label: "Fechado",
+                              color:
+                                "bg-gray-500/20 text-gray-300 border-gray-500/30",
+                            },
+                            "8": {
+                              label: "Cancelado",
+                              color:
+                                "bg-red-500/20 text-red-300 border-red-500/30",
+                            },
+                          };
+                          return (
+                            states[state] || {
+                              label: "Desconhecido",
+                              color:
+                                "bg-gray-500/20 text-gray-300 border-gray-500/30",
+                            }
+                          ).label;
+                        })()}
                       </span>
                       <span class="px-2 py-1 rounded text-xs font-medium ${(() => {
                         const priorities = {
-                          '1': 'bg-red-500/20 text-red-300',
-                          '2': 'bg-orange-500/20 text-orange-300',
-                          '3': 'bg-yellow-500/20 text-yellow-300',
-                          '4': 'bg-blue-500/20 text-blue-300',
-                          '5': 'bg-gray-500/20 text-gray-300'
+                          "1": "bg-red-500/20 text-red-300",
+                          "2": "bg-orange-500/20 text-orange-300",
+                          "3": "bg-yellow-500/20 text-yellow-300",
+                          "4": "bg-blue-500/20 text-blue-300",
+                          "5": "bg-gray-500/20 text-gray-300",
                         };
-                        return priorities[priority] || 'bg-gray-500/20 text-gray-300';
+                        return (
+                          priorities[priority] || "bg-gray-500/20 text-gray-300"
+                        );
                       })()}">
                         P${priority}
                       </span>
-                      ${urgency ? `
+                      ${
+                        urgency
+                          ? `
                         <span class="px-2 py-1 rounded text-xs font-medium bg-purple-500/20 text-purple-300">
                           U${urgency}
                         </span>
-                      ` : ''}
+                      `
+                          : ""
+                      }
                     </div>
                     <div class="text-sm text-gray-400">
                       ${formatSafeDate(createdOn)}
@@ -1321,7 +1436,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                   
                   <div class="mt-4 text-right">
                     <button 
-                      hx-get="/clean/ticket-details/${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}/${ticket.table_name}"
+                      hx-get="/clean/ticket-details/${typeof ticket.sys_id === "object" ? ticket.sys_id.value : ticket.sys_id}/${ticket.table_name}"
                       hx-target="#modal-container"
                       hx-swap="innerHTML"
                       class="px-4 py-2 bg-elysia-blue text-white rounded-lg text-sm hover:bg-blue-600 transition-all duration-300 group-hover:scale-105 focus:outline-none focus:ring-2 focus:ring-elysia-blue focus:ring-opacity-50">
@@ -1331,7 +1446,8 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                   </div>
                 </div>
               `;
-            }).join('')}
+              })
+              .join("")}
           </div>
         </div>
         
@@ -1340,14 +1456,13 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
           
         </script>
       `;
-      
     } catch (error) {
-      console.error('Search error:', error);
+      console.error("Search error:", error);
       return `
         <div class="text-center py-12">
           <i data-lucide="alert-triangle" class="w-20 h-20 mx-auto mb-4 text-red-400"></i>
           <h3 class="text-xl font-medium text-red-400 mb-2">Erro na busca</h3>
-          <p class="text-red-300">${error instanceof Error ? error.message : 'Erro desconhecido'}</p>
+          <p class="text-red-300">${error instanceof Error ? error.message : "Erro desconhecido"}</p>
           <button class="mt-4 px-4 py-2 bg-elysia-blue text-white rounded-lg hover:bg-blue-600 transition-colors" 
                   onclick="location.reload()">
             Tentar novamente
@@ -1360,16 +1475,18 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
   /**
    * Get tickets list - Grouped by target groups with status filters
    */
-  .get('/tickets', async ({ query }) => {
-    const { type = 'in_progress', group = 'all' } = query as any;
-    
-    console.log(`🚨 [TICKETS ENDPOINT] Starting request - type: ${type}, group: ${group}`);
-    
+  .get("/tickets", async ({ query }) => {
+    const { type = "in_progress", group = "all" } = query as any;
+
+    console.log(
+      `🚨 [TICKETS ENDPOINT] Starting request - type: ${type}, group: ${group}`,
+    );
+
     try {
       // Target groups (fallback_groups) - from ServiceNow production environment
       const targetGroups = [
         "L2-NE-IT APP AND DATABASE",
-        "L2-NE-IT SAP BASIS", 
+        "L2-NE-IT SAP BASIS",
         "L2-NE-IT APP AND SERVICES",
         "L2-NE-IT PROCESSING",
         "L2-NE-IT NETWORK SECURITY",
@@ -1383,70 +1500,84 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
         "L2-NE-IT STORAGE",
         "L2-NE-IT VOIP",
         "L2-NE-IT NOC",
-        "L2-NE-IT PCP PRODUCTION"
+        "L2-NE-IT PCP PRODUCTION",
       ];
 
       // Filter groups based on selection - use all 16 groups as requested
-      const groupsToSearch = group === 'all' ? targetGroups : [group]; // All 16 groups as requested
-      
+      const groupsToSearch = group === "all" ? targetGroups : [group]; // All 16 groups as requested
+
       // Current month date range
       const now = new Date();
       const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      
-      const dateQuery = `sys_created_onBETWEEN${currentMonthStart.toISOString().split('T')[0]}@${currentMonthEnd.toISOString().split('T')[0]}`;
-      
+      const currentMonthEnd = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0,
+      );
+
+      const dateQuery = `sys_created_onBETWEEN${currentMonthStart.toISOString().split("T")[0]}@${currentMonthEnd.toISOString().split("T")[0]}`;
+
       // State filtering based on type
-      let stateQuery = '';
+      let stateQuery = "";
       switch (type) {
-        case 'in_progress':
-          stateQuery = 'state=2'; // Em Andamento (Work in Progress)
+        case "in_progress":
+          stateQuery = "state=2"; // Em Andamento (Work in Progress)
           break;
-        case 'waiting':
-          stateQuery = 'state=3'; // Em Espera (On Hold/Waiting)
+        case "waiting":
+          stateQuery = "state=3"; // Em Espera (On Hold/Waiting)
           break;
-        case 'all':
-          stateQuery = 'stateIN1,2,3'; // Novo, Em Andamento, Em Espera
+        case "all":
+          stateQuery = "stateIN1,2,3"; // Novo, Em Andamento, Em Espera
           break;
         default:
-          stateQuery = 'state=2'; // Default to in progress
+          stateQuery = "state=2"; // Default to in progress
       }
 
       const allResults = [];
-      
+
       // Search all tables as in Python scripts
-      const tables = ['incident', 'sc_task', 'change_task']; // Same as Python scripts
-      
+      const tables = ["incident", "sc_task", "change_task"]; // Same as Python scripts
+
       for (const table of tables) {
         for (const targetGroup of groupsToSearch) {
           try {
             // Use exactly the same query syntax as Python scripts
             const queryString = `${dateQuery}^${stateQuery}^assignment_group.nameCONTAINS${targetGroup}`;
-            console.log(` [QUERY] Table: ${table}, Group: ${targetGroup}, Query: ${queryString}`);
-            
+            console.log(
+              ` [QUERY] Table: ${table}, Group: ${targetGroup}, Query: ${queryString}`,
+            );
+
             const response = await serviceNowAuthClient.makeRequest(
               table,
-              'GET',
+              "GET",
               {
                 sysparm_query: queryString,
-                sysparm_fields: 'sys_id,number,short_description,description,state,priority,urgency,impact,category,subcategory,assignment_group,assigned_to,caller_id,sys_created_on,sys_updated_on',
-                sysparm_display_value: 'all', // Same as Python default
-                sysparm_exclude_reference_link: 'true',
-                sysparm_limit: 20
-              }
+                sysparm_fields:
+                  "sys_id,number,short_description,description,state,priority,urgency,impact,category,subcategory,assignment_group,assigned_to,caller_id,sys_created_on,sys_updated_on",
+                sysparm_display_value: "all", // Same as Python default
+                sysparm_exclude_reference_link: "true",
+                sysparm_limit: 20,
+              },
             );
-            
-            console.log(` [RESPONSE] Table: ${table}, Group: ${targetGroup}, Results: ${response?.result?.length || 0}`);
+
+            console.log(
+              ` [RESPONSE] Table: ${table}, Group: ${targetGroup}, Results: ${response?.result?.length || 0}`,
+            );
 
             if (response?.result && response.result.length > 0) {
-              allResults.push(...response.result.map(ticket => ({
-                ...ticket,
-                table_name: table,
-                target_group: targetGroup
-              })));
+              allResults.push(
+                ...response.result.map((ticket) => ({
+                  ...ticket,
+                  table_name: table,
+                  target_group: targetGroup,
+                })),
+              );
             }
           } catch (error) {
-            console.warn(`Error fetching ${table} for group ${targetGroup}:`, error);
+            console.warn(
+              `Error fetching ${table} for group ${targetGroup}:`,
+              error,
+            );
           }
         }
       }
@@ -1454,53 +1585,75 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
       // Debug logging
       console.log(`🐛 Total tickets found: ${allResults.length}`);
       if (allResults.length > 0) {
-        console.log(`🐛 Sample ticket:`, JSON.stringify(allResults[0], null, 2));
+        console.log(
+          `🐛 Sample ticket:`,
+          JSON.stringify(allResults[0], null, 2),
+        );
       }
 
       // Group tickets by assignment group
       const groupedResults = {};
-      allResults.forEach(ticket => {
-        const assignmentGroup = ticket.assignment_group?.display_value || 'Não atribuído';
+      allResults.forEach((ticket) => {
+        const assignmentGroup =
+          ticket.assignment_group?.display_value || "Não atribuído";
         if (!groupedResults[assignmentGroup]) {
           groupedResults[assignmentGroup] = [];
         }
         groupedResults[assignmentGroup].push(ticket);
       });
-      
-      console.log(`🐛 Grouped results: ${Object.keys(groupedResults).length} groups`);
-      Object.keys(groupedResults).forEach(group => {
-        console.log(`🐛 Group "${group}": ${groupedResults[group].length} tickets`);
+
+      console.log(
+        `🐛 Grouped results: ${Object.keys(groupedResults).length} groups`,
+      );
+      Object.keys(groupedResults).forEach((group) => {
+        console.log(
+          `🐛 Group "${group}": ${groupedResults[group].length} tickets`,
+        );
       });
 
       // Sort each group by creation date (newest first)
-      Object.keys(groupedResults).forEach(group => {
-        groupedResults[group].sort((a, b) => 
-          new Date(b.sys_created_on?.value || b.sys_created_on).getTime() - 
-          new Date(a.sys_created_on?.value || a.sys_created_on).getTime()
+      Object.keys(groupedResults).forEach((group) => {
+        groupedResults[group].sort(
+          (a, b) =>
+            new Date(b.sys_created_on?.value || b.sys_created_on).getTime() -
+            new Date(a.sys_created_on?.value || a.sys_created_on).getTime(),
         );
       });
 
       if (Object.keys(groupedResults).length === 0) {
-        const typeLabel = type === 'in_progress' ? 'em andamento' : type === 'waiting' ? 'em espera' : 'ativos';
+        const typeLabel =
+          type === "in_progress"
+            ? "em andamento"
+            : type === "waiting"
+              ? "em espera"
+              : "ativos";
         return `
           <div class="text-center py-12">
             <i data-lucide="inbox" class="w-16 h-16 mx-auto mb-4 text-gray-500"></i>
             <h3 class="text-lg font-medium text-white mb-2">Nenhum ticket encontrado</h3>
             <p class="text-gray-400">Não há tickets ${typeLabel} para os grupos alvo no mês atual.</p>
             <div class="mt-4 text-xs text-gray-500">
-              Grupos monitorados: ${targetGroups.slice(0, 3).join(', ')} e outros
+              Grupos monitorados: ${targetGroups.slice(0, 3).join(", ")} e outros
             </div>
           </div>
         `;
       }
 
+      const totalTickets = Object.values(groupedResults).reduce(
+        (sum, tickets) => sum + tickets.length,
+        0,
+      );
+      const typeLabel =
+        type === "in_progress"
+          ? "em andamento"
+          : type === "waiting"
+            ? "em espera"
+            : "ativos";
+      const groupLabel = group === "all" ? "todos os grupos" : group;
 
-
-      const totalTickets = Object.values(groupedResults).reduce((sum, tickets) => sum + tickets.length, 0);
-      const typeLabel = type === 'in_progress' ? 'em andamento' : type === 'waiting' ? 'em espera' : 'ativos';
-      const groupLabel = group === 'all' ? 'todos os grupos' : group;
-
-      console.log(`🎯 [HTML GENERATION] About to generate HTML for ${totalTickets} tickets in ${Object.keys(groupedResults).length} groups`);
+      console.log(
+        `🎯 [HTML GENERATION] About to generate HTML for ${totalTickets} tickets in ${Object.keys(groupedResults).length} groups`,
+      );
 
       return `
         <div class="space-y-6">
@@ -1519,7 +1672,9 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
           </div>
           
           <!-- Groups -->
-          ${Object.entries(groupedResults).map(([groupName, tickets]) => `
+          ${Object.entries(groupedResults)
+            .map(
+              ([groupName, tickets]) => `
             <div class="card-gradient rounded-xl border border-gray-600 p-6">
               <!-- Group Header -->
               <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-600">
@@ -1531,74 +1686,160 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                   </span>
                 </div>
                 <div class="text-sm text-gray-400">
-                  Atualizado: ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  Atualizado: ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                 </div>
               </div>
               
               <!-- Tickets in Group -->
               <div class="space-y-3">
-                ${tickets.map(ticket => {
-                  // Safe data extraction with proper null checks
-                  const ticketNumber = ticket.number || 'N/A';
-                  const priority = ticket.priority?.value || ticket.priority || 'N/A';
-                  const urgency = ticket.urgency?.value || ticket.urgency || '';
-                  const state = ticket.state?.value || ticket.state || '1';
-                  const shortDescription = ticket.short_description?.value || ticket.short_description || 'Sem descrição';
-                  const assignedTo = (ticket.assigned_to && typeof ticket.assigned_to === 'object' && ticket.assigned_to.display_value) 
-                ? ticket.assigned_to.display_value 
-                : (ticket.assigned_to && typeof ticket.assigned_to === 'string') 
-                  ? `User (${ticket.assigned_to.slice(0, 8)}...)` 
-                  : 'Não atribuído';
-                  const createdOn = ticket.sys_created_on?.value || ticket.sys_created_on;
-                  
-                  return `
+                ${tickets
+                  .map((ticket) => {
+                    // Safe data extraction with proper null checks
+                    const ticketNumber = ticket.number || "N/A";
+                    const priority =
+                      ticket.priority?.value || ticket.priority || "N/A";
+                    const urgency =
+                      ticket.urgency?.value || ticket.urgency || "";
+                    const state = ticket.state?.value || ticket.state || "1";
+                    const shortDescription =
+                      ticket.short_description?.value ||
+                      ticket.short_description ||
+                      "Sem descrição";
+                    const assignedTo =
+                      ticket.assigned_to &&
+                      typeof ticket.assigned_to === "object" &&
+                      ticket.assigned_to.display_value
+                        ? ticket.assigned_to.display_value
+                        : ticket.assigned_to &&
+                            typeof ticket.assigned_to === "string"
+                          ? `User (${ticket.assigned_to.slice(0, 8)}...)`
+                          : "Não atribuído";
+                    const createdOn =
+                      ticket.sys_created_on?.value || ticket.sys_created_on;
+
+                    return `
                     <div class="bg-gray-700/50 rounded-lg border border-gray-600 p-4 hover:border-elysia-blue transition-all duration-300 cursor-pointer group"
-                         onclick="showTicketDetails('${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}', '${ticket.table_name}')">
+                         onclick="showTicketDetails('${typeof ticket.sys_id === "object" ? ticket.sys_id.value : ticket.sys_id}', '${ticket.table_name}')">
                       <div class="flex justify-between items-start mb-3">
                         <div class="flex items-center space-x-3">
                           <span class="text-lg font-bold text-elysia-cyan">${ticketNumber}</span>
                           <span class="px-2 py-1 rounded-full text-xs font-medium border ${(() => {
                             const states = {
-                              '1': { label: 'Novo', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
-                              '2': { label: 'Em Andamento', color: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
-                              '18': { label: 'Designado', color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
-                              '3': { label: 'Em Espera', color: 'bg-orange-500/20 text-orange-300 border-orange-500/30' },
-                              '6': { label: 'Resolvido', color: 'bg-green-500/20 text-green-300 border-green-500/30' },
-                              '7': { label: 'Fechado', color: 'bg-gray-500/20 text-gray-300 border-gray-500/30' },
-                              '8': { label: 'Cancelado', color: 'bg-red-500/20 text-red-300 border-red-500/30' }
+                              "1": {
+                                label: "Novo",
+                                color:
+                                  "bg-blue-500/20 text-blue-300 border-blue-500/30",
+                              },
+                              "2": {
+                                label: "Em Andamento",
+                                color:
+                                  "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
+                              },
+                              "18": {
+                                label: "Designado",
+                                color:
+                                  "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
+                              },
+                              "3": {
+                                label: "Em Espera",
+                                color:
+                                  "bg-orange-500/20 text-orange-300 border-orange-500/30",
+                              },
+                              "6": {
+                                label: "Resolvido",
+                                color:
+                                  "bg-green-500/20 text-green-300 border-green-500/30",
+                              },
+                              "7": {
+                                label: "Fechado",
+                                color:
+                                  "bg-gray-500/20 text-gray-300 border-gray-500/30",
+                              },
+                              "8": {
+                                label: "Cancelado",
+                                color:
+                                  "bg-red-500/20 text-red-300 border-red-500/30",
+                              },
                             };
-                            return (states[state] || { label: 'Desconhecido', color: 'bg-gray-500/20 text-gray-300 border-gray-500/30' }).color;
+                            return (
+                              states[state] || {
+                                label: "Desconhecido",
+                                color:
+                                  "bg-gray-500/20 text-gray-300 border-gray-500/30",
+                              }
+                            ).color;
                           })()}">
                             ${(() => {
                               const states = {
-                                '1': { label: 'Novo', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
-                                '2': { label: 'Em Andamento', color: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
-                                '18': { label: 'Designado', color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
-                                '3': { label: 'Em Espera', color: 'bg-orange-500/20 text-orange-300 border-orange-500/30' },
-                                '6': { label: 'Resolvido', color: 'bg-green-500/20 text-green-300 border-green-500/30' },
-                                '7': { label: 'Fechado', color: 'bg-gray-500/20 text-gray-300 border-gray-500/30' },
-                                '8': { label: 'Cancelado', color: 'bg-red-500/20 text-red-300 border-red-500/30' }
+                                "1": {
+                                  label: "Novo",
+                                  color:
+                                    "bg-blue-500/20 text-blue-300 border-blue-500/30",
+                                },
+                                "2": {
+                                  label: "Em Andamento",
+                                  color:
+                                    "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
+                                },
+                                "18": {
+                                  label: "Designado",
+                                  color:
+                                    "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
+                                },
+                                "3": {
+                                  label: "Em Espera",
+                                  color:
+                                    "bg-orange-500/20 text-orange-300 border-orange-500/30",
+                                },
+                                "6": {
+                                  label: "Resolvido",
+                                  color:
+                                    "bg-green-500/20 text-green-300 border-green-500/30",
+                                },
+                                "7": {
+                                  label: "Fechado",
+                                  color:
+                                    "bg-gray-500/20 text-gray-300 border-gray-500/30",
+                                },
+                                "8": {
+                                  label: "Cancelado",
+                                  color:
+                                    "bg-red-500/20 text-red-300 border-red-500/30",
+                                },
                               };
-                              return (states[state] || { label: 'Desconhecido', color: 'bg-gray-500/20 text-gray-300 border-gray-500/30' }).label;
+                              return (
+                                states[state] || {
+                                  label: "Desconhecido",
+                                  color:
+                                    "bg-gray-500/20 text-gray-300 border-gray-500/30",
+                                }
+                              ).label;
                             })()}
                           </span>
                           <span class="px-2 py-1 rounded text-xs font-medium ${(() => {
                             const priorities = {
-                              '1': 'bg-red-500/20 text-red-300',
-                              '2': 'bg-orange-500/20 text-orange-300',
-                              '3': 'bg-yellow-500/20 text-yellow-300',
-                              '4': 'bg-blue-500/20 text-blue-300',
-                              '5': 'bg-gray-500/20 text-gray-300'
+                              "1": "bg-red-500/20 text-red-300",
+                              "2": "bg-orange-500/20 text-orange-300",
+                              "3": "bg-yellow-500/20 text-yellow-300",
+                              "4": "bg-blue-500/20 text-blue-300",
+                              "5": "bg-gray-500/20 text-gray-300",
                             };
-                            return priorities[priority] || 'bg-gray-500/20 text-gray-300';
+                            return (
+                              priorities[priority] ||
+                              "bg-gray-500/20 text-gray-300"
+                            );
                           })()}">
                             P${priority}
                           </span>
-                          ${urgency ? `
+                          ${
+                            urgency
+                              ? `
                             <span class="px-2 py-1 rounded text-xs font-medium bg-purple-500/20 text-purple-300">
                               U${urgency}
                             </span>
-                          ` : ''}
+                          `
+                              : ""
+                          }
                         </div>
                         <div class="text-sm text-gray-400">
                           ${formatSafeDate(createdOn)}
@@ -1619,10 +1860,13 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                       </div>
                     </div>
                   `;
-                }).join('')}
+                  })
+                  .join("")}
               </div>
             </div>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </div>
         
         <script>
@@ -1664,9 +1908,8 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
           };
         </script>
       `;
-      
     } catch (error) {
-      console.error('Error fetching tickets:', error);
+      console.error("Error fetching tickets:", error);
       return `
         <div class="text-center py-8">
           <i data-lucide="alert-triangle" class="w-16 h-16 mx-auto mb-4 text-red-400"></i>
@@ -1683,18 +1926,19 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
   /**
    * Get ticket details modal
    */
-  .get('/ticket/:sysId/:table', async ({ params: { sysId, table } }) => {
+  .get("/ticket/:sysId/:table", async ({ params: { sysId, table } }) => {
     console.log(`🎫 Loading ticket details: sysId=${sysId}, table=${table}`);
     try {
       const ticketResponse = await serviceNowAuthClient.makeRequest(
         table,
-        'GET',
-        { 
+        "GET",
+        {
           sysparm_query: `sys_id=${sysId}`,
-          sysparm_fields: 'sys_id,number,short_description,description,state,priority,urgency,impact,category,subcategory,assignment_group,assigned_to,caller_id,sys_created_on,sys_updated_on,resolved_at,closed_at',
-          sysparm_display_value: 'all', // Same as Python default
-          sysparm_exclude_reference_link: 'true'
-        }
+          sysparm_fields:
+            "sys_id,number,short_description,description,state,priority,urgency,impact,category,subcategory,assignment_group,assigned_to,caller_id,sys_created_on,sys_updated_on,resolved_at,closed_at",
+          sysparm_display_value: "all", // Same as Python default
+          sysparm_exclude_reference_link: "true",
+        },
       );
 
       if (!ticketResponse?.result || ticketResponse.result.length === 0) {
@@ -1716,34 +1960,58 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
       }
 
       const ticket = ticketResponse.result[0];
-      console.log(`🐛 [TICKET DETAILS] Raw ticket data:`, JSON.stringify(ticket, null, 2));
+      console.log(
+        `🐛 [TICKET DETAILS] Raw ticket data:`,
+        JSON.stringify(ticket, null, 2),
+      );
 
       // Get comprehensive SLA information using our enhanced SLA method
       let slaBreakdown = {};
       try {
-        console.log(`🎯 Getting comprehensive SLA breakdown for ${sysId} from table ${table}`);
+        console.log(
+          `🎯 Getting comprehensive SLA breakdown for ${sysId} from table ${table}`,
+        );
         slaBreakdown = await serviceNowAuthClient.getTicketSLABreakdown(sysId);
         console.log(` SLA breakdown obtained:`, Object.keys(slaBreakdown));
       } catch (slaError) {
-        console.warn(' Comprehensive SLA information not available:', slaError);
+        console.warn(" Comprehensive SLA information not available:", slaError);
         slaBreakdown = {};
       }
 
-
       function getPriorityLabel(priority) {
         const priorities = {
-          '1': { label: 'Crítica', color: 'bg-red-500/20 text-red-300 border-red-500/30' },
-          '2': { label: 'Alta', color: 'bg-orange-500/20 text-orange-300 border-orange-500/30' },
-          '3': { label: 'Moderada', color: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
-          '4': { label: 'Baixa', color: 'bg-green-500/20 text-green-300 border-green-500/30' },
-          '5': { label: 'Planning', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' }
+          "1": {
+            label: "Crítica",
+            color: "bg-red-500/20 text-red-300 border-red-500/30",
+          },
+          "2": {
+            label: "Alta",
+            color: "bg-orange-500/20 text-orange-300 border-orange-500/30",
+          },
+          "3": {
+            label: "Moderada",
+            color: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
+          },
+          "4": {
+            label: "Baixa",
+            color: "bg-green-500/20 text-green-300 border-green-500/30",
+          },
+          "5": {
+            label: "Planning",
+            color: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+          },
         };
-        return priorities[priority] || { label: 'N/A', color: 'bg-gray-500/20 text-gray-300 border-gray-500/30' };
+        return (
+          priorities[priority] || {
+            label: "N/A",
+            color: "bg-gray-500/20 text-gray-300 border-gray-500/30",
+          }
+        );
       }
 
       const stateInfo = getStateLabel(ticket.state);
       const priorityInfo = getPriorityLabel(ticket.priority);
-      
+
       return `
         <div class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" id="ticket-modal">
           <div class="bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-gray-600">
@@ -1799,16 +2067,20 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                     <div class="space-y-3">
                       <div>
                         <label class="block text-sm font-medium text-gray-400 mb-1">Descrição Breve</label>
-                        <p class="text-white font-medium">${ticket.short_description || 'N/A'}</p>
+                        <p class="text-white font-medium">${ticket.short_description || "N/A"}</p>
                       </div>
-                      ${ticket.description ? `
+                      ${
+                        ticket.description
+                          ? `
                         <div>
                           <label class="block text-sm font-medium text-gray-400 mb-1">Descrição Completa</label>
                           <div class="bg-gray-700 border border-gray-600 rounded-lg p-3 max-h-40 overflow-y-auto">
                             <p class="text-gray-100 text-sm whitespace-pre-wrap">${ticket.description}</p>
                           </div>
                         </div>
-                      ` : ''}
+                      `
+                          : ""
+                      }
                     </div>
                   </div>
 
@@ -1820,34 +2092,41 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                         <label class="block text-sm font-medium text-gray-400 mb-1">Grupo de Atribuição</label>
                         <p class="text-white">${
                           // Safe extraction with multiple fallbacks
-                          ticket.assignment_group?.display_value || 
+                          ticket.assignment_group?.display_value ||
                           ticket.assignment_group?.value ||
-                          (typeof ticket.assignment_group === 'string' ? ticket.assignment_group : 'Não atribuído')
+                          (typeof ticket.assignment_group === "string"
+                            ? ticket.assignment_group
+                            : "Não atribuído")
                         }</p>
                       </div>
                       <div>
                         <label class="block text-sm font-medium text-gray-400 mb-1">Atribuído a</label>
                         <p class="text-white">${
                           // Safe extraction with multiple fallbacks
-                          ticket.assigned_to?.display_value || 
+                          ticket.assigned_to?.display_value ||
                           ticket.assigned_to?.value ||
-                          (typeof ticket.assigned_to === 'string' ? ticket.assigned_to : 'Não atribuído')
+                          (typeof ticket.assigned_to === "string"
+                            ? ticket.assigned_to
+                            : "Não atribuído")
                         }</p>
                       </div>
                       <div>
                         <label class="block text-sm font-medium text-gray-400 mb-1">Solicitante</label>
                         <p class="text-white">${
-                          // Safe extraction with multiple fallbacks  
-                          (ticket.caller_id && typeof ticket.caller_id === 'object' && ticket.caller_id.display_value)
+                          // Safe extraction with multiple fallbacks
+                          ticket.caller_id &&
+                          typeof ticket.caller_id === "object" &&
+                          ticket.caller_id.display_value
                             ? ticket.caller_id.display_value
-                            : (ticket.caller_id && typeof ticket.caller_id === 'string')
+                            : ticket.caller_id &&
+                                typeof ticket.caller_id === "string"
                               ? `User (${ticket.caller_id.slice(0, 8)}...)`
-                              : 'N/A'
+                              : "N/A"
                         }</p>
                       </div>
                       <div>
                         <label class="block text-sm font-medium text-gray-400 mb-1">Categoria</label>
-                        <p class="text-white">${ticket.category || 'N/A'}</p>
+                        <p class="text-white">${ticket.category || "N/A"}</p>
                       </div>
                     </div>
                   </div>
@@ -1859,33 +2138,45 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                       <div class="flex items-center py-2 border-l-4 border-blue-400 pl-4">
                         <div>
                           <div class="font-medium text-white">Criado</div>
-                          <div class="text-sm text-gray-300">${new Date(ticket.sys_created_on).toLocaleString('pt-BR')}</div>
+                          <div class="text-sm text-gray-300">${new Date(ticket.sys_created_on).toLocaleString("pt-BR")}</div>
                         </div>
                       </div>
-                      ${ticket.sys_updated_on !== ticket.sys_created_on ? `
+                      ${
+                        ticket.sys_updated_on !== ticket.sys_created_on
+                          ? `
                         <div class="flex items-center py-2 border-l-4 border-yellow-400 pl-4">
                           <div>
                             <div class="font-medium text-white">Última Atualização</div>
-                            <div class="text-sm text-gray-300">${new Date(ticket.sys_updated_on).toLocaleString('pt-BR')}</div>
+                            <div class="text-sm text-gray-300">${new Date(ticket.sys_updated_on).toLocaleString("pt-BR")}</div>
                           </div>
                         </div>
-                      ` : ''}
-                      ${ticket.resolved_at ? `
+                      `
+                          : ""
+                      }
+                      ${
+                        ticket.resolved_at
+                          ? `
                         <div class="flex items-center py-2 border-l-4 border-green-400 pl-4">
                           <div>
                             <div class="font-medium text-white">Resolvido</div>
-                            <div class="text-sm text-gray-300">${new Date(ticket.resolved_at).toLocaleString('pt-BR')}</div>
+                            <div class="text-sm text-gray-300">${new Date(ticket.resolved_at).toLocaleString("pt-BR")}</div>
                           </div>
                         </div>
-                      ` : ''}
-                      ${ticket.closed_at ? `
+                      `
+                          : ""
+                      }
+                      ${
+                        ticket.closed_at
+                          ? `
                         <div class="flex items-center py-2 border-l-4 border-gray-400 pl-4">
                           <div>
                             <div class="font-medium text-white">Fechado</div>
-                            <div class="text-sm text-gray-300">${new Date(ticket.closed_at).toLocaleString('pt-BR')}</div>
+                            <div class="text-sm text-gray-300">${new Date(ticket.closed_at).toLocaleString("pt-BR")}</div>
                           </div>
                         </div>
-                      ` : ''}
+                      `
+                          : ""
+                      }
                     </div>
                   </div>
                 </div>
@@ -1898,50 +2189,64 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                       SLA Information
                     </h3>
                     
-                    ${slaInfo && slaInfo.length > 0 ? `
+                    ${
+                      slaInfo && slaInfo.length > 0
+                        ? `
                       <div class="space-y-4">
-                        ${slaInfo.map(sla => {
-                          const percentage = parseInt(sla.business_percentage || sla.percentage || 0);
-                          const isBreached = sla.has_breached === 'true' || sla.has_breached === true;
-                          
-                          return `
-                            <div class="bg-gray-700 rounded-lg p-3 border ${isBreached ? 'border-red-400' : 'border-gray-600'}">
+                        ${slaInfo
+                          .map((sla) => {
+                            const percentage = parseInt(
+                              sla.business_percentage || sla.percentage || 0,
+                            );
+                            const isBreached =
+                              sla.has_breached === "true" ||
+                              sla.has_breached === true;
+
+                            return `
+                            <div class="bg-gray-700 rounded-lg p-3 border ${isBreached ? "border-red-400" : "border-gray-600"}">
                               <div class="flex items-center justify-between mb-2">
-                                <div class="font-medium text-white">${sla.sla?.display_value || 'SLA'}</div>
-                                <span class="text-sm font-medium ${isBreached ? 'text-red-400' : percentage > 80 ? 'text-orange-400' : 'text-green-400'}">
+                                <div class="font-medium text-white">${sla.sla?.display_value || "SLA"}</div>
+                                <span class="text-sm font-medium ${isBreached ? "text-red-400" : percentage > 80 ? "text-orange-400" : "text-green-400"}">
                                   ${percentage}%
                                 </span>
                               </div>
                               
                               <!-- Progress Bar -->
                               <div class="w-full bg-gray-600 rounded-full h-2 mb-2">
-                                <div class="h-2 rounded-full transition-all duration-300 ${isBreached ? 'bg-red-500' : percentage > 80 ? 'bg-orange-500' : 'bg-green-500'}" 
+                                <div class="h-2 rounded-full transition-all duration-300 ${isBreached ? "bg-red-500" : percentage > 80 ? "bg-orange-500" : "bg-green-500"}" 
                                      style="width: ${Math.min(percentage, 100)}%"></div>
                               </div>
                               
                               <div class="text-xs text-gray-300">
-                                ${isBreached ? `
+                                ${
+                                  isBreached
+                                    ? `
                                   <div class="flex items-center text-red-400">
                                     <i data-lucide="alert-triangle" class="w-4 h-4 mr-1"></i>
                                     <span class="font-medium">SLA Violado</span>
                                   </div>
-                                ` : `
+                                `
+                                    : `
                                   <div class="flex items-center text-green-400">
                                     <i data-lucide="check-circle" class="w-4 h-4 mr-1"></i>
                                     <span>Dentro do SLA</span>
                                   </div>
-                                `}
+                                `
+                                }
                               </div>
                             </div>
                           `;
-                        }).join('')}
+                          })
+                          .join("")}
                       </div>
-                    ` : `
+                    `
+                        : `
                       <div class="text-center py-6 text-gray-400">
                         <i data-lucide="bar-chart" class="w-12 h-12 mx-auto mb-2 text-gray-500"></i>
                         <p class="text-sm">Nenhuma informação de SLA disponível</p>
                       </div>
-                    `}
+                    `
+                    }
                   </div>
 
                   <!-- Technical Details -->
@@ -1956,18 +2261,26 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                         <label class="block font-medium text-gray-400 mb-1">Tabela</label>
                         <p class="text-gray-300">${table}</p>
                       </div>
-                      ${ticket.urgency ? `
+                      ${
+                        ticket.urgency
+                          ? `
                         <div>
                           <label class="block font-medium text-gray-400 mb-1">Urgência</label>
                           <p class="text-gray-300">${ticket.urgency}</p>
                         </div>
-                      ` : ''}
-                      ${ticket.impact ? `
+                      `
+                          : ""
+                      }
+                      ${
+                        ticket.impact
+                          ? `
                         <div>
                           <label class="block font-medium text-gray-400 mb-1">Impacto</label>
                           <p class="text-gray-300">${ticket.impact}</p>
                         </div>
-                      ` : ''}
+                      `
+                          : ""
+                      }
                     </div>
                   </div>
                 </div>
@@ -2043,28 +2356,28 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                   <!-- Add Note Action -->
                   <button class="flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                          onclick="showAnnotationForm('${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}', '${table}')">
+                          onclick="showAnnotationForm('${typeof ticket.sys_id === "object" ? ticket.sys_id.value : ticket.sys_id}', '${table}')">
                     <i data-lucide="message-circle" class="w-4 h-4 mr-2"></i>
                     Adicionar Nota
                   </button>
                   
                   <!-- Assign to Me -->
                   <button class="flex items-center justify-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                          onclick="assignToMe('${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}', '${table}')">
+                          onclick="assignToMe('${typeof ticket.sys_id === "object" ? ticket.sys_id.value : ticket.sys_id}', '${table}')">
                     <i data-lucide="user-check" class="w-4 h-4 mr-2"></i>
                     Assumir
                   </button>
                   
                   <!-- Change Status -->
                   <button class="flex items-center justify-center px-4 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium"
-                          onclick="showStatusChangeForm('${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}', '${table}', '${ticket.state}')">
+                          onclick="showStatusChangeForm('${typeof ticket.sys_id === "object" ? ticket.sys_id.value : ticket.sys_id}', '${table}', '${ticket.state}')">
                     <i data-lucide="refresh-cw" class="w-4 h-4 mr-2"></i>
                     Alterar Status
                   </button>
                   
                   <!-- Close Ticket -->
                   <button class="flex items-center justify-center px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-                          onclick="closeTicket('${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}', '${table}')">
+                          onclick="closeTicket('${typeof ticket.sys_id === "object" ? ticket.sys_id.value : ticket.sys_id}', '${table}')">
                     <i data-lucide="check-circle" class="w-4 h-4 mr-2"></i>
                     Encerrar
                   </button>
@@ -2367,9 +2680,8 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
           };
         </script>
       `;
-      
     } catch (error) {
-      console.error('Error loading ticket details:', error);
+      console.error("Error loading ticket details:", error);
       return `
         <div class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" id="ticketModal">
           <div class="bg-gray-800 rounded-xl p-6 max-w-md w-full m-4 border border-gray-600">
@@ -2397,137 +2709,146 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
     }
   });
 
-  // User action endpoints for ticket modal
-  htmxDashboardClean
+// User action endpoints for ticket modal
+htmxDashboardClean
   // Add annotation/note to ticket
-  .post('/ticket/:sysId/:table/note', async ({ params: { sysId, table }, body }) => {
-    try {
-      const { note } = body as any;
-      
-      if (!note || note.trim().length === 0) {
-        return `
+  .post(
+    "/ticket/:sysId/:table/note",
+    async ({ params: { sysId, table }, body }) => {
+      try {
+        const { note } = body as any;
+
+        if (!note || note.trim().length === 0) {
+          return `
           <div class="bg-red-500/20 text-red-300 p-4 rounded-lg">
              Anotação não pode estar vazia
           </div>
         `;
-      }
-
-      // Add work note to ServiceNow ticket
-      const response = await serviceNowAuthClient.makeRequest(
-        table,
-        'PUT',
-        { sys_id: sysId },
-        {
-          work_notes: note
         }
-      );
 
-      if (response.data) {
-        return `
+        // Add work note to ServiceNow ticket
+        const response = await serviceNowAuthClient.makeRequest(
+          table,
+          "PUT",
+          { sys_id: sysId },
+          {
+            work_notes: note,
+          },
+        );
+
+        if (response.data) {
+          return `
           <div class="bg-green-500/20 text-green-300 p-4 rounded-lg">
              Anotação adicionada com sucesso
           </div>
         `;
-      } else {
-        throw new Error('Falha ao adicionar anotação');
-      }
-    } catch (error) {
-      console.error('Error adding note:', error);
-      return `
+        } else {
+          throw new Error("Falha ao adicionar anotação");
+        }
+      } catch (error) {
+        console.error("Error adding note:", error);
+        return `
         <div class="bg-red-500/20 text-red-300 p-4 rounded-lg">
-           Erro ao adicionar anotação: ${error instanceof Error ? error.message : 'Erro desconhecido'}
+           Erro ao adicionar anotação: ${error instanceof Error ? error.message : "Erro desconhecido"}
         </div>
       `;
-    }
-  })
+      }
+    },
+  )
 
   // Assign ticket to current user
-  .post('/ticket/:sysId/:table/assign', async ({ params: { sysId, table } }) => {
-    try {
-      const response = await serviceNowAuthClient.makeRequest(
-        table,
-        'PUT',
-        { sys_id: sysId },
-        {
-          assigned_to: 'current_user', // In real implementation, use actual user ID
-          state: '2' // Set to "In Progress"
-        }
-      );
+  .post(
+    "/ticket/:sysId/:table/assign",
+    async ({ params: { sysId, table } }) => {
+      try {
+        const response = await serviceNowAuthClient.makeRequest(
+          table,
+          "PUT",
+          { sys_id: sysId },
+          {
+            assigned_to: "current_user", // In real implementation, use actual user ID
+            state: "2", // Set to "In Progress"
+          },
+        );
 
-      if (response.data) {
-        return `
+        if (response.data) {
+          return `
           <div class="bg-green-500/20 text-green-300 p-4 rounded-lg">
              Ticket assumido com sucesso
           </div>
         `;
-      } else {
-        throw new Error('Falha ao assumir ticket');
-      }
-    } catch (error) {
-      console.error('Error assigning ticket:', error);
-      return `
+        } else {
+          throw new Error("Falha ao assumir ticket");
+        }
+      } catch (error) {
+        console.error("Error assigning ticket:", error);
+        return `
         <div class="bg-red-500/20 text-red-300 p-4 rounded-lg">
-           Erro ao assumir ticket: ${error instanceof Error ? error.message : 'Erro desconhecido'}
+           Erro ao assumir ticket: ${error instanceof Error ? error.message : "Erro desconhecido"}
         </div>
       `;
-    }
-  })
+      }
+    },
+  )
 
   // Change ticket status
-  .post('/ticket/:sysId/:table/status', async ({ params: { sysId, table }, body }) => {
-    try {
-      const { status, reason } = body as any;
-      
-      if (!status) {
-        return `
+  .post(
+    "/ticket/:sysId/:table/status",
+    async ({ params: { sysId, table }, body }) => {
+      try {
+        const { status, reason } = body as any;
+
+        if (!status) {
+          return `
           <div class="bg-red-500/20 text-red-300 p-4 rounded-lg">
              Status é obrigatório
           </div>
         `;
-      }
+        }
 
-      const updateData: any = { state: status };
-      if (reason && reason.trim().length > 0) {
-        updateData.work_notes = `Status alterado para: ${status}. Motivo: ${reason}`;
-      }
+        const updateData: any = { state: status };
+        if (reason && reason.trim().length > 0) {
+          updateData.work_notes = `Status alterado para: ${status}. Motivo: ${reason}`;
+        }
 
-      const response = await serviceNowAuthClient.makeRequest(
-        table,
-        'PUT',
-        updateData,
-        sysId
-      );
+        const response = await serviceNowAuthClient.makeRequest(
+          table,
+          "PUT",
+          updateData,
+          sysId,
+        );
 
-      if (response.data) {
-        return `
+        if (response.data) {
+          return `
           <div class="bg-green-500/20 text-green-300 p-4 rounded-lg">
              Status alterado com sucesso
           </div>
         `;
-      } else {
-        throw new Error('Falha ao alterar status');
-      }
-    } catch (error) {
-      console.error('Error changing status:', error);
-      return `
+        } else {
+          throw new Error("Falha ao alterar status");
+        }
+      } catch (error) {
+        console.error("Error changing status:", error);
+        return `
         <div class="bg-red-500/20 text-red-300 p-4 rounded-lg">
-           Erro ao alterar status: ${error instanceof Error ? error.message : 'Erro desconhecido'}
+           Erro ao alterar status: ${error instanceof Error ? error.message : "Erro desconhecido"}
         </div>
       `;
-    }
-  })
+      }
+    },
+  )
 
   // Close/resolve ticket
-  .post('/ticket/:sysId/:table/close', async ({ params: { sysId, table } }) => {
+  .post("/ticket/:sysId/:table/close", async ({ params: { sysId, table } }) => {
     try {
       const response = await serviceNowAuthClient.makeRequest(
         table,
-        'PUT',
+        "PUT",
         { sys_id: sysId },
         {
-          state: '6', // Resolved
-          close_notes: 'Ticket encerrado via dashboard web'
-        }
+          state: "6", // Resolved
+          close_notes: "Ticket encerrado via dashboard web",
+        },
       );
 
       if (response.data) {
@@ -2537,64 +2858,69 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
           </div>
         `;
       } else {
-        throw new Error('Falha ao encerrar ticket');
+        throw new Error("Falha ao encerrar ticket");
       }
     } catch (error) {
-      console.error('Error closing ticket:', error);
+      console.error("Error closing ticket:", error);
       return `
         <div class="bg-red-500/20 text-red-300 p-4 rounded-lg">
-           Erro ao encerrar ticket: ${error instanceof Error ? error.message : 'Erro desconhecido'}
+           Erro ao encerrar ticket: ${error instanceof Error ? error.message : "Erro desconhecido"}
         </div>
       `;
     }
   })
 
   // Lazy loading endpoint for paginated tickets - Enhanced error handling
-  .get('/tickets-lazy', async (context) => {
+  .get("/tickets-lazy", async (context) => {
     // Robust parameter extraction to avoid Elysia errors
     let query, group, ticketType, state, page, limit;
-    
+
     try {
       query = context?.query || {};
-      group = query?.group || 'all';
-      ticketType = query?.ticketType || 'incident';
-      state = query?.state || 'in_progress';
-      page = query?.page || '1';
-      limit = query?.limit || '10';
-      
-      console.log(` [LAZY LOAD] group: ${group}, type: ${ticketType}, state: ${state}, page: ${page}`);
+      group = query?.group || "all";
+      ticketType = query?.ticketType || "incident";
+      state = query?.state || "in_progress";
+      page = query?.page || "1";
+      limit = query?.limit || "10";
+
+      console.log(
+        ` [LAZY LOAD] group: ${group}, type: ${ticketType}, state: ${state}, page: ${page}`,
+      );
     } catch (paramError) {
-      console.error('🚨 [LAZY LOAD] Parameter extraction error:', paramError);
+      console.error("🚨 [LAZY LOAD] Parameter extraction error:", paramError);
       // Fallback to default values
-      group = 'all';
-      ticketType = 'incident';
-      state = 'in_progress';
-      page = '1';
-      limit = '10';
+      group = "all";
+      ticketType = "incident";
+      state = "in_progress";
+      page = "1";
+      limit = "10";
     }
-    
+
     try {
       const targetGroups = [
-        'L2-NE-IT APP AND DATABASE',
-        'L2-NE-IT SAP BASIS', 
-        'L2-NE-IT APP AND SERVICES',
-        'L2-NE-IT PROCESSING',
-        'L2-NE-IT NETWORK SECURITY',
-        'L2-NE-IT NETWORK',
-        'L2-NE-CLOUDSERVICES',
-        'L2-NE-IT MONITORY',
-        'L2-NE-IT SO UNIX',
-        'L2-NE-IT BOC',
-        'L2-NE-IT MIDDLEWARE',
-        'L2-NE-IT BACKUP',
-        'L2-NE-IT STORAGE',
-        'L2-NE-IT VOIP',
-        'L2-NE-IT NOC',
-        'L2-NE-IT PCP PRODUCTION'
+        "L2-NE-IT APP AND DATABASE",
+        "L2-NE-IT SAP BASIS",
+        "L2-NE-IT APP AND SERVICES",
+        "L2-NE-IT PROCESSING",
+        "L2-NE-IT NETWORK SECURITY",
+        "L2-NE-IT NETWORK",
+        "L2-NE-CLOUDSERVICES",
+        "L2-NE-IT MONITORY",
+        "L2-NE-IT SO UNIX",
+        "L2-NE-IT BOC",
+        "L2-NE-IT MIDDLEWARE",
+        "L2-NE-IT BACKUP",
+        "L2-NE-IT STORAGE",
+        "L2-NE-IT VOIP",
+        "L2-NE-IT NOC",
+        "L2-NE-IT PCP PRODUCTION",
       ];
 
       // Use unified state mapping system
-      const stateValue = state === 'all' ? 'all' : stateToNumeric(state as string || 'in_progress');
+      const stateValue =
+        state === "all"
+          ? "all"
+          : stateToNumeric((state as string) || "in_progress");
       const pageNum = parseInt(page as string) || 1;
       const limitNum = parseInt(limit as string) || 10;
 
@@ -2602,7 +2928,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
       let totalCount = 0;
       let hasMoreGlobal = false;
 
-      if (group === 'all') {
+      if (group === "all") {
         // Load from all target groups
         for (const targetGroup of targetGroups) {
           const response = await serviceNowAuthClient.makeRequestPaginated(
@@ -2610,20 +2936,22 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
             targetGroup,
             stateValue,
             pageNum,
-            Math.ceil(limitNum / targetGroups.length)
+            Math.ceil(limitNum / targetGroups.length),
           );
-          
+
           results.push(...response.data);
           totalCount += response.total;
           hasMoreGlobal = hasMoreGlobal || response.hasMore;
         }
-        
+
         // Sort by creation date and limit
         results = results
-          .sort((a, b) => new Date(b.sys_created_on?.value || b.sys_created_on).getTime() - 
-                          new Date(a.sys_created_on?.value || a.sys_created_on).getTime())
+          .sort(
+            (a, b) =>
+              new Date(b.sys_created_on?.value || b.sys_created_on).getTime() -
+              new Date(a.sys_created_on?.value || a.sys_created_on).getTime(),
+          )
           .slice(0, limitNum);
-          
       } else {
         // Load from specific group
         const response = await serviceNowAuthClient.makeRequestPaginated(
@@ -2631,19 +2959,23 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
           group as string,
           stateValue,
           pageNum,
-          limitNum
+          limitNum,
         );
-        
+
         results = response.data;
         totalCount = response.total;
         hasMoreGlobal = response.hasMore;
       }
 
-      console.log(` [LAZY LOAD] Found ${results.length} tickets, hasMore: ${hasMoreGlobal}`);
+      console.log(
+        ` [LAZY LOAD] Found ${results.length} tickets, hasMore: ${hasMoreGlobal}`,
+      );
 
       // Generate skeleton placeholders for loading state
       const generateSkeleton = (count: number) => {
-        return Array.from({ length: count }, (_, i) => `
+        return Array.from(
+          { length: count },
+          (_, i) => `
           <div class="bg-gray-700/30 rounded-lg border border-gray-600/50 p-4 animate-pulse">
             <div class="flex justify-between items-start mb-3">
               <div class="flex items-center space-x-3">
@@ -2659,22 +2991,31 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
               <div class="h-8 bg-gray-600 rounded w-24"></div>
             </div>
           </div>
-        `).join('');
+        `,
+        ).join("");
       };
 
-      // User lookup helper function 
+      // User lookup helper function
       const getUserDisplayName = async (userId) => {
-        if (!userId || typeof userId !== 'string') return 'N/A';
+        if (!userId || typeof userId !== "string") return "N/A";
         try {
-          const response = await serviceNowAuthClient.makeRequestPaginated('/sys_user', {
-            sysparm_query: `sys_id=${userId}`,
-            sysparm_fields: 'name,user_name,first_name,last_name',
-            sysparm_limit: 1
-          });
-          
+          const response = await serviceNowAuthClient.makeRequestPaginated(
+            "/sys_user",
+            {
+              sysparm_query: `sys_id=${userId}`,
+              sysparm_fields: "name,user_name,first_name,last_name",
+              sysparm_limit: 1,
+            },
+          );
+
           const user = response?.result?.[0];
           if (user) {
-            return user.name || user.user_name || `${user.first_name} ${user.last_name}`.trim() || 'Usuário';
+            return (
+              user.name ||
+              user.user_name ||
+              `${user.first_name} ${user.last_name}`.trim() ||
+              "Usuário"
+            );
           }
         } catch (error) {
           console.warn(`Failed to lookup user ${userId}:`, error);
@@ -2684,14 +3025,14 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
 
       // Collect all unique user IDs from tickets
       const userIds = new Set();
-      results.forEach(ticket => {
-        if (ticket.assigned_to && typeof ticket.assigned_to === 'string') {
+      results.forEach((ticket) => {
+        if (ticket.assigned_to && typeof ticket.assigned_to === "string") {
           userIds.add(ticket.assigned_to);
         }
-        if (ticket.caller_id && typeof ticket.caller_id === 'string') {
+        if (ticket.caller_id && typeof ticket.caller_id === "string") {
           userIds.add(ticket.caller_id);
         }
-        if (ticket.opened_by && typeof ticket.opened_by === 'string') {
+        if (ticket.opened_by && typeof ticket.opened_by === "string") {
           userIds.add(ticket.opened_by);
         }
       });
@@ -2700,19 +3041,33 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
       const userDisplayNames = new Map();
       if (userIds.size > 0) {
         try {
-          console.log(` Looking up ${userIds.size} users: ${Array.from(userIds).join(', ')}`);
-          const userList = Array.from(userIds).join(',');
-          const usersResponse = await serviceNowAuthClient.makeRequestPaginated('/sys_user', {
-            sysparm_query: `sys_idIN${userList}`,
-            sysparm_fields: 'sys_id,name,user_name,first_name,last_name',
-            sysparm_limit: 100
-          });
-          
-          console.log(` Users response structure:`, JSON.stringify(usersResponse, null, 2));
+          console.log(
+            ` Looking up ${userIds.size} users: ${Array.from(userIds).join(", ")}`,
+          );
+          const userList = Array.from(userIds).join(",");
+          const usersResponse = await serviceNowAuthClient.makeRequestPaginated(
+            "/sys_user",
+            {
+              sysparm_query: `sys_idIN${userList}`,
+              sysparm_fields: "sys_id,name,user_name,first_name,last_name",
+              sysparm_limit: 100,
+            },
+          );
+
+          console.log(
+            ` Users response structure:`,
+            JSON.stringify(usersResponse, null, 2),
+          );
           if (usersResponse?.result) {
-            console.log(` Processing ${usersResponse.result.length} users from response`);
-            usersResponse.result.forEach(user => {
-              const displayName = user.name || user.user_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Usuário';
+            console.log(
+              ` Processing ${usersResponse.result.length} users from response`,
+            );
+            usersResponse.result.forEach((user) => {
+              const displayName =
+                user.name ||
+                user.user_name ||
+                `${user.first_name || ""} ${user.last_name || ""}`.trim() ||
+                "Usuário";
               userDisplayNames.set(user.sys_id, displayName);
               console.log(` User lookup: ${user.sys_id} = ${displayName}`);
             });
@@ -2720,68 +3075,115 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
             console.log(` No users result found in response:`, usersResponse);
           }
         } catch (error) {
-          console.warn('Failed to batch lookup users:', error);
+          console.warn("Failed to batch lookup users:", error);
         }
       }
 
       // Generate ticket cards HTML
-      const ticketCards = results.map(ticket => {
-        const ticketNumber = ticket.number?.display_value || ticket.number || 'N/A';
-        const shortDescription = ticket.short_description?.display_value || ticket.short_description || 'Sem descrição';
-        // DEBUGGING: Log specific fields with full structure
-        console.log(` CARD DEBUG - Ticket ${ticket.number?.display_value || ticket.number}:`);
-        console.log(`  - target_group: ${ticket.target_group}`);
-        console.log(`  - assignment_group FULL: ${JSON.stringify(ticket.assignment_group, null, 2)}`);
-        console.log(`  - assigned_to FULL: ${JSON.stringify(ticket.assigned_to, null, 2)}`);
-        console.log(`  - caller_id FULL: ${JSON.stringify(ticket.caller_id, null, 2)}`);
-        
-        // Extract display values or fallback to raw values - ServiceNow returns both formats
-        const assignmentGroup = ticket.target_group || ticket.assignment_group?.display_value || ticket.assignment_group || 'Não atribuído';
-        
-        // User fields - Handle ServiceNow user object structure properly
-        const assignedTo = (ticket.assigned_to && typeof ticket.assigned_to === 'object' && ticket.assigned_to.display_value) 
-          ? ticket.assigned_to.display_value 
-          : (ticket.assigned_to && typeof ticket.assigned_to === 'string') 
-            ? `User (${ticket.assigned_to.slice(0, 8)}...)` 
-            : 'Não atribuído';
-          
-        const caller = (ticket.caller_id && typeof ticket.caller_id === 'object' && ticket.caller_id.display_value)
-          ? ticket.caller_id.display_value
-          : (ticket.opened_by && typeof ticket.opened_by === 'object' && ticket.opened_by.display_value)
-            ? ticket.opened_by.display_value
-            : (ticket.caller_id && typeof ticket.caller_id === 'string')
-              ? `User (${ticket.caller_id.slice(0, 8)}...)`
-              : (ticket.opened_by && typeof ticket.opened_by === 'string')
-                ? `User (${ticket.opened_by.slice(0, 8)}...)`
-                : 'N/A';
-        
-        const priority = ticket.priority?.display_value || ticket.priority || 'N/A';
-        const stateValue = ticket.state?.value || ticket.state || '1';
-        const createdOn = ticket.sys_created_on?.display_value || ticket.sys_created_on;
-        const updatedOn = ticket.sys_updated_on?.display_value || ticket.sys_updated_on;
-        const category = ticket.category?.display_value || ticket.category || 'N/A';
-        const subcategory = ticket.subcategory?.display_value || ticket.subcategory || '';
-        const urgency = ticket.urgency?.display_value || ticket.urgency || 'N/A';
-        const impact = ticket.impact?.display_value || ticket.impact || 'N/A';
-        const description = ticket.description?.display_value || ticket.description || 'Sem descrição detalhada';
-        
-        // Debug user field structure
-        console.log(` Raw user fields for ticket ${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}:`);
-        console.log(`  assigned_to:`, JSON.stringify(ticket.assigned_to, null, 2));
-        console.log(`  caller_id:`, JSON.stringify(ticket.caller_id, null, 2));
-        console.log(`  opened_by:`, JSON.stringify(ticket.opened_by, null, 2));
-        console.log(`  → Final values: Grupo="${assignmentGroup}", Responsável="${assignedTo}", Solicitante="${caller}"`);
-        console.log('');
+      const ticketCards = results
+        .map((ticket) => {
+          const ticketNumber =
+            ticket.number?.display_value || ticket.number || "N/A";
+          const shortDescription =
+            ticket.short_description?.display_value ||
+            ticket.short_description ||
+            "Sem descrição";
+          // DEBUGGING: Log specific fields with full structure
+          console.log(
+            ` CARD DEBUG - Ticket ${ticket.number?.display_value || ticket.number}:`,
+          );
+          console.log(`  - target_group: ${ticket.target_group}`);
+          console.log(
+            `  - assignment_group FULL: ${JSON.stringify(ticket.assignment_group, null, 2)}`,
+          );
+          console.log(
+            `  - assigned_to FULL: ${JSON.stringify(ticket.assigned_to, null, 2)}`,
+          );
+          console.log(
+            `  - caller_id FULL: ${JSON.stringify(ticket.caller_id, null, 2)}`,
+          );
 
-        // Get proper status configuration using the unified mapping system
-        const statusConfig = getUnifiedStatusConfig(stateValue);
-        const statusLabel = statusConfig.label;
-        const statusColor = statusConfig.color;
-        const statusBgColor = statusConfig.bgColor;
+          // Extract display values or fallback to raw values - ServiceNow returns both formats
+          const assignmentGroup =
+            ticket.target_group ||
+            ticket.assignment_group?.display_value ||
+            ticket.assignment_group ||
+            "Não atribuído";
 
-        return `
+          // User fields - Handle ServiceNow user object structure properly
+          const assignedTo =
+            ticket.assigned_to &&
+            typeof ticket.assigned_to === "object" &&
+            ticket.assigned_to.display_value
+              ? ticket.assigned_to.display_value
+              : ticket.assigned_to && typeof ticket.assigned_to === "string"
+                ? `User (${ticket.assigned_to.slice(0, 8)}...)`
+                : "Não atribuído";
+
+          const caller =
+            ticket.caller_id &&
+            typeof ticket.caller_id === "object" &&
+            ticket.caller_id.display_value
+              ? ticket.caller_id.display_value
+              : ticket.opened_by &&
+                  typeof ticket.opened_by === "object" &&
+                  ticket.opened_by.display_value
+                ? ticket.opened_by.display_value
+                : ticket.caller_id && typeof ticket.caller_id === "string"
+                  ? `User (${ticket.caller_id.slice(0, 8)}...)`
+                  : ticket.opened_by && typeof ticket.opened_by === "string"
+                    ? `User (${ticket.opened_by.slice(0, 8)}...)`
+                    : "N/A";
+
+          const priority =
+            ticket.priority?.display_value || ticket.priority || "N/A";
+          const stateValue = ticket.state?.value || ticket.state || "1";
+          const createdOn =
+            ticket.sys_created_on?.display_value || ticket.sys_created_on;
+          const updatedOn =
+            ticket.sys_updated_on?.display_value || ticket.sys_updated_on;
+          const category =
+            ticket.category?.display_value || ticket.category || "N/A";
+          const subcategory =
+            ticket.subcategory?.display_value || ticket.subcategory || "";
+          const urgency =
+            ticket.urgency?.display_value || ticket.urgency || "N/A";
+          const impact = ticket.impact?.display_value || ticket.impact || "N/A";
+          const description =
+            ticket.description?.display_value ||
+            ticket.description ||
+            "Sem descrição detalhada";
+
+          // Debug user field structure
+          console.log(
+            ` Raw user fields for ticket ${typeof ticket.sys_id === "object" ? ticket.sys_id.value : ticket.sys_id}:`,
+          );
+          console.log(
+            `  assigned_to:`,
+            JSON.stringify(ticket.assigned_to, null, 2),
+          );
+          console.log(
+            `  caller_id:`,
+            JSON.stringify(ticket.caller_id, null, 2),
+          );
+          console.log(
+            `  opened_by:`,
+            JSON.stringify(ticket.opened_by, null, 2),
+          );
+          console.log(
+            `  → Final values: Grupo="${assignmentGroup}", Responsável="${assignedTo}", Solicitante="${caller}"`,
+          );
+          console.log("");
+
+          // Get proper status configuration using the unified mapping system
+          const statusConfig = getUnifiedStatusConfig(stateValue);
+          const statusLabel = statusConfig.label;
+          const statusColor = statusConfig.color;
+          const statusBgColor = statusConfig.bgColor;
+
+          return `
           <div class="bg-gray-700/50 rounded-lg border border-gray-600 p-4 hover:border-elysia-blue transition-all duration-300 cursor-pointer group transform hover:scale-[1.02]"
-               onclick="showTicketDetails('${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}', '${ticketType}')">
+               onclick="showTicketDetails('${typeof ticket.sys_id === "object" ? ticket.sys_id.value : ticket.sys_id}', '${ticketType}')">
             <div class="flex justify-between items-start mb-3">
               <div class="flex items-center space-x-3">
                 <span class="text-lg font-bold text-elysia-cyan">${ticketNumber}</span>
@@ -2791,13 +3193,13 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
               </div>
               <span class="px-2 py-1 rounded text-xs font-medium ${(() => {
                 const priorities = {
-                  '1': 'bg-red-500/20 text-red-300',
-                  '2': 'bg-orange-500/20 text-orange-300',
-                  '3': 'bg-yellow-500/20 text-yellow-300',
-                  '4': 'bg-blue-500/20 text-blue-300',
-                  '5': 'bg-gray-500/20 text-gray-300'
+                  "1": "bg-red-500/20 text-red-300",
+                  "2": "bg-orange-500/20 text-orange-300",
+                  "3": "bg-yellow-500/20 text-yellow-300",
+                  "4": "bg-blue-500/20 text-blue-300",
+                  "5": "bg-gray-500/20 text-gray-300",
                 };
-                return priorities[priority] || 'bg-gray-500/20 text-gray-300';
+                return priorities[priority] || "bg-gray-500/20 text-gray-300";
               })()}">${priority}</span>
             </div>
             
@@ -2812,7 +3214,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
               </div>
               <div class="space-y-1">
                 <p><i data-lucide="tag" class="w-3 h-3 inline mr-1 text-purple-400"></i><span class="text-gray-400">Categoria:</span> ${category}</p>
-                ${subcategory ? `<p><i data-lucide="tags" class="w-3 h-3 inline mr-1 text-indigo-400"></i><span class="text-gray-400">Subcategoria:</span> ${subcategory}</p>` : ''}
+                ${subcategory ? `<p><i data-lucide="tags" class="w-3 h-3 inline mr-1 text-indigo-400"></i><span class="text-gray-400">Subcategoria:</span> ${subcategory}</p>` : ""}
                 <p><i data-lucide="zap" class="w-3 h-3 inline mr-1 text-yellow-400"></i><span class="text-gray-400">Urgência:</span> ${urgency}</p>
                 <p><i data-lucide="target" class="w-3 h-3 inline mr-1 text-red-400"></i><span class="text-gray-400">Impacto:</span> ${impact}</p>
               </div>
@@ -2822,19 +3224,21 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
             <div class="flex justify-between items-center text-xs text-gray-400 border-t border-gray-600 pt-3">
               <div class="flex items-center space-x-4">
                 <span><i data-lucide="plus-circle" class="w-3 h-3 inline mr-1"></i>Criado: ${formatSafeDate(createdOn)}</span>
-                ${updatedOn && updatedOn !== createdOn ? `<span><i data-lucide="edit-3" class="w-3 h-3 inline mr-1"></i>Atualizado: ${formatSafeDate(updatedOn)}</span>` : ''}
+                ${updatedOn && updatedOn !== createdOn ? `<span><i data-lucide="edit-3" class="w-3 h-3 inline mr-1"></i>Atualizado: ${formatSafeDate(updatedOn)}</span>` : ""}
               </div>
               <button class="px-3 py-2 bg-elysia-blue/20 text-elysia-blue rounded-lg hover:bg-elysia-blue/30 transition-colors group-hover:scale-105 text-xs font-medium"
-                      onclick="event.stopPropagation(); showTicketDetails('${typeof ticket.sys_id === 'object' ? ticket.sys_id.value : ticket.sys_id}', '${ticketType}')">
+                      onclick="event.stopPropagation(); showTicketDetails('${typeof ticket.sys_id === "object" ? ticket.sys_id.value : ticket.sys_id}', '${ticketType}')">
                 <i data-lucide="eye" class="w-4 h-4 inline mr-1"></i>Ver Detalhes
               </button>
             </div>
           </div>
         `;
-      }).join('');
+        })
+        .join("");
 
       // Return HTML with load more button if needed
-      const loadMoreButton = hasMoreGlobal ? `
+      const loadMoreButton = hasMoreGlobal
+        ? `
         <div class="text-center py-6" id="load-more-container">
           <button class="px-6 py-3 bg-elysia-blue/20 text-elysia-blue border border-elysia-blue/30 rounded-lg hover:bg-elysia-blue/30 transition-all duration-300 transform hover:scale-105"
                   hx-get="/clean/tickets-lazy?group=${group}&ticketType=${ticketType}&state=${state}&page=${pageNum + 1}&limit=${limit}"
@@ -2858,29 +3262,42 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
              hx-trigger="intersect once"
              style="height: 1px; margin-top: -100px;">
         </div>
-      ` : '';
+      `
+        : "";
 
       return ticketCards + loadMoreButton;
-
     } catch (error) {
-      console.error('🚨 [LAZY LOAD] Fatal error in lazy loading endpoint:', error);
-      console.error('🚨 [LAZY LOAD] Error type:', error?.constructor?.name || 'Unknown');
-      console.error('🚨 [LAZY LOAD] Error message:', error?.message || 'No message');
-      
+      console.error(
+        "🚨 [LAZY LOAD] Fatal error in lazy loading endpoint:",
+        error,
+      );
+      console.error(
+        "🚨 [LAZY LOAD] Error type:",
+        error?.constructor?.name || "Unknown",
+      );
+      console.error(
+        "🚨 [LAZY LOAD] Error message:",
+        error?.message || "No message",
+      );
+
       // Handle specific Elysia "_r_r is not defined" error
-      if (error?.message && error.message.includes('_r_r is not defined')) {
-        console.error('🚨 [LAZY LOAD] Detected Elysia framework error, returning safe fallback HTML');
+      if (error?.message && error.message.includes("_r_r is not defined")) {
+        console.error(
+          "🚨 [LAZY LOAD] Detected Elysia framework error, returning safe fallback HTML",
+        );
       }
-      
+
       // Always return valid HTML to prevent breaking HTMX
       const safeErrorHTML = `
         <div class="text-center py-8">
           <i data-lucide="alert-circle" class="w-12 h-12 mx-auto mb-4 text-red-400"></i>
           <p class="text-red-400 mb-2">Erro ao carregar tickets</p>
           <p class="text-gray-400 text-sm mb-4">
-            ${error?.message?.includes('_r_r is not defined') 
-              ? 'Erro interno do framework - recarregando automaticamente...' 
-              : 'Tente novamente em alguns instantes'}
+            ${
+              error?.message?.includes("_r_r is not defined")
+                ? "Erro interno do framework - recarregando automaticamente..."
+                : "Tente novamente em alguns instantes"
+            }
           </p>
           <button onclick="window.location.reload()" 
                   class="px-4 py-2 bg-elysia-blue text-white rounded-lg hover:bg-blue-600 transition-colors">
@@ -2888,59 +3305,67 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
           </button>
         </div>
       `;
-      
+
       try {
         return safeErrorHTML;
       } catch (returnError) {
         // Last resort: log error and return minimal HTML
-        console.error('🚨 [LAZY LOAD] Cannot even return error HTML:', returnError);
+        console.error(
+          "🚨 [LAZY LOAD] Cannot even return error HTML:",
+          returnError,
+        );
         return '<div class="text-center py-8 text-red-400">Sistema temporariamente indisponível</div>';
       }
     }
   })
-  
+
   // Endpoint to get ticket counts for tabs
-  .get('/ticket-counts', async ({ query }) => {
-    const { group = 'all', state = 'in_progress' } = query as any;
-    
+  .get("/ticket-counts", async ({ query }) => {
+    const { group = "all", state = "in_progress" } = query as any;
+
     try {
       const counts = {
         incident: 0,
         change_task: 0,
-        sc_task: 0
+        sc_task: 0,
       };
-      
+
       // Get counts for each ticket type
-      for (const ticketType of ['incident', 'change_task', 'sc_task']) {
-        let stateQuery = '';
+      for (const ticketType of ["incident", "change_task", "sc_task"]) {
+        let stateQuery = "";
         switch (state) {
-          case 'in_progress':
-            stateQuery = 'state=2';
+          case "in_progress":
+            stateQuery = "state=2";
             break;
-          case 'waiting':
-            stateQuery = 'state=3';
+          case "waiting":
+            stateQuery = "state=3";
             break;
-          case 'all':
-            stateQuery = 'stateIN1,2,3';
+          case "all":
+            stateQuery = "stateIN1,2,3";
             break;
           default:
-            stateQuery = 'state=2';
+            stateQuery = "state=2";
         }
-        
+
         try {
-          const response = await serviceNowAuthClient.makeRequest(ticketType, 'GET', {
-            sysparm_query: stateQuery,
-            sysparm_limit: '1',
-            sysparm_fields: 'sys_id'
-          });
+          const response = await serviceNowAuthClient.makeRequest(
+            ticketType,
+            "GET",
+            {
+              sysparm_query: stateQuery,
+              sysparm_limit: "1",
+              sysparm_fields: "sys_id",
+            },
+          );
           const headers = response?.headers;
-          const totalHeader = headers?.['x-total-count'] || headers?.['X-Total-Count'] || '0';
+          const totalHeader =
+            headers?.["x-total-count"] || headers?.["X-Total-Count"] || "0";
           counts[ticketType as keyof typeof counts] = parseInt(totalHeader);
         } catch (error) {
           console.log(` Error getting count for ${ticketType}:`, error);
         }
       }
-      
+
       return `
         <script>
           document.getElementById('incident-count').textContent = '${counts.incident}';
@@ -2949,232 +3374,246 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
         </script>
       `;
     } catch (error) {
-      console.log(' Error getting ticket counts:', error);
+      console.log(" Error getting ticket counts:", error);
       return `<script>console.log('Failed to load ticket counts');</script>`;
     }
   })
 
-
   // POST endpoint for adding notes
-  .post('/ticket/:sysId/:table/note', async ({ params, body, serviceNowAuthClient }) => {
-    try {
-      const { sysId, table } = params;
-      const { note } = body as { note: string };
+  .post(
+    "/ticket/:sysId/:table/note",
+    async ({ params, body, serviceNowAuthClient }) => {
+      try {
+        const { sysId, table } = params;
+        const { note } = body as { note: string };
 
-      if (!note || !note.trim()) {
-        return `
+        if (!note || !note.trim()) {
+          return `
           <div class="bg-red-500/20 text-red-300 p-3 rounded-lg border border-red-500/30">
             <i data-lucide="alert-circle" class="w-4 h-4 inline mr-2"></i>
             Anotação não pode estar vazia
           </div>
         `;
-      }
+        }
 
-      // Add note to ServiceNow
-      const result = await serviceNowAuthClient.makeRequest(
-        table,
-        'PUT',
-        {
-          work_notes: note.trim()
-        },
-        sysId
-      );
+        // Add note to ServiceNow
+        const result = await serviceNowAuthClient.makeRequest(
+          table,
+          "PUT",
+          {
+            work_notes: note.trim(),
+          },
+          sysId,
+        );
 
-      if (result) {
-        return `
+        if (result) {
+          return `
           <div class="bg-green-500/20 text-green-300 p-3 rounded-lg border border-green-500/30 mb-3">
             <div class="flex items-start space-x-3">
               <i data-lucide="user" class="w-4 h-4 mt-0.5"></i>
               <div class="flex-1">
                 <div class="text-sm font-medium mb-1">Usuário Atual</div>
                 <div class="text-white">${note.trim()}</div>
-                <div class="text-xs text-gray-400 mt-1">${new Date().toLocaleString('pt-BR')}</div>
+                <div class="text-xs text-gray-400 mt-1">${new Date().toLocaleString("pt-BR")}</div>
               </div>
             </div>
           </div>
         `;
-      } else {
-        return `
+        } else {
+          return `
           <div class="bg-red-500/20 text-red-300 p-3 rounded-lg border border-red-500/30">
             <i data-lucide="alert-circle" class="w-4 h-4 inline mr-2"></i>
             Erro ao adicionar anotação
           </div>
         `;
-      }
-    } catch (error) {
-      console.error('Error adding note:', error);
-      return `
+        }
+      } catch (error) {
+        console.error("Error adding note:", error);
+        return `
         <div class="bg-red-500/20 text-red-300 p-3 rounded-lg border border-red-500/30">
           <i data-lucide="alert-triangle" class="w-4 h-4 inline mr-2"></i>
           Falha ao adicionar anotação
         </div>
       `;
-    }
-  })
+      }
+    },
+  )
 
   // POST endpoint for assigning ticket
-  .post('/ticket/:sysId/:table/assign', async ({ params, serviceNowAuthClient }) => {
-    try {
-      const { sysId, table } = params;
+  .post(
+    "/ticket/:sysId/:table/assign",
+    async ({ params, serviceNowAuthClient }) => {
+      try {
+        const { sysId, table } = params;
 
-      // Update ticket assignment (would need actual user context in real implementation)
-      const result = await serviceNowAuthClient.makeRequest(
-        table,
-        'PUT',
-        {
-          assigned_to: 'current_user', // This would be actual user ID
-          state: '18' // Set to Designado
-        },
-        sysId
-      );
+        // Update ticket assignment (would need actual user context in real implementation)
+        const result = await serviceNowAuthClient.makeRequest(
+          table,
+          "PUT",
+          {
+            assigned_to: "current_user", // This would be actual user ID
+            state: "18", // Set to Designado
+          },
+          sysId,
+        );
 
-      if (result) {
-        // Close modal and refresh the dashboard
-        return `
+        if (result) {
+          // Close modal and refresh the dashboard
+          return `
           <script>
             document.getElementById('ticketModal').remove();
             // Refresh the current dashboard view
             location.reload();
           </script>
         `;
-      } else {
-        return `
+        } else {
+          return `
           <div class="bg-red-500/20 text-red-300 p-3 rounded-lg border border-red-500/30">
             <i data-lucide="alert-circle" class="w-4 h-4 inline mr-2"></i>
             Erro ao assumir ticket
           </div>
         `;
-      }
-    } catch (error) {
-      console.error('Error assigning ticket:', error);
-      return `
+        }
+      } catch (error) {
+        console.error("Error assigning ticket:", error);
+        return `
         <div class="bg-red-500/20 text-red-300 p-3 rounded-lg border border-red-500/30">
           <i data-lucide="alert-triangle" class="w-4 h-4 inline mr-2"></i>
           Falha ao assumir ticket
         </div>
       `;
-    }
-  })
+      }
+    },
+  )
 
   // POST endpoint for changing status
-  .post('/ticket/:sysId/:table/status', async ({ params, body, serviceNowAuthClient }) => {
-    try {
-      const { sysId, table } = params;
-      const { status } = body as { status: string };
+  .post(
+    "/ticket/:sysId/:table/status",
+    async ({ params, body, serviceNowAuthClient }) => {
+      try {
+        const { sysId, table } = params;
+        const { status } = body as { status: string };
 
-      if (!status) {
-        return `
+        if (!status) {
+          return `
           <div class="bg-red-500/20 text-red-300 p-3 rounded-lg border border-red-500/30">
             <i data-lucide="alert-circle" class="w-4 h-4 inline mr-2"></i>
             Status inválido
           </div>
         `;
-      }
+        }
 
-      // Update ticket status
-      const result = await serviceNowAuthClient.makeRequest(
-        table,
-        'PUT',
-        {
-          state: status
-        },
-        sysId
-      );
+        // Update ticket status
+        const result = await serviceNowAuthClient.makeRequest(
+          table,
+          "PUT",
+          {
+            state: status,
+          },
+          sysId,
+        );
 
-      if (result) {
-        // Close modal and refresh the dashboard
-        return `
+        if (result) {
+          // Close modal and refresh the dashboard
+          return `
           <script>
             document.getElementById('ticketModal').remove();
             // Refresh the current dashboard view
             location.reload();
           </script>
         `;
-      } else {
-        return `
+        } else {
+          return `
           <div class="bg-red-500/20 text-red-300 p-3 rounded-lg border border-red-500/30">
             <i data-lucide="alert-circle" class="w-4 h-4 inline mr-2"></i>
             Erro ao alterar status
           </div>
         `;
-      }
-    } catch (error) {
-      console.error('Error changing status:', error);
-      return `
+        }
+      } catch (error) {
+        console.error("Error changing status:", error);
+        return `
         <div class="bg-red-500/20 text-red-300 p-3 rounded-lg border border-red-500/30">
           <i data-lucide="alert-triangle" class="w-4 h-4 inline mr-2"></i>
           Falha ao alterar status
         </div>
       `;
-    }
-  })
+      }
+    },
+  )
 
   // POST endpoint for closing ticket
-  .post('/ticket/:sysId/:table/close', async ({ params, body, serviceNowAuthClient }) => {
-    try {
-      const { sysId, table } = params;
-      const { reason } = body as { reason?: string };
+  .post(
+    "/ticket/:sysId/:table/close",
+    async ({ params, body, serviceNowAuthClient }) => {
+      try {
+        const { sysId, table } = params;
+        const { reason } = body as { reason?: string };
 
-      // Prepare update data
-      const updateData: any = {
-        state: '7', // Fechado
-        close_code: 'Solved (Permanently)',
-        close_notes: reason || 'Ticket fechado via dashboard'
-      };
+        // Prepare update data
+        const updateData: any = {
+          state: "7", // Fechado
+          close_code: "Solved (Permanently)",
+          close_notes: reason || "Ticket fechado via dashboard",
+        };
 
-      // Update ticket
-      const result = await serviceNowAuthClient.makeRequest(
-        table,
-        'PUT',
-        updateData,
-        sysId
-      );
+        // Update ticket
+        const result = await serviceNowAuthClient.makeRequest(
+          table,
+          "PUT",
+          updateData,
+          sysId,
+        );
 
-      if (result) {
-        // Close modal and refresh the dashboard
-        return `
+        if (result) {
+          // Close modal and refresh the dashboard
+          return `
           <script>
             document.getElementById('ticketModal').remove();
             // Refresh the current dashboard view
             location.reload();
           </script>
         `;
-      } else {
-        return `
+        } else {
+          return `
           <div class="bg-red-500/20 text-red-300 p-3 rounded-lg border border-red-500/30">
             <i data-lucide="alert-circle" class="w-4 h-4 inline mr-2"></i>
             Erro ao encerrar ticket
           </div>
         `;
-      }
-    } catch (error) {
-      console.error('Error closing ticket:', error);
-      return `
+        }
+      } catch (error) {
+        console.error("Error closing ticket:", error);
+        return `
         <div class="bg-red-500/20 text-red-300 p-3 rounded-lg border border-red-500/30">
           <i data-lucide="alert-triangle" class="w-4 h-4 inline mr-2"></i>
           Falha ao encerrar ticket
         </div>
       `;
-    }
-  })
+      }
+    },
+  )
 
   // MongoDB-first ticket details endpoint with safe service initialization
-  .get('/ticket-details/:sysId/:table', async ({ params, set }) => {
-      try {
-        const { sysId, table } = params;
-        console.log(` [HTMX] Ticket details requested: ${sysId} from ${table}`);
-        
-        // Initialize services safely
-        const services = await initializeCleanServices();
-        if (services.error) {
-          console.error(' Service initialization failed:', services.error);
-          set.headers['content-type'] = 'text/html';
-          return getServiceErrorFallbackHTML();
-        }
-        
-        // MongoDB-first strategy via HybridTicketService
-        const result = await services.hybridService.getTicketDetails(table, sysId);
-      
+  .get("/ticket-details/:sysId/:table", async ({ params, set }) => {
+    try {
+      const { sysId, table } = params;
+      console.log(` [HTMX] Ticket details requested: ${sysId} from ${table}`);
+
+      // Initialize services safely
+      const services = await initializeCleanServices();
+      if (services.error) {
+        console.error(" Service initialization failed:", services.error);
+        set.headers["content-type"] = "text/html";
+        return getServiceErrorFallbackHTML();
+      }
+
+      // MongoDB-first strategy via HybridTicketService
+      const result = await services.hybridService.getTicketDetails(
+        table,
+        sysId,
+      );
+
       if (!result || !result.data) {
         const errorHtml = `
           <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -3191,13 +3630,13 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
             </div>
           </div>
         `;
-        set.headers['content-type'] = 'text/html; charset=utf-8';
+        set.headers["content-type"] = "text/html; charset=utf-8";
         return errorHtml;
       }
 
       const ticket = result.data;
       const source = result.source;
-      
+
       // Generate simple modal with real data
       const htmlContent = `
         <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -3207,8 +3646,8 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
               <div>
                 <h2 class="text-2xl font-bold text-gray-900">${ticket.number || sysId}</h2>
                 <div class="flex items-center gap-2 mt-2">
-                  <span class="px-2 py-1 text-xs rounded-full ${source === 'mongodb' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}">
-                    ${source === 'mongodb' ? ' MongoDB' : ' ServiceNow'}
+                  <span class="px-2 py-1 text-xs rounded-full ${source === "mongodb" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"}">
+                    ${source === "mongodb" ? " MongoDB" : " ServiceNow"}
                   </span>
                   <span class="text-sm text-gray-600">Sys ID: ${sysId}</span>
                 </div>
@@ -3224,21 +3663,21 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
               <div>
                 <h3 class="text-lg font-semibold mb-3">Informações Básicas</h3>
                 <div class="space-y-2">
-                  <div><strong>Número:</strong> ${ticket.number || 'N/A'}</div>
-                  <div><strong>Estado:</strong> ${ticket.state || 'N/A'}</div>
-                  <div><strong>Prioridade:</strong> ${ticket.priority || 'N/A'}</div>
-                  <div><strong>Categoria:</strong> ${ticket.category || 'N/A'}</div>
-                  <div><strong>Subcategoria:</strong> ${ticket.subcategory || 'N/A'}</div>
+                  <div><strong>Número:</strong> ${ticket.number || "N/A"}</div>
+                  <div><strong>Estado:</strong> ${ticket.state || "N/A"}</div>
+                  <div><strong>Prioridade:</strong> ${ticket.priority || "N/A"}</div>
+                  <div><strong>Categoria:</strong> ${ticket.category || "N/A"}</div>
+                  <div><strong>Subcategoria:</strong> ${ticket.subcategory || "N/A"}</div>
                 </div>
               </div>
               
               <div>
                 <h3 class="text-lg font-semibold mb-3">Atribuição</h3>
                 <div class="space-y-2">
-                  <div><strong>Grupo:</strong> ${ticket.assignment_group?.display_value || ticket.assignment_group || 'Não atribuído'}</div>
-                  <div><strong>Responsável:</strong> ${ticket.assigned_to?.display_value || ticket.assigned_to || 'Não atribuído'}</div>
-                  <div><strong>Solicitante:</strong> ${ticket.caller_id?.display_value || ticket.caller_id || 'N/A'}</div>
-                  <div><strong>Empresa:</strong> ${ticket.company?.display_value || ticket.company || 'N/A'}</div>
+                  <div><strong>Grupo:</strong> ${ticket.assignment_group?.display_value || ticket.assignment_group || "Não atribuído"}</div>
+                  <div><strong>Responsável:</strong> ${ticket.assigned_to?.display_value || ticket.assigned_to || "Não atribuído"}</div>
+                  <div><strong>Solicitante:</strong> ${ticket.caller_id?.display_value || ticket.caller_id || "N/A"}</div>
+                  <div><strong>Empresa:</strong> ${ticket.company?.display_value || ticket.company || "N/A"}</div>
                 </div>
               </div>
             </div>
@@ -3246,28 +3685,27 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
             <div class="mt-6">
               <h3 class="text-lg font-semibold mb-3">Descrição</h3>
               <div class="bg-gray-50 p-4 rounded-lg">
-                <p>${ticket.short_description || ticket.description || 'Sem descrição disponível'}</p>
+                <p>${ticket.short_description || ticket.description || "Sem descrição disponível"}</p>
               </div>
             </div>
 
             <div class="mt-6">
               <h3 class="text-lg font-semibold mb-3">Datas</h3>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div><strong>Criado:</strong> ${ticket.sys_created_on || 'N/A'}</div>
-                <div><strong>Atualizado:</strong> ${ticket.sys_updated_on || 'N/A'}</div>
-                <div><strong>Aberto:</strong> ${ticket.opened_at || 'N/A'}</div>
+                <div><strong>Criado:</strong> ${ticket.sys_created_on || "N/A"}</div>
+                <div><strong>Atualizado:</strong> ${ticket.sys_updated_on || "N/A"}</div>
+                <div><strong>Aberto:</strong> ${ticket.opened_at || "N/A"}</div>
               </div>
             </div>
           </div>
         </div>
       `;
-      
-      set.headers['content-type'] = 'text/html; charset=utf-8';
+
+      set.headers["content-type"] = "text/html; charset=utf-8";
       return htmlContent;
-      
     } catch (error) {
-      console.error('HTMX Ticket Details Error:', error);
-      
+      console.error("HTMX Ticket Details Error:", error);
+
       const errorHtml = `
         <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
@@ -3283,34 +3721,39 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
           </div>
         </div>
       `;
-      
-      set.headers['content-type'] = 'text/html; charset=utf-8';
+
+      set.headers["content-type"] = "text/html; charset=utf-8";
       return errorHtml;
     }
   })
 
   // GET endpoint for ticket SLA information
-  .get('/ticket-sla/:ticketNumber', async ({ params, serviceNowAuthClient }) => {
-    try {
-      const { ticketNumber } = params;
-      console.log(`🎯 Loading SLA data for ticket: ${ticketNumber}`);
-      
-      // Use ServiceNowService to get SLA data (reuse our enhanced service)
-      const { ServiceNowService } = await import('../services/servicenow.service');
-      const instanceUrl = process.env.SERVICENOW_INSTANCE_URL || process.env.SNC_INSTANCE_URL;
-      const authToken = process.env.SNC_AUTH_TOKEN;
-      
-      if (!instanceUrl || !authToken) {
-        throw new Error('ServiceNow credentials not configured');
-      }
-      
-      const sncService = new ServiceNowService(instanceUrl, authToken);
-      
-      // Get SLA summary for this ticket
-      const slaSummary = await sncService.getTaskSLASummary(ticketNumber);
-      
-      if (slaSummary.total_slas === 0) {
-        return `
+  .get(
+    "/ticket-sla/:ticketNumber",
+    async ({ params, serviceNowAuthClient }) => {
+      try {
+        const { ticketNumber } = params;
+        console.log(`🎯 Loading SLA data for ticket: ${ticketNumber}`);
+
+        // Use ServiceNowService to get SLA data (reuse our enhanced service)
+        const { ServiceNowService } = await import(
+          "../services/servicenow.service"
+        );
+        const instanceUrl =
+          process.env.SERVICENOW_INSTANCE_URL || process.env.SNC_INSTANCE_URL;
+        const authToken = process.env.SNC_AUTH_TOKEN;
+
+        if (!instanceUrl || !authToken) {
+          throw new Error("ServiceNow credentials not configured");
+        }
+
+        const sncService = new ServiceNowService(instanceUrl, authToken);
+
+        // Get SLA summary for this ticket
+        const slaSummary = await sncService.getTaskSLASummary(ticketNumber);
+
+        if (slaSummary.total_slas === 0) {
+          return `
           <div class="text-center py-8 text-gray-400">
             <i data-lucide="shield-check" class="w-12 h-12 mx-auto mb-3 text-gray-500"></i>
             <h4 class="text-lg font-medium text-gray-300 mb-2">Nenhum SLA Configurado</h4>
@@ -3320,13 +3763,18 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
             </div>
           </div>
         `;
-      }
-      
-      // Render SLA information
-      const breachPercentage = slaSummary.breach_percentage;
-      const breachColor = breachPercentage > 50 ? 'text-red-400' : breachPercentage > 25 ? 'text-yellow-400' : 'text-green-400';
-      
-      return `
+        }
+
+        // Render SLA information
+        const breachPercentage = slaSummary.breach_percentage;
+        const breachColor =
+          breachPercentage > 50
+            ? "text-red-400"
+            : breachPercentage > 25
+              ? "text-yellow-400"
+              : "text-green-400";
+
+        return `
         <!-- SLA Summary Cards -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div class="bg-gray-700 border border-gray-600 rounded-lg p-4">
@@ -3365,7 +3813,7 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                 <p class="text-xs text-gray-400 uppercase tracking-wide">% Violação</p>
                 <p class="text-2xl font-bold ${breachColor}">${breachPercentage.toFixed(1)}%</p>
               </div>
-              <i data-lucide="trending-${breachPercentage > 50 ? 'up' : 'down'}" class="w-8 h-8 ${breachColor}"></i>
+              <i data-lucide="trending-${breachPercentage > 50 ? "up" : "down"}" class="w-8 h-8 ${breachColor}"></i>
             </div>
           </div>
         </div>
@@ -3374,35 +3822,36 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
         <div class="space-y-4">
           <h4 class="text-lg font-semibold text-white mb-4">Detalhes dos SLAs</h4>
           
-          ${slaSummary.all_slas.map((sla, index) => {
-            const statusColor = sla.has_breached 
-              ? 'border-red-500 bg-red-500/10' 
-              : sla.business_percentage > 90 
-                ? 'border-yellow-500 bg-yellow-500/10'
-                : 'border-green-500 bg-green-500/10';
-            
-            const statusIcon = sla.has_breached 
-              ? 'alert-circle' 
-              : sla.business_percentage > 90 
-                ? 'clock'
-                : 'check-circle';
-            
-            const statusText = sla.has_breached 
-              ? 'VIOLADO' 
-              : sla.stage === 'completed' 
-                ? 'CUMPRIDO'
-                : 'EM ANDAMENTO';
-            
-            const formatSLADate = (dateStr) => {
-              if (!dateStr) return 'N/A';
-              try {
-                return new Date(dateStr).toLocaleString('pt-BR');
-              } catch (error) {
-                return dateStr;
-              }
-            };
-            
-            return `
+          ${slaSummary.all_slas
+            .map((sla, index) => {
+              const statusColor = sla.has_breached
+                ? "border-red-500 bg-red-500/10"
+                : sla.business_percentage > 90
+                  ? "border-yellow-500 bg-yellow-500/10"
+                  : "border-green-500 bg-green-500/10";
+
+              const statusIcon = sla.has_breached
+                ? "alert-circle"
+                : sla.business_percentage > 90
+                  ? "clock"
+                  : "check-circle";
+
+              const statusText = sla.has_breached
+                ? "VIOLADO"
+                : sla.stage === "completed"
+                  ? "CUMPRIDO"
+                  : "EM ANDAMENTO";
+
+              const formatSLADate = (dateStr) => {
+                if (!dateStr) return "N/A";
+                try {
+                  return new Date(dateStr).toLocaleString("pt-BR");
+                } catch (error) {
+                  return dateStr;
+                }
+              };
+
+              return `
               <div class="border ${statusColor} rounded-lg p-4">
                 <div class="flex items-start justify-between mb-3">
                   <div class="flex-1">
@@ -3411,16 +3860,20 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                   </div>
                   <div class="flex items-center space-x-2">
                     <span class="px-3 py-1 rounded-full text-xs font-medium ${
-                      sla.has_breached ? 'bg-red-500 text-white' :
-                      sla.business_percentage > 90 ? 'bg-yellow-500 text-black' :
-                      'bg-green-500 text-white'
+                      sla.has_breached
+                        ? "bg-red-500 text-white"
+                        : sla.business_percentage > 90
+                          ? "bg-yellow-500 text-black"
+                          : "bg-green-500 text-white"
                     }">
                       ${statusText}
                     </span>
                     <i data-lucide="${statusIcon}" class="w-5 h-5 ${
-                      sla.has_breached ? 'text-red-400' :
-                      sla.business_percentage > 90 ? 'text-yellow-400' :
-                      'text-green-400'
+                      sla.has_breached
+                        ? "text-red-400"
+                        : sla.business_percentage > 90
+                          ? "text-yellow-400"
+                          : "text-green-400"
                     }"></i>
                   </div>
                 </div>
@@ -3433,9 +3886,11 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                   </div>
                   <div class="w-full bg-gray-700 rounded-full h-2">
                     <div class="h-2 rounded-full ${
-                      sla.has_breached ? 'bg-red-500' :
-                      sla.business_percentage > 90 ? 'bg-yellow-500' :
-                      'bg-green-500'
+                      sla.has_breached
+                        ? "bg-red-500"
+                        : sla.business_percentage > 90
+                          ? "bg-yellow-500"
+                          : "bg-green-500"
                     }" style="width: ${Math.min(sla.business_percentage, 100)}%"></div>
                   </div>
                 </div>
@@ -3450,19 +3905,26 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
                     <span class="text-gray-400">Fim:</span>
                     <span class="text-white ml-2">${formatSLADate(sla.end_time)}</span>
                   </div>
-                  ${sla.breach_time ? `
+                  ${
+                    sla.breach_time
+                      ? `
                   <div class="md:col-span-2">
                     <span class="text-gray-400">Violado em:</span>
                     <span class="text-red-400 ml-2 font-medium">${formatSLADate(sla.breach_time)}</span>
                   </div>
-                  ` : ''}
+                  `
+                      : ""
+                  }
                 </div>
               </div>
             `;
-          }).join('')}
+            })
+            .join("")}
         </div>
         
-        ${slaSummary.worst_sla ? `
+        ${
+          slaSummary.worst_sla
+            ? `
         <!-- Worst SLA Alert -->
         <div class="mt-6 bg-red-500/10 border border-red-500/30 rounded-lg p-4">
           <div class="flex items-start space-x-3">
@@ -3472,25 +3934,30 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
               <p class="text-sm text-gray-300">
                 <strong>${slaSummary.worst_sla.sla_name}</strong> está violado com ${slaSummary.worst_sla.business_percentage.toFixed(1)}% de progresso.
               </p>
-              ${slaSummary.worst_sla.breach_time ? `
+              ${
+                slaSummary.worst_sla.breach_time
+                  ? `
               <p class="text-xs text-gray-400 mt-2">
-                Violado em: ${new Date(slaSummary.worst_sla.breach_time).toLocaleString('pt-BR')}
+                Violado em: ${new Date(slaSummary.worst_sla.breach_time).toLocaleString("pt-BR")}
               </p>
-              ` : ''}
+              `
+                  : ""
+              }
             </div>
           </div>
         </div>
-        ` : ''}
+        `
+            : ""
+        }
         
         <script>
           // Initialize Lucide icons for SLA content
           lucide.createIcons();
         </script>
       `;
-      
-    } catch (error: any) {
-      console.error('Error loading SLA data:', error);
-      return `
+      } catch (error: any) {
+        console.error("Error loading SLA data:", error);
+        return `
         <div class="text-center py-8 text-red-400">
           <i data-lucide="alert-triangle" class="w-12 h-12 mx-auto mb-2"></i>
           <p>Erro ao carregar informações de SLA</p>
@@ -3502,11 +3969,12 @@ export const htmxDashboardClean = new Elysia({ prefix: '/clean' })
           </button>
         </div>
       `;
-    }
-  })
-  
-  // MVC Modular Routes - following Development Guidelines  
-  // Note: Routes temporarily disabled to fix circular dependency
-  // .use(createTicketListRoutes);
+      }
+    },
+  );
+
+// MVC Modular Routes - following Development Guidelines
+// Note: Routes temporarily disabled to fix circular dependency
+// .use(createTicketListRoutes);
 
 export default htmxDashboardClean;

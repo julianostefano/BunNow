@@ -3,18 +3,20 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { Elysia } from 'elysia';
-import { html } from '@elysiajs/html';
-import { IntelligenceDashboardService } from '../../services/ai/IntelligenceDashboardService';
-import { logger } from '../../utils/Logger';
+import { Elysia } from "elysia";
+import { html } from "@elysiajs/html";
+import { IntelligenceDashboardService } from "../../services/ai/IntelligenceDashboardService";
+import { logger } from "../../utils/Logger";
 
 const dashboardService = new IntelligenceDashboardService();
 
-export const intelligenceDashboardRoutes = new Elysia({ prefix: '/intelligence' })
+export const intelligenceDashboardRoutes = new Elysia({
+  prefix: "/intelligence",
+})
   .use(html())
 
   // Main Intelligence Dashboard
-  .get('/dashboard', async ({ html }) => {
+  .get("/dashboard", async ({ html }) => {
     return html(`
       <div class="intelligence-dashboard">
         <div class="dashboard-header">
@@ -58,7 +60,7 @@ export const intelligenceDashboardRoutes = new Elysia({ prefix: '/intelligence' 
   })
 
   // Metrics Overview
-  .get('/metrics-overview', async ({ html }) => {
+  .get("/metrics-overview", async ({ html }) => {
     try {
       const metrics = await dashboardService.getDashboardMetrics();
 
@@ -141,7 +143,9 @@ export const intelligenceDashboardRoutes = new Elysia({ prefix: '/intelligence' 
               <div class="chart-container">
                 <h3>Top Issue Categories</h3>
                 <div class="category-chart">
-                  ${metrics.patterns.topIssueCategories.map(cat => `
+                  ${metrics.patterns.topIssueCategories
+                    .map(
+                      (cat) => `
                     <div class="category-bar">
                       <span class="category-name">${cat.category}</span>
                       <div class="bar-container">
@@ -150,14 +154,18 @@ export const intelligenceDashboardRoutes = new Elysia({ prefix: '/intelligence' 
                       </div>
                       <span class="trend trend-${cat.trend}">${getTrendIcon(cat.trend)}</span>
                     </div>
-                  `).join('')}
+                  `,
+                    )
+                    .join("")}
                 </div>
               </div>
 
               <div class="chart-container">
                 <h3>Resolution Trends (7 days)</h3>
                 <div class="trend-chart">
-                  ${metrics.patterns.resolutionTrends.map(trend => `
+                  ${metrics.patterns.resolutionTrends
+                    .map(
+                      (trend) => `
                     <div class="trend-day">
                       <div class="day-label">${formatDate(trend.date)}</div>
                       <div class="bars">
@@ -165,7 +173,9 @@ export const intelligenceDashboardRoutes = new Elysia({ prefix: '/intelligence' 
                         <div class="bar predicted" style="height: ${(trend.predicted / 60) * 100}px" title="Predicted: ${trend.predicted}"></div>
                       </div>
                     </div>
-                  `).join('')}
+                  `,
+                    )
+                    .join("")}
                 </div>
                 <div class="chart-legend">
                   <span><span class="legend-color actual"></span> Actual</span>
@@ -189,26 +199,34 @@ export const intelligenceDashboardRoutes = new Elysia({ prefix: '/intelligence' 
               <div class="prediction-card critical">
                 <h3>Critical Issues Alert</h3>
                 <div class="critical-list">
-                  ${metrics.predictions.criticalIssues.map(issue => `
+                  ${metrics.predictions.criticalIssues
+                    .map(
+                      (issue) => `
                     <div class="critical-item">
                       <span class="ticket-id">${issue.ticket}</span>
                       <span class="priority-score">${issue.priority}% risk</span>
                       <p class="prediction">${issue.prediction}</p>
                     </div>
-                  `).join('')}
+                  `,
+                    )
+                    .join("")}
                 </div>
               </div>
 
               <div class="prediction-card">
                 <h3>Resource Recommendations</h3>
                 <div class="resource-list">
-                  ${metrics.predictions.resourceNeeds.map(resource => `
+                  ${metrics.predictions.resourceNeeds
+                    .map(
+                      (resource) => `
                     <div class="resource-item">
                       <strong>${resource.group}</strong>
                       <span class="staffing">Recommended: ${resource.recommendedStaffing} staff</span>
                       <p class="reason">${resource.reason}</p>
                     </div>
-                  `).join('')}
+                  `,
+                    )
+                    .join("")}
                 </div>
               </div>
             </div>
@@ -224,7 +242,9 @@ export const intelligenceDashboardRoutes = new Elysia({ prefix: '/intelligence' 
                 <span>Satisfaction</span>
                 <span>Performance</span>
               </div>
-              ${metrics.patterns.supportGroupPerformance.map(group => `
+              ${metrics.patterns.supportGroupPerformance
+                .map(
+                  (group) => `
                 <div class="table-row">
                   <span class="group-name">${group.group}</span>
                   <span class="avg-time">${group.avgTime}h</span>
@@ -235,7 +255,9 @@ export const intelligenceDashboardRoutes = new Elysia({ prefix: '/intelligence' 
                     </div>
                   </span>
                 </div>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </div>
           </div>
         </div>
@@ -246,9 +268,8 @@ export const intelligenceDashboardRoutes = new Elysia({ prefix: '/intelligence' 
           <span class="update-indicator">🟢 Real-time</span>
         </div>
       `);
-
     } catch (error) {
-      logger.error('[IntelligenceDashboard] Failed to load metrics:', error);
+      logger.error("[IntelligenceDashboard] Failed to load metrics:", error);
       return html(`
         <div class="error-state">
           <h3> Unable to Load Metrics</h3>
@@ -264,9 +285,11 @@ export const intelligenceDashboardRoutes = new Elysia({ prefix: '/intelligence' 
   })
 
   // Ticket Insights Detail
-  .get('/ticket/:ticketId/insights', async ({ params, html }) => {
+  .get("/ticket/:ticketId/insights", async ({ params, html }) => {
     try {
-      const insights = await dashboardService.getTicketInsights(params.ticketId);
+      const insights = await dashboardService.getTicketInsights(
+        params.ticketId,
+      );
 
       return html(`
         <div class="ticket-insights-modal">
@@ -301,45 +324,59 @@ export const intelligenceDashboardRoutes = new Elysia({ prefix: '/intelligence' 
             <div class="insight-section">
               <h3>💡 Recommended Actions</h3>
               <ul class="action-list">
-                ${insights.recommendedActions.map(action => `
+                ${insights.recommendedActions
+                  .map(
+                    (action) => `
                   <li class="action-item">
                     <span class="action-icon">✓</span>
                     ${action}
                   </li>
-                `).join('')}
+                `,
+                  )
+                  .join("")}
               </ul>
             </div>
 
             <div class="insight-section">
               <h3> Risk Factors</h3>
               <ul class="risk-list">
-                ${insights.riskFactors.map(risk => `
+                ${insights.riskFactors
+                  .map(
+                    (risk) => `
                   <li class="risk-item">
                     <span class="risk-icon"></span>
                     ${risk}
                   </li>
-                `).join('')}
+                `,
+                  )
+                  .join("")}
               </ul>
             </div>
 
             <div class="insight-section">
               <h3>🔗 Similar Tickets</h3>
               <div class="similar-tickets">
-                ${insights.similarTickets.map(ticket => `
+                ${insights.similarTickets
+                  .map(
+                    (ticket) => `
                   <div class="similar-ticket">
                     <span class="ticket-id">${ticket.id}</span>
                     <span class="similarity">${Math.round(ticket.similarity * 100)}% similar</span>
                     <p class="resolution">${ticket.resolution}</p>
                   </div>
-                `).join('')}
+                `,
+                  )
+                  .join("")}
               </div>
             </div>
           </div>
         </div>
       `);
-
     } catch (error) {
-      logger.error(`[IntelligenceDashboard] Failed to load insights for ${params.ticketId}:`, error);
+      logger.error(
+        `[IntelligenceDashboard] Failed to load insights for ${params.ticketId}:`,
+        error,
+      );
       return html(`
         <div class="error-message">
           <p>Unable to load ticket insights. Please try again.</p>
@@ -349,7 +386,7 @@ export const intelligenceDashboardRoutes = new Elysia({ prefix: '/intelligence' 
   })
 
   // Knowledge Base Analytics
-  .get('/knowledge-analytics', async ({ html }) => {
+  .get("/knowledge-analytics", async ({ html }) => {
     try {
       const kbStats = await dashboardService.getKnowledgeBaseStats();
 
@@ -394,51 +431,63 @@ export const intelligenceDashboardRoutes = new Elysia({ prefix: '/intelligence' 
           <div class="kb-categories">
             <h3>Content Categories</h3>
             <div class="category-grid">
-              ${kbStats.categories.map(cat => `
+              ${kbStats.categories
+                .map(
+                  (cat) => `
                 <div class="category-card">
                   <h4>${cat.name}</h4>
                   <span class="doc-count">${cat.count} documents</span>
                   <span class="last-updated">Updated: ${cat.lastUpdated}</span>
                 </div>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </div>
           </div>
 
           <div class="content-gaps">
             <h3> Content Gaps</h3>
             <div class="gap-list">
-              ${kbStats.contentGaps.map(gap => `
+              ${kbStats.contentGaps
+                .map(
+                  (gap) => `
                 <div class="gap-item severity-${gap.severity}">
                   <span class="gap-topic">${gap.topic}</span>
                   <span class="gap-frequency">${gap.frequency} requests</span>
                   <span class="gap-severity">${gap.severity.toUpperCase()}</span>
                 </div>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </div>
           </div>
         </div>
       `);
-
     } catch (error) {
-      logger.error('[IntelligenceDashboard] Failed to load knowledge analytics:', error);
-      return html(`<div class="error-message">Unable to load knowledge base analytics</div>`);
+      logger.error(
+        "[IntelligenceDashboard] Failed to load knowledge analytics:",
+        error,
+      );
+      return html(
+        `<div class="error-message">Unable to load knowledge base analytics</div>`,
+      );
     }
   })
 
   // Real-time Metrics Stream (SSE endpoint)
-  .get('/metrics-stream', ({ set }) => {
+  .get("/metrics-stream", ({ set }) => {
     set.headers = {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*'
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "Access-Control-Allow-Origin": "*",
     };
 
     return createMetricsStream();
   })
 
   // Refresh All Data
-  .get('/refresh-all', async ({ html }) => {
+  .get("/refresh-all", async ({ html }) => {
     // Force refresh of all cached data
     try {
       const metrics = await dashboardService.getDashboardMetrics();
@@ -450,9 +499,8 @@ export const intelligenceDashboardRoutes = new Elysia({ prefix: '/intelligence' 
           <span class="timestamp">${new Date().toLocaleTimeString()}</span>
         </div>
       `);
-
     } catch (error) {
-      logger.error('[IntelligenceDashboard] Refresh failed:', error);
+      logger.error("[IntelligenceDashboard] Refresh failed:", error);
       return html(`
         <div class="refresh-error">
           <span class="error-icon"></span>
@@ -469,23 +517,32 @@ function createMetricsStream() {
   const stream = new ReadableStream({
     start(controller) {
       // Send initial connection message
-      controller.enqueue(encoder.encode('data: {"type":"connected","timestamp":"' + new Date().toISOString() + '"}\n\n'));
+      controller.enqueue(
+        encoder.encode(
+          'data: {"type":"connected","timestamp":"' +
+            new Date().toISOString() +
+            '"}\n\n',
+        ),
+      );
 
       // Send periodic updates
       const interval = setInterval(async () => {
         try {
           const metrics = await dashboardService.getDashboardMetrics();
           const data = JSON.stringify({
-            type: 'metrics_update',
+            type: "metrics_update",
             timestamp: new Date().toISOString(),
-            data: metrics
+            data: metrics,
           });
 
           controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-
         } catch (error) {
-          logger.error('[IntelligenceDashboard] Stream update failed:', error);
-          controller.enqueue(encoder.encode('data: {"type":"error","message":"Failed to update metrics"}\n\n'));
+          logger.error("[IntelligenceDashboard] Stream update failed:", error);
+          controller.enqueue(
+            encoder.encode(
+              'data: {"type":"error","message":"Failed to update metrics"}\n\n',
+            ),
+          );
         }
       }, 30000); // Update every 30 seconds
 
@@ -494,7 +551,7 @@ function createMetricsStream() {
         clearInterval(interval);
         controller.close();
       }, 300000); // Close after 5 minutes
-    }
+    },
   });
 
   return new Response(stream);
@@ -502,14 +559,18 @@ function createMetricsStream() {
 
 function getTrendIcon(trend: string): string {
   switch (trend) {
-    case 'up': return '📈';
-    case 'down': return '📉';
-    case 'stable': return '➡️';
-    default: return '➡️';
+    case "up":
+      return "📈";
+    case "down":
+      return "📉";
+    case "stable":
+      return "➡️";
+    default:
+      return "➡️";
   }
 }
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }

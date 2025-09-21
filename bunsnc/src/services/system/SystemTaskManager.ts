@@ -4,11 +4,19 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { EventEmitter } from 'events';
-import { logger } from '../../utils/Logger';
+import { EventEmitter } from "events";
+import { logger } from "../../utils/Logger";
 
 export interface TaskData {
-  [key: string]: string | number | boolean | Date | TaskData[] | TaskData | null | undefined;
+  [key: string]:
+    | string
+    | number
+    | boolean
+    | Date
+    | TaskData[]
+    | TaskData
+    | null
+    | undefined;
 }
 
 export interface TaskResult {
@@ -52,8 +60,8 @@ export interface Task {
   id: string;
   type: string;
   data: TaskData;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
-  priority: 'low' | 'normal' | 'high' | 'critical';
+  status: "pending" | "running" | "completed" | "failed" | "cancelled";
+  priority: "low" | "normal" | "high" | "critical";
   createdAt: Date;
   startedAt?: Date;
   completedAt?: Date;
@@ -94,11 +102,11 @@ export class SystemTaskManager extends EventEmitter {
    */
   async initialize(): Promise<void> {
     try {
-      logger.info('📋 [SystemTasks] Initializing task manager...');
+      logger.info("📋 [SystemTasks] Initializing task manager...");
       // Initialize any required resources
-      logger.info(' [SystemTasks] Task manager initialized');
+      logger.info(" [SystemTasks] Task manager initialized");
     } catch (error) {
-      logger.error(' [SystemTasks] Failed to initialize:', error);
+      logger.error(" [SystemTasks] Failed to initialize:", error);
       throw error;
     }
   }
@@ -110,7 +118,7 @@ export class SystemTaskManager extends EventEmitter {
     if (this.isRunning) return;
 
     this.isRunning = true;
-    logger.info(' [SystemTasks] Starting task processing...');
+    logger.info(" [SystemTasks] Starting task processing...");
 
     // Process pending tasks every 5 seconds
     this.processingInterval = setInterval(() => {
@@ -122,7 +130,7 @@ export class SystemTaskManager extends EventEmitter {
       this.processScheduledTasks();
     }, 60000);
 
-    logger.info(' [SystemTasks] Task processing started');
+    logger.info(" [SystemTasks] Task processing started");
   }
 
   /**
@@ -140,32 +148,36 @@ export class SystemTaskManager extends EventEmitter {
     }
 
     this.isRunning = false;
-    logger.info(' [SystemTasks] Task processing stopped');
+    logger.info(" [SystemTasks] Task processing stopped");
   }
 
   /**
    * Add a task to the queue
    */
-  async addTask(type: string, data: TaskData, options?: {
-    priority?: 'low' | 'normal' | 'high' | 'critical';
-    maxRetries?: number;
-    tags?: string[];
-  }): Promise<string> {
+  async addTask(
+    type: string,
+    data: TaskData,
+    options?: {
+      priority?: "low" | "normal" | "high" | "critical";
+      maxRetries?: number;
+      tags?: string[];
+    },
+  ): Promise<string> {
     const taskId = `task_${++this.taskCounter}_${Date.now()}`;
 
     const task: Task = {
       id: taskId,
       type,
       data,
-      status: 'pending',
-      priority: options?.priority || 'normal',
+      status: "pending",
+      priority: options?.priority || "normal",
       createdAt: new Date(),
       retries: 0,
-      maxRetries: options?.maxRetries || 3
+      maxRetries: options?.maxRetries || 3,
     };
 
     this.tasks.set(taskId, task);
-    this.emit('taskAdded', { taskId, task });
+    this.emit("taskAdded", { taskId, task });
 
     logger.debug(` [SystemTasks] Task added: ${taskId} (${type})`);
     return taskId;
@@ -187,16 +199,16 @@ export class SystemTaskManager extends EventEmitter {
       throw new Error(`Task not found: ${taskId}`);
     }
 
-    if (task.status === 'running') {
+    if (task.status === "running") {
       logger.warn(` [SystemTasks] Cannot cancel running task: ${taskId}`);
       return;
     }
 
-    task.status = 'cancelled';
-    task.error = reason || 'Cancelled by user';
+    task.status = "cancelled";
+    task.error = reason || "Cancelled by user";
     task.completedAt = new Date();
 
-    this.emit('taskCancelled', { taskId, task, reason });
+    this.emit("taskCancelled", { taskId, task, reason });
     logger.info(`🚫 [SystemTasks] Task cancelled: ${taskId}`);
   }
 
@@ -207,10 +219,10 @@ export class SystemTaskManager extends EventEmitter {
     if (!this.isRunning) return;
 
     const pendingTasks = Array.from(this.tasks.values())
-      .filter(task => task.status === 'pending')
+      .filter((task) => task.status === "pending")
       .sort((a, b) => {
         // Sort by priority first, then by creation time
-        const priorityOrder = { 'critical': 4, 'high': 3, 'normal': 2, 'low': 1 };
+        const priorityOrder = { critical: 4, high: 3, normal: 2, low: 1 };
         const aPriority = priorityOrder[a.priority];
         const bPriority = priorityOrder[b.priority];
 
@@ -223,7 +235,9 @@ export class SystemTaskManager extends EventEmitter {
 
     // Process tasks based on concurrency limit
     const concurrency = this.config.tasks?.concurrency || 3;
-    const runningTasks = Array.from(this.tasks.values()).filter(task => task.status === 'running');
+    const runningTasks = Array.from(this.tasks.values()).filter(
+      (task) => task.status === "running",
+    );
     const availableSlots = Math.max(0, concurrency - runningTasks.length);
 
     for (let i = 0; i < Math.min(availableSlots, pendingTasks.length); i++) {
@@ -237,31 +251,30 @@ export class SystemTaskManager extends EventEmitter {
    */
   private async executeTask(task: Task): Promise<void> {
     try {
-      task.status = 'running';
+      task.status = "running";
       task.startedAt = new Date();
 
       logger.debug(` [SystemTasks] Executing task: ${task.id} (${task.type})`);
-      this.emit('taskStarted', { taskId: task.id, task });
+      this.emit("taskStarted", { taskId: task.id, task });
 
       // Execute the task based on type
       const result = await this.performTaskOperation(task);
 
-      task.status = 'completed';
+      task.status = "completed";
       task.completedAt = new Date();
       task.result = result;
 
       const duration = task.completedAt.getTime() - task.startedAt!.getTime();
 
-      this.emit('taskCompleted', {
+      this.emit("taskCompleted", {
         taskId: task.id,
         task,
         result,
         duration,
-        taskType: task.type
+        taskType: task.type,
       });
 
       logger.info(` [SystemTasks] Task completed: ${task.id} in ${duration}ms`);
-
     } catch (error) {
       await this.handleTaskError(task, error);
     }
@@ -273,19 +286,21 @@ export class SystemTaskManager extends EventEmitter {
   private async performTaskOperation(task: Task): Promise<TaskResult> {
     // Simulate different task types
     switch (task.type) {
-      case 'data_sync':
+      case "data_sync":
         return this.performDataSync(task.data);
-      case 'cache_refresh':
+      case "cache_refresh":
         return this.performCacheRefresh(task.data);
-      case 'report_generation':
+      case "report_generation":
         return this.performReportGeneration(task.data);
-      case 'cleanup':
+      case "cleanup":
         return this.performCleanup(task.data);
-      case 'backup':
+      case "backup":
         return this.performBackup(task.data);
       default:
         // Generic task processing
-        await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 500));
+        await new Promise((resolve) =>
+          setTimeout(resolve, Math.random() * 1000 + 500),
+        );
         return { success: true, processed: true };
     }
   }
@@ -298,20 +313,23 @@ export class SystemTaskManager extends EventEmitter {
     task.error = error instanceof Error ? error.message : String(error);
 
     if (task.retries < task.maxRetries) {
-      task.status = 'pending';
-      logger.warn(` [SystemTasks] Task failed, retrying (${task.retries}/${task.maxRetries}): ${task.id}`);
+      task.status = "pending";
+      logger.warn(
+        ` [SystemTasks] Task failed, retrying (${task.retries}/${task.maxRetries}): ${task.id}`,
+      );
 
       // Add delay before retry
       setTimeout(() => {
         // Task will be picked up in next processing cycle
       }, this.config.tasks?.retryDelay || 5000);
-
     } else {
-      task.status = 'failed';
+      task.status = "failed";
       task.completedAt = new Date();
 
-      logger.error(` [SystemTasks] Task failed permanently: ${task.id} - ${task.error}`);
-      this.emit('taskFailed', { taskId: task.id, task, error });
+      logger.error(
+        ` [SystemTasks] Task failed permanently: ${task.id} - ${task.error}`,
+      );
+      this.emit("taskFailed", { taskId: task.id, task, error });
     }
   }
 
@@ -334,11 +352,13 @@ export class SystemTaskManager extends EventEmitter {
       taskType: options.taskType,
       taskData: options.taskData,
       enabled: options.enabled !== false,
-      runCount: 0
+      runCount: 0,
     };
 
     this.scheduledTasks.set(scheduleId, scheduledTask);
-    logger.info(`📅 [SystemTasks] Task scheduled: ${options.name} (${options.cronExpression})`);
+    logger.info(
+      `📅 [SystemTasks] Task scheduled: ${options.name} (${options.cronExpression})`,
+    );
 
     return scheduleId;
   }
@@ -362,22 +382,25 @@ export class SystemTaskManager extends EventEmitter {
   /**
    * Simple cron evaluation (basic implementation)
    */
-  private shouldRunScheduledTask(scheduledTask: ScheduledTask, now: Date): boolean {
+  private shouldRunScheduledTask(
+    scheduledTask: ScheduledTask,
+    now: Date,
+  ): boolean {
     if (!scheduledTask.lastRun) return true;
 
     // Simple interval-based scheduling
     const timeSinceLastRun = now.getTime() - scheduledTask.lastRun.getTime();
 
     // Parse basic cron expressions (simplified)
-    if (scheduledTask.cronExpression.includes('* * * * *')) {
+    if (scheduledTask.cronExpression.includes("* * * * *")) {
       return timeSinceLastRun >= 60000; // Every minute
     }
 
-    if (scheduledTask.cronExpression.includes('0 * * * *')) {
+    if (scheduledTask.cronExpression.includes("0 * * * *")) {
       return timeSinceLastRun >= 3600000; // Every hour
     }
 
-    if (scheduledTask.cronExpression.includes('0 0 * * *')) {
+    if (scheduledTask.cronExpression.includes("0 0 * * *")) {
       return timeSinceLastRun >= 86400000; // Daily
     }
 
@@ -387,19 +410,29 @@ export class SystemTaskManager extends EventEmitter {
   /**
    * Execute a scheduled task
    */
-  private async executeScheduledTask(scheduledTask: ScheduledTask): Promise<void> {
+  private async executeScheduledTask(
+    scheduledTask: ScheduledTask,
+  ): Promise<void> {
     try {
       scheduledTask.lastRun = new Date();
       scheduledTask.runCount++;
 
-      const taskId = await this.addTask(scheduledTask.taskType, scheduledTask.taskData, {
-        priority: 'normal'
-      });
+      const taskId = await this.addTask(
+        scheduledTask.taskType,
+        scheduledTask.taskData,
+        {
+          priority: "normal",
+        },
+      );
 
-      logger.info(` [SystemTasks] Scheduled task executed: ${scheduledTask.name} -> ${taskId}`);
-
+      logger.info(
+        ` [SystemTasks] Scheduled task executed: ${scheduledTask.name} -> ${taskId}`,
+      );
     } catch (error) {
-      logger.error(` [SystemTasks] Failed to execute scheduled task: ${scheduledTask.name}`, error);
+      logger.error(
+        ` [SystemTasks] Failed to execute scheduled task: ${scheduledTask.name}`,
+        error,
+      );
     }
   }
 
@@ -408,34 +441,44 @@ export class SystemTaskManager extends EventEmitter {
    */
   private async performDataSync(data: TaskData): Promise<TaskResult> {
     logger.debug(` [SystemTasks] Performing data sync with data:`, data);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    return { synced: true, recordsProcessed: Math.floor(Math.random() * 100) + 10 };
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    return {
+      synced: true,
+      recordsProcessed: Math.floor(Math.random() * 100) + 10,
+    };
   }
 
   private async performCacheRefresh(data: TaskData): Promise<TaskResult> {
     logger.debug(` [SystemTasks] Performing cache refresh`);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    const keys = Array.isArray(data.keys) ? data.keys.map(String) : ['default'];
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const keys = Array.isArray(data.keys) ? data.keys.map(String) : ["default"];
     return { refreshed: true, cacheKeys: keys };
   }
 
   private async performReportGeneration(data: TaskData): Promise<TaskResult> {
-    const reportType = typeof data.reportType === 'string' ? data.reportType : 'default';
+    const reportType =
+      typeof data.reportType === "string" ? data.reportType : "default";
     logger.debug(` [SystemTasks] Generating report:`, reportType);
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    return { reportGenerated: true, reportPath: `/tmp/reports/${reportType}_${Date.now()}.pdf` };
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    return {
+      reportGenerated: true,
+      reportPath: `/tmp/reports/${reportType}_${Date.now()}.pdf`,
+    };
   }
 
   private async performCleanup(data: TaskData): Promise<TaskResult> {
     logger.debug(` [SystemTasks] Performing cleanup`);
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
     return { cleaned: true, itemsRemoved: Math.floor(Math.random() * 50) };
   }
 
   private async performBackup(data: TaskData): Promise<TaskResult> {
     logger.debug(` [SystemTasks] Performing backup`);
-    await new Promise(resolve => setTimeout(resolve, 5000));
-    return { backedUp: true, backupSize: Math.floor(Math.random() * 1000) + 100 };
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+    return {
+      backedUp: true,
+      backupSize: Math.floor(Math.random() * 1000) + 100,
+    };
   }
 
   /**
@@ -444,13 +487,17 @@ export class SystemTaskManager extends EventEmitter {
   async getStats(): Promise<TaskStats> {
     const allTasks = Array.from(this.tasks.values());
     const totalTasks = allTasks.length;
-    const completedTasks = allTasks.filter(t => t.status === 'completed').length;
-    const failedTasks = allTasks.filter(t => t.status === 'failed').length;
-    const runningTasks = allTasks.filter(t => t.status === 'running').length;
-    const pendingTasks = allTasks.filter(t => t.status === 'pending').length;
+    const completedTasks = allTasks.filter(
+      (t) => t.status === "completed",
+    ).length;
+    const failedTasks = allTasks.filter((t) => t.status === "failed").length;
+    const runningTasks = allTasks.filter((t) => t.status === "running").length;
+    const pendingTasks = allTasks.filter((t) => t.status === "pending").length;
 
     const scheduledTaskCount = this.scheduledTasks.size;
-    const enabledScheduledTasks = Array.from(this.scheduledTasks.values()).filter(t => t.enabled).length;
+    const enabledScheduledTasks = Array.from(
+      this.scheduledTasks.values(),
+    ).filter((t) => t.enabled).length;
 
     return {
       total: totalTasks,
@@ -459,10 +506,11 @@ export class SystemTaskManager extends EventEmitter {
       running: runningTasks,
       pending: pendingTasks,
       active: runningTasks,
-      success_rate: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
+      success_rate:
+        totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
       scheduled_tasks: scheduledTaskCount,
       enabled_scheduled_tasks: enabledScheduledTasks,
-      is_running: this.isRunning
+      is_running: this.isRunning,
     };
   }
 
@@ -474,7 +522,7 @@ export class SystemTaskManager extends EventEmitter {
       const stats = await this.getStats();
       return this.isRunning && stats.running < 100; // Prevent runaway tasks
     } catch (error) {
-      logger.error(' [SystemTasks] Health check failed:', error);
+      logger.error(" [SystemTasks] Health check failed:", error);
       return false;
     }
   }
@@ -487,13 +535,13 @@ export class SystemTaskManager extends EventEmitter {
 
     // Cancel all running tasks
     for (const [taskId, task] of this.tasks) {
-      if (task.status === 'running' || task.status === 'pending') {
-        await this.cancelTask(taskId, 'System shutdown');
+      if (task.status === "running" || task.status === "pending") {
+        await this.cancelTask(taskId, "System shutdown");
       }
     }
 
     this.tasks.clear();
     this.scheduledTasks.clear();
-    logger.info('🧹 [SystemTasks] Cleanup completed');
+    logger.info("🧹 [SystemTasks] Cleanup completed");
   }
 }

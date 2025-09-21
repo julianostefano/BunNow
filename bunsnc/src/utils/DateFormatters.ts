@@ -1,7 +1,7 @@
 /**
  * DateFormatters - Safe Date Formatting Utilities
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
- * 
+ *
  * Utilities for safe date formatting to avoid "Data inválida" errors
  * when working with ServiceNow date formats.
  */
@@ -12,29 +12,35 @@
  * @returns Formatted date string or fallback message
  */
 export function formatSafeDate(dateValue: any): string {
-  if (!dateValue || dateValue === 'null' || dateValue === '' || dateValue === 'undefined') {
-    return 'Data não informada';
+  if (
+    !dateValue ||
+    dateValue === "null" ||
+    dateValue === "" ||
+    dateValue === "undefined"
+  ) {
+    return "Data não informada";
   }
-  
+
   try {
     // Handle ServiceNow object format {display_value: "date", value: "date"}
-    const dateToFormat = (typeof dateValue === 'object' && dateValue.display_value) 
-      ? dateValue.display_value 
-      : dateValue;
-    
+    const dateToFormat =
+      typeof dateValue === "object" && dateValue.display_value
+        ? dateValue.display_value
+        : dateValue;
+
     const date = new Date(dateToFormat);
     if (isNaN(date.getTime())) {
-      return 'Data não disponível';
+      return "Data não disponível";
     }
-    
-    return date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
+
+    return date.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
     });
   } catch (error) {
-    console.warn('Date formatting error:', error, 'for value:', dateValue);
-    return 'Data não disponível';
+    console.warn("Date formatting error:", error, "for value:", dateValue);
+    return "Data não disponível";
   }
 }
 
@@ -44,30 +50,36 @@ export function formatSafeDate(dateValue: any): string {
  * @returns Formatted datetime string with time
  */
 export function formatSafeDateTime(dateValue: any): string {
-  if (!dateValue || dateValue === 'null' || dateValue === '' || dateValue === 'undefined') {
-    return 'Data não informada';
+  if (
+    !dateValue ||
+    dateValue === "null" ||
+    dateValue === "" ||
+    dateValue === "undefined"
+  ) {
+    return "Data não informada";
   }
-  
+
   try {
-    const dateToFormat = (typeof dateValue === 'object' && dateValue.display_value) 
-      ? dateValue.display_value 
-      : dateValue;
-    
+    const dateToFormat =
+      typeof dateValue === "object" && dateValue.display_value
+        ? dateValue.display_value
+        : dateValue;
+
     const date = new Date(dateToFormat);
     if (isNaN(date.getTime())) {
-      return 'Data não disponível';
+      return "Data não disponível";
     }
-    
-    return date.toLocaleString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+
+    return date.toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   } catch (error) {
-    console.warn('DateTime formatting error:', error, 'for value:', dateValue);
-    return 'Data não disponível';
+    console.warn("DateTime formatting error:", error, "for value:", dateValue);
+    return "Data não disponível";
   }
 }
 
@@ -77,40 +89,51 @@ export function formatSafeDateTime(dateValue: any): string {
  * @returns Relative time string
  */
 export function formatRelativeTime(dateValue: any): string {
-  if (!dateValue || dateValue === 'null' || dateValue === '' || dateValue === 'undefined') {
-    return 'Data não informada';
+  if (
+    !dateValue ||
+    dateValue === "null" ||
+    dateValue === "" ||
+    dateValue === "undefined"
+  ) {
+    return "Data não informada";
   }
-  
+
   try {
-    const dateToFormat = (typeof dateValue === 'object' && dateValue.display_value) 
-      ? dateValue.display_value 
-      : dateValue;
-    
+    const dateToFormat =
+      typeof dateValue === "object" && dateValue.display_value
+        ? dateValue.display_value
+        : dateValue;
+
     const date = new Date(dateToFormat);
     if (isNaN(date.getTime())) {
-      return 'Data não disponível';
+      return "Data não disponível";
     }
-    
+
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMinutes = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    
+
     if (diffMinutes < 1) {
-      return 'Agora mesmo';
+      return "Agora mesmo";
     } else if (diffMinutes < 60) {
-      return `${diffMinutes} minuto${diffMinutes > 1 ? 's' : ''} atrás`;
+      return `${diffMinutes} minuto${diffMinutes > 1 ? "s" : ""} atrás`;
     } else if (diffHours < 24) {
-      return `${diffHours} hora${diffHours > 1 ? 's' : ''} atrás`;
+      return `${diffHours} hora${diffHours > 1 ? "s" : ""} atrás`;
     } else if (diffDays < 30) {
-      return `${diffDays} dia${diffDays > 1 ? 's' : ''} atrás`;
+      return `${diffDays} dia${diffDays > 1 ? "s" : ""} atrás`;
     } else {
       return formatSafeDate(dateValue);
     }
   } catch (error) {
-    console.warn('Relative time formatting error:', error, 'for value:', dateValue);
-    return 'Data não disponível';
+    console.warn(
+      "Relative time formatting error:",
+      error,
+      "for value:",
+      dateValue,
+    );
+    return "Data não disponível";
   }
 }
 
@@ -121,27 +144,33 @@ export function formatRelativeTime(dateValue: any): string {
  * @returns Boolean indicating if date is within the specified days
  */
 export function isWithinDays(dateValue: any, days: number): boolean {
-  if (!dateValue || dateValue === 'null' || dateValue === '' || dateValue === 'undefined') {
+  if (
+    !dateValue ||
+    dateValue === "null" ||
+    dateValue === "" ||
+    dateValue === "undefined"
+  ) {
     return false;
   }
-  
+
   try {
-    const dateToCheck = (typeof dateValue === 'object' && dateValue.display_value) 
-      ? dateValue.display_value 
-      : dateValue;
-    
+    const dateToCheck =
+      typeof dateValue === "object" && dateValue.display_value
+        ? dateValue.display_value
+        : dateValue;
+
     const date = new Date(dateToCheck);
     if (isNaN(date.getTime())) {
       return false;
     }
-    
+
     const now = new Date();
     const diffMs = Math.abs(now.getTime() - date.getTime());
     const diffDays = diffMs / (1000 * 60 * 60 * 24);
-    
+
     return diffDays <= days;
   } catch (error) {
-    console.warn('Date comparison error:', error, 'for value:', dateValue);
+    console.warn("Date comparison error:", error, "for value:", dateValue);
     return false;
   }
 }

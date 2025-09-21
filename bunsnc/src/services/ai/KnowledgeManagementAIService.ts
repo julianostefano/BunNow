@@ -3,38 +3,41 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { setImmediate } from 'timers/promises';
-import { AIService } from './AIServiceManager';
-import { KnowledgeGraphService } from './KnowledgeGraphService';
-import { DocumentLifecycleService } from './DocumentLifecycleService';
+import { setImmediate } from "timers/promises";
+import { AIService } from "./AIServiceManager";
+import { KnowledgeGraphService } from "./KnowledgeGraphService";
+import { DocumentLifecycleService } from "./DocumentLifecycleService";
 import {
   AIRequest,
   AIResponse,
   DocumentUploadMetadata,
-  KnowledgeGraphQuery
-} from '../../types/AI';
+  KnowledgeGraphQuery,
+} from "../../types/AI";
 
 export class KnowledgeManagementAIService extends AIService {
   private knowledgeGraph: KnowledgeGraphService;
   private documentLifecycle: DocumentLifecycleService;
 
   constructor() {
-    super('knowledge-management');
+    super("knowledge-management");
     this.knowledgeGraph = new KnowledgeGraphService();
     this.documentLifecycle = new DocumentLifecycleService();
   }
 
   async initialize(): Promise<void> {
     try {
-      console.log('Knowledge Management AI Service: Initializing...');
+      console.log("Knowledge Management AI Service: Initializing...");
 
       // Initialize sub-services
       // Note: Both services initialize themselves in their constructors
 
       this.initialized = true;
-      console.log('Knowledge Management AI Service: Initialized successfully');
+      console.log("Knowledge Management AI Service: Initialized successfully");
     } catch (error) {
-      console.error('Knowledge Management AI Service: Initialization failed:', error);
+      console.error(
+        "Knowledge Management AI Service: Initialization failed:",
+        error,
+      );
       throw error;
     }
   }
@@ -44,34 +47,37 @@ export class KnowledgeManagementAIService extends AIService {
 
     try {
       switch (request.type) {
-        case 'process_document':
+        case "process_document":
           return await this.processDocument(request);
 
-        case 'analyze_gaps':
+        case "analyze_gaps":
           return await this.analyzeGaps(request);
 
-        case 'query_graph':
+        case "query_graph":
           return await this.queryGraph(request);
 
-        case 'get_graph_analytics':
+        case "get_graph_analytics":
           return await this.getGraphAnalytics(request);
 
-        case 'add_document_to_graph':
+        case "add_document_to_graph":
           return await this.addDocumentToGraph(request);
 
         default:
           return {
             success: false,
             error: `Unsupported request type: ${request.type}`,
-            processing_time_ms: Date.now() - startTime
+            processing_time_ms: Date.now() - startTime,
           };
       }
     } catch (error: any) {
-      console.error('Knowledge Management AI Service: Processing error:', error);
+      console.error(
+        "Knowledge Management AI Service: Processing error:",
+        error,
+      );
       return {
         success: false,
         error: `Processing failed: ${error.message}`,
-        processing_time_ms: Date.now() - startTime
+        processing_time_ms: Date.now() - startTime,
       };
     }
   }
@@ -82,20 +88,20 @@ export class KnowledgeManagementAIService extends AIService {
     if (!fileBuffer || !metadata) {
       return {
         success: false,
-        error: 'Missing required fields: fileBuffer and metadata'
+        error: "Missing required fields: fileBuffer and metadata",
       };
     }
 
     const result = await this.documentLifecycle.processNewDocument(
       fileBuffer,
-      metadata as DocumentUploadMetadata
+      metadata as DocumentUploadMetadata,
     );
 
     return {
       success: result.success,
       data: result,
       processing_time_ms: result.processing_time_ms,
-      ...(result.errors && { error: result.errors.join(', ') })
+      ...(result.errors && { error: result.errors.join(", ") }),
     };
   }
 
@@ -109,13 +115,13 @@ export class KnowledgeManagementAIService extends AIService {
         success: true,
         data: gaps,
         processing_time_ms: Date.now() - startTime,
-        confidence: this.calculateGapAnalysisConfidence(gaps)
+        confidence: this.calculateGapAnalysisConfidence(gaps),
       };
     } catch (error: any) {
       return {
         success: false,
         error: `Gap analysis failed: ${error.message}`,
-        processing_time_ms: Date.now() - startTime
+        processing_time_ms: Date.now() - startTime,
       };
     }
   }
@@ -126,12 +132,12 @@ export class KnowledgeManagementAIService extends AIService {
     if (!query) {
       return {
         success: false,
-        error: 'Missing required field: query'
+        error: "Missing required field: query",
       };
     }
 
     return await this.knowledgeGraph.queryKnowledgeGraph(
-      query as KnowledgeGraphQuery
+      query as KnowledgeGraphQuery,
     );
   }
 
@@ -145,13 +151,13 @@ export class KnowledgeManagementAIService extends AIService {
         success: true,
         data: analytics,
         processing_time_ms: Date.now() - startTime,
-        confidence: this.calculateAnalyticsConfidence(analytics)
+        confidence: this.calculateAnalyticsConfidence(analytics),
       };
     } catch (error: any) {
       return {
         success: false,
         error: `Analytics retrieval failed: ${error.message}`,
-        processing_time_ms: Date.now() - startTime
+        processing_time_ms: Date.now() - startTime,
       };
     }
   }
@@ -162,7 +168,7 @@ export class KnowledgeManagementAIService extends AIService {
     if (!documentId || !metadata) {
       return {
         success: false,
-        error: 'Missing required fields: documentId and metadata'
+        error: "Missing required fields: documentId and metadata",
       };
     }
 
@@ -172,19 +178,19 @@ export class KnowledgeManagementAIService extends AIService {
       await this.knowledgeGraph.addDocumentNode(
         documentId,
         metadata,
-        relationships || []
+        relationships || [],
       );
 
       return {
         success: true,
-        data: { document_id: documentId, status: 'added_to_graph' },
-        processing_time_ms: Date.now() - startTime
+        data: { document_id: documentId, status: "added_to_graph" },
+        processing_time_ms: Date.now() - startTime,
       };
     } catch (error: any) {
       return {
         success: false,
         error: `Failed to add document to graph: ${error.message}`,
-        processing_time_ms: Date.now() - startTime
+        processing_time_ms: Date.now() - startTime,
       };
     }
   }
@@ -231,16 +237,20 @@ export class KnowledgeManagementAIService extends AIService {
     try {
       // Test basic functionality of both services
       const testQuery = {
-        query_type: 'find_related_documents' as const,
-        parameters: { max_results: 1 }
+        query_type: "find_related_documents" as const,
+        parameters: { max_results: 1 },
       };
 
-      const graphResult = await this.knowledgeGraph.queryKnowledgeGraph(testQuery);
+      const graphResult =
+        await this.knowledgeGraph.queryKnowledgeGraph(testQuery);
 
       // Check if services are responsive
       return graphResult.success !== undefined; // Just check if we get a response
     } catch (error) {
-      console.error('Knowledge Management AI Service: Health check failed:', error);
+      console.error(
+        "Knowledge Management AI Service: Health check failed:",
+        error,
+      );
       return false;
     }
   }
@@ -249,7 +259,7 @@ export class KnowledgeManagementAIService extends AIService {
 
   async processDocumentWithGraph(
     fileBuffer: Buffer,
-    metadata: DocumentUploadMetadata
+    metadata: DocumentUploadMetadata,
   ): Promise<AIResponse> {
     const startTime = Date.now();
 
@@ -257,14 +267,15 @@ export class KnowledgeManagementAIService extends AIService {
       // 1. Process document through lifecycle
       const processingResult = await this.documentLifecycle.processNewDocument(
         fileBuffer,
-        metadata
+        metadata,
       );
 
       if (!processingResult.success) {
         return {
           success: false,
-          error: processingResult.errors?.join(', ') || 'Document processing failed',
-          processing_time_ms: Date.now() - startTime
+          error:
+            processingResult.errors?.join(", ") || "Document processing failed",
+          processing_time_ms: Date.now() - startTime,
         };
       }
 
@@ -276,13 +287,13 @@ export class KnowledgeManagementAIService extends AIService {
               processingResult.document_id,
               {
                 ...metadata,
-                classification: processingResult.classification
+                classification: processingResult.classification,
               },
-              [] // Relationships will be extracted by the lifecycle service
+              [], // Relationships will be extracted by the lifecycle service
             );
           }
         } catch (error) {
-          console.error('Failed to add document to knowledge graph:', error);
+          console.error("Failed to add document to knowledge graph:", error);
         }
       });
 
@@ -290,17 +301,16 @@ export class KnowledgeManagementAIService extends AIService {
         success: true,
         data: {
           processing_result: processingResult,
-          graph_integration: 'scheduled'
+          graph_integration: "scheduled",
         },
         processing_time_ms: Date.now() - startTime,
-        confidence: 0.85
+        confidence: 0.85,
       };
-
     } catch (error: any) {
       return {
         success: false,
         error: `Integrated processing failed: ${error.message}`,
-        processing_time_ms: Date.now() - startTime
+        processing_time_ms: Date.now() - startTime,
       };
     }
   }
@@ -312,20 +322,23 @@ export class KnowledgeManagementAIService extends AIService {
   }> {
     const [analytics, gaps] = await Promise.all([
       this.knowledgeGraph.getGraphAnalytics(),
-      this.documentLifecycle.detectDocumentationGaps()
+      this.documentLifecycle.detectDocumentationGaps(),
     ]);
 
     const recommendations = [
       ...gaps.recommendations,
       `Knowledge graph has ${analytics.total_nodes} nodes with ${analytics.total_edges} connections`,
       `${analytics.orphaned_documents.length} documents need better integration`,
-      `Top technologies: ${analytics.most_connected_technologies.slice(0, 3).map(t => t.name).join(', ')}`
+      `Top technologies: ${analytics.most_connected_technologies
+        .slice(0, 3)
+        .map((t) => t.name)
+        .join(", ")}`,
     ];
 
     return {
       graph_analytics: analytics,
       gap_analysis: gaps,
-      recommendations
+      recommendations,
     };
   }
 }

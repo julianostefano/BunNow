@@ -4,15 +4,20 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { createCipheriv, createDecipheriv, pbkdf2Sync, randomBytes } from 'node:crypto';
+import {
+  createCipheriv,
+  createDecipheriv,
+  pbkdf2Sync,
+  randomBytes,
+} from "node:crypto";
 
 interface EncryptedData {
   [key: string]: any;
 }
 
 export class SecurityService {
-  private readonly algorithm = 'aes-256-cbc';
-  private readonly keyDerivationSalt = 'servicenow_auth_salt';
+  private readonly algorithm = "aes-256-cbc";
+  private readonly keyDerivationSalt = "servicenow_auth_salt";
   private readonly iterations = 100000;
   private key: Buffer;
 
@@ -22,7 +27,9 @@ export class SecurityService {
 
   private createKey(): Buffer {
     try {
-      const encryptionKey = process.env.ENCRYPTION_KEY || 'default-encryption-key-change-in-production';
+      const encryptionKey =
+        process.env.ENCRYPTION_KEY ||
+        "default-encryption-key-change-in-production";
 
       // If key is already 32 bytes (256 bits), use it directly
       if (encryptionKey.length === 32) {
@@ -35,10 +42,10 @@ export class SecurityService {
         this.keyDerivationSalt,
         this.iterations,
         32, // 256 bits
-        'sha256'
+        "sha256",
       );
     } catch (error) {
-      console.error('Failed to create encryption key:', error);
+      console.error("Failed to create encryption key:", error);
       throw error;
     }
   }
@@ -50,14 +57,14 @@ export class SecurityService {
     try {
       const iv = randomBytes(16);
       const cipher = createCipheriv(this.algorithm, this.key, iv);
-      let encrypted = cipher.update(data, 'utf8', 'base64');
-      encrypted += cipher.final('base64');
+      let encrypted = cipher.update(data, "utf8", "base64");
+      encrypted += cipher.final("base64");
 
       // Combine IV and encrypted data
-      const combined = Buffer.concat([iv, Buffer.from(encrypted, 'base64')]);
-      return combined.toString('base64');
+      const combined = Buffer.concat([iv, Buffer.from(encrypted, "base64")]);
+      return combined.toString("base64");
     } catch (error) {
-      console.error('Encryption failed:', error);
+      console.error("Encryption failed:", error);
       throw error;
     }
   }
@@ -67,16 +74,16 @@ export class SecurityService {
    */
   decrypt(encryptedData: string): string {
     try {
-      const combined = Buffer.from(encryptedData, 'base64');
+      const combined = Buffer.from(encryptedData, "base64");
       const iv = combined.slice(0, 16);
       const encrypted = combined.slice(16);
 
       const decipher = createDecipheriv(this.algorithm, this.key, iv);
-      let decrypted = decipher.update(encrypted, undefined, 'utf8');
-      decrypted += decipher.final('utf8');
+      let decrypted = decipher.update(encrypted, undefined, "utf8");
+      decrypted += decipher.final("utf8");
       return decrypted;
     } catch (error) {
-      console.error('Decryption failed:', error);
+      console.error("Decryption failed:", error);
       throw error;
     }
   }
@@ -85,15 +92,21 @@ export class SecurityService {
    * Encrypt sensitive fields in a dictionary
    */
   encryptDict(data: EncryptedData): EncryptedData {
-    const sensitiveFields = new Set(['password', 'secret', 'token', 'key', 'credentials']);
+    const sensitiveFields = new Set([
+      "password",
+      "secret",
+      "token",
+      "key",
+      "credentials",
+    ]);
     const encryptedData: EncryptedData = {};
 
     for (const [key, value] of Object.entries(data)) {
-      const isSecretField = Array.from(sensitiveFields).some(field =>
-        key.toLowerCase().includes(field)
+      const isSecretField = Array.from(sensitiveFields).some((field) =>
+        key.toLowerCase().includes(field),
       );
 
-      if (isSecretField && typeof value === 'string') {
+      if (isSecretField && typeof value === "string") {
         encryptedData[key] = this.encrypt(value);
         encryptedData[`${key}_encrypted`] = true;
       } else {
@@ -111,12 +124,16 @@ export class SecurityService {
     const decryptedData: EncryptedData = {};
 
     for (const [key, value] of Object.entries(data)) {
-      if (key.endsWith('_encrypted')) {
+      if (key.endsWith("_encrypted")) {
         continue;
       }
 
       const encryptedKey = `${key}_encrypted`;
-      if (encryptedKey in data && data[encryptedKey] && typeof value === 'string') {
+      if (
+        encryptedKey in data &&
+        data[encryptedKey] &&
+        typeof value === "string"
+      ) {
         try {
           decryptedData[key] = this.decrypt(value);
         } catch (error) {
@@ -135,30 +152,36 @@ export class SecurityService {
    * Generate a new encryption key
    */
   static generateKey(): string {
-    return randomBytes(32).toString('base64');
+    return randomBytes(32).toString("base64");
   }
 
   /**
    * Generate a random secret
    */
   static generateSecret(length: number = 32): string {
-    return randomBytes(length).toString('base64url');
+    return randomBytes(length).toString("base64url");
   }
 
   /**
    * Mask sensitive data for logging
    */
   maskSensitiveData(data: EncryptedData): EncryptedData {
-    const sensitiveFields = new Set(['password', 'secret', 'token', 'key', 'credentials']);
+    const sensitiveFields = new Set([
+      "password",
+      "secret",
+      "token",
+      "key",
+      "credentials",
+    ]);
     const maskedData: EncryptedData = {};
 
     for (const [key, value] of Object.entries(data)) {
-      const isSecretField = Array.from(sensitiveFields).some(field =>
-        key.toLowerCase().includes(field)
+      const isSecretField = Array.from(sensitiveFields).some((field) =>
+        key.toLowerCase().includes(field),
       );
 
-      if (isSecretField && typeof value === 'string') {
-        maskedData[key] = value ? '*'.repeat(Math.min(value.length, 8)) : null;
+      if (isSecretField && typeof value === "string") {
+        maskedData[key] = value ? "*".repeat(Math.min(value.length, 8)) : null;
       } else {
         maskedData[key] = value;
       }
@@ -172,13 +195,13 @@ export class SecurityService {
    */
   test(): boolean {
     try {
-      const testData = 'test-encryption-data';
+      const testData = "test-encryption-data";
       const encrypted = this.encrypt(testData);
       const decrypted = this.decrypt(encrypted);
 
       return testData === decrypted;
     } catch (error) {
-      console.error('Encryption test failed:', error);
+      console.error("Encryption test failed:", error);
       return false;
     }
   }
@@ -189,7 +212,9 @@ export const securityService = new SecurityService();
 
 // Verify encryption is working on initialization
 if (!securityService.test()) {
-  console.error('❌ Security service initialization failed - encryption test failed');
+  console.error(
+    "❌ Security service initialization failed - encryption test failed",
+  );
 } else {
-  console.log('🔐 Security service initialized successfully');
+  console.log("🔐 Security service initialized successfully");
 }

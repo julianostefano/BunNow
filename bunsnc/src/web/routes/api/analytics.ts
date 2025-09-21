@@ -3,27 +3,28 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { Elysia, t } from 'elysia';
-import { ServiceNowClient } from '../../../client/ServiceNowClient';
+import { Elysia, t } from "elysia";
+import { ServiceNowClient } from "../../../client/ServiceNowClient";
 
-const app = new Elysia({ prefix: '/api/v1/analytics' })
-  .get('/dashboard', async () => {
+const app = new Elysia({ prefix: "/api/v1/analytics" })
+  .get("/dashboard", async () => {
     try {
       const client = new ServiceNowClient(
-        process.env.SERVICENOW_INSTANCE_URL || 'https://dev12345.service-now.com',
-        process.env.SERVICENOW_USERNAME || 'admin',
-        process.env.SERVICENOW_PASSWORD || 'admin'
+        process.env.SERVICENOW_INSTANCE_URL ||
+          "https://dev12345.service-now.com",
+        process.env.SERVICENOW_USERNAME || "admin",
+        process.env.SERVICENOW_PASSWORD || "admin",
       );
 
       // Get overview statistics
       const stats = await getOverviewStats(client);
-      
+
       // Generate chart data
       const chartData = await generateChartData(client);
-      
+
       // Get processing metrics
       const processingMetrics = getProcessingMetrics();
-      
+
       return `
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <!-- Overview Stats -->
@@ -37,7 +38,7 @@ const app = new Elysia({ prefix: '/api/v1/analytics' })
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                     </svg>
-                    ${stats.incidentTrend > 0 ? '+' : ''}${stats.incidentTrend}% from yesterday
+                    ${stats.incidentTrend > 0 ? "+" : ""}${stats.incidentTrend}% from yesterday
                   </span>
                 </p>
               </div>
@@ -50,7 +51,7 @@ const app = new Elysia({ prefix: '/api/v1/analytics' })
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                     </svg>
-                    ${stats.problemTrend > 0 ? '+' : ''}${stats.problemTrend}% from yesterday
+                    ${stats.problemTrend > 0 ? "+" : ""}${stats.problemTrend}% from yesterday
                   </span>
                 </p>
               </div>
@@ -63,7 +64,7 @@ const app = new Elysia({ prefix: '/api/v1/analytics' })
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                     </svg>
-                    ${stats.changeTrend > 0 ? '+' : ''}${stats.changeTrend}% from yesterday
+                    ${stats.changeTrend > 0 ? "+" : ""}${stats.changeTrend}% from yesterday
                   </span>
                 </p>
               </div>
@@ -261,7 +262,7 @@ const app = new Elysia({ prefix: '/api/v1/analytics' })
         </script>
       `;
     } catch (error) {
-      console.error('Error generating analytics dashboard:', error);
+      console.error("Error generating analytics dashboard:", error);
       return `
         <div class="text-center py-12">
           <div class="text-red-600 mb-4">
@@ -276,11 +277,11 @@ const app = new Elysia({ prefix: '/api/v1/analytics' })
       `;
     }
   })
-  
-  .get('/performance', async () => {
+
+  .get("/performance", async () => {
     try {
       const metrics = await getPerformanceMetrics();
-      
+
       return {
         success: true,
         data: {
@@ -312,7 +313,7 @@ const app = new Elysia({ prefix: '/api/v1/analytics' })
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      console.error('Error fetching performance metrics:', error);
+      console.error("Error fetching performance metrics:", error);
       return {
         success: false,
         error: error.message,
@@ -320,59 +321,64 @@ const app = new Elysia({ prefix: '/api/v1/analytics' })
       };
     }
   })
-  
-  .get('/trends/:type', async ({ params, query }) => {
-    try {
-      const type = params.type; // incidents, problems, changes
-      const days = parseInt(query.days as string) || 30;
-      
-      const client = new ServiceNowClient(
-        process.env.SERVICENOW_INSTANCE_URL || 'https://dev12345.service-now.com',
-        process.env.SERVICENOW_USERNAME || 'admin',
-        process.env.SERVICENOW_PASSWORD || 'admin'
-      );
 
-      const trendData = await generateTrendData(client, type, days);
-      
-      return {
-        success: true,
-        data: trendData,
-        timestamp: new Date().toISOString(),
-      };
-    } catch (error) {
-      console.error('Error fetching trend data:', error);
-      return {
-        success: false,
-        error: error.message,
-        timestamp: new Date().toISOString(),
-      };
-    }
-  }, {
-    query: t.Object({
-      days: t.Optional(t.String()),
-    }),
-  });
+  .get(
+    "/trends/:type",
+    async ({ params, query }) => {
+      try {
+        const type = params.type; // incidents, problems, changes
+        const days = parseInt(query.days as string) || 30;
+
+        const client = new ServiceNowClient(
+          process.env.SERVICENOW_INSTANCE_URL ||
+            "https://dev12345.service-now.com",
+          process.env.SERVICENOW_USERNAME || "admin",
+          process.env.SERVICENOW_PASSWORD || "admin",
+        );
+
+        const trendData = await generateTrendData(client, type, days);
+
+        return {
+          success: true,
+          data: trendData,
+          timestamp: new Date().toISOString(),
+        };
+      } catch (error) {
+        console.error("Error fetching trend data:", error);
+        return {
+          success: false,
+          error: error.message,
+          timestamp: new Date().toISOString(),
+        };
+      }
+    },
+    {
+      query: t.Object({
+        days: t.Optional(t.String()),
+      }),
+    },
+  );
 
 // Helper functions
 async function getOverviewStats(client: ServiceNowClient) {
   // Active incidents
-  const incidentGr = client.getGlideRecord('incident');
-  incidentGr.addQuery('state', '!=', '6');
-  incidentGr.addQuery('state', '!=', '7');
+  const incidentGr = client.getGlideRecord("incident");
+  incidentGr.addQuery("state", "!=", "6");
+  incidentGr.addQuery("state", "!=", "7");
   incidentGr.query();
   let incidents = 0;
   while (incidentGr.next()) incidents++;
 
   // Open problems
-  const problemGr = client.getGlideRecord('problem');
-  problemGr.addQuery('state', '!=', '6');
+  const problemGr = client.getGlideRecord("problem");
+  problemGr.addQuery("state", "!=", "6");
   problemGr.query();
   let problems = 0;
   while (problemGr.next()) problems++;
 
   // Pending changes
-  const changeGr = client.getGlideRecord('change_request');
-  changeGr.addQuery('state', 'IN', '1,2,3');
+  const changeGr = client.getGlideRecord("change_request");
+  changeGr.addQuery("state", "IN", "1,2,3");
   changeGr.query();
   let changes = 0;
   while (changeGr.next()) changes++;
@@ -393,9 +399,9 @@ async function generateChartData(client: ServiceNowClient) {
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() - (6 - i));
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   });
-  
+
   return {
     trendLabels: last7Days,
     trendData: [15, 12, 18, 8, 22, 14, 16], // Mock incident counts
@@ -407,13 +413,13 @@ function getProcessingMetrics() {
   // Mock processing metrics
   // In production, these would come from Redis, monitoring systems, etc.
   return {
-    recordsProcessed: '24,586',
-    processingRate: '1,250',
+    recordsProcessed: "24,586",
+    processingRate: "1,250",
     parquetFiles: 42,
     compressionRatio: 73,
-    storageUsed: '8.2 GB',
-    storageGrowth: '1.2 GB',
-    indexedDocuments: '156,890',
+    storageUsed: "8.2 GB",
+    storageGrowth: "1.2 GB",
+    indexedDocuments: "156,890",
     searchLatency: 45,
   };
 }
@@ -433,7 +439,7 @@ async function getPerformanceMetrics() {
     parquetFiles: 42,
     totalSize: 8.2,
     compressionRatio: 73,
-    hdfsHealth: 'healthy',
+    hdfsHealth: "healthy",
     indexedDocuments: 156890,
     searchLatency: 45,
     indexSize: 2.1,
@@ -441,17 +447,24 @@ async function getPerformanceMetrics() {
   };
 }
 
-async function generateTrendData(client: ServiceNowClient, type: string, days: number) {
+async function generateTrendData(
+  client: ServiceNowClient,
+  type: string,
+  days: number,
+) {
   // Generate trend data for the specified type and time period
   const labels = Array.from({ length: days }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() - (days - 1 - i));
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   });
-  
+
   // Mock data - in production, this would query actual ServiceNow data
-  const values = Array.from({ length: days }, () => Math.floor(Math.random() * 20) + 5);
-  
+  const values = Array.from(
+    { length: days },
+    () => Math.floor(Math.random() * 20) + 5,
+  );
+
   return {
     labels,
     values,
@@ -463,50 +476,52 @@ async function generateTrendData(client: ServiceNowClient, type: string, days: n
 function generateRecentActivity() {
   const activities = [
     {
-      type: 'export',
-      message: 'Parquet export completed for incident table',
-      time: '2 minutes ago',
-      status: 'success',
-      icon: 'M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
+      type: "export",
+      message: "Parquet export completed for incident table",
+      time: "2 minutes ago",
+      status: "success",
+      icon: "M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
     },
     {
-      type: 'pipeline',
-      message: 'Real-time processing pipeline started',
-      time: '5 minutes ago',
-      status: 'info',
-      icon: 'M13 10V3L4 14h7v7l9-11h-7z'
+      type: "pipeline",
+      message: "Real-time processing pipeline started",
+      time: "5 minutes ago",
+      status: "info",
+      icon: "M13 10V3L4 14h7v7l9-11h-7z",
     },
     {
-      type: 'index',
-      message: 'OpenSearch index optimization completed',
-      time: '12 minutes ago',
-      status: 'success',
-      icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'
+      type: "index",
+      message: "OpenSearch index optimization completed",
+      time: "12 minutes ago",
+      status: "success",
+      icon: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
     },
     {
-      type: 'sync',
-      message: 'HDFS synchronization in progress',
-      time: '18 minutes ago',
-      status: 'warning',
-      icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'
+      type: "sync",
+      message: "HDFS synchronization in progress",
+      time: "18 minutes ago",
+      status: "warning",
+      icon: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15",
     },
     {
-      type: 'error',
-      message: 'Redis connection timeout resolved',
-      time: '25 minutes ago',
-      status: 'success',
-      icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
-    }
+      type: "error",
+      message: "Redis connection timeout resolved",
+      time: "25 minutes ago",
+      status: "success",
+      icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z",
+    },
   ];
-  
+
   const statusColors = {
-    success: 'bg-green-100 text-green-800',
-    info: 'bg-blue-100 text-blue-800',
-    warning: 'bg-yellow-100 text-yellow-800',
-    error: 'bg-red-100 text-red-800'
+    success: "bg-green-100 text-green-800",
+    info: "bg-blue-100 text-blue-800",
+    warning: "bg-yellow-100 text-yellow-800",
+    error: "bg-red-100 text-red-800",
   };
-  
-  return activities.map(activity => `
+
+  return activities
+    .map(
+      (activity) => `
     <div class="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
       <div class="flex-shrink-0">
         <div class="w-8 h-8 ${statusColors[activity.status]} rounded-full flex items-center justify-center">
@@ -520,7 +535,9 @@ function generateRecentActivity() {
         <p class="text-xs text-gray-500">${activity.time}</p>
       </div>
     </div>
-  `).join('');
+  `,
+    )
+    .join("");
 }
 
 export default app;

@@ -3,9 +3,9 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { mongoClient } from '../../config/mongodb';
-import { securityService } from '../SecurityService';
-import { SAMLConfig, SAMLAuthenticationData } from '../../types/saml';
+import { mongoClient } from "../../config/mongodb";
+import { securityService } from "../SecurityService";
+import { SAMLConfig, SAMLAuthenticationData } from "../../types/saml";
 
 export interface SAMLStorageConfig {
   instance: string;
@@ -39,17 +39,21 @@ export interface SAMLStorageAuthData {
 }
 
 export class SAMLConfigManager {
-  private readonly configKeyPrefix = 'saml_config_';
-  private readonly authDataKeyPrefix = 'saml_auth_';
+  private readonly configKeyPrefix = "saml_config_";
+  private readonly authDataKeyPrefix = "saml_auth_";
 
   constructor() {
-    console.log('🔐 SAMLConfigManager initialized with existing MongoDB infrastructure');
+    console.log(
+      "🔐 SAMLConfigManager initialized with existing MongoDB infrastructure",
+    );
   }
 
   /**
    * Save SAML configuration using existing MongoDB client
    */
-  async saveConfig(config: SAMLConfig): Promise<{ status: string; message: string; instance: string }> {
+  async saveConfig(
+    config: SAMLConfig,
+  ): Promise<{ status: string; message: string; instance: string }> {
     try {
       await mongoClient.connect();
 
@@ -60,7 +64,7 @@ export class SAMLConfigManager {
         baseUrl: config.baseUrl,
         proxy: config.proxy,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       const configKey = `${this.configKeyPrefix}${config.instance}`;
@@ -68,23 +72,22 @@ export class SAMLConfigManager {
       await mongoClient.setConfig(
         configKey,
         storageConfig,
-        `SAML configuration for ${config.instance}`
+        `SAML configuration for ${config.instance}`,
       );
 
-      console.log('💾 SAML configuration saved using existing MongoDB', {
+      console.log("💾 SAML configuration saved using existing MongoDB", {
         instance: config.instance,
         username: config.username,
-        configKey
+        configKey,
       });
 
       return {
-        status: 'success',
-        message: 'Configuration saved successfully',
-        instance: config.instance
+        status: "success",
+        message: "Configuration saved successfully",
+        instance: config.instance,
       };
-
     } catch (error) {
-      console.error('❌ Failed to save SAML configuration:', error);
+      console.error("❌ Failed to save SAML configuration:", error);
       throw error;
     }
   }
@@ -102,8 +105,8 @@ export class SAMLConfigManager {
       } else {
         // Get the first available config if no instance specified
         const allConfigs = await mongoClient.getAllConfigs();
-        const samlConfig = allConfigs.find(config =>
-          config.key.startsWith(this.configKeyPrefix)
+        const samlConfig = allConfigs.find((config) =>
+          config.key.startsWith(this.configKeyPrefix),
         );
 
         if (!samlConfig) {
@@ -113,7 +116,9 @@ export class SAMLConfigManager {
         configKey = samlConfig.key;
       }
 
-      const storageConfig = await mongoClient.getConfig(configKey) as SAMLStorageConfig;
+      const storageConfig = (await mongoClient.getConfig(
+        configKey,
+      )) as SAMLStorageConfig;
 
       if (!storageConfig) {
         return null;
@@ -124,11 +129,10 @@ export class SAMLConfigManager {
         password: securityService.decrypt(storageConfig.encryptedPassword),
         baseUrl: storageConfig.baseUrl,
         instance: storageConfig.instance,
-        proxy: storageConfig.proxy
+        proxy: storageConfig.proxy,
       };
-
     } catch (error) {
-      console.error('❌ Failed to get SAML configuration:', error);
+      console.error("❌ Failed to get SAML configuration:", error);
       return null;
     }
   }
@@ -136,7 +140,10 @@ export class SAMLConfigManager {
   /**
    * Save SAML authentication data using existing MongoDB client
    */
-  async saveAuthData(instance: string, authData: SAMLAuthenticationData): Promise<void> {
+  async saveAuthData(
+    instance: string,
+    authData: SAMLAuthenticationData,
+  ): Promise<void> {
     try {
       await mongoClient.connect();
 
@@ -150,7 +157,7 @@ export class SAMLConfigManager {
         createdAt: authData.createdAt,
         expiresAt: authData.expiresAt,
         lastValidated: authData.lastValidated,
-        validationStatus: authData.validationStatus
+        validationStatus: authData.validationStatus,
       };
 
       const authKey = `${this.authDataKeyPrefix}${instance}`;
@@ -158,18 +165,17 @@ export class SAMLConfigManager {
       await mongoClient.setConfig(
         authKey,
         storageAuthData,
-        `SAML authentication data for ${instance}`
+        `SAML authentication data for ${instance}`,
       );
 
-      console.log('✅ SAML authentication data saved using existing MongoDB', {
+      console.log("✅ SAML authentication data saved using existing MongoDB", {
         instance,
         cookiesCount: authData.cookies.length,
         hasUserToken: !!authData.userToken,
-        authKey
+        authKey,
       });
-
     } catch (error) {
-      console.error('❌ Failed to save SAML authentication data:', error);
+      console.error("❌ Failed to save SAML authentication data:", error);
       throw error;
     }
   }
@@ -187,8 +193,8 @@ export class SAMLConfigManager {
       } else {
         // Get the first available auth data if no instance specified
         const allConfigs = await mongoClient.getAllConfigs();
-        const authConfig = allConfigs.find(config =>
-          config.key.startsWith(this.authDataKeyPrefix)
+        const authConfig = allConfigs.find((config) =>
+          config.key.startsWith(this.authDataKeyPrefix),
         );
 
         if (!authConfig) {
@@ -198,7 +204,9 @@ export class SAMLConfigManager {
         authKey = authConfig.key;
       }
 
-      const storageAuthData = await mongoClient.getConfig(authKey) as SAMLStorageAuthData;
+      const storageAuthData = (await mongoClient.getConfig(
+        authKey,
+      )) as SAMLStorageAuthData;
 
       if (!storageAuthData) {
         return null;
@@ -213,11 +221,10 @@ export class SAMLConfigManager {
         createdAt: storageAuthData.createdAt,
         expiresAt: storageAuthData.expiresAt,
         lastValidated: storageAuthData.lastValidated,
-        validationStatus: storageAuthData.validationStatus
+        validationStatus: storageAuthData.validationStatus,
       };
-
     } catch (error) {
-      console.error('❌ Failed to get SAML authentication data:', error);
+      console.error("❌ Failed to get SAML authentication data:", error);
       return null;
     }
   }
@@ -234,11 +241,11 @@ export class SAMLConfigManager {
         instance,
         errorMessage,
         timestamp: new Date(),
-        count: 1
+        count: 1,
       };
 
       // Try to get existing error data to increment count
-      const existingError = await mongoClient.getConfig(errorKey) as any;
+      const existingError = (await mongoClient.getConfig(errorKey)) as any;
       if (existingError) {
         errorData.count = (existingError.count || 0) + 1;
       }
@@ -246,17 +253,19 @@ export class SAMLConfigManager {
       await mongoClient.setConfig(
         errorKey,
         errorData,
-        `SAML error tracking for ${instance}`
+        `SAML error tracking for ${instance}`,
       );
 
-      console.log('⚠️ SAML authentication error marked using existing MongoDB', {
-        instance,
-        error: errorMessage,
-        count: errorData.count
-      });
-
+      console.log(
+        "⚠️ SAML authentication error marked using existing MongoDB",
+        {
+          instance,
+          error: errorMessage,
+          count: errorData.count,
+        },
+      );
     } catch (error) {
-      console.error('❌ Failed to mark SAML authentication error:', error);
+      console.error("❌ Failed to mark SAML authentication error:", error);
       throw error;
     }
   }
@@ -281,11 +290,10 @@ export class SAMLConfigManager {
       const allConfigs = await mongoClient.getAllConfigs();
 
       return allConfigs
-        .filter(config => config.key.startsWith(this.configKeyPrefix))
-        .map(config => config.key.replace(this.configKeyPrefix, ''));
-
+        .filter((config) => config.key.startsWith(this.configKeyPrefix))
+        .map((config) => config.key.replace(this.configKeyPrefix, ""));
     } catch (error) {
-      console.error('❌ Failed to list SAML configurations:', error);
+      console.error("❌ Failed to list SAML configurations:", error);
       return [];
     }
   }
@@ -303,14 +311,13 @@ export class SAMLConfigManager {
 
       // MongoDB client doesn't have delete method, so we'll set to null
       // This is a limitation we can address if needed
-      await mongoClient.setConfig(configKey, null, 'Deleted SAML config');
-      await mongoClient.setConfig(authKey, null, 'Deleted SAML auth data');
-      await mongoClient.setConfig(errorKey, null, 'Deleted SAML error data');
+      await mongoClient.setConfig(configKey, null, "Deleted SAML config");
+      await mongoClient.setConfig(authKey, null, "Deleted SAML auth data");
+      await mongoClient.setConfig(errorKey, null, "Deleted SAML error data");
 
-      console.log('🗑️ SAML instance data removed:', { instance });
-
+      console.log("🗑️ SAML instance data removed:", { instance });
     } catch (error) {
-      console.error('❌ Failed to remove SAML instance data:', error);
+      console.error("❌ Failed to remove SAML instance data:", error);
       throw error;
     }
   }

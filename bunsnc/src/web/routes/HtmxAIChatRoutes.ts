@@ -3,15 +3,15 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { Elysia, t } from 'elysia';
-import { html } from '@elysiajs/html';
-import { logger } from '../../utils/Logger';
+import { Elysia, t } from "elysia";
+import { html } from "@elysiajs/html";
+import { logger } from "../../utils/Logger";
 
-const AI_SERVER_URL = process.env.AI_SERVER_URL || 'http://localhost:3001';
+const AI_SERVER_URL = process.env.AI_SERVER_URL || "http://localhost:3001";
 
 interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   timestamp: string;
   confidence?: number;
@@ -32,14 +32,14 @@ interface ChatSession {
 // In-memory chat sessions (in production, use Redis or database)
 const chatSessions = new Map<string, ChatSession>();
 
-export const htmxAIChatRoutes = new Elysia({ prefix: '/ai/chat' })
+export const htmxAIChatRoutes = new Elysia({ prefix: "/ai/chat" })
   .use(html())
 
   // AI Chat Main Interface
-  .get('/', async ({ html, query }) => {
+  .get("/", async ({ html, query }) => {
     const sessionId = query.session || generateSessionId();
     const ticketId = query.ticket;
-    const agentId = query.agent || 'agent_001';
+    const agentId = query.agent || "agent_001";
 
     return html(`
       <!DOCTYPE html>
@@ -343,7 +343,9 @@ export const htmxAIChatRoutes = new Elysia({ prefix: '/ai/chat' })
               </button>
             </div>
 
-            ${ticketId ? `
+            ${
+              ticketId
+                ? `
             <div class="sidebar-section">
               <div class="sidebar-title">🎫 Contexto do Ticket</div>
               <div class="context-info">
@@ -352,7 +354,9 @@ export const htmxAIChatRoutes = new Elysia({ prefix: '/ai/chat' })
                 <strong>Modo:</strong> Assistência Contextual
               </div>
             </div>
-            ` : ''}
+            `
+                : ""
+            }
 
             <div class="sidebar-section">
               <div class="sidebar-title">📚 Base de Conhecimento</div>
@@ -400,7 +404,7 @@ export const htmxAIChatRoutes = new Elysia({ prefix: '/ai/chat' })
                     hx-on::after-request="hideTyping(); this.reset();">
                 <input type="hidden" name="session" value="${sessionId}">
                 <input type="hidden" name="agent" value="${agentId}">
-                ${ticketId ? `<input type="hidden" name="ticket" value="${ticketId}">` : ''}
+                ${ticketId ? `<input type="hidden" name="ticket" value="${ticketId}">` : ""}
 
                 <div class="chat-input-container">
                   <textarea name="message"
@@ -452,7 +456,7 @@ export const htmxAIChatRoutes = new Elysia({ prefix: '/ai/chat' })
   })
 
   // Chat History
-  .get('/history/:sessionId', async ({ params, html }) => {
+  .get("/history/:sessionId", async ({ params, html }) => {
     const session = chatSessions.get(params.sessionId);
 
     if (!session || session.messages.length === 0) {
@@ -471,7 +475,7 @@ export const htmxAIChatRoutes = new Elysia({ prefix: '/ai/chat' })
               • 💡 Sugestões de resolução baseadas em casos similares
             </div>
             <div class="message-meta">
-              <span>${new Date().toLocaleTimeString('pt-BR')}</span>
+              <span>${new Date().toLocaleTimeString("pt-BR")}</span>
               <span class="confidence-badge">AI Ready</span>
             </div>
           </div>
@@ -479,70 +483,87 @@ export const htmxAIChatRoutes = new Elysia({ prefix: '/ai/chat' })
       `);
     }
 
-    const messagesHTML = session.messages.map(msg => `
+    const messagesHTML = session.messages
+      .map(
+        (msg) => `
       <div class="message ${msg.role}">
-        <div class="message-avatar">${msg.role === 'user' ? 'AG' : 'AI'}</div>
+        <div class="message-avatar">${msg.role === "user" ? "AG" : "AI"}</div>
         <div class="message-content">
           <div class="message-text">${msg.content}</div>
           <div class="message-meta">
-            <span>${new Date(msg.timestamp).toLocaleTimeString('pt-BR')}</span>
-            ${msg.confidence ? `<span class="confidence-badge">${Math.round(msg.confidence * 100)}%</span>` : ''}
+            <span>${new Date(msg.timestamp).toLocaleTimeString("pt-BR")}</span>
+            ${msg.confidence ? `<span class="confidence-badge">${Math.round(msg.confidence * 100)}%</span>` : ""}
           </div>
-          ${msg.sources && msg.sources.length > 0 ? `
+          ${
+            msg.sources && msg.sources.length > 0
+              ? `
             <div class="source-links">
               <strong>Fontes:</strong>
-              ${msg.sources.map(source => `<a href="#" class="source-link">${source}</a>`).join('')}
+              ${msg.sources.map((source) => `<a href="#" class="source-link">${source}</a>`).join("")}
             </div>
-          ` : ''}
+          `
+              : ""
+          }
         </div>
       </div>
-    `).join('');
+    `,
+      )
+      .join("");
 
     return html(messagesHTML);
   })
 
   // Send Message
-  .post('/message', async ({ body, html }) => {
-    try {
-      const { session: sessionId, message, agent: agentId, ticket: ticketId } = body as any;
+  .post(
+    "/message",
+    async ({ body, html }) => {
+      try {
+        const {
+          session: sessionId,
+          message,
+          agent: agentId,
+          ticket: ticketId,
+        } = body as any;
 
-      if (!sessionId || !message) {
-        return html('<div style="color: red;">Erro: Sessão ou mensagem inválida</div>');
-      }
+        if (!sessionId || !message) {
+          return html(
+            '<div style="color: red;">Erro: Sessão ou mensagem inválida</div>',
+          );
+        }
 
-      // Get or create session
-      let session = chatSessions.get(sessionId);
-      if (!session) {
-        session = {
-          sessionId,
-          messages: [],
-          context: { agentId, currentTickets: ticketId ? [ticketId] : [] },
-          created: new Date().toISOString()
+        // Get or create session
+        let session = chatSessions.get(sessionId);
+        if (!session) {
+          session = {
+            sessionId,
+            messages: [],
+            context: { agentId, currentTickets: ticketId ? [ticketId] : [] },
+            created: new Date().toISOString(),
+          };
+          chatSessions.set(sessionId, session);
+        }
+
+        // Add user message
+        const userMessage: ChatMessage = {
+          id: generateMessageId(),
+          role: "user",
+          content: message,
+          timestamp: new Date().toISOString(),
         };
-        chatSessions.set(sessionId, session);
-      }
+        session.messages.push(userMessage);
 
-      // Add user message
-      const userMessage: ChatMessage = {
-        id: generateMessageId(),
-        role: 'user',
-        content: message,
-        timestamp: new Date().toISOString()
-      };
-      session.messages.push(userMessage);
+        // Get AI response
+        const aiResponse = await getAIResponse(message, session);
+        session.messages.push(aiResponse);
 
-      // Get AI response
-      const aiResponse = await getAIResponse(message, session);
-      session.messages.push(aiResponse);
-
-      // Return both messages
-      return html(`
+        // Return both messages
+        return html(`
         <div class="message user">
           <div class="message-avatar">AG</div>
           <div class="message-content">
             <div class="message-text">${userMessage.content}</div>
             <div class="message-meta">
-              <span>${new Date(userMessage.timestamp).toLocaleTimeString('pt-BR')}</span>
+              <span>${new Date(userMessage.timestamp).toLocaleTimeString("pt-BR")}</span>
             </div>
           </div>
         </div>
@@ -551,22 +572,25 @@ export const htmxAIChatRoutes = new Elysia({ prefix: '/ai/chat' })
           <div class="message-content">
             <div class="message-text">${aiResponse.content}</div>
             <div class="message-meta">
-              <span>${new Date(aiResponse.timestamp).toLocaleTimeString('pt-BR')}</span>
-              ${aiResponse.confidence ? `<span class="confidence-badge">${Math.round(aiResponse.confidence * 100)}%</span>` : ''}
+              <span>${new Date(aiResponse.timestamp).toLocaleTimeString("pt-BR")}</span>
+              ${aiResponse.confidence ? `<span class="confidence-badge">${Math.round(aiResponse.confidence * 100)}%</span>` : ""}
             </div>
-            ${aiResponse.sources && aiResponse.sources.length > 0 ? `
+            ${
+              aiResponse.sources && aiResponse.sources.length > 0
+                ? `
               <div class="source-links">
                 <strong>Fontes:</strong>
-                ${aiResponse.sources.map(source => `<a href="#" class="source-link">${source}</a>`).join('')}
+                ${aiResponse.sources.map((source) => `<a href="#" class="source-link">${source}</a>`).join("")}
               </div>
-            ` : ''}
+            `
+                : ""
+            }
           </div>
         </div>
       `);
-
-    } catch (error) {
-      logger.error('[HtmxAIChat] Message processing failed:', error);
-      return html(`
+      } catch (error) {
+        logger.error("[HtmxAIChat] Message processing failed:", error);
+        return html(`
         <div class="message assistant">
           <div class="message-avatar">AI</div>
           <div class="message-content">
@@ -574,31 +598,38 @@ export const htmxAIChatRoutes = new Elysia({ prefix: '/ai/chat' })
               Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.
             </div>
             <div class="message-meta">
-              <span>${new Date().toLocaleTimeString('pt-BR')}</span>
+              <span>${new Date().toLocaleTimeString("pt-BR")}</span>
               <span class="confidence-badge" style="background: #ef4444;">Error</span>
             </div>
           </div>
         </div>
       `);
-    }
-  }, {
-    body: t.Object({
-      session: t.String(),
-      message: t.String(),
-      agent: t.Optional(t.String()),
-      ticket: t.Optional(t.String())
-    })
-  })
+      }
+    },
+    {
+      body: t.Object({
+        session: t.String(),
+        message: t.String(),
+        agent: t.Optional(t.String()),
+        ticket: t.Optional(t.String()),
+      }),
+    },
+  )
 
   // Quick Actions
-  .post('/quick-action', async ({ body, html }) => {
-    try {
-      const { action, session: sessionId } = body as any;
+  .post(
+    "/quick-action",
+    async ({ body, html }) => {
+      try {
+        const { action, session: sessionId } = body as any;
 
-      const quickActions: Record<string, { message: string; response: string }> = {
-        troubleshoot_oracle: {
-          message: "Preciso de ajuda com troubleshooting Oracle",
-          response: ` **Troubleshooting Oracle - Guia Rápido**
+        const quickActions: Record<
+          string,
+          { message: string; response: string }
+        > = {
+          troubleshoot_oracle: {
+            message: "Preciso de ajuda com troubleshooting Oracle",
+            response: ` **Troubleshooting Oracle - Guia Rápido**
 
 **Passos Iniciais:**
 1. **Verificar logs**: \`tail -f $ORACLE_HOME/diag/rdbms/*/alert_*.log\`
@@ -613,11 +644,11 @@ export const htmxAIChatRoutes = new Elysia({ prefix: '/ai/chat' })
 **Documentos Relacionados:**
 • Oracle Performance Tuning Guide
 • Database Troubleshooting Manual
-• Emergency Recovery Procedures`
-        },
-        network_issues: {
-          message: "Como resolver problemas de rede?",
-          response: ` **Diagnóstico de Rede - Checklist**
+• Emergency Recovery Procedures`,
+          },
+          network_issues: {
+            message: "Como resolver problemas de rede?",
+            response: ` **Diagnóstico de Rede - Checklist**
 
 **Testes Básicos:**
 1. **Conectividade**: \`ping [destino]\` e \`telnet [host] [porta]\`
@@ -634,11 +665,11 @@ export const htmxAIChatRoutes = new Elysia({ prefix: '/ai/chat' })
 • **DNS lento**: Configurar DNS secundário
 • **Perda de pacotes**: Verificar cabos e switches
 
-**Escalação**: Se persistir, contactar equipe de Network Infrastructure`
-        },
-        backup_procedures: {
-          message: "Quais são os procedimentos de backup?",
-          response: `💾 **Procedimentos de Backup - Padrão Corporativo**
+**Escalação**: Se persistir, contactar equipe de Network Infrastructure`,
+          },
+          backup_procedures: {
+            message: "Quais são os procedimentos de backup?",
+            response: `💾 **Procedimentos de Backup - Padrão Corporativo**
 
 **Backup Diário (Automático):**
 • **Bancos**: RMAN full backup + archive logs
@@ -658,11 +689,11 @@ export const htmxAIChatRoutes = new Elysia({ prefix: '/ai/chat' })
 **SLA de Backup:**
 • **RPO**: 4 horas (dados críticos)
 • **RTO**: 2 horas (restauração)
-• **Retenção**: 30 dias (diário), 12 meses (mensal)`
-        },
-        sla_compliance: {
-          message: "Como está o compliance de SLA?",
-          response: ` **Status de Compliance SLA**
+• **Retenção**: 30 dias (diário), 12 meses (mensal)`,
+          },
+          sla_compliance: {
+            message: "Como está o compliance de SLA?",
+            response: ` **Status de Compliance SLA**
 
 **Métricas Atuais:**
 • **Incidents P1**: 95% (Meta: 90%)
@@ -682,53 +713,53 @@ export const htmxAIChatRoutes = new Elysia({ prefix: '/ai/chat' })
 
 **Alertas Ativos:**
  2 tickets P1 próximos ao SLA breach
- 5 tickets P2 requerem atenção`
-        }
-      };
-
-      const actionData = quickActions[action];
-      if (!actionData) {
-        return html('<div style="color: red;">Ação não encontrada</div>');
-      }
-
-      // Get or create session
-      let session = chatSessions.get(sessionId);
-      if (!session) {
-        session = {
-          sessionId,
-          messages: [],
-          context: {},
-          created: new Date().toISOString()
+ 5 tickets P2 requerem atenção`,
+          },
         };
-        chatSessions.set(sessionId, session);
-      }
 
-      // Add messages to session
-      const userMessage: ChatMessage = {
-        id: generateMessageId(),
-        role: 'user',
-        content: actionData.message,
-        timestamp: new Date().toISOString()
-      };
+        const actionData = quickActions[action];
+        if (!actionData) {
+          return html('<div style="color: red;">Ação não encontrada</div>');
+        }
 
-      const aiMessage: ChatMessage = {
-        id: generateMessageId(),
-        role: 'assistant',
-        content: actionData.response,
-        timestamp: new Date().toISOString(),
-        confidence: 0.95,
-        sources: ['Knowledge Base', 'SLA Database', 'Operational Procedures']
-      };
+        // Get or create session
+        let session = chatSessions.get(sessionId);
+        if (!session) {
+          session = {
+            sessionId,
+            messages: [],
+            context: {},
+            created: new Date().toISOString(),
+          };
+          chatSessions.set(sessionId, session);
+        }
 
-      session.messages.push(userMessage, aiMessage);
+        // Add messages to session
+        const userMessage: ChatMessage = {
+          id: generateMessageId(),
+          role: "user",
+          content: actionData.message,
+          timestamp: new Date().toISOString(),
+        };
 
-      return html(`
+        const aiMessage: ChatMessage = {
+          id: generateMessageId(),
+          role: "assistant",
+          content: actionData.response,
+          timestamp: new Date().toISOString(),
+          confidence: 0.95,
+          sources: ["Knowledge Base", "SLA Database", "Operational Procedures"],
+        };
+
+        session.messages.push(userMessage, aiMessage);
+
+        return html(`
         <div class="message user">
           <div class="message-avatar">AG</div>
           <div class="message-content">
             <div class="message-text">${userMessage.content}</div>
             <div class="message-meta">
-              <span>${new Date(userMessage.timestamp).toLocaleTimeString('pt-BR')}</span>
+              <span>${new Date(userMessage.timestamp).toLocaleTimeString("pt-BR")}</span>
             </div>
           </div>
         </div>
@@ -737,27 +768,30 @@ export const htmxAIChatRoutes = new Elysia({ prefix: '/ai/chat' })
           <div class="message-content">
             <div class="message-text" style="white-space: pre-line;">${aiMessage.content}</div>
             <div class="message-meta">
-              <span>${new Date(aiMessage.timestamp).toLocaleTimeString('pt-BR')}</span>
+              <span>${new Date(aiMessage.timestamp).toLocaleTimeString("pt-BR")}</span>
               <span class="confidence-badge">${Math.round(aiMessage.confidence! * 100)}%</span>
             </div>
             <div class="source-links">
               <strong>Fontes:</strong>
-              ${aiMessage.sources!.map(source => `<a href="#" class="source-link">${source}</a>`).join('')}
+              ${aiMessage.sources!.map((source) => `<a href="#" class="source-link">${source}</a>`).join("")}
             </div>
           </div>
         </div>
       `);
-
-    } catch (error) {
-      logger.error('[HtmxAIChat] Quick action failed:', error);
-      return html('<div style="color: red;">Erro ao processar ação rápida</div>');
-    }
-  }, {
-    body: t.Object({
-      action: t.String(),
-      session: t.String()
-    })
-  });
+      } catch (error) {
+        logger.error("[HtmxAIChat] Quick action failed:", error);
+        return html(
+          '<div style="color: red;">Erro ao processar ação rápida</div>',
+        );
+      }
+    },
+    {
+      body: t.Object({
+        action: t.String(),
+        session: t.String(),
+      }),
+    },
+  );
 
 // Helper functions
 function generateSessionId(): string {
@@ -768,18 +802,21 @@ function generateMessageId(): string {
   return `msg_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 }
 
-async function getAIResponse(message: string, session: ChatSession): Promise<ChatMessage> {
+async function getAIResponse(
+  message: string,
+  session: ChatSession,
+): Promise<ChatMessage> {
   try {
     // Try to get response from AI API
     const response = await fetch(`${AI_SERVER_URL}/api/search/intelligent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         query: message,
         max_results: 3,
-        targets: ['documents', 'tickets'],
-        enable_reranking: true
-      })
+        targets: ["documents", "tickets"],
+        enable_reranking: true,
+      }),
     });
 
     if (response.ok) {
@@ -787,24 +824,26 @@ async function getAIResponse(message: string, session: ChatSession): Promise<Cha
 
       if (searchData.success && searchData.data.results.length > 0) {
         const results = searchData.data.results.slice(0, 2);
-        const sources = results.map((r: any) => r.title || `${r.type} resultado`);
+        const sources = results.map(
+          (r: any) => r.title || `${r.type} resultado`,
+        );
 
         let aiContent = `Com base na base de conhecimento, encontrei as seguintes informações:\n\n`;
 
         results.forEach((result: any, index: number) => {
-          aiContent += `**${index + 1}. ${result.title || 'Documento'}**\n`;
-          aiContent += `${result.content?.substring(0, 300) || 'Conteúdo não disponível'}...\n\n`;
+          aiContent += `**${index + 1}. ${result.title || "Documento"}**\n`;
+          aiContent += `${result.content?.substring(0, 300) || "Conteúdo não disponível"}...\n\n`;
         });
 
         aiContent += `Esta resposta foi gerada com base em ${results.length} documento(s) da base de conhecimento.`;
 
         return {
           id: generateMessageId(),
-          role: 'assistant',
+          role: "assistant",
           content: aiContent,
           timestamp: new Date().toISOString(),
           confidence: 0.85,
-          sources
+          sources,
         };
       }
     }
@@ -812,7 +851,7 @@ async function getAIResponse(message: string, session: ChatSession): Promise<Cha
     // Fallback response
     return {
       id: generateMessageId(),
-      role: 'assistant',
+      role: "assistant",
       content: `Entendi sua pergunta sobre "${message}".
 
 Infelizmente, não encontrei informações específicas na base de conhecimento no momento. Posso sugerir:
@@ -823,18 +862,18 @@ Infelizmente, não encontrei informações específicas na base de conhecimento 
 
 Posso ajudá-lo de outra forma? Tente ser mais específico sobre o problema ou tecnologia.`,
       timestamp: new Date().toISOString(),
-      confidence: 0.6
+      confidence: 0.6,
     };
-
   } catch (error) {
-    logger.error('[HtmxAIChat] AI response generation failed:', error);
+    logger.error("[HtmxAIChat] AI response generation failed:", error);
 
     return {
       id: generateMessageId(),
-      role: 'assistant',
-      content: 'Desculpe, estou enfrentando dificuldades técnicas no momento. Tente novamente em alguns instantes ou contate o suporte se o problema persistir.',
+      role: "assistant",
+      content:
+        "Desculpe, estou enfrentando dificuldades técnicas no momento. Tente novamente em alguns instantes ou contate o suporte se o problema persistir.",
       timestamp: new Date().toISOString(),
-      confidence: 0.1
+      confidence: 0.1,
     };
   }
 }

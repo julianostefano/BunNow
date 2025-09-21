@@ -3,7 +3,12 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { MainNavigation, SearchOverlay, NavigationIcons, NavigationScript } from '../components/Navigation';
+import {
+  MainNavigation,
+  SearchOverlay,
+  NavigationIcons,
+  NavigationScript,
+} from "../components/Navigation";
 
 interface MainLayoutProps {
   title?: string;
@@ -20,62 +25,61 @@ interface MainLayoutProps {
 }
 
 export const MainLayout = ({
-  title = 'ServiceNow Analytics',
+  title = "ServiceNow Analytics",
   currentPath,
   children,
   user,
   showSearch = true,
-  additionalHead = '',
-  bodyClass = ''
+  additionalHead = "",
+  bodyClass = "",
 }: MainLayoutProps) => {
-
   // Navigation configuration
   const navigationItems = [
     {
-      id: 'dashboard',
-      label: 'Dashboard',
-      href: '/',
+      id: "dashboard",
+      label: "Dashboard",
+      href: "/",
       icon: NavigationIcons.Dashboard,
-      description: 'Real-time analytics and metrics'
+      description: "Real-time analytics and metrics",
     },
     {
-      id: 'incidents',
-      label: 'Incidents',
-      href: '/incidents',
+      id: "incidents",
+      label: "Incidents",
+      href: "/incidents",
       icon: NavigationIcons.Incidents,
-      badge: '24',
-      description: 'Incident management and tracking'
+      badge: "24",
+      description: "Incident management and tracking",
     },
     {
-      id: 'problems',
-      label: 'Problems',
-      href: '/problems',
+      id: "problems",
+      label: "Problems",
+      href: "/problems",
       icon: NavigationIcons.Problems,
-      badge: '5',
-      description: 'Problem investigation and resolution'
+      badge: "5",
+      description: "Problem investigation and resolution",
     },
     {
-      id: 'changes',
-      label: 'Changes',
-      href: '/changes',
+      id: "changes",
+      label: "Changes",
+      href: "/changes",
       icon: NavigationIcons.Changes,
-      badge: '12',
-      description: 'Change requests and implementations'
+      badge: "12",
+      description: "Change requests and implementations",
     },
     {
-      id: 'analytics',
-      label: 'Analytics',
-      href: '/analytics',
+      id: "analytics",
+      label: "Analytics",
+      href: "/analytics",
       icon: NavigationIcons.Analytics,
-      description: 'Advanced analytics and reporting'
+      description: "Advanced analytics and reporting",
     },
     {
-      id: 'reports',
-      label: 'Reports',
-      href: '/reports',
+      id: "reports",
+      label: "Reports",
+      href: "/reports",
       icon: NavigationIcons.Reports,
-      description: 'Generate and view reports'
-    }
+      description: "Generate and view reports",
+    },
   ];
 
   return `
@@ -134,11 +138,11 @@ export const MainLayout = ({
           items: navigationItems,
           currentPath,
           user,
-          showSearch
+          showSearch,
         })}
 
         <!-- Search Overlay -->
-        ${showSearch ? SearchOverlay() : ''}
+        ${showSearch ? SearchOverlay() : ""}
 
         <!-- Main Content -->
         <main class="min-h-screen pt-20 pb-8">
@@ -292,14 +296,14 @@ export const createPageMeta = (options: {
   canonical?: string;
 }) => {
   return `
-    <meta name="description" content="${options.description || 'Modern ServiceNow Analytics Platform'}">
-    <meta property="og:title" content="${options.title || 'ServiceNow Analytics'} | BunSNC">
-    <meta property="og:description" content="${options.description || 'Modern ServiceNow Analytics Platform'}">
-    <meta property="og:image" content="${options.ogImage || '/public/images/og-image.png'}">
+    <meta name="description" content="${options.description || "Modern ServiceNow Analytics Platform"}">
+    <meta property="og:title" content="${options.title || "ServiceNow Analytics"} | BunSNC">
+    <meta property="og:description" content="${options.description || "Modern ServiceNow Analytics Platform"}">
+    <meta property="og:image" content="${options.ogImage || "/public/images/og-image.png"}">
     <meta property="og:type" content="website">
-    ${options.canonical ? `<link rel="canonical" href="${options.canonical}">` : ''}
+    ${options.canonical ? `<link rel="canonical" href="${options.canonical}">` : ""}
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="${options.title || 'ServiceNow Analytics'} | BunSNC">
-    <meta name="twitter:description" content="${options.description || 'Modern ServiceNow Analytics Platform'}">
+    <meta name="twitter:title" content="${options.title || "ServiceNow Analytics"} | BunSNC">
+    <meta name="twitter:description" content="${options.description || "Modern ServiceNow Analytics Platform"}">
   `;
 };

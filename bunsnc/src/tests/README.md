@@ -16,6 +16,7 @@ Este módulo contém ferramentas abrangentes para testar, mapear e analisar endp
 ## 🚀 Quick Start
 
 ### 1. Configuração Inicial
+
 ```bash
 # Copiar template de configuração
 cp .env.example .env
@@ -27,6 +28,7 @@ cp .env.example .env
 ```
 
 ### 2. Teste de Conectividade
+
 ```bash
 # Teste rápido de conectividade
 bun run test:quick
@@ -36,6 +38,7 @@ bun src/tests/cli-endpoint-tests.ts quick-test
 ```
 
 ### 3. Análise Completa
+
 ```bash
 # Análise completa com geração de interfaces TypeScript
 bun run test:mapping
@@ -47,9 +50,10 @@ bun run analyze:tickets
 ## 🔧 Comandos Disponíveis
 
 ### Scripts NPM Configurados
+
 ```bash
 bun run test:endpoints     # Mostra ajuda dos testes de endpoint
-bun run test:quick         # Teste rápido de conectividade  
+bun run test:quick         # Teste rápido de conectividade
 bun run test:mapping       # Análise completa com interfaces TS
 bun run analyze:tickets    # Análise especializada de tickets
 ```
@@ -57,35 +61,41 @@ bun run analyze:tickets    # Análise especializada de tickets
 ### Comandos CLI Detalhados
 
 #### 1. Teste de Tabela Específica
+
 ```bash
 bun src/tests/cli-endpoint-tests.ts test-table -t incident -l 100
 bun src/tests/cli-endpoint-tests.ts test-table -t change_task -l 50 -f "active=true"
 ```
 
 #### 2. Mapeamento de Estrutura
+
 ```bash
 bun src/tests/cli-endpoint-tests.ts map-structure -t incident -s 200 --export
 bun src/tests/cli-endpoint-tests.ts map-structure -t sys_user_group -s 100
 ```
 
 #### 3. Teste de Performance
+
 ```bash
 bun src/tests/cli-endpoint-tests.ts performance-test -t incident
 bun src/tests/cli-endpoint-tests.ts performance-test -t change_task
 ```
 
 #### 4. Comparação de Tabelas
+
 ```bash
 bun src/tests/cli-endpoint-tests.ts compare-tables -t "incident,change_task,sc_task"
 ```
 
 #### 5. Análise de Campos Específicos
+
 ```bash
 bun src/tests/cli-endpoint-tests.ts field-analysis -f assignment_group
 bun src/tests/cli-endpoint-tests.ts field-analysis -f state -t "incident,change_task"
 ```
 
 #### 6. Análise Completa
+
 ```bash
 bun src/tests/cli-endpoint-tests.ts analyze-all --generate-interfaces
 ```
@@ -93,6 +103,7 @@ bun src/tests/cli-endpoint-tests.ts analyze-all --generate-interfaces
 ## 📊 Estrutura de Saída
 
 ### Diretórios Gerados
+
 ```
 src/tests/
 ├── data-schemas/           # Esquemas descobertos
@@ -114,6 +125,7 @@ src/tests/
 ### Arquivos de Resultado
 
 #### endpoint-test-results.json
+
 ```json
 [
   {
@@ -127,6 +139,7 @@ src/tests/
 ```
 
 #### table-schemas.json
+
 ```json
 [
   {
@@ -151,6 +164,7 @@ src/tests/
 ## 🎯 Casos de Uso Típicos
 
 ### 1. Nova Implementação
+
 ```bash
 # 1. Teste inicial de conectividade
 bun run test:quick
@@ -165,6 +179,7 @@ bun run analyze:tickets
 ```
 
 ### 2. Troubleshooting
+
 ```bash
 # Testar tabela específica com problemas
 bun src/tests/cli-endpoint-tests.ts test-table -t incident -l 10
@@ -177,6 +192,7 @@ bun src/tests/cli-endpoint-tests.ts map-structure -t incident --export
 ```
 
 ### 3. Desenvolvimento
+
 ```bash
 # Explorar novo campo
 bun src/tests/cli-endpoint-tests.ts field-analysis -f novo_campo
@@ -195,7 +211,7 @@ bun src/tests/cli-endpoint-tests.ts analyze-all --generate-interfaces
 1. **Universal Fields** (100% frequência)
    - `sys_id`, `number`, `short_description`, `state`
 
-2. **Common Fields** (80%+ frequência)  
+2. **Common Fields** (80%+ frequência)
    - `description`, `priority`, `assignment_group`
 
 3. **Type-Specific Fields**
@@ -242,11 +258,13 @@ bun src/tests/cli-endpoint-tests.ts analyze-all --generate-interfaces
 ## 🛡️ Considerações de Segurança
 
 ### Dados Sensíveis
+
 - `caller_id` - Informações pessoais
 - `description` - Pode conter dados sensíveis
 - `work_notes` - Comunicações internas
 
 ### Configuração Segura
+
 ```bash
 # Use variáveis de ambiente
 export SERVICENOW_INSTANCE_URL="https://sua-instancia.service-now.com"
@@ -257,6 +275,7 @@ export SERVICENOW_PASSWORD="senha-segura"
 ```
 
 ### Permissões Recomendadas
+
 - **Mínimo**: Leitura nas tabelas críticas
 - **Recomendado**: Role dedicada para integração
 - **Evitar**: Credenciais de administrador
@@ -266,30 +285,39 @@ export SERVICENOW_PASSWORD="senha-segura"
 ### Problemas Comuns
 
 #### 1. Erro de Conectividade
+
 ```bash
 ❌ Error: SERVICENOW_INSTANCE_URL environment variable is required
 ```
+
 **Solução**: Configure as variáveis de ambiente no `.env`
 
 #### 2. Erro de Autenticação
+
 ```bash
 ❌ ServiceNow API Error (401): Unauthorized
 ```
+
 **Solução**: Verifique credenciais e permissões
 
 #### 3. Timeout
+
 ```bash
 ❌ Error: Request timeout
 ```
+
 **Solução**: Reduza o tamanho da amostra ou aumente timeout
 
 #### 4. Muitos Resultados
+
 ```bash
 ⚠️ Warning: High response times detected
 ```
+
 **Solução**: Use paginação ou filtros mais específicos
 
 ### Debug Avançado
+
 ```bash
 # Ativar logs detalhados
 export DEBUG=bunsnc:*

@@ -3,21 +3,21 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import Redis, { Redis as RedisClient, Cluster as RedisCluster } from 'ioredis';
-import { EventEmitter } from 'events';
-import { logger } from '../../utils/Logger';
-import { performanceMonitor } from '../../utils/PerformanceMonitor';
+import Redis, { Redis as RedisClient, Cluster as RedisCluster } from "ioredis";
+import { EventEmitter } from "events";
+import { logger } from "../../utils/Logger";
+import { performanceMonitor } from "../../utils/PerformanceMonitor";
 
 export interface RedisCacheOptions {
   redis?: RedisClient | RedisCluster;
-  defaultTtl?: number;           // Default TTL in seconds (default: 3600)
-  keyPrefix?: string;            // Key prefix for namespacing
-  serialization?: 'json' | 'msgpack' | 'binary';
-  compression?: 'none' | 'gzip' | 'lz4';
-  enableMetrics?: boolean;       // Default: true
-  maxMemoryPolicy?: 'lru' | 'lfu' | 'ttl' | 'random';
-  enableWarmup?: boolean;        // Default: false
-  batchSize?: number;            // Default: 100
+  defaultTtl?: number; // Default TTL in seconds (default: 3600)
+  keyPrefix?: string; // Key prefix for namespacing
+  serialization?: "json" | "msgpack" | "binary";
+  compression?: "none" | "gzip" | "lz4";
+  enableMetrics?: boolean; // Default: true
+  maxMemoryPolicy?: "lru" | "lfu" | "ttl" | "random";
+  enableWarmup?: boolean; // Default: false
+  batchSize?: number; // Default: 100
 }
 
 export interface CacheEntry<T = any> {
@@ -63,37 +63,40 @@ export class RedisCache extends EventEmitter {
     totalSize: 0,
     hitRate: 0,
     avgAccessTime: 0,
-    keysByType: {}
+    keysByType: {},
   };
   private warmupPatterns: Map<string, CachePattern> = new Map();
   private refreshTimers: Map<string, NodeJS.Timeout> = new Map();
   private metricsTimer?: NodeJS.Timeout;
 
-  constructor(redis: RedisClient | RedisCluster, options: RedisCacheOptions = {}) {
+  constructor(
+    redis: RedisClient | RedisCluster,
+    options: RedisCacheOptions = {},
+  ) {
     super();
-    
+
     this.redis = redis;
     this.options = {
       redis: options.redis,
       defaultTtl: options.defaultTtl || 3600,
-      keyPrefix: options.keyPrefix || 'bunsnc:cache:',
-      serialization: options.serialization || 'json',
-      compression: options.compression || 'none',
+      keyPrefix: options.keyPrefix || "bunsnc:cache:",
+      serialization: options.serialization || "json",
+      compression: options.compression || "none",
       enableMetrics: options.enableMetrics ?? true,
-      maxMemoryPolicy: options.maxMemoryPolicy || 'lru',
+      maxMemoryPolicy: options.maxMemoryPolicy || "lru",
       enableWarmup: options.enableWarmup ?? false,
-      batchSize: options.batchSize || 100
+      batchSize: options.batchSize || 100,
     };
 
     if (this.options.enableMetrics) {
       this.startMetricsCollection();
     }
 
-    logger.info('RedisCache initialized with options:', 'RedisCache', {
+    logger.info("RedisCache initialized with options:", "RedisCache", {
       defaultTtl: this.options.defaultTtl,
       keyPrefix: this.options.keyPrefix,
       serialization: this.options.serialization,
-      compression: this.options.compression
+      compression: this.options.compression,
     });
   }
 
@@ -104,26 +107,25 @@ export class RedisCache extends EventEmitter {
     const timerName = `redis_cache_get_${Date.now()}_${Math.random()}`;
     performanceMonitor.startTimer(timerName);
     const fullKey = this.buildKey(key);
-    
+
     try {
       const result = await this.redis.get(fullKey);
-      
+
       if (result === null) {
         this.metrics.misses++;
-        this.emit('cache:miss', { key });
+        this.emit("cache:miss", { key });
         return null;
       }
-      
+
       // Update access metrics
       this.metrics.hits++;
       await this.updateAccessMetrics(fullKey);
-      
+
       // Deserialize value
       const value = await this.deserialize<T>(result);
-      
-      this.emit('cache:hit', { key, value });
-      return value;
 
+      this.emit("cache:hit", { key, value });
+      return value;
     } catch (error) {
       logger.error(`Cache get error for key ${key}:`, error);
       this.metrics.misses++;
@@ -141,29 +143,32 @@ export class RedisCache extends EventEmitter {
     performanceMonitor.startTimer(timerName);
     const fullKey = this.buildKey(key);
     const expiry = ttl || this.options.defaultTtl;
-    
+
     try {
       // Serialize value
       const serialized = await this.serialize(value);
-      
+
       // Set with expiration
       let result: string;
       if (expiry > 0) {
-        result = await this.redis.setex(fullKey, expiry, serialized) as string;
+        result = (await this.redis.setex(
+          fullKey,
+          expiry,
+          serialized,
+        )) as string;
       } else {
-        result = await this.redis.set(fullKey, serialized) as string;
+        result = (await this.redis.set(fullKey, serialized)) as string;
       }
-      
-      if (result === 'OK') {
+
+      if (result === "OK") {
         this.metrics.sets++;
         this.updateSizeMetrics(key, serialized);
-        
-        this.emit('cache:set', { key, value, ttl: expiry });
+
+        this.emit("cache:set", { key, value, ttl: expiry });
         return true;
       }
-      
-      return false;
 
+      return false;
     } catch (error) {
       logger.error(`Cache set error for key ${key}:`, error);
       return false;
@@ -178,15 +183,15 @@ export class RedisCache extends EventEmitter {
   async mget<T = any>(keys: string[]): Promise<(T | null)[]> {
     const timerName = `redis_cache_mget_${Date.now()}_${Math.random()}`;
     performanceMonitor.startTimer(timerName);
-    const fullKeys = keys.map(key => this.buildKey(key));
-    
+    const fullKeys = keys.map((key) => this.buildKey(key));
+
     try {
       const results = await this.redis.mget(...fullKeys);
       const values: (T | null)[] = [];
-      
+
       for (let i = 0; i < results.length; i++) {
         const result = results[i];
-        
+
         if (result === null) {
           this.metrics.misses++;
           values.push(null);
@@ -194,17 +199,19 @@ export class RedisCache extends EventEmitter {
           this.metrics.hits++;
           const value = await this.deserialize<T>(result);
           values.push(value);
-          
+
           // Update access metrics for hit
           await this.updateAccessMetrics(fullKeys[i]);
         }
       }
-      
-      this.emit('cache:mget', { keys, hitCount: values.filter(v => v !== null).length });
-      return values;
 
+      this.emit("cache:mget", {
+        keys,
+        hitCount: values.filter((v) => v !== null).length,
+      });
+      return values;
     } catch (error) {
-      logger.error(`Cache mget error for keys ${keys.join(', ')}:`, error);
+      logger.error(`Cache mget error for keys ${keys.join(", ")}:`, error);
       return keys.map(() => null);
     } finally {
       performanceMonitor.endTimer(timerName);
@@ -214,43 +221,45 @@ export class RedisCache extends EventEmitter {
   /**
    * Set multiple values at once
    */
-  async mset<T = any>(entries: Array<{ key: string; value: T; ttl?: number }>): Promise<boolean> {
+  async mset<T = any>(
+    entries: Array<{ key: string; value: T; ttl?: number }>,
+  ): Promise<boolean> {
     const timerName = `redis_cache_mset_${Date.now()}_${Math.random()}`;
     performanceMonitor.startTimer(timerName);
-    
+
     try {
       // Use pipeline for atomic operations
       const pipeline = this.redis.pipeline();
-      
+
       for (const entry of entries) {
         const fullKey = this.buildKey(entry.key);
         const serialized = await this.serialize(entry.value);
         const ttl = entry.ttl || this.options.defaultTtl;
-        
+
         if (ttl > 0) {
           pipeline.setex(fullKey, ttl, serialized);
         } else {
           pipeline.set(fullKey, serialized);
         }
       }
-      
+
       const results = await pipeline.exec();
-      const success = results?.every(([error, result]) => !error && result === 'OK') ?? false;
-      
+      const success =
+        results?.every(([error, result]) => !error && result === "OK") ?? false;
+
       if (success) {
         this.metrics.sets += entries.length;
-        
-        entries.forEach(entry => {
-          this.updateSizeMetrics(entry.key, 'estimated');
-        });
-        
-        this.emit('cache:mset', { count: entries.length });
-      }
-      
-      return success;
 
+        entries.forEach((entry) => {
+          this.updateSizeMetrics(entry.key, "estimated");
+        });
+
+        this.emit("cache:mset", { count: entries.length });
+      }
+
+      return success;
     } catch (error) {
-      logger.error('Cache mset error:', error);
+      logger.error("Cache mset error:", error);
       return false;
     } finally {
       performanceMonitor.endTimer(timerName);
@@ -264,20 +273,19 @@ export class RedisCache extends EventEmitter {
     const timerName = `redis_cache_del_${Date.now()}_${Math.random()}`;
     performanceMonitor.startTimer(timerName);
     const fullKey = this.buildKey(key);
-    
+
     try {
       const result = await this.redis.del(fullKey);
-      
+
       if (result > 0) {
         this.metrics.deletes++;
         this.metrics.totalKeys = Math.max(0, this.metrics.totalKeys - 1);
-        
-        this.emit('cache:delete', { key });
+
+        this.emit("cache:delete", { key });
         return true;
       }
-      
-      return false;
 
+      return false;
     } catch (error) {
       logger.error(`Cache delete error for key ${key}:`, error);
       return false;
@@ -292,19 +300,18 @@ export class RedisCache extends EventEmitter {
   async mdel(keys: string[]): Promise<number> {
     const timerName = `redis_cache_mdel_${Date.now()}_${Math.random()}`;
     performanceMonitor.startTimer(timerName);
-    const fullKeys = keys.map(key => this.buildKey(key));
-    
+    const fullKeys = keys.map((key) => this.buildKey(key));
+
     try {
       const result = await this.redis.del(...fullKeys);
-      
+
       this.metrics.deletes += result;
       this.metrics.totalKeys = Math.max(0, this.metrics.totalKeys - result);
-      
-      this.emit('cache:mdelete', { keys, deletedCount: result });
-      return result;
 
+      this.emit("cache:mdelete", { keys, deletedCount: result });
+      return result;
     } catch (error) {
-      logger.error(`Cache mdelete error for keys ${keys.join(', ')}:`, error);
+      logger.error(`Cache mdelete error for keys ${keys.join(", ")}:`, error);
       return 0;
     } finally {
       performanceMonitor.endTimer(timerName);
@@ -316,7 +323,7 @@ export class RedisCache extends EventEmitter {
    */
   async exists(key: string): Promise<boolean> {
     const fullKey = this.buildKey(key);
-    
+
     try {
       const result = await this.redis.exists(fullKey);
       return result === 1;
@@ -331,7 +338,7 @@ export class RedisCache extends EventEmitter {
    */
   async ttl(key: string): Promise<number> {
     const fullKey = this.buildKey(key);
-    
+
     try {
       return await this.redis.ttl(fullKey);
     } catch (error) {
@@ -345,7 +352,7 @@ export class RedisCache extends EventEmitter {
    */
   async expire(key: string, ttl: number): Promise<boolean> {
     const fullKey = this.buildKey(key);
-    
+
     try {
       const result = await this.redis.expire(fullKey, ttl);
       return result === 1;
@@ -360,13 +367,14 @@ export class RedisCache extends EventEmitter {
    */
   async incr(key: string, by: number = 1): Promise<number> {
     const fullKey = this.buildKey(key);
-    
+
     try {
-      const result = by === 1 
-        ? await this.redis.incr(fullKey)
-        : await this.redis.incrby(fullKey, by);
-      
-      this.emit('cache:increment', { key, by, newValue: result });
+      const result =
+        by === 1
+          ? await this.redis.incr(fullKey)
+          : await this.redis.incrby(fullKey, by);
+
+      this.emit("cache:increment", { key, by, newValue: result });
       return result;
     } catch (error) {
       logger.error(`Cache increment error for key ${key}:`, error);
@@ -378,28 +386,27 @@ export class RedisCache extends EventEmitter {
    * Get or set pattern - if key doesn't exist, call factory function
    */
   async getOrSet<T = any>(
-    key: string, 
-    factory: () => Promise<T>, 
-    ttl?: number
+    key: string,
+    factory: () => Promise<T>,
+    ttl?: number,
   ): Promise<T> {
     const timerName = `redis_cache_get_or_set_${Date.now()}_${Math.random()}`;
     performanceMonitor.startTimer(timerName);
-    
+
     try {
       // Try to get existing value
       const existing = await this.get<T>(key);
       if (existing !== null) {
         return existing;
       }
-      
+
       // Generate new value
       const newValue = await factory();
-      
+
       // Set in cache
       await this.set(key, newValue, ttl);
-      
-      return newValue;
 
+      return newValue;
     } finally {
       performanceMonitor.endTimer(timerName);
     }
@@ -412,26 +419,31 @@ export class RedisCache extends EventEmitter {
     const timerName = `redis_cache_invalidate_pattern_${Date.now()}_${Math.random()}`;
     performanceMonitor.startTimer(timerName);
     const searchPattern = this.buildKey(pattern);
-    
+
     try {
       const keys = await this.redis.keys(searchPattern);
-      
+
       if (keys.length === 0) {
         return 0;
       }
-      
+
       const deleted = await this.redis.del(...keys);
-      
+
       this.metrics.deletes += deleted;
       this.metrics.totalKeys = Math.max(0, this.metrics.totalKeys - deleted);
-      
-      this.emit('cache:pattern_invalidated', { pattern, deletedCount: deleted });
-      
+
+      this.emit("cache:pattern_invalidated", {
+        pattern,
+        deletedCount: deleted,
+      });
+
       logger.info(`Invalidated ${deleted} keys matching pattern: ${pattern}`);
       return deleted;
-
     } catch (error) {
-      logger.error(`Cache pattern invalidation error for pattern ${pattern}:`, error);
+      logger.error(
+        `Cache pattern invalidation error for pattern ${pattern}:`,
+        error,
+      );
       return 0;
     } finally {
       performanceMonitor.endTimer(timerName);
@@ -443,12 +455,12 @@ export class RedisCache extends EventEmitter {
    */
   async keys(pattern: string): Promise<string[]> {
     const searchPattern = this.buildKey(pattern);
-    
+
     try {
       const keys = await this.redis.keys(searchPattern);
-      
+
       // Remove prefix from returned keys
-      return keys.map(key => key.replace(this.options.keyPrefix, ''));
+      return keys.map((key) => key.replace(this.options.keyPrefix, ""));
     } catch (error) {
       logger.error(`Cache keys error for pattern ${pattern}:`, error);
       return [];
@@ -460,22 +472,22 @@ export class RedisCache extends EventEmitter {
    */
   addWarmupPattern(pattern: CachePattern): void {
     this.warmupPatterns.set(pattern.pattern, pattern);
-    
+
     if (pattern.refreshInterval && pattern.refreshCallback) {
       const timer = setInterval(async () => {
         try {
           const value = await pattern.refreshCallback!();
           await this.set(pattern.pattern, value, pattern.ttl);
-          
-          this.emit('cache:pattern_refreshed', { pattern: pattern.pattern });
+
+          this.emit("cache:pattern_refreshed", { pattern: pattern.pattern });
         } catch (error) {
           logger.error(`Pattern refresh error for ${pattern.pattern}:`, error);
         }
       }, pattern.refreshInterval);
-      
+
       this.refreshTimers.set(pattern.pattern, timer);
     }
-    
+
     logger.info(`Added warmup pattern: ${pattern.pattern}`);
   }
 
@@ -484,17 +496,17 @@ export class RedisCache extends EventEmitter {
    */
   removeWarmupPattern(pattern: string): boolean {
     const removed = this.warmupPatterns.delete(pattern);
-    
+
     const timer = this.refreshTimers.get(pattern);
     if (timer) {
       clearInterval(timer);
       this.refreshTimers.delete(pattern);
     }
-    
+
     if (removed) {
       logger.info(`Removed warmup pattern: ${pattern}`);
     }
-    
+
     return removed;
   }
 
@@ -504,28 +516,34 @@ export class RedisCache extends EventEmitter {
   async warmup(): Promise<void> {
     const timerName = `redis_cache_warmup_${Date.now()}_${Math.random()}`;
     performanceMonitor.startTimer(timerName);
-    
-    try {
-      logger.info(`Starting cache warmup for ${this.warmupPatterns.size} patterns`);
-      
-      const promises = Array.from(this.warmupPatterns.values()).map(async pattern => {
-        if (pattern.refreshCallback) {
-          try {
-            const value = await pattern.refreshCallback();
-            await this.set(pattern.pattern, value, pattern.ttl);
-            
-            logger.debug(`Warmed up pattern: ${pattern.pattern}`);
-          } catch (error) {
-            logger.error(`Warmup error for pattern ${pattern.pattern}:`, error);
-          }
-        }
-      });
-      
-      await Promise.all(promises);
-      
-      logger.info('Cache warmup completed');
-      this.emit('cache:warmup_completed');
 
+    try {
+      logger.info(
+        `Starting cache warmup for ${this.warmupPatterns.size} patterns`,
+      );
+
+      const promises = Array.from(this.warmupPatterns.values()).map(
+        async (pattern) => {
+          if (pattern.refreshCallback) {
+            try {
+              const value = await pattern.refreshCallback();
+              await this.set(pattern.pattern, value, pattern.ttl);
+
+              logger.debug(`Warmed up pattern: ${pattern.pattern}`);
+            } catch (error) {
+              logger.error(
+                `Warmup error for pattern ${pattern.pattern}:`,
+                error,
+              );
+            }
+          }
+        },
+      );
+
+      await Promise.all(promises);
+
+      logger.info("Cache warmup completed");
+      this.emit("cache:warmup_completed");
     } finally {
       performanceMonitor.endTimer(timerName);
     }
@@ -538,7 +556,7 @@ export class RedisCache extends EventEmitter {
     // Calculate hit rate
     const total = this.metrics.hits + this.metrics.misses;
     this.metrics.hitRate = total > 0 ? this.metrics.hits / total : 0;
-    
+
     return { ...this.metrics };
   }
 
@@ -556,10 +574,10 @@ export class RedisCache extends EventEmitter {
       totalSize: 0,
       hitRate: 0,
       avgAccessTime: 0,
-      keysByType: {}
+      keysByType: {},
     };
-    
-    this.emit('cache:metrics_reset');
+
+    this.emit("cache:metrics_reset");
   }
 
   /**
@@ -573,27 +591,26 @@ export class RedisCache extends EventEmitter {
     avgResponseTime: number;
   }> {
     try {
-      const info = await this.redis.info('memory');
-      const keyspaceInfo = await this.redis.info('keyspace');
-      
+      const info = await this.redis.info("memory");
+      const keyspaceInfo = await this.redis.info("keyspace");
+
       const memoryUsed = this.parseMemoryInfo(info);
       const keyCount = this.parseKeyspaceInfo(keyspaceInfo);
-      
+
       return {
         connected: true,
         totalKeys: keyCount,
         usedMemory: memoryUsed,
         hitRate: this.metrics.hitRate,
-        avgResponseTime: this.metrics.avgAccessTime
+        avgResponseTime: this.metrics.avgAccessTime,
       };
-      
     } catch (error) {
       return {
         connected: false,
         totalKeys: 0,
         usedMemory: 0,
         hitRate: 0,
-        avgResponseTime: 0
+        avgResponseTime: 0,
       };
     }
   }
@@ -606,16 +623,16 @@ export class RedisCache extends EventEmitter {
     if (this.metricsTimer) {
       clearInterval(this.metricsTimer);
     }
-    
+
     // Stop refresh timers
     for (const timer of this.refreshTimers.values()) {
       clearInterval(timer);
     }
     this.refreshTimers.clear();
-    
+
     this.removeAllListeners();
-    
-    logger.info('RedisCache destroyed');
+
+    logger.info("RedisCache destroyed");
   }
 
   private buildKey(key: string): string {
@@ -625,18 +642,18 @@ export class RedisCache extends EventEmitter {
   private async serialize<T>(value: T): Promise<string> {
     try {
       switch (this.options.serialization) {
-        case 'json':
+        case "json":
           return JSON.stringify(value);
-        case 'msgpack':
+        case "msgpack":
           // Would need msgpack library
           return JSON.stringify(value);
-        case 'binary':
-          return Buffer.from(JSON.stringify(value)).toString('base64');
+        case "binary":
+          return Buffer.from(JSON.stringify(value)).toString("base64");
         default:
           return JSON.stringify(value);
       }
     } catch (error) {
-      logger.error('Serialization error:', error);
+      logger.error("Serialization error:", error);
       throw error;
     }
   }
@@ -644,19 +661,19 @@ export class RedisCache extends EventEmitter {
   private async deserialize<T>(data: string): Promise<T> {
     try {
       switch (this.options.serialization) {
-        case 'json':
+        case "json":
           return JSON.parse(data);
-        case 'msgpack':
+        case "msgpack":
           // Would need msgpack library
           return JSON.parse(data);
-        case 'binary':
-          const buffer = Buffer.from(data, 'base64');
+        case "binary":
+          const buffer = Buffer.from(data, "base64");
           return JSON.parse(buffer.toString());
         default:
           return JSON.parse(data);
       }
     } catch (error) {
-      logger.error('Deserialization error:', error);
+      logger.error("Deserialization error:", error);
       throw error;
     }
   }
@@ -666,35 +683,35 @@ export class RedisCache extends EventEmitter {
       // Update access time and count in separate hash
       const metricsKey = `${key}:metrics`;
       const now = Date.now();
-      
+
       await this.redis.hmset(metricsKey, {
-        'last_accessed': now.toString(),
-        'access_count': await this.redis.hincrby(metricsKey, 'access_count', 1)
+        last_accessed: now.toString(),
+        access_count: await this.redis.hincrby(metricsKey, "access_count", 1),
       });
-      
+
       // Set TTL for metrics key (longer than data TTL)
       await this.redis.expire(metricsKey, this.options.defaultTtl * 2);
-      
     } catch (error) {
       // Don't fail main operation for metrics errors
-      logger.debug('Access metrics update error:', error);
+      logger.debug("Access metrics update error:", error);
     }
   }
 
-  private updateSizeMetrics(key: string, data: string | 'estimated'): void {
-    const size = data === 'estimated' ? 100 : Buffer.byteLength(data, 'utf8');
-    
+  private updateSizeMetrics(key: string, data: string | "estimated"): void {
+    const size = data === "estimated" ? 100 : Buffer.byteLength(data, "utf8");
+
     this.metrics.totalSize += size;
     this.metrics.totalKeys++;
-    
+
     // Track by key type/prefix
-    const keyType = key.split(':')[0] || 'unknown';
-    this.metrics.keysByType[keyType] = (this.metrics.keysByType[keyType] || 0) + 1;
+    const keyType = key.split(":")[0] || "unknown";
+    this.metrics.keysByType[keyType] =
+      (this.metrics.keysByType[keyType] || 0) + 1;
   }
 
   private startMetricsCollection(): void {
     this.metricsTimer = setInterval(() => {
-      this.emit('cache:metrics', this.getMetrics());
+      this.emit("cache:metrics", this.getMetrics());
     }, 60000); // Emit metrics every minute
   }
 

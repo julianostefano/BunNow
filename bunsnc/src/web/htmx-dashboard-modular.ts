@@ -1,22 +1,21 @@
 /**
  * HTMX Dashboard Routes - Modular Clean Architecture
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
- * 
+ *
  * Refactored dashboard using modular MVC components following Development Guidelines.
  * This file demonstrates the proper MVC structure with files under 500 lines.
  */
 
-import { Elysia, t } from 'elysia';
-import { html } from '@elysiajs/html';
-import { htmx } from '@gtramontina.com/elysia-htmx';
-import { serviceNowAuthClient } from '../services/ServiceNowAuthClient';
-
+import { Elysia, t } from "elysia";
+import { html } from "@elysiajs/html";
+import { htmx } from "@gtramontina.com/elysia-htmx";
+import { serviceNowAuthClient } from "../services/ServiceNowAuthClient";
 
 // Import modular components following MVC architecture
-import { generateDashboardLayout } from '../views/templates/DashboardLayout';
-import { handleMetricsRequest } from '../controllers/web/MetricsController';
-import { handleSearchRequest } from '../controllers/web/SearchController';
-import { createDashboardData } from '../models/TicketFilters';
+import { generateDashboardLayout } from "../views/templates/DashboardLayout";
+import { handleMetricsRequest } from "../controllers/web/MetricsController";
+import { handleSearchRequest } from "../controllers/web/SearchController";
+import { createDashboardData } from "../models/TicketFilters";
 
 /**
  * Helper function to initialize services safely
@@ -27,7 +26,7 @@ async function initializeModularServices() {
     // Services initialization will be moved to proper dependency injection
     return { error: null };
   } catch (error) {
-    console.error(' Modular Dashboard Services initialization error:', error);
+    console.error(" Modular Dashboard Services initialization error:", error);
     return { error };
   }
 }
@@ -36,26 +35,28 @@ async function initializeModularServices() {
  * Modular HTMX Dashboard - following MVC Architecture
  * Files under 500 lines, proper separation of concerns
  */
-export const htmxDashboardModular = new Elysia({ prefix: '/modular' })
+export const htmxDashboardModular = new Elysia({ prefix: "/modular" })
   .use(html())
   .use(htmx())
-  .decorate('serviceNowAuthClient', serviceNowAuthClient)
-  
+  .decorate("serviceNowAuthClient", serviceNowAuthClient)
+
   // Global error handler to prevent Elysia bugs
-  .onError({ as: 'global' }, (context) => {
+  .onError({ as: "global" }, (context) => {
     const { code, error, set } = context;
-    
-    console.error(`🚨 [MODULAR ERROR HANDLER] Code: ${code}, Error: ${error?.message || 'Unknown'}`);
-    
+
+    console.error(
+      `🚨 [MODULAR ERROR HANDLER] Code: ${code}, Error: ${error?.message || "Unknown"}`,
+    );
+
     // Handle NOT_FOUND errors
-    if (code === 'NOT_FOUND') {
+    if (code === "NOT_FOUND") {
       set.status = 404;
-      set.headers['content-type'] = 'text/html; charset=utf-8';
-      
+      set.headers["content-type"] = "text/html; charset=utf-8";
+
       return generateDashboardLayout({
-        title: '404 - Página não encontrada',
+        title: "404 - Página não encontrada",
         showServiceStatus: false,
-        enableAutoRefresh: false
+        enableAutoRefresh: false,
       }).replace(
         '<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">',
         `<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -65,14 +66,14 @@ export const htmxDashboardModular = new Elysia({ prefix: '/modular' })
             <a href="/modular/" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg">
               Voltar ao Dashboard
             </a>
-          </div>`
+          </div>`,
       );
     }
-    
+
     // Handle other errors safely
     set.status = error?.status || 500;
-    set.headers['content-type'] = 'text/html; charset=utf-8';
-    
+    set.headers["content-type"] = "text/html; charset=utf-8";
+
     return `
       <!DOCTYPE html>
       <html lang="pt-BR">
@@ -96,27 +97,29 @@ export const htmxDashboardModular = new Elysia({ prefix: '/modular' })
       </html>
     `;
   })
-  
+
   // Static CSS endpoint
-  .get('/styles.css', () => {
-    return Bun.file('/storage/enviroments/integrations/nex/BunNow/bunsnc/public/styles.css');
+  .get("/styles.css", () => {
+    return Bun.file(
+      "/storage/enviroments/integrations/nex/BunNow/bunsnc/public/styles.css",
+    );
   })
-  
+
   /**
    * Main dashboard page - Using modular template
    */
-  .get('/', async ({ hx, set }) => {
+  .get("/", async ({ hx, set }) => {
     try {
       // Initialize services safely
       const services = await initializeModularServices();
       if (services.error && !hx.isHTMX) {
         // Return error page for full page loads when services fail
         return generateDashboardLayout({
-          title: 'BunSNC Dashboard - Service Error',
+          title: "BunSNC Dashboard - Service Error",
           showServiceStatus: true,
-          enableAutoRefresh: false
+          enableAutoRefresh: false,
         }).replace(
-          '<!-- Main Content -->',
+          "<!-- Main Content -->",
           `<!-- Service Error Notice -->
           <div class="max-w-2xl mx-auto mt-8 p-6 bg-red-500/10 border border-red-500/30 rounded-lg text-center">
             <i data-lucide="alert-triangle" class="w-12 h-12 mx-auto mb-4 text-red-400"></i>
@@ -127,35 +130,34 @@ export const htmxDashboardModular = new Elysia({ prefix: '/modular' })
               Tentar Novamente
             </button>
           </div>
-          <!-- Main Content -->`
+          <!-- Main Content -->`,
         );
       }
 
       // Return complete dashboard layout with proper Alpine.js integration
       const dashboardHTML = generateDashboardLayout({
-        title: 'BunSNC Dashboard - Modular Architecture',
+        title: "BunSNC Dashboard - Modular Architecture",
         showServiceStatus: true,
-        enableAutoRefresh: true
+        enableAutoRefresh: true,
       });
 
       // Replace the Alpine.js dashboard data with our modular implementation
       const dashboardData = createDashboardData({
-        activeTab: 'incident',
-        state: 'in_progress'
+        activeTab: "incident",
+        state: "in_progress",
       });
 
       return dashboardHTML.replace(
         'x-data="dashboardData()"',
-        `x-data='${JSON.stringify(dashboardData)}'`
+        `x-data='${JSON.stringify(dashboardData)}'`,
       );
-
     } catch (error: any) {
-      console.error(' Dashboard route error:', error);
+      console.error(" Dashboard route error:", error);
       set.status = 500;
       return generateDashboardLayout({
-        title: 'BunSNC Dashboard - Error',
+        title: "BunSNC Dashboard - Error",
         showServiceStatus: false,
-        enableAutoRefresh: false
+        enableAutoRefresh: false,
       });
     }
   })
@@ -163,14 +165,14 @@ export const htmxDashboardModular = new Elysia({ prefix: '/modular' })
   /**
    * Metrics endpoint - Using modular controller
    */
-  .get('/metrics', async (context) => {
+  .get("/metrics", async (context) => {
     return handleMetricsRequest(context);
   })
 
   /**
    * Search endpoint - Using modular controller
    */
-  .get('/search', async (context) => {
+  .get("/search", async (context) => {
     return handleSearchRequest(context);
   })
 
@@ -178,11 +180,16 @@ export const htmxDashboardModular = new Elysia({ prefix: '/modular' })
    * Tickets lazy loading endpoint
    * TODO: Implement with ConsolidatedDataService when circular dependency is resolved
    */
-  .get('/tickets-lazy', async ({ query }) => {
+  .get("/tickets-lazy", async ({ query }) => {
     const { ticketType, group, state, page, limit } = query as any;
-    
-    console.log(`📋 Loading ${ticketType} tickets with filters:`, { group, state, page, limit });
-    
+
+    console.log(`📋 Loading ${ticketType} tickets with filters:`, {
+      group,
+      state,
+      page,
+      limit,
+    });
+
     // Mock response for now - replace with actual data loading
     return `
       <div class="text-center py-8 text-gray-400">
@@ -201,11 +208,11 @@ export const htmxDashboardModular = new Elysia({ prefix: '/modular' })
    * Ticket details modal endpoint
    * TODO: Implement with proper modal template
    */
-  .get('/ticket-details/:sysId/:table', async ({ params }) => {
+  .get("/ticket-details/:sysId/:table", async ({ params }) => {
     const { sysId, table } = params;
-    
+
     console.log(` Loading ticket details: ${sysId} from ${table}`);
-    
+
     // Mock modal response - replace with actual modal template
     return `
       <div class="fixed inset-0 z-50 overflow-y-auto" 

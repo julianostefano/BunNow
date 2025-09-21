@@ -3,11 +3,13 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { websocket } from '@elysiajs/websocket';
-import { Elysia } from 'elysia';
-import { serviceNowStreams, type ServiceNowChange } from '../config/redis-streams';
-import { serviceNowRepository } from '../repositories/ServiceNowRepository';
-
+import { websocket } from "@elysiajs/websocket";
+import { Elysia } from "elysia";
+import {
+  serviceNowStreams,
+  type ServiceNowChange,
+} from "../config/redis-streams";
+import { serviceNowRepository } from "../repositories/ServiceNowRepository";
 
 interface WebSocketClient {
   id: string;
@@ -29,15 +31,18 @@ export class WebSocketManager {
    */
   private initializeStreamConsumers(): void {
     // Register consumer for all ServiceNow changes
-    serviceNowStreams.registerConsumer(['*'], async (change: ServiceNowChange) => {
-      await this.broadcastUpdate({
-        type: 'ticket_updated',
-        data: change,
-        timestamp: new Date().toISOString(),
-      });
-    });
+    serviceNowStreams.registerConsumer(
+      ["*"],
+      async (change: ServiceNowChange) => {
+        await this.broadcastUpdate({
+          type: "ticket_updated",
+          data: change,
+          timestamp: new Date().toISOString(),
+        });
+      },
+    );
 
-    console.log('📡 WebSocket consumers initialized for ServiceNow streams');
+    console.log("📡 WebSocket consumers initialized for ServiceNow streams");
   }
 
   /**
@@ -47,16 +52,15 @@ export class WebSocketManager {
     setInterval(async () => {
       const metrics = await serviceNowRepository.getServiceNowMetrics();
       const rateLimitStats = // Rate limiting now handled internally: getMetrics();
-
-      await this.broadcastUpdate({
-        type: 'metrics_updated',
-        data: {
-          metrics,
-          rateLimitStats,
-          clientCount: this.clients.size,
-        },
-        timestamp: new Date().toISOString(),
-      });
+        await this.broadcastUpdate({
+          type: "metrics_updated",
+          data: {
+            metrics,
+            rateLimitStats,
+            clientCount: this.clients.size,
+          },
+          timestamp: new Date().toISOString(),
+        });
 
       // Cleanup inactive clients
       this.cleanupInactiveClients();
@@ -69,29 +73,38 @@ export class WebSocketManager {
   onConnection(ws: any): void {
     const client: WebSocketClient = {
       id: `client_${++this.clientCounter}`,
-      subscriptions: new Set(['dashboard', 'metrics']),
+      subscriptions: new Set(["dashboard", "metrics"]),
       lastPing: Date.now(),
     };
 
     this.clients.set(ws, client);
 
-    console.log(`🔌 WebSocket client connected: ${client.id} (total: ${this.clients.size})`);
+    console.log(
+      `🔌 WebSocket client connected: ${client.id} (total: ${this.clients.size})`,
+    );
 
     // Send welcome message with current metrics
     this.sendToClient(ws, {
-      type: 'connection_established',
+      type: "connection_established",
       data: {
         clientId: client.id,
-        message: 'Conectado ao sistema BunSNC',
-        availableChannels: ['dashboard', 'metrics', 'tickets', 'incidents', 'change_tasks', 'sc_tasks'],
+        message: "Conectado ao sistema BunSNC",
+        availableChannels: [
+          "dashboard",
+          "metrics",
+          "tickets",
+          "incidents",
+          "change_tasks",
+          "sc_tasks",
+        ],
       },
       timestamp: new Date().toISOString(),
     });
 
     // Send initial metrics
-    serviceNowRepository.getServiceNowMetrics().then(metrics => {
+    serviceNowRepository.getServiceNowMetrics().then((metrics) => {
       this.sendToClient(ws, {
-        type: 'metrics_updated',
+        type: "metrics_updated",
         data: { metrics },
         timestamp: new Date().toISOString(),
       });
@@ -108,39 +121,39 @@ export class WebSocketManager {
     client.lastPing = Date.now();
 
     try {
-      const data = typeof message === 'string' ? JSON.parse(message) : message;
+      const data = typeof message === "string" ? JSON.parse(message) : message;
 
       switch (data.action) {
-        case 'subscribe':
+        case "subscribe":
           await this.handleSubscription(ws, client, data.channels || []);
           break;
 
-        case 'unsubscribe':
+        case "unsubscribe":
           await this.handleUnsubscription(ws, client, data.channels || []);
           break;
 
-        case 'ping':
+        case "ping":
           this.sendToClient(ws, {
-            type: 'pong',
+            type: "pong",
             timestamp: new Date().toISOString(),
           });
           break;
 
-        case 'get_metrics':
+        case "get_metrics":
           await this.handleMetricsRequest(ws);
           break;
 
-        case 'get_tickets':
+        case "get_tickets":
           await this.handleTicketsRequest(ws, data.filters || {});
           break;
 
-        case 'refresh_dashboard':
+        case "refresh_dashboard":
           await this.handleDashboardRefresh(ws);
           break;
 
         default:
           this.sendToClient(ws, {
-            type: 'error',
+            type: "error",
             data: { message: `Unknown action: ${data.action}` },
             timestamp: new Date().toISOString(),
           });
@@ -148,8 +161,8 @@ export class WebSocketManager {
     } catch (error) {
       console.error(` WebSocket message error for ${client.id}:`, error);
       this.sendToClient(ws, {
-        type: 'error',
-        data: { message: 'Invalid message format' },
+        type: "error",
+        data: { message: "Invalid message format" },
         timestamp: new Date().toISOString(),
       });
     }
@@ -161,7 +174,9 @@ export class WebSocketManager {
   onDisconnection(ws: any): void {
     const client = this.clients.get(ws);
     if (client) {
-      console.log(`🔌 WebSocket client disconnected: ${client.id} (remaining: ${this.clients.size - 1})`);
+      console.log(
+        `🔌 WebSocket client disconnected: ${client.id} (remaining: ${this.clients.size - 1})`,
+      );
       this.clients.delete(ws);
     }
   }
@@ -169,41 +184,51 @@ export class WebSocketManager {
   /**
    * Handle subscription to channels
    */
-  private async handleSubscription(ws: any, client: WebSocketClient, channels: string[]): Promise<void> {
+  private async handleSubscription(
+    ws: any,
+    client: WebSocketClient,
+    channels: string[],
+  ): Promise<void> {
     for (const channel of channels) {
       client.subscriptions.add(channel);
     }
 
     this.sendToClient(ws, {
-      type: 'subscription_updated',
+      type: "subscription_updated",
       data: {
         subscriptions: Array.from(client.subscriptions),
-        message: `Inscrito em ${channels.join(', ')}`,
+        message: `Inscrito em ${channels.join(", ")}`,
       },
       timestamp: new Date().toISOString(),
     });
 
-    console.log(`📺 Client ${client.id} subscribed to: ${channels.join(', ')}`);
+    console.log(`📺 Client ${client.id} subscribed to: ${channels.join(", ")}`);
   }
 
   /**
    * Handle unsubscription from channels
    */
-  private async handleUnsubscription(ws: any, client: WebSocketClient, channels: string[]): Promise<void> {
+  private async handleUnsubscription(
+    ws: any,
+    client: WebSocketClient,
+    channels: string[],
+  ): Promise<void> {
     for (const channel of channels) {
       client.subscriptions.delete(channel);
     }
 
     this.sendToClient(ws, {
-      type: 'subscription_updated',
+      type: "subscription_updated",
       data: {
         subscriptions: Array.from(client.subscriptions),
-        message: `Desinscrito de ${channels.join(', ')}`,
+        message: `Desinscrito de ${channels.join(", ")}`,
       },
       timestamp: new Date().toISOString(),
     });
 
-    console.log(`📺 Client ${client.id} unsubscribed from: ${channels.join(', ')}`);
+    console.log(
+      `📺 Client ${client.id} unsubscribed from: ${channels.join(", ")}`,
+    );
   }
 
   /**
@@ -212,11 +237,11 @@ export class WebSocketManager {
   private async handleMetricsRequest(ws: any): Promise<void> {
     try {
       const metrics = await serviceNowRepository.getServiceNowMetrics();
-      const rateLimitStats = // Rate limiting now handled internally: getMetrics();
+      const rateLimitStats = {}; // Rate limiting now handled internally: getMetrics();
       const streamStats = await serviceNowStreams.getStreamStats();
 
       this.sendToClient(ws, {
-        type: 'metrics_response',
+        type: "metrics_response",
         data: {
           metrics,
           rateLimitStats,
@@ -231,8 +256,8 @@ export class WebSocketManager {
       });
     } catch (error) {
       this.sendToClient(ws, {
-        type: 'error',
-        data: { message: 'Failed to get metrics' },
+        type: "error",
+        data: { message: "Failed to get metrics" },
         timestamp: new Date().toISOString(),
       });
     }
@@ -244,8 +269,8 @@ export class WebSocketManager {
   private async handleTicketsRequest(ws: any, filters: any): Promise<void> {
     try {
       let tickets;
-      
-      if (filters.type === 'resolved') {
+
+      if (filters.type === "resolved") {
         tickets = await serviceNowRepository.getResolvedTickets(50, 0);
       } else if (filters.search || filters.ticketType || filters.status) {
         tickets = await serviceNowRepository.searchTickets(
@@ -256,14 +281,14 @@ export class WebSocketManager {
           undefined,
           undefined,
           50,
-          0
+          0,
         );
       } else {
         tickets = await serviceNowRepository.getActiveTickets(50, 0);
       }
 
       this.sendToClient(ws, {
-        type: 'tickets_response',
+        type: "tickets_response",
         data: {
           tickets,
           filters,
@@ -273,8 +298,8 @@ export class WebSocketManager {
       });
     } catch (error) {
       this.sendToClient(ws, {
-        type: 'error',
-        data: { message: 'Failed to get tickets' },
+        type: "error",
+        data: { message: "Failed to get tickets" },
         timestamp: new Date().toISOString(),
       });
     }
@@ -292,7 +317,7 @@ export class WebSocketManager {
       ]);
 
       this.sendToClient(ws, {
-        type: 'dashboard_refresh',
+        type: "dashboard_refresh",
         data: {
           metrics,
           healthStats,
@@ -303,8 +328,8 @@ export class WebSocketManager {
       });
     } catch (error) {
       this.sendToClient(ws, {
-        type: 'error',
-        data: { message: 'Failed to refresh dashboard' },
+        type: "error",
+        data: { message: "Failed to refresh dashboard" },
         timestamp: new Date().toISOString(),
       });
     }
@@ -317,7 +342,7 @@ export class WebSocketManager {
     try {
       ws.send(JSON.stringify(data));
     } catch (error) {
-      console.error(' Failed to send WebSocket message:', error);
+      console.error(" Failed to send WebSocket message:", error);
     }
   }
 
@@ -333,10 +358,10 @@ export class WebSocketManager {
     for (const [ws, client] of this.clients) {
       try {
         // Check if client is subscribed to this type of update
-        const shouldReceive = 
-          client.subscriptions.has('dashboard') ||
-          client.subscriptions.has('metrics') ||
-          (data.type.includes('ticket') && client.subscriptions.has('tickets'));
+        const shouldReceive =
+          client.subscriptions.has("dashboard") ||
+          client.subscriptions.has("metrics") ||
+          (data.type.includes("ticket") && client.subscriptions.has("tickets"));
 
         if (shouldReceive) {
           ws.send(message);
@@ -380,7 +405,8 @@ export class WebSocketManager {
     const subscriptionCounts = {};
     for (const client of this.clients.values()) {
       for (const subscription of client.subscriptions) {
-        subscriptionCounts[subscription] = (subscriptionCounts[subscription] || 0) + 1;
+        subscriptionCounts[subscription] =
+          (subscriptionCounts[subscription] || 0) + 1;
       }
     }
 
@@ -399,10 +425,10 @@ export const createWebSocketPlugin = () => {
 
   return new Elysia()
     .use(websocket())
-    .ws('/ws/dashboard', {
+    .ws("/ws/dashboard", {
       open: (ws) => wsManager.onConnection(ws),
       message: (ws, message) => wsManager.onMessage(ws, message),
       close: (ws) => wsManager.onDisconnection(ws),
     })
-    .get('/ws/stats', () => wsManager.getStats());
+    .get("/ws/stats", () => wsManager.getStats());
 };

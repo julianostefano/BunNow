@@ -3,7 +3,7 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { logger } from '../utils/Logger';
+import { logger } from "../utils/Logger";
 
 export interface EmbeddingRequest {
   texts: string[];
@@ -35,11 +35,17 @@ export class EmbeddingClient {
 
   constructor(config?: Partial<EmbeddingConfig>) {
     this.config = {
-      host: config?.host || process.env.EMBEDDING_HOST || '10.219.8.210',
-      port: config?.port || parseInt(process.env.EMBEDDING_PORT || '8010'),
-      timeout: config?.timeout || parseInt(process.env.EMBEDDING_TIMEOUT || '30000'),
-      max_batch_size: config?.max_batch_size || parseInt(process.env.EMBEDDING_MAX_BATCH || '100'),
-      default_model: config?.default_model || process.env.EMBEDDING_MODEL || 'sentence-transformers'
+      host: config?.host || process.env.EMBEDDING_HOST || "10.219.8.210",
+      port: config?.port || parseInt(process.env.EMBEDDING_PORT || "8010"),
+      timeout:
+        config?.timeout || parseInt(process.env.EMBEDDING_TIMEOUT || "30000"),
+      max_batch_size:
+        config?.max_batch_size ||
+        parseInt(process.env.EMBEDDING_MAX_BATCH || "100"),
+      default_model:
+        config?.default_model ||
+        process.env.EMBEDDING_MODEL ||
+        "sentence-transformers",
     };
 
     this.baseUrl = `http://${this.config.host}:${this.config.port}`;
@@ -54,47 +60,56 @@ export class EmbeddingClient {
       model?: string;
       normalize?: boolean;
       batch_size?: number;
-    } = {}
+    } = {},
   ): Promise<EmbeddingResponse> {
     try {
       if (texts.length === 0) {
-        throw new Error('At least one text is required for embedding generation');
+        throw new Error(
+          "At least one text is required for embedding generation",
+        );
       }
 
       if (texts.length > this.config.max_batch_size) {
-        throw new Error(`Batch size exceeds maximum allowed: ${this.config.max_batch_size}`);
+        throw new Error(
+          `Batch size exceeds maximum allowed: ${this.config.max_batch_size}`,
+        );
       }
 
       const requestBody: EmbeddingRequest = {
         texts,
         model: options.model || this.config.default_model,
         normalize: options.normalize !== false,
-        batch_size: options.batch_size || Math.min(texts.length, this.config.max_batch_size)
+        batch_size:
+          options.batch_size ||
+          Math.min(texts.length, this.config.max_batch_size),
       };
 
       const response = await fetch(`${this.baseUrl}/embeddings`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          "Content-Type": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(this.timeout)
+        signal: AbortSignal.timeout(this.timeout),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Embedding generation failed: ${response.status} ${response.statusText} - ${errorText}`);
+        throw new Error(
+          `Embedding generation failed: ${response.status} ${response.statusText} - ${errorText}`,
+        );
       }
 
       const result: EmbeddingResponse = await response.json();
 
-      logger.debug(` [EmbeddingClient] Generated ${result.embeddings.length} embeddings with ${result.dimensions} dimensions`);
+      logger.debug(
+        ` [EmbeddingClient] Generated ${result.embeddings.length} embeddings with ${result.dimensions} dimensions`,
+      );
 
       return result;
-
     } catch (error) {
-      logger.error(' [EmbeddingClient] Embedding generation failed:', error);
+      logger.error(" [EmbeddingClient] Embedding generation failed:", error);
       throw error;
     }
   }
@@ -104,7 +119,7 @@ export class EmbeddingClient {
     options: {
       model?: string;
       normalize?: boolean;
-    } = {}
+    } = {},
   ): Promise<number[]> {
     const response = await this.generateEmbeddings([text], options);
     return response.embeddings[0];
@@ -116,7 +131,7 @@ export class EmbeddingClient {
       model?: string;
       normalize?: boolean;
       batch_size?: number;
-    } = {}
+    } = {},
   ): Promise<EmbeddingResponse[]> {
     const batchSize = options.batch_size || this.config.max_batch_size;
     const batches: EmbeddingResponse[] = [];
@@ -133,24 +148,27 @@ export class EmbeddingClient {
   async healthCheck(): Promise<boolean> {
     try {
       const response = await fetch(`${this.baseUrl}/health`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Accept': 'application/json'
+          Accept: "application/json",
         },
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(5000),
       });
 
       if (response.ok) {
         const health = await response.json();
-        logger.debug(` [EmbeddingClient] Health check passed - Status: ${health.status || 'OK'}`);
+        logger.debug(
+          ` [EmbeddingClient] Health check passed - Status: ${health.status || "OK"}`,
+        );
         return true;
       }
 
-      logger.warn(` [EmbeddingClient] Health check returned status: ${response.status}`);
+      logger.warn(
+        ` [EmbeddingClient] Health check returned status: ${response.status}`,
+      );
       return false;
-
     } catch (error) {
-      logger.error(' [EmbeddingClient] Health check failed:', error);
+      logger.error(" [EmbeddingClient] Health check failed:", error);
       return false;
     }
   }
@@ -158,22 +176,23 @@ export class EmbeddingClient {
   async getModels(): Promise<string[]> {
     try {
       const response = await fetch(`${this.baseUrl}/models`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Accept': 'application/json'
+          Accept: "application/json",
         },
-        signal: AbortSignal.timeout(this.timeout)
+        signal: AbortSignal.timeout(this.timeout),
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to get models: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Failed to get models: ${response.status} ${response.statusText}`,
+        );
       }
 
       const data = await response.json();
       return data.models || [this.config.default_model];
-
     } catch (error) {
-      logger.error(' [EmbeddingClient] Failed to get models:', error);
+      logger.error(" [EmbeddingClient] Failed to get models:", error);
       return [this.config.default_model];
     }
   }
@@ -182,43 +201,47 @@ export class EmbeddingClient {
     try {
       const model = modelName || this.config.default_model;
       const response = await fetch(`${this.baseUrl}/models/${model}`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Accept': 'application/json'
+          Accept: "application/json",
         },
-        signal: AbortSignal.timeout(this.timeout)
+        signal: AbortSignal.timeout(this.timeout),
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to get model info: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Failed to get model info: ${response.status} ${response.statusText}`,
+        );
       }
 
       const info = await response.json();
       logger.debug(` [EmbeddingClient] Model info for ${model}:`, info);
       return info;
-
     } catch (error) {
-      logger.error(` [EmbeddingClient] Failed to get model info for ${modelName}:`, error);
+      logger.error(
+        ` [EmbeddingClient] Failed to get model info for ${modelName}:`,
+        error,
+      );
       return null;
     }
   }
 
   async calculateSimilarity(
     embedding1: number[],
-    embedding2: number[]
+    embedding2: number[],
   ): Promise<number> {
     try {
       const response = await fetch(`${this.baseUrl}/similarity`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          "Content-Type": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify({
           embedding1,
-          embedding2
+          embedding2,
         }),
-        signal: AbortSignal.timeout(this.timeout)
+        signal: AbortSignal.timeout(this.timeout),
       });
 
       if (!response.ok) {
@@ -227,16 +250,20 @@ export class EmbeddingClient {
 
       const result = await response.json();
       return result.similarity || this.cosineSimilarity(embedding1, embedding2);
-
     } catch (error) {
-      logger.warn(' [EmbeddingClient] Using local similarity calculation due to API error:', error);
+      logger.warn(
+        " [EmbeddingClient] Using local similarity calculation due to API error:",
+        error,
+      );
       return this.cosineSimilarity(embedding1, embedding2);
     }
   }
 
   private cosineSimilarity(a: number[], b: number[]): number {
     if (a.length !== b.length) {
-      throw new Error('Embedding dimensions must match for similarity calculation');
+      throw new Error(
+        "Embedding dimensions must match for similarity calculation",
+      );
     }
 
     let dotProduct = 0;
@@ -259,23 +286,22 @@ export class EmbeddingClient {
   async getServiceInfo(): Promise<any> {
     try {
       const response = await fetch(`${this.baseUrl}/info`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Accept': 'application/json'
+          Accept: "application/json",
         },
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(5000),
       });
 
       if (response.ok) {
         const info = await response.json();
-        logger.debug('📋 [EmbeddingClient] Service info:', info);
+        logger.debug("📋 [EmbeddingClient] Service info:", info);
         return info;
       }
 
       return null;
-
     } catch (error) {
-      logger.error(' [EmbeddingClient] Failed to get service info:', error);
+      logger.error(" [EmbeddingClient] Failed to get service info:", error);
       return null;
     }
   }
@@ -288,7 +314,11 @@ export class EmbeddingClient {
     return this.baseUrl;
   }
 
-  async testConnection(): Promise<{ success: boolean; latency?: number; error?: string }> {
+  async testConnection(): Promise<{
+    success: boolean;
+    latency?: number;
+    error?: string;
+  }> {
     const startTime = Date.now();
 
     try {
@@ -298,36 +328,34 @@ export class EmbeddingClient {
       if (healthy) {
         return {
           success: true,
-          latency
+          latency,
         };
       } else {
         return {
           success: false,
-          error: 'Health check failed'
+          error: "Health check failed",
         };
       }
-
     } catch (error) {
       return {
         success: false,
         latency: Date.now() - startTime,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
 
   async warmup(): Promise<boolean> {
     try {
-      logger.info('🔥 [EmbeddingClient] Warming up embedding service...');
+      logger.info("🔥 [EmbeddingClient] Warming up embedding service...");
 
-      const testText = 'This is a test embedding to warm up the service.';
+      const testText = "This is a test embedding to warm up the service.";
       await this.generateSingleEmbedding(testText);
 
-      logger.info(' [EmbeddingClient] Service warmup completed');
+      logger.info(" [EmbeddingClient] Service warmup completed");
       return true;
-
     } catch (error) {
-      logger.error(' [EmbeddingClient] Service warmup failed:', error);
+      logger.error(" [EmbeddingClient] Service warmup failed:", error);
       return false;
     }
   }

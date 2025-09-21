@@ -16,7 +16,7 @@ export const Layout = ({
   description = "ServiceNow Analytics Dashboard - Real-time monitoring and data processing",
   children,
   showNavigation = true,
-  activeRoute = "/"
+  activeRoute = "/",
 }: LayoutProps) => (
   <html lang="en" class="h-full">
     <head>
@@ -27,15 +27,19 @@ export const Layout = ({
       <link href="/public/styles.css" rel="stylesheet" />
       <script src="https://unpkg.com/htmx.org@1.9.10" defer></script>
       <script src="https://unpkg.com/htmx.org/dist/ext/sse.js" defer></script>
-      <script src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js" defer></script>
-      <script src="https://unpkg.com/chart.js@4.4.0/dist/chart.min.js" defer></script>
+      <script
+        src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js"
+        defer
+      ></script>
+      <script
+        src="https://unpkg.com/chart.js@4.4.0/dist/chart.min.js"
+        defer
+      ></script>
     </head>
     <body class="h-full bg-gray-50 font-sans antialiased">
       <div id="app" class="min-h-screen flex flex-col">
         {showNavigation && <Navigation activeRoute={activeRoute} />}
-        <main class="flex-1 overflow-hidden">
-          {children}
-        </main>
+        <main class="flex-1 overflow-hidden">{children}</main>
       </div>
       <script src="/public/js/dashboard.js"></script>
     </body>
@@ -54,20 +58,54 @@ const Navigation = ({ activeRoute }: NavigationProps) => (
         <div class="flex items-center space-x-4">
           <div class="flex items-center space-x-2">
             <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+              <svg
+                class="w-5 h-5 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                ></path>
               </svg>
             </div>
-            <h1 class="text-xl font-semibold text-gray-900">ServiceNow Analytics</h1>
+            <h1 class="text-xl font-semibold text-gray-900">
+              ServiceNow Analytics
+            </h1>
           </div>
 
           {/* Navigation Links */}
           <div class="hidden md:flex items-center space-x-8 ml-8">
-            <NavLink href="/" active={activeRoute === "/"}>Dashboard</NavLink>
-            <NavLink href="/dashboard/incidents" active={activeRoute === "/dashboard/incidents"}>Incidents</NavLink>
-            <NavLink href="/dashboard/problems" active={activeRoute === "/dashboard/problems"}>Problems</NavLink>
-            <NavLink href="/dashboard/changes" active={activeRoute === "/dashboard/changes"}>Changes</NavLink>
-            <NavLink href="/real-time/monitoring" active={activeRoute === "/real-time/monitoring"}>Real-time</NavLink>
+            <NavLink href="/" active={activeRoute === "/"}>
+              Dashboard
+            </NavLink>
+            <NavLink
+              href="/dashboard/incidents"
+              active={activeRoute === "/dashboard/incidents"}
+            >
+              Incidents
+            </NavLink>
+            <NavLink
+              href="/dashboard/problems"
+              active={activeRoute === "/dashboard/problems"}
+            >
+              Problems
+            </NavLink>
+            <NavLink
+              href="/dashboard/changes"
+              active={activeRoute === "/dashboard/changes"}
+            >
+              Changes
+            </NavLink>
+            <NavLink
+              href="/real-time/monitoring"
+              active={activeRoute === "/real-time/monitoring"}
+            >
+              Real-time
+            </NavLink>
           </div>
         </div>
 
@@ -80,8 +118,18 @@ const Navigation = ({ activeRoute }: NavigationProps) => (
 
           {/* Notification Bell */}
           <button class="relative p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-md">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5z"></path>
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 17h5l-5 5v-5z"
+              ></path>
             </svg>
             <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white"></span>
           </button>
@@ -99,10 +147,7 @@ interface NavLinkProps {
 }
 
 const NavLink = ({ href, active, children }: NavLinkProps) => (
-  <a
-    href={href}
-    class={active ? "nav-link-active" : "nav-link-inactive"}
-  >
+  <a href={href} class={active ? "nav-link-active" : "nav-link-inactive"}>
     {children}
   </a>
 );

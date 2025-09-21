@@ -22,12 +22,12 @@ class SSEManager {
 
     // Send welcome message
     this.sendToClient(controller, {
-      event: 'connected',
+      event: "connected",
       data: {
-        message: 'Connected to real-time updates',
+        message: "Connected to real-time updates",
         timestamp: new Date().toISOString(),
-        clientId: Date.now()
-      }
+        clientId: Date.now(),
+      },
     });
   }
 
@@ -43,19 +43,25 @@ class SSEManager {
       try {
         this.sendToClient(client, message);
       } catch (error) {
-        console.error('Failed to send to client:', error);
+        console.error("Failed to send to client:", error);
         disconnectedClients.push(client);
       }
     }
 
     // Remove disconnected clients
-    disconnectedClients.forEach(client => this.removeClient(client));
+    disconnectedClients.forEach((client) => this.removeClient(client));
   }
 
-  private sendToClient(controller: ReadableStreamDefaultController, message: EventMessage) {
+  private sendToClient(
+    controller: ReadableStreamDefaultController,
+    message: EventMessage,
+  ) {
     const id = message.id || String(++this.eventId);
-    const event = message.event || 'message';
-    const data = typeof message.data === 'string' ? message.data : JSON.stringify(message.data);
+    const event = message.event || "message";
+    const data =
+      typeof message.data === "string"
+        ? message.data
+        : JSON.stringify(message.data);
     const retry = message.retry || 5000;
 
     const sseMessage = [
@@ -63,9 +69,9 @@ class SSEManager {
       `event: ${event}`,
       `data: ${data}`,
       `retry: ${retry}`,
-      '', // Empty line to end the message
-      ''
-    ].join('\n');
+      "", // Empty line to end the message
+      "",
+    ].join("\n");
 
     controller.enqueue(new TextEncoder().encode(sseMessage));
   }
@@ -82,56 +88,57 @@ setInterval(() => {
   // Simulate incident count updates
   const incidentCount = Math.floor(Math.random() * 50) + 10;
   sseManager.broadcast({
-    event: 'incident-count',
+    event: "incident-count",
     data: {
       count: incidentCount,
-      timestamp: new Date().toISOString()
-    }
+      timestamp: new Date().toISOString(),
+    },
   });
 
   // Simulate problem count updates
   const problemCount = Math.floor(Math.random() * 20) + 5;
   sseManager.broadcast({
-    event: 'problem-count',
+    event: "problem-count",
     data: {
       count: problemCount,
-      timestamp: new Date().toISOString()
-    }
+      timestamp: new Date().toISOString(),
+    },
   });
 
   // Simulate change count updates
   const changeCount = Math.floor(Math.random() * 30) + 8;
   sseManager.broadcast({
-    event: 'change-count',
+    event: "change-count",
     data: {
       count: changeCount,
-      timestamp: new Date().toISOString()
-    }
+      timestamp: new Date().toISOString(),
+    },
   });
 
   // Simulate processing status
-  const statuses = ['Processing', 'Idle', 'Syncing', 'Complete'];
+  const statuses = ["Processing", "Idle", "Syncing", "Complete"];
   const status = statuses[Math.floor(Math.random() * statuses.length)];
   sseManager.broadcast({
-    event: 'processing-status',
+    event: "processing-status",
     data: {
       status,
-      timestamp: new Date().toISOString()
-    }
+      timestamp: new Date().toISOString(),
+    },
   });
 }, 30000); // Update every 30 seconds
 
 // Simulate critical alerts
 setInterval(() => {
-  if (Math.random() < 0.3) { // 30% chance of critical alert
+  if (Math.random() < 0.3) {
+    // 30% chance of critical alert
     sseManager.broadcast({
-      event: 'alert-critical',
+      event: "alert-critical",
       data: {
-        type: 'critical',
-        title: 'Critical Incident Detected',
-        message: `New P1 incident INC${String(Math.floor(Math.random() * 9999999)).padStart(7, '0')} requires immediate attention`,
-        timestamp: new Date().toISOString()
-      }
+        type: "critical",
+        title: "Critical Incident Detected",
+        message: `New P1 incident INC${String(Math.floor(Math.random() * 9999999)).padStart(7, "0")} requires immediate attention`,
+        timestamp: new Date().toISOString(),
+      },
     });
   }
 }, 120000); // Check every 2 minutes
@@ -140,11 +147,11 @@ export default new Elysia({ prefix: "/events" })
   // SSE Stream endpoint
   .get("/stream", ({ set }) => {
     set.headers = {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Cache-Control'
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Cache-Control",
     };
 
     const stream = new ReadableStream({
@@ -155,32 +162,32 @@ export default new Elysia({ prefix: "/events" })
         // Send initial data
         setTimeout(() => {
           sseManager.broadcast({
-            event: 'initial-data',
+            event: "initial-data",
             data: {
               incident_count: Math.floor(Math.random() * 50) + 10,
               problem_count: Math.floor(Math.random() * 20) + 5,
               change_count: Math.floor(Math.random() * 30) + 8,
-              processing_status: 'Active',
-              timestamp: new Date().toISOString()
-            }
+              processing_status: "Active",
+              timestamp: new Date().toISOString(),
+            },
           });
         }, 100);
       },
 
       cancel() {
         // Client disconnected
-        console.log('SSE Stream cancelled');
-      }
+        console.log("SSE Stream cancelled");
+      },
     });
 
     return new Response(stream, {
       headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Cache-Control'
-      }
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Cache-Control",
+      },
     });
   })
 
@@ -188,43 +195,47 @@ export default new Elysia({ prefix: "/events" })
   .post("/trigger/incident-update", ({ body }) => {
     const { count } = body as { count: number };
     sseManager.broadcast({
-      event: 'incident-count',
+      event: "incident-count",
       data: {
         count: count || Math.floor(Math.random() * 50) + 10,
         timestamp: new Date().toISOString(),
-        source: 'manual'
-      }
+        source: "manual",
+      },
     });
 
     return {
       success: true,
-      message: 'Incident count update broadcasted',
-      clients: sseManager.getClientCount()
+      message: "Incident count update broadcasted",
+      clients: sseManager.getClientCount(),
     };
   })
 
   .post("/trigger/alert", ({ body }) => {
-    const { type = 'info', title, message } = body as {
+    const {
+      type = "info",
+      title,
+      message,
+    } = body as {
       type?: string;
       title: string;
       message: string;
     };
 
     sseManager.broadcast({
-      event: 'alert-' + type,
+      event: "alert-" + type,
       data: {
         type,
         title,
         message,
         timestamp: new Date().toISOString(),
-        source: 'manual'
-      }
+        source: "manual",
+      },
     });
 
     return {
       success: true,
-      message: 'Alert broadcasted',
-      clients: sseManager.getClientCount()
+      message: "Alert broadcasted",
+      clients: sseManager.getClientCount(),
     };
   })
 
@@ -235,19 +246,19 @@ export default new Elysia({ prefix: "/events" })
     };
 
     sseManager.broadcast({
-      event: 'processing-status',
+      event: "processing-status",
       data: {
         status,
         progress: progress || Math.floor(Math.random() * 100),
         timestamp: new Date().toISOString(),
-        source: 'manual'
-      }
+        source: "manual",
+      },
     });
 
     return {
       success: true,
-      message: 'Processing status update broadcasted',
-      clients: sseManager.getClientCount()
+      message: "Processing status update broadcasted",
+      clients: sseManager.getClientCount(),
     };
   })
 
@@ -255,79 +266,95 @@ export default new Elysia({ prefix: "/events" })
   .get("/status", () => {
     return {
       connected_clients: sseManager.getClientCount(),
-      status: 'active',
-      timestamp: new Date().toISOString()
+      status: "active",
+      timestamp: new Date().toISOString(),
     };
   })
 
   // WebSocket endpoint for bidirectional communication
   .ws("/websocket", {
     message(ws, message) {
-      console.log('WebSocket message received:', message);
+      console.log("WebSocket message received:", message);
 
       try {
         const data = JSON.parse(message as string);
 
         switch (data.type) {
-          case 'ping':
-            ws.send(JSON.stringify({
-              type: 'pong',
-              timestamp: new Date().toISOString()
-            }));
+          case "ping":
+            ws.send(
+              JSON.stringify({
+                type: "pong",
+                timestamp: new Date().toISOString(),
+              }),
+            );
             break;
 
-          case 'subscribe':
-            ws.send(JSON.stringify({
-              type: 'subscribed',
-              events: data.events || ['incident-count', 'problem-count', 'change-count'],
-              timestamp: new Date().toISOString()
-            }));
+          case "subscribe":
+            ws.send(
+              JSON.stringify({
+                type: "subscribed",
+                events: data.events || [
+                  "incident-count",
+                  "problem-count",
+                  "change-count",
+                ],
+                timestamp: new Date().toISOString(),
+              }),
+            );
             break;
 
-          case 'request-data':
-            ws.send(JSON.stringify({
-              type: 'data',
-              incident_count: Math.floor(Math.random() * 50) + 10,
-              problem_count: Math.floor(Math.random() * 20) + 5,
-              change_count: Math.floor(Math.random() * 30) + 8,
-              timestamp: new Date().toISOString()
-            }));
+          case "request-data":
+            ws.send(
+              JSON.stringify({
+                type: "data",
+                incident_count: Math.floor(Math.random() * 50) + 10,
+                problem_count: Math.floor(Math.random() * 20) + 5,
+                change_count: Math.floor(Math.random() * 30) + 8,
+                timestamp: new Date().toISOString(),
+              }),
+            );
             break;
 
           default:
-            ws.send(JSON.stringify({
-              type: 'error',
-              message: 'Unknown message type',
-              timestamp: new Date().toISOString()
-            }));
+            ws.send(
+              JSON.stringify({
+                type: "error",
+                message: "Unknown message type",
+                timestamp: new Date().toISOString(),
+              }),
+            );
         }
       } catch (error) {
-        ws.send(JSON.stringify({
-          type: 'error',
-          message: 'Invalid JSON message',
-          timestamp: new Date().toISOString()
-        }));
+        ws.send(
+          JSON.stringify({
+            type: "error",
+            message: "Invalid JSON message",
+            timestamp: new Date().toISOString(),
+          }),
+        );
       }
     },
 
     open(ws) {
-      console.log('WebSocket connection opened');
-      ws.send(JSON.stringify({
-        type: 'connected',
-        message: 'WebSocket connection established',
-        timestamp: new Date().toISOString()
-      }));
+      console.log("WebSocket connection opened");
+      ws.send(
+        JSON.stringify({
+          type: "connected",
+          message: "WebSocket connection established",
+          timestamp: new Date().toISOString(),
+        }),
+      );
     },
 
     close(ws) {
-      console.log('WebSocket connection closed');
-    }
+      console.log("WebSocket connection closed");
+    },
   })
 
   .get("/health", () => ({
     status: "healthy",
     service: "sse-stream",
-    clients: sseManager.getClientCount()
+    clients: sseManager.getClientCount(),
   }));
 
 // Export SSE manager for use in other parts of the application

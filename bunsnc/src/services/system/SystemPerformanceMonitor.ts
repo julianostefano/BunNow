@@ -4,8 +4,8 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { EventEmitter } from 'events';
-import { logger } from '../../utils/Logger';
+import { EventEmitter } from "events";
+import { logger } from "../../utils/Logger";
 
 export interface PerformanceMetric {
   timestamp: Date;
@@ -46,14 +46,16 @@ export class SystemPerformanceMonitor extends EventEmitter {
     super();
     this.config = config;
     this.thresholds = {
-      response_time_warning: config.performance?.thresholds?.response_time_warning || 1000,
-      response_time_critical: config.performance?.thresholds?.response_time_critical || 5000,
+      response_time_warning:
+        config.performance?.thresholds?.response_time_warning || 1000,
+      response_time_critical:
+        config.performance?.thresholds?.response_time_critical || 5000,
       memory_warning: config.performance?.thresholds?.memory_warning || 512,
       memory_critical: config.performance?.thresholds?.memory_critical || 1024,
       cpu_warning: 70,
       cpu_critical: 90,
       error_rate_warning: 5,
-      error_rate_critical: 10
+      error_rate_critical: 10,
     };
   }
 
@@ -62,11 +64,11 @@ export class SystemPerformanceMonitor extends EventEmitter {
    */
   async initialize(): Promise<void> {
     try {
-      logger.info(' [SystemPerformance] Initializing performance monitor...');
+      logger.info(" [SystemPerformance] Initializing performance monitor...");
       // Initialize any required resources
-      logger.info(' [SystemPerformance] Performance monitor initialized');
+      logger.info(" [SystemPerformance] Performance monitor initialized");
     } catch (error) {
-      logger.error(' [SystemPerformance] Failed to initialize:', error);
+      logger.error(" [SystemPerformance] Failed to initialize:", error);
       throw error;
     }
   }
@@ -78,7 +80,7 @@ export class SystemPerformanceMonitor extends EventEmitter {
     if (this.isMonitoring) return;
 
     this.isMonitoring = true;
-    logger.info(' [SystemPerformance] Starting performance monitoring...');
+    logger.info(" [SystemPerformance] Starting performance monitoring...");
 
     // Monitor system metrics every 30 seconds
     this.monitoringInterval = setInterval(async () => {
@@ -87,7 +89,7 @@ export class SystemPerformanceMonitor extends EventEmitter {
       await this.checkThresholds();
     }, 30000);
 
-    logger.info(' [SystemPerformance] Performance monitoring started');
+    logger.info(" [SystemPerformance] Performance monitoring started");
   }
 
   /**
@@ -99,7 +101,7 @@ export class SystemPerformanceMonitor extends EventEmitter {
       this.monitoringInterval = undefined;
     }
     this.isMonitoring = false;
-    logger.info(' [SystemPerformance] Performance monitoring stopped');
+    logger.info(" [SystemPerformance] Performance monitoring stopped");
   }
 
   /**
@@ -108,7 +110,7 @@ export class SystemPerformanceMonitor extends EventEmitter {
   async recordMetric(metric: Partial<PerformanceMetric>): Promise<void> {
     const completeMetric: PerformanceMetric = {
       timestamp: new Date(),
-      operation: metric.operation || 'unknown',
+      operation: metric.operation || "unknown",
       response_time_ms: metric.response_time_ms || 0,
       endpoint: metric.endpoint,
       memory_usage_mb: metric.memory_usage_mb,
@@ -119,7 +121,7 @@ export class SystemPerformanceMonitor extends EventEmitter {
       redis_ops: metric.redis_ops,
       error_count: metric.error_count,
       request_size_kb: metric.request_size_kb,
-      response_size_kb: metric.response_size_kb
+      response_size_kb: metric.response_size_kb,
     };
 
     // Store in memory buffer
@@ -147,19 +149,26 @@ export class SystemPerformanceMonitor extends EventEmitter {
 
       // Basic CPU usage estimation
       const cpuUsage = process.cpuUsage();
-      const cpuPercent = Math.round((cpuUsage.user + cpuUsage.system) / 1000000 * 100);
+      const cpuPercent = Math.round(
+        ((cpuUsage.user + cpuUsage.system) / 1000000) * 100,
+      );
 
       await this.recordMetric({
-        operation: 'system_metrics',
-        endpoint: 'system',
+        operation: "system_metrics",
+        endpoint: "system",
         response_time_ms: 0,
         memory_usage_mb: memoryMB,
-        cpu_usage_percent: Math.min(cpuPercent, 100)
+        cpu_usage_percent: Math.min(cpuPercent, 100),
       });
 
-      logger.debug(`🖥️ [SystemPerformance] Memory: ${memoryMB}MB, CPU: ${Math.min(cpuPercent, 100)}%`);
+      logger.debug(
+        `🖥️ [SystemPerformance] Memory: ${memoryMB}MB, CPU: ${Math.min(cpuPercent, 100)}%`,
+      );
     } catch (error) {
-      logger.error(' [SystemPerformance] Failed to collect system metrics:', error);
+      logger.error(
+        " [SystemPerformance] Failed to collect system metrics:",
+        error,
+      );
     }
   }
 
@@ -170,18 +179,29 @@ export class SystemPerformanceMonitor extends EventEmitter {
     if (this.metrics.length < 10) return;
 
     const recent = this.metrics.slice(-10);
-    const avgResponseTime = recent.reduce((sum, m) => sum + m.response_time_ms, 0) / recent.length;
-    const avgMemory = recent.filter(m => m.memory_usage_mb).reduce((sum, m) => sum + (m.memory_usage_mb || 0), 0) / recent.filter(m => m.memory_usage_mb).length;
+    const avgResponseTime =
+      recent.reduce((sum, m) => sum + m.response_time_ms, 0) / recent.length;
+    const avgMemory =
+      recent
+        .filter((m) => m.memory_usage_mb)
+        .reduce((sum, m) => sum + (m.memory_usage_mb || 0), 0) /
+      recent.filter((m) => m.memory_usage_mb).length;
 
-    logger.debug(`📈 [SystemPerformance] Avg Response: ${avgResponseTime.toFixed(2)}ms, Avg Memory: ${avgMemory.toFixed(2)}MB`);
+    logger.debug(
+      `📈 [SystemPerformance] Avg Response: ${avgResponseTime.toFixed(2)}ms, Avg Memory: ${avgMemory.toFixed(2)}MB`,
+    );
 
     // Check for performance degradation trends
     if (avgResponseTime > this.thresholds.response_time_warning) {
-      logger.warn(` [SystemPerformance] Average response time: ${avgResponseTime.toFixed(2)}ms exceeds threshold: ${this.thresholds.response_time_warning}ms`);
+      logger.warn(
+        ` [SystemPerformance] Average response time: ${avgResponseTime.toFixed(2)}ms exceeds threshold: ${this.thresholds.response_time_warning}ms`,
+      );
     }
 
     if (avgMemory > this.thresholds.memory_warning) {
-      logger.warn(` [SystemPerformance] Average memory usage: ${avgMemory.toFixed(2)}MB exceeds threshold: ${this.thresholds.memory_warning}MB`);
+      logger.warn(
+        ` [SystemPerformance] Average memory usage: ${avgMemory.toFixed(2)}MB exceeds threshold: ${this.thresholds.memory_warning}MB`,
+      );
     }
   }
 
@@ -198,44 +218,72 @@ export class SystemPerformanceMonitor extends EventEmitter {
   /**
    * Check thresholds for a specific metric
    */
-  private async checkMetricThresholds(metric: PerformanceMetric): Promise<void> {
+  private async checkMetricThresholds(
+    metric: PerformanceMetric,
+  ): Promise<void> {
     // Response time thresholds
     if (metric.response_time_ms > this.thresholds.response_time_critical) {
-      logger.error(`🚨 [SystemPerformance] CRITICAL - Response time: ${metric.response_time_ms}ms exceeds critical threshold: ${this.thresholds.response_time_critical}ms`);
-      this.emit('thresholdExceeded', {
-        type: 'response_time_critical',
+      logger.error(
+        `🚨 [SystemPerformance] CRITICAL - Response time: ${metric.response_time_ms}ms exceeds critical threshold: ${this.thresholds.response_time_critical}ms`,
+      );
+      this.emit("thresholdExceeded", {
+        type: "response_time_critical",
         value: metric.response_time_ms,
         threshold: this.thresholds.response_time_critical,
-        metric
+        metric,
       });
-    } else if (metric.response_time_ms > this.thresholds.response_time_warning) {
-      logger.warn(` [SystemPerformance] WARNING - Response time: ${metric.response_time_ms}ms exceeds warning threshold: ${this.thresholds.response_time_warning}ms`);
+    } else if (
+      metric.response_time_ms > this.thresholds.response_time_warning
+    ) {
+      logger.warn(
+        ` [SystemPerformance] WARNING - Response time: ${metric.response_time_ms}ms exceeds warning threshold: ${this.thresholds.response_time_warning}ms`,
+      );
     }
 
     // Memory thresholds
-    if (metric.memory_usage_mb && metric.memory_usage_mb > this.thresholds.memory_critical) {
-      logger.error(`🚨 [SystemPerformance] CRITICAL - Memory usage: ${metric.memory_usage_mb}MB exceeds critical threshold: ${this.thresholds.memory_critical}MB`);
-      this.emit('thresholdExceeded', {
-        type: 'memory_critical',
+    if (
+      metric.memory_usage_mb &&
+      metric.memory_usage_mb > this.thresholds.memory_critical
+    ) {
+      logger.error(
+        `🚨 [SystemPerformance] CRITICAL - Memory usage: ${metric.memory_usage_mb}MB exceeds critical threshold: ${this.thresholds.memory_critical}MB`,
+      );
+      this.emit("thresholdExceeded", {
+        type: "memory_critical",
         value: metric.memory_usage_mb,
         threshold: this.thresholds.memory_critical,
-        metric
+        metric,
       });
-    } else if (metric.memory_usage_mb && metric.memory_usage_mb > this.thresholds.memory_warning) {
-      logger.warn(` [SystemPerformance] WARNING - Memory usage: ${metric.memory_usage_mb}MB exceeds warning threshold: ${this.thresholds.memory_warning}MB`);
+    } else if (
+      metric.memory_usage_mb &&
+      metric.memory_usage_mb > this.thresholds.memory_warning
+    ) {
+      logger.warn(
+        ` [SystemPerformance] WARNING - Memory usage: ${metric.memory_usage_mb}MB exceeds warning threshold: ${this.thresholds.memory_warning}MB`,
+      );
     }
 
     // CPU thresholds
-    if (metric.cpu_usage_percent && metric.cpu_usage_percent > this.thresholds.cpu_critical) {
-      logger.error(`🚨 [SystemPerformance] CRITICAL - CPU usage: ${metric.cpu_usage_percent}% exceeds critical threshold: ${this.thresholds.cpu_critical}%`);
-      this.emit('thresholdExceeded', {
-        type: 'cpu_critical',
+    if (
+      metric.cpu_usage_percent &&
+      metric.cpu_usage_percent > this.thresholds.cpu_critical
+    ) {
+      logger.error(
+        `🚨 [SystemPerformance] CRITICAL - CPU usage: ${metric.cpu_usage_percent}% exceeds critical threshold: ${this.thresholds.cpu_critical}%`,
+      );
+      this.emit("thresholdExceeded", {
+        type: "cpu_critical",
         value: metric.cpu_usage_percent,
         threshold: this.thresholds.cpu_critical,
-        metric
+        metric,
       });
-    } else if (metric.cpu_usage_percent && metric.cpu_usage_percent > this.thresholds.cpu_warning) {
-      logger.warn(` [SystemPerformance] WARNING - CPU usage: ${metric.cpu_usage_percent}% exceeds warning threshold: ${this.thresholds.cpu_warning}%`);
+    } else if (
+      metric.cpu_usage_percent &&
+      metric.cpu_usage_percent > this.thresholds.cpu_warning
+    ) {
+      logger.warn(
+        ` [SystemPerformance] WARNING - CPU usage: ${metric.cpu_usage_percent}% exceeds warning threshold: ${this.thresholds.cpu_warning}%`,
+      );
     }
   }
 
@@ -246,10 +294,13 @@ export class SystemPerformanceMonitor extends EventEmitter {
     try {
       if (this.config.mongodb?.client) {
         const db = this.config.mongodb.client.db(this.config.mongodb.database);
-        await db.collection('performance_metrics').insertOne(metric);
+        await db.collection("performance_metrics").insertOne(metric);
       }
     } catch (error) {
-      logger.debug(' [SystemPerformance] Failed to persist metric (non-critical):', error);
+      logger.debug(
+        " [SystemPerformance] Failed to persist metric (non-critical):",
+        error,
+      );
     }
   }
 
@@ -259,15 +310,17 @@ export class SystemPerformanceMonitor extends EventEmitter {
   async getStats(timeRange: number = 24): Promise<any> {
     try {
       const since = new Date(Date.now() - timeRange * 60 * 60 * 1000);
-      const recentMetrics = this.metrics.filter(m => m.timestamp >= since);
+      const recentMetrics = this.metrics.filter((m) => m.timestamp >= since);
 
       if (recentMetrics.length === 0) {
         return {
           time_range_hours: timeRange,
           total_operations: 0,
           operations: [],
-          current_memory_mb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-          monitoring_active: this.isMonitoring
+          current_memory_mb: Math.round(
+            process.memoryUsage().heapUsed / 1024 / 1024,
+          ),
+          monitoring_active: this.isMonitoring,
         };
       }
 
@@ -282,15 +335,21 @@ export class SystemPerformanceMonitor extends EventEmitter {
             minResponseTime: Number.MAX_VALUE,
             totalMemory: 0,
             memoryCount: 0,
-            totalErrors: 0
+            totalErrors: 0,
           };
         }
 
         const opStats = stats[op];
         opStats.count++;
         opStats.totalResponseTime += metric.response_time_ms;
-        opStats.maxResponseTime = Math.max(opStats.maxResponseTime, metric.response_time_ms);
-        opStats.minResponseTime = Math.min(opStats.minResponseTime, metric.response_time_ms);
+        opStats.maxResponseTime = Math.max(
+          opStats.maxResponseTime,
+          metric.response_time_ms,
+        );
+        opStats.minResponseTime = Math.min(
+          opStats.minResponseTime,
+          metric.response_time_ms,
+        );
 
         if (metric.memory_usage_mb) {
           opStats.totalMemory += metric.memory_usage_mb;
@@ -304,26 +363,34 @@ export class SystemPerformanceMonitor extends EventEmitter {
         return stats;
       }, {} as any);
 
-      const operations = Object.keys(operationStats).map(op => ({
+      const operations = Object.keys(operationStats).map((op) => ({
         _id: op,
         count: operationStats[op].count,
-        avg_response_time: operationStats[op].totalResponseTime / operationStats[op].count,
+        avg_response_time:
+          operationStats[op].totalResponseTime / operationStats[op].count,
         max_response_time: operationStats[op].maxResponseTime,
-        min_response_time: operationStats[op].minResponseTime === Number.MAX_VALUE ? 0 : operationStats[op].minResponseTime,
-        avg_memory: operationStats[op].memoryCount > 0 ? operationStats[op].totalMemory / operationStats[op].memoryCount : null,
-        total_errors: operationStats[op].totalErrors
+        min_response_time:
+          operationStats[op].minResponseTime === Number.MAX_VALUE
+            ? 0
+            : operationStats[op].minResponseTime,
+        avg_memory:
+          operationStats[op].memoryCount > 0
+            ? operationStats[op].totalMemory / operationStats[op].memoryCount
+            : null,
+        total_errors: operationStats[op].totalErrors,
       }));
 
       return {
         time_range_hours: timeRange,
         total_operations: recentMetrics.length,
         operations,
-        current_memory_mb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-        monitoring_active: this.isMonitoring
+        current_memory_mb: Math.round(
+          process.memoryUsage().heapUsed / 1024 / 1024,
+        ),
+        monitoring_active: this.isMonitoring,
       };
-
     } catch (error) {
-      logger.error(' [SystemPerformance] Failed to get stats:', error);
+      logger.error(" [SystemPerformance] Failed to get stats:", error);
       return {};
     }
   }
@@ -333,19 +400,27 @@ export class SystemPerformanceMonitor extends EventEmitter {
    */
   updateThresholds(newThresholds: Partial<PerformanceThresholds>): void {
     this.thresholds = { ...this.thresholds, ...newThresholds };
-    logger.info('🎯 [SystemPerformance] Performance thresholds updated:', this.thresholds);
+    logger.info(
+      "🎯 [SystemPerformance] Performance thresholds updated:",
+      this.thresholds,
+    );
   }
 
   /**
    * Get current memory usage
    */
-  getMemoryUsage(): { heapUsed: number, heapTotal: number, external: number, rss: number } {
+  getMemoryUsage(): {
+    heapUsed: number;
+    heapTotal: number;
+    external: number;
+    rss: number;
+  } {
     const mem = process.memoryUsage();
     return {
       heapUsed: Math.round(mem.heapUsed / 1024 / 1024),
       heapTotal: Math.round(mem.heapTotal / 1024 / 1024),
       external: Math.round(mem.external / 1024 / 1024),
-      rss: Math.round(mem.rss / 1024 / 1024)
+      rss: Math.round(mem.rss / 1024 / 1024),
     };
   }
 
@@ -355,9 +430,11 @@ export class SystemPerformanceMonitor extends EventEmitter {
   async healthCheck(): Promise<boolean> {
     try {
       const memory = this.getMemoryUsage();
-      return memory.heapUsed < this.thresholds.memory_critical && this.isMonitoring;
+      return (
+        memory.heapUsed < this.thresholds.memory_critical && this.isMonitoring
+      );
     } catch (error) {
-      logger.error(' [SystemPerformance] Health check failed:', error);
+      logger.error(" [SystemPerformance] Health check failed:", error);
       return false;
     }
   }
@@ -368,6 +445,6 @@ export class SystemPerformanceMonitor extends EventEmitter {
   async cleanup(): Promise<void> {
     await this.stop();
     this.metrics = [];
-    logger.info('🧹 [SystemPerformance] Cleanup completed');
+    logger.info("🧹 [SystemPerformance] Cleanup completed");
   }
 }

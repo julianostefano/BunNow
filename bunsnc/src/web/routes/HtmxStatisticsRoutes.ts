@@ -3,19 +3,18 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { Elysia, t } from 'elysia';
-import { html } from '@elysiajs/html';
-import { htmx } from '@gtramontina.com/elysia-htmx';
-
+import { Elysia, t } from "elysia";
+import { html } from "@elysiajs/html";
+import { htmx } from "@gtramontina.com/elysia-htmx";
 
 export const htmxStatisticsRoutes = new Elysia()
   .use(html())
   .use(htmx())
-  
+
   /**
    * Metrics cards component
    */
-  .get('/metrics', async () => {
+  .get("/metrics", async () => {
     const metrics = {
       total_tickets: 2850,
       resolved_tickets: 1950,
@@ -24,8 +23,8 @@ export const htmxStatisticsRoutes = new Elysia()
       by_type: {
         incidents: 1200,
         change_tasks: 800,
-        service_catalog_tasks: 850
-      }
+        service_catalog_tasks: 850,
+      },
     };
     // Rate limiting now handled internally - using mock data for safe rendering
     const rateLimitMetrics = {
@@ -33,7 +32,7 @@ export const htmxStatisticsRoutes = new Elysia()
       successfulRequests: 14890,
       failedRequests: 760,
       rateLimitedRequests: 125,
-      averageResponseTime: 245
+      averageResponseTime: 245,
     };
 
     return `
@@ -92,87 +91,87 @@ export const htmxStatisticsRoutes = new Elysia()
   /**
    * Statistics page component
    */
-  .get('/statistics', async () => {
+  .get("/statistics", async () => {
     const stats = [
       {
-        tipo_chamado: 'incident',
-        estado_numero: '1',
-        status_portugues: 'Novo',
+        tipo_chamado: "incident",
+        estado_numero: "1",
+        status_portugues: "Novo",
         total_chamados: 125,
-        percentual: 8.7
+        percentual: 8.7,
       },
       {
-        tipo_chamado: 'incident',
-        estado_numero: '2',
-        status_portugues: 'Em Andamento',
+        tipo_chamado: "incident",
+        estado_numero: "2",
+        status_portugues: "Em Andamento",
         total_chamados: 234,
-        percentual: 16.4
+        percentual: 16.4,
       },
       {
-        tipo_chamado: 'incident',
-        estado_numero: '6',
-        status_portugues: 'Resolvido',
+        tipo_chamado: "incident",
+        estado_numero: "6",
+        status_portugues: "Resolvido",
         total_chamados: 841,
-        percentual: 58.8
+        percentual: 58.8,
       },
       {
-        tipo_chamado: 'incident',
-        estado_numero: '7',
-        status_portugues: 'Fechado',
+        tipo_chamado: "incident",
+        estado_numero: "7",
+        status_portugues: "Fechado",
         total_chamados: 230,
-        percentual: 16.1
+        percentual: 16.1,
       },
       {
-        tipo_chamado: 'change_task',
-        estado_numero: '1',
-        status_portugues: 'Pendente',
+        tipo_chamado: "change_task",
+        estado_numero: "1",
+        status_portugues: "Pendente",
         total_chamados: 45,
-        percentual: 11.3
+        percentual: 11.3,
       },
       {
-        tipo_chamado: 'change_task',
-        estado_numero: '2',
-        status_portugues: 'Em Progresso',
+        tipo_chamado: "change_task",
+        estado_numero: "2",
+        status_portugues: "Em Progresso",
         total_chamados: 178,
-        percentual: 44.5
+        percentual: 44.5,
       },
       {
-        tipo_chamado: 'change_task',
-        estado_numero: '3',
-        status_portugues: 'Concluído',
+        tipo_chamado: "change_task",
+        estado_numero: "3",
+        status_portugues: "Concluído",
         total_chamados: 177,
-        percentual: 44.2
+        percentual: 44.2,
       },
       {
-        tipo_chamado: 'sc_task',
-        estado_numero: '1',
-        status_portugues: 'Aguardando Aprovação',
+        tipo_chamado: "sc_task",
+        estado_numero: "1",
+        status_portugues: "Aguardando Aprovação",
         total_chamados: 89,
-        percentual: 10.5
+        percentual: 10.5,
       },
       {
-        tipo_chamado: 'sc_task',
-        estado_numero: '2',
-        status_portugues: 'Aprovado',
+        tipo_chamado: "sc_task",
+        estado_numero: "2",
+        status_portugues: "Aprovado",
         total_chamados: 356,
-        percentual: 41.9
+        percentual: 41.9,
       },
       {
-        tipo_chamado: 'sc_task',
-        estado_numero: '3',
-        status_portugues: 'Rejeitado',
+        tipo_chamado: "sc_task",
+        estado_numero: "3",
+        status_portugues: "Rejeitado",
         total_chamados: 67,
-        percentual: 7.9
+        percentual: 7.9,
       },
       {
-        tipo_chamado: 'sc_task',
-        estado_numero: '7',
-        status_portugues: 'Entregue',
+        tipo_chamado: "sc_task",
+        estado_numero: "7",
+        status_portugues: "Entregue",
         total_chamados: 338,
-        percentual: 39.7
-      }
+        percentual: 39.7,
+      },
     ];
-    
+
     // Rate limiting now handled internally - using mock data for safe rendering
     const rateLimitStats = {
       details: {
@@ -180,18 +179,23 @@ export const htmxStatisticsRoutes = new Elysia()
           successfulRequests: 14890,
           failedRequests: 760,
           rateLimitedRequests: 125,
-          averageResponseTime: 245
-        }
-      }
+          averageResponseTime: 245,
+        },
+      },
     };
-    
-    const groupedStats = stats.reduce((acc, stat) => {
-      if (!acc[stat.tipo_chamado]) acc[stat.tipo_chamado] = [];
-      acc[stat.tipo_chamado].push(stat);
-      return acc;
-    }, {} as Record<string, any[]>);
 
-    const statsTable = Object.entries(groupedStats).map(([type, typeStats]) => `
+    const groupedStats = stats.reduce(
+      (acc, stat) => {
+        if (!acc[stat.tipo_chamado]) acc[stat.tipo_chamado] = [];
+        acc[stat.tipo_chamado].push(stat);
+        return acc;
+      },
+      {} as Record<string, any[]>,
+    );
+
+    const statsTable = Object.entries(groupedStats)
+      .map(
+        ([type, typeStats]) => `
       <div class="bg-white rounded-lg shadow-sm border p-6 mb-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4 capitalize">${getTableLabel(type)}</h3>
         <div class="overflow-x-auto">
@@ -205,7 +209,9 @@ export const htmxStatisticsRoutes = new Elysia()
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-              ${typeStats.map(stat => `
+              ${typeStats
+                .map(
+                  (stat) => `
                 <tr class="hover:bg-gray-50">
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     <span class="status-badge ${getStatusClass(stat.estado_numero)}">${stat.estado_numero}</span>
@@ -221,12 +227,16 @@ export const htmxStatisticsRoutes = new Elysia()
                     </div>
                   </td>
                 </tr>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </tbody>
           </table>
         </div>
       </div>
-    `).join('');
+    `,
+      )
+      .join("");
 
     return `
       <div class="space-y-6">
@@ -265,23 +275,23 @@ export const htmxStatisticsRoutes = new Elysia()
 // Helper functions
 function getStatusClass(state: string): string {
   const classes: Record<string, string> = {
-    '1': 'status-1',
-    '2': 'status-2', 
-    '3': 'status-3',
-    '6': 'status-6',
-    '7': 'status-7',
-    '8': 'status-8'
+    "1": "status-1",
+    "2": "status-2",
+    "3": "status-3",
+    "6": "status-6",
+    "7": "status-7",
+    "8": "status-8",
   };
-  return classes[state] || 'status-badge';
+  return classes[state] || "status-badge";
 }
 
 function getTableLabel(table: string): string {
   const labels: Record<string, string> = {
-    'incident': 'Incidentes',
-    'change_request': 'Mudanças',
-    'change_task': 'Tarefas de Mudança',
-    'sc_req_item': 'Itens de Solicitação',
-    'sc_task': 'Tarefas de Solicitação'
+    incident: "Incidentes",
+    change_request: "Mudanças",
+    change_task: "Tarefas de Mudança",
+    sc_req_item: "Itens de Solicitação",
+    sc_task: "Tarefas de Solicitação",
   };
-  return labels[table] || table.replace('_', ' ');
+  return labels[table] || table.replace("_", " ");
 }

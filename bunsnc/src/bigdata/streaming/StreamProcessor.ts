@@ -3,11 +3,11 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { EventEmitter } from 'events';
-import { Transform, Readable, Writable, pipeline } from 'stream';
-import { Worker } from 'worker_threads';
-import { logger } from '../../utils/Logger';
-import { performanceMonitor } from '../../utils/PerformanceMonitor';
+import { EventEmitter } from "events";
+import { Transform, Readable, Writable, pipeline } from "stream";
+import { Worker } from "worker_threads";
+import { logger } from "../../utils/Logger";
+import { performanceMonitor } from "../../utils/PerformanceMonitor";
 
 export interface StreamProcessorConfig {
   name: string;
@@ -15,7 +15,7 @@ export interface StreamProcessorConfig {
   maxConcurrency: number;
   bufferSize: number;
   backpressureThreshold: number;
-  backpressureStrategy: 'drop' | 'buffer' | 'throttle' | 'circuit_breaker';
+  backpressureStrategy: "drop" | "buffer" | "throttle" | "circuit_breaker";
   timeoutMs: number;
   retryPolicy: {
     maxRetries: number;
@@ -75,15 +75,19 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
     isActive: false,
     threshold: 0,
     currentLoad: 0,
-    strategy: 'buffer',
-    mitigationActions: []
+    strategy: "buffer",
+    mitigationActions: [],
   };
-  
+
   // Processing components
   private workers: Worker[] = [];
-  private processingQueue: Array<{ batch: T[]; resolve: Function; reject: Function }> = [];
+  private processingQueue: Array<{
+    batch: T[];
+    resolve: Function;
+    reject: Function;
+  }> = [];
   private monitoringInterval?: NodeJS.Timeout;
-  
+
   // Metrics tracking
   private startTime: number = Date.now();
   private totalProcessed: number = 0;
@@ -96,13 +100,13 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
     this.config = { ...config };
     this.backpressureState.threshold = config.backpressureThreshold;
     this.backpressureState.strategy = config.backpressureStrategy;
-    
+
     this.initializeWorkers();
-    
+
     if (config.monitoring.enabled) {
       this.startMonitoring();
     }
-    
+
     logger.info(`StreamProcessor initialized: ${config.name}`);
   }
 
@@ -111,66 +115,73 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
    */
   createProcessingStream(processingFn: ProcessingFunction<T, R>): Transform {
     const processor = this;
-    
+
     return new Transform({
       objectMode: true,
       highWaterMark: this.config.bufferSize,
-      
+
       async transform(chunk: T, encoding, callback) {
         try {
           // Check backpressure before processing
           if (processor.shouldApplyBackpressure()) {
             await processor.handleBackpressure(chunk);
           }
-          
+
           // Add to processing buffer
           processor.buffer.push(chunk);
-          
+
           // Process if buffer is full or timeout reached
-          if (processor.buffer.length >= processor.config.batchSize || 
-              Date.now() - processor.lastProcessingTime > processor.config.timeoutMs) {
-            const batch = processor.buffer.splice(0, processor.config.batchSize);
-            
+          if (
+            processor.buffer.length >= processor.config.batchSize ||
+            Date.now() - processor.lastProcessingTime >
+              processor.config.timeoutMs
+          ) {
+            const batch = processor.buffer.splice(
+              0,
+              processor.config.batchSize,
+            );
+
             try {
               const results = await processor.processBatch(batch, processingFn);
-              
+
               // Push results to next stage
               for (const result of results) {
                 this.push(result);
               }
-              
+
               processor.updateMetrics(batch.length, 0, results.length);
-              
             } catch (error) {
               processor.handleProcessingError(error, batch);
               // Optionally push error records to dead letter queue
-              this.emit('error', error);
+              this.emit("error", error);
             }
           }
-          
+
           callback();
-          
         } catch (error) {
           callback(error);
         }
       },
-      
+
       async flush(callback) {
         // Process remaining buffer on stream end
         if (processor.buffer.length > 0) {
           try {
-            const results = await processor.processBatch(processor.buffer, processingFn);
+            const results = await processor.processBatch(
+              processor.buffer,
+              processingFn,
+            );
             for (const result of results) {
               this.push(result);
             }
             processor.buffer = [];
           } catch (error) {
-            this.emit('error', error);
+            this.emit("error", error);
           }
         }
-        
+
         callback();
-      }
+      },
     });
   }
 
@@ -179,10 +190,10 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
    */
   createFilterStream(filterFn: FilterFunction<T>): Transform {
     const processor = this;
-    
+
     return new Transform({
       objectMode: true,
-      
+
       transform(chunk: T, encoding, callback) {
         try {
           if (filterFn(chunk)) {
@@ -195,7 +206,7 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
         } catch (error) {
           callback(error);
         }
-      }
+      },
     });
   }
 
@@ -204,10 +215,10 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
    */
   createTransformStream(transformFn: TransformFunction<T, R>): Transform {
     const processor = this;
-    
+
     return new Transform({
       objectMode: true,
-      
+
       async transform(chunk: T, encoding, callback) {
         try {
           const result = await transformFn(chunk);
@@ -219,7 +230,7 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
           processor.handleProcessingError(error, [chunk]);
           callback(); // Continue processing
         }
-      }
+      },
     });
   }
 
@@ -228,27 +239,27 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
    */
   createBatchingStream(batchSize: number = this.config.batchSize): Transform {
     let batch: T[] = [];
-    
+
     return new Transform({
       objectMode: true,
-      
+
       transform(chunk: T, encoding, callback) {
         batch.push(chunk);
-        
+
         if (batch.length >= batchSize) {
           this.push([...batch]);
           batch = [];
         }
-        
+
         callback();
       },
-      
+
       flush(callback) {
         if (batch.length > 0) {
           this.push(batch);
         }
         callback();
-      }
+      },
     });
   }
 
@@ -256,35 +267,38 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
    * Create a debouncing stream that throttles rapid updates
    */
   createDebouncingStream(debounceMs: number): Transform {
-    const pendingRecords = new Map<string, { record: T; timer: NodeJS.Timeout }>();
-    
+    const pendingRecords = new Map<
+      string,
+      { record: T; timer: NodeJS.Timeout }
+    >();
+
     return new Transform({
       objectMode: true,
-      
+
       transform(chunk: T, encoding, callback) {
         const key = this.getRecordKey(chunk);
-        
+
         // Clear existing timer for this key
         const existing = pendingRecords.get(key);
         if (existing) {
           clearTimeout(existing.timer);
         }
-        
+
         // Set new timer
         const timer = setTimeout(() => {
           this.push(chunk);
           pendingRecords.delete(key);
         }, debounceMs);
-        
+
         pendingRecords.set(key, { record: chunk, timer });
         callback();
       },
-      
+
       getRecordKey(record: T): string {
         // Override this method to provide custom key extraction
         return JSON.stringify(record);
       },
-      
+
       flush(callback) {
         // Flush all pending records
         for (const [key, { record, timer }] of pendingRecords) {
@@ -293,7 +307,7 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
         }
         pendingRecords.clear();
         callback();
-      }
+      },
     });
   }
 
@@ -305,25 +319,25 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
     const refillInterval = setInterval(() => {
       tokens = Math.min(maxRatePerSecond, tokens + maxRatePerSecond);
     }, 1000);
-    
+
     return new Transform({
       objectMode: true,
-      
+
       async transform(chunk: T, encoding, callback) {
         // Wait for token availability
         while (tokens <= 0) {
-          await new Promise(resolve => setTimeout(resolve, 10));
+          await new Promise((resolve) => setTimeout(resolve, 10));
         }
-        
+
         tokens--;
         this.push(chunk);
         callback();
       },
-      
+
       destroy(error, callback) {
         clearInterval(refillInterval);
         callback(error);
-      }
+      },
     });
   }
 
@@ -333,81 +347,91 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
   createDeadLetterStream(maxRetries: number = 3): Transform {
     const retryTracker = new Map<string, number>();
     const processor = this;
-    
+
     return new Transform({
       objectMode: true,
-      
-      async transform(chunk: { record: T; error: Error; attempt?: number }, encoding, callback) {
+
+      async transform(
+        chunk: { record: T; error: Error; attempt?: number },
+        encoding,
+        callback,
+      ) {
         const recordKey = JSON.stringify(chunk.record);
         const currentAttempts = retryTracker.get(recordKey) || 0;
-        
+
         if (currentAttempts < maxRetries) {
           // Retry with exponential backoff
           const backoffMs = Math.min(
             1000 * Math.pow(2, currentAttempts),
-            processor.config.retryPolicy.maxBackoffMs
+            processor.config.retryPolicy.maxBackoffMs,
           );
-          
-          await new Promise(resolve => setTimeout(resolve, backoffMs));
-          
+
+          await new Promise((resolve) => setTimeout(resolve, backoffMs));
+
           retryTracker.set(recordKey, currentAttempts + 1);
-          
+
           // Push back for retry
           this.push({ ...chunk, attempt: currentAttempts + 1 });
-          
         } else {
           // Send to dead letter queue
-          processor.emit('dead_letter', {
+          processor.emit("dead_letter", {
             record: chunk.record,
             error: chunk.error,
             attempts: currentAttempts + 1,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           });
-          
+
           retryTracker.delete(recordKey);
         }
-        
+
         callback();
-      }
+      },
     });
   }
 
   /**
    * Process a batch of records with the given processing function
    */
-  async processBatch(batch: T[], processingFn: ProcessingFunction<T, R>): Promise<R[]> {
+  async processBatch(
+    batch: T[],
+    processingFn: ProcessingFunction<T, R>,
+  ): Promise<R[]> {
     if (this.circuitBreakerOpen) {
-      throw new Error('Circuit breaker is open - processing temporarily disabled');
+      throw new Error(
+        "Circuit breaker is open - processing temporarily disabled",
+      );
     }
 
     const startTime = Date.now();
-    const timerName = 'stream_processing_batch';
+    const timerName = "stream_processing_batch";
     performanceMonitor.startTimer(timerName);
-    
+
     try {
       const results = await Promise.race([
         processingFn(batch),
         new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error('Processing timeout')), this.config.timeoutMs);
-        })
+          setTimeout(
+            () => reject(new Error("Processing timeout")),
+            this.config.timeoutMs,
+          );
+        }),
       ]);
-      
+
       const processingTime = Date.now() - startTime;
       this.processingTimes.push(processingTime);
-      
+
       // Keep only recent processing times for metrics
       if (this.processingTimes.length > 100) {
         this.processingTimes = this.processingTimes.slice(-100);
       }
-      
+
       this.consecutiveErrors = 0;
       this.lastProcessingTime = Date.now();
-      
+
       return results;
-      
     } catch (error) {
       this.consecutiveErrors++;
-      
+
       // Open circuit breaker if too many consecutive errors
       if (this.consecutiveErrors >= 5) {
         this.circuitBreakerOpen = true;
@@ -416,12 +440,11 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
           this.consecutiveErrors = 0;
           logger.info(`Circuit breaker reset for ${this.config.name}`);
         }, 30000); // 30 seconds
-        
+
         logger.warn(`Circuit breaker opened for ${this.config.name}`);
       }
-      
+
       throw error;
-      
     } finally {
       performanceMonitor.endTimer(timerName);
     }
@@ -434,14 +457,16 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
     const bufferUtilization = this.buffer.length / this.config.bufferSize;
     const processingQueueSize = this.processingQueue.length;
     const memoryUsage = process.memoryUsage().heapUsed / 1024 / 1024; // MB
-    
+
     this.backpressureState.currentLoad = Math.max(
       bufferUtilization,
       processingQueueSize / this.config.maxConcurrency,
-      memoryUsage / 1000 // Assume 1GB threshold
+      memoryUsage / 1000, // Assume 1GB threshold
     );
-    
-    return this.backpressureState.currentLoad > this.backpressureState.threshold;
+
+    return (
+      this.backpressureState.currentLoad > this.backpressureState.threshold
+    );
   }
 
   /**
@@ -451,45 +476,47 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
     if (!this.backpressureState.isActive) {
       this.backpressureState.isActive = true;
       this.backpressureState.activeSince = Date.now();
-      
-      logger.warn(`Backpressure activated for ${this.config.name}: ${this.backpressureState.currentLoad.toFixed(2)} > ${this.backpressureState.threshold}`);
-      this.emit('backpressure:activated', this.backpressureState);
+
+      logger.warn(
+        `Backpressure activated for ${this.config.name}: ${this.backpressureState.currentLoad.toFixed(2)} > ${this.backpressureState.threshold}`,
+      );
+      this.emit("backpressure:activated", this.backpressureState);
     }
 
     switch (this.config.backpressureStrategy) {
-      case 'drop':
+      case "drop":
         // Drop the record
         this.totalDropped++;
-        this.backpressureState.mitigationActions.push('dropped_record');
-        throw new Error('Record dropped due to backpressure');
+        this.backpressureState.mitigationActions.push("dropped_record");
+        throw new Error("Record dropped due to backpressure");
 
-      case 'buffer':
+      case "buffer":
         // Wait for buffer space to become available
         while (this.buffer.length >= this.config.bufferSize) {
-          await new Promise(resolve => setTimeout(resolve, 10));
+          await new Promise((resolve) => setTimeout(resolve, 10));
         }
         break;
 
-      case 'throttle':
+      case "throttle":
         // Introduce delay to slow down processing
         const delay = Math.min(this.backpressureState.currentLoad * 100, 1000);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
         this.backpressureState.mitigationActions.push(`throttled_${delay}ms`);
         break;
 
-      case 'circuit_breaker':
+      case "circuit_breaker":
         // Temporarily stop processing
         this.isPaused = true;
-        this.backpressureState.mitigationActions.push('circuit_breaker_open');
-        
+        this.backpressureState.mitigationActions.push("circuit_breaker_open");
+
         setTimeout(() => {
           this.isPaused = false;
           this.backpressureState.isActive = false;
           logger.info(`Circuit breaker reset for ${this.config.name}`);
         }, 5000); // 5 seconds
-        
+
         while (this.isPaused) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise((resolve) => setTimeout(resolve, 100));
         }
         break;
     }
@@ -500,24 +527,24 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
    */
   private handleProcessingError(error: Error, batch: T[]): void {
     this.totalErrored += batch.length;
-    
+
     logger.error(`Processing error in ${this.config.name}:`, error);
-    
-    this.emit('processing:error', {
+
+    this.emit("processing:error", {
       error,
       batchSize: batch.length,
       consecutiveErrors: this.consecutiveErrors,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
-    
+
     // Send to dead letter queue if configured
-    if (this.listenerCount('dead_letter') > 0) {
+    if (this.listenerCount("dead_letter") > 0) {
       for (const record of batch) {
-        this.emit('dead_letter', {
+        this.emit("dead_letter", {
           record,
           error,
           attempts: 1,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       }
     }
@@ -526,21 +553,27 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
   /**
    * Update metrics tracking
    */
-  private updateMetrics(processed: number, dropped: number, succeeded: number): void {
+  private updateMetrics(
+    processed: number,
+    dropped: number,
+    succeeded: number,
+  ): void {
     this.totalProcessed += succeeded;
     this.totalDropped += dropped;
-    
+
     // Reset backpressure state if load is below threshold
     if (this.backpressureState.isActive && !this.shouldApplyBackpressure()) {
       const duration = Date.now() - (this.backpressureState.activeSince || 0);
-      
-      logger.info(`Backpressure deactivated for ${this.config.name} after ${duration}ms`);
-      
+
+      logger.info(
+        `Backpressure deactivated for ${this.config.name} after ${duration}ms`,
+      );
+
       this.backpressureState.isActive = false;
       this.backpressureState.activeSince = undefined;
       this.backpressureState.mitigationActions = [];
-      
-      this.emit('backpressure:deactivated', { duration });
+
+      this.emit("backpressure:deactivated", { duration });
     }
   }
 
@@ -550,9 +583,12 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
   getCurrentMetrics(): ProcessorMetrics {
     const now = Date.now();
     const runtimeMs = now - this.startTime;
-    const avgProcessingTime = this.processingTimes.length > 0 ? 
-      this.processingTimes.reduce((sum, time) => sum + time, 0) / this.processingTimes.length : 0;
-    
+    const avgProcessingTime =
+      this.processingTimes.length > 0
+        ? this.processingTimes.reduce((sum, time) => sum + time, 0) /
+          this.processingTimes.length
+        : 0;
+
     const metrics: ProcessorMetrics = {
       timestamp: now,
       recordsProcessed: this.totalProcessed,
@@ -561,19 +597,21 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
       recordsErrored: this.totalErrored,
       avgProcessingTimeMs: avgProcessingTime,
       bufferUtilization: this.buffer.length / this.config.bufferSize,
-      throughputPerSecond: runtimeMs > 0 ? (this.totalProcessed / runtimeMs) * 1000 : 0,
-      errorRate: this.totalProcessed > 0 ? this.totalErrored / this.totalProcessed : 0,
+      throughputPerSecond:
+        runtimeMs > 0 ? (this.totalProcessed / runtimeMs) * 1000 : 0,
+      errorRate:
+        this.totalProcessed > 0 ? this.totalErrored / this.totalProcessed : 0,
       backpressureEvents: this.backpressureState.isActive ? 1 : 0,
       memoryUsageMB: process.memoryUsage().heapUsed / 1024 / 1024,
-      cpuUtilization: process.cpuUsage().user / 1000 / runtimeMs * 100
+      cpuUtilization: (process.cpuUsage().user / 1000 / runtimeMs) * 100,
     };
-    
+
     // Store metrics history
     this.metricsHistory.push(metrics);
     if (this.metricsHistory.length > 1000) {
       this.metricsHistory = this.metricsHistory.slice(-1000);
     }
-    
+
     return metrics;
   }
 
@@ -590,46 +628,45 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
   private startMonitoring(): void {
     this.monitoringInterval = setInterval(() => {
       const metrics = this.getCurrentMetrics();
-      
-      this.emit('metrics:update', metrics);
-      
+
+      this.emit("metrics:update", metrics);
+
       // Check alert thresholds
       const thresholds = this.config.monitoring.alertThresholds;
-      
+
       if (metrics.bufferUtilization > thresholds.bufferUtilization) {
-        this.emit('alert:buffer_utilization', {
+        this.emit("alert:buffer_utilization", {
           current: metrics.bufferUtilization,
           threshold: thresholds.bufferUtilization,
-          severity: 'warning'
+          severity: "warning",
         });
       }
-      
+
       if (metrics.avgProcessingTimeMs > thresholds.processingLatency) {
-        this.emit('alert:processing_latency', {
+        this.emit("alert:processing_latency", {
           current: metrics.avgProcessingTimeMs,
           threshold: thresholds.processingLatency,
-          severity: 'warning'
+          severity: "warning",
         });
       }
-      
+
       if (metrics.errorRate > thresholds.errorRate) {
-        this.emit('alert:error_rate', {
+        this.emit("alert:error_rate", {
           current: metrics.errorRate,
           threshold: thresholds.errorRate,
-          severity: 'critical'
+          severity: "critical",
         });
       }
-      
+
       if (metrics.throughputPerSecond < thresholds.throughput) {
-        this.emit('alert:low_throughput', {
+        this.emit("alert:low_throughput", {
           current: metrics.throughputPerSecond,
           threshold: thresholds.throughput,
-          severity: 'warning'
+          severity: "warning",
         });
       }
-      
     }, this.config.monitoring.metricsInterval);
-    
+
     logger.info(`Monitoring started for ${this.config.name}`);
   }
 
@@ -650,7 +687,9 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
   private initializeWorkers(): void {
     // Worker thread setup would be implemented here
     // For now, we'll use the main thread
-    logger.debug(`Workers initialized for ${this.config.name} (using main thread)`);
+    logger.debug(
+      `Workers initialized for ${this.config.name} (using main thread)`,
+    );
   }
 
   /**
@@ -658,27 +697,29 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
    */
   async shutdown(): Promise<void> {
     logger.info(`Shutting down stream processor: ${this.config.name}`);
-    
+
     this.isPaused = true;
     this.stopMonitoring();
-    
+
     // Process remaining buffer
     if (this.buffer.length > 0) {
-      logger.info(`Processing remaining ${this.buffer.length} records in buffer`);
+      logger.info(
+        `Processing remaining ${this.buffer.length} records in buffer`,
+      );
       // Would process the remaining buffer here
     }
-    
+
     // Terminate workers
-    const workerPromises = this.workers.map(worker => worker.terminate());
+    const workerPromises = this.workers.map((worker) => worker.terminate());
     await Promise.all(workerPromises);
-    
-    this.emit('shutdown', {
+
+    this.emit("shutdown", {
       totalProcessed: this.totalProcessed,
       totalDropped: this.totalDropped,
       totalErrored: this.totalErrored,
-      finalMetrics: this.getCurrentMetrics()
+      finalMetrics: this.getCurrentMetrics(),
     });
-    
+
     logger.info(`Stream processor shutdown complete: ${this.config.name}`);
   }
 
@@ -694,7 +735,7 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
    */
   pause(): void {
     this.isPaused = true;
-    this.emit('paused');
+    this.emit("paused");
     logger.info(`Stream processor paused: ${this.config.name}`);
   }
 
@@ -703,7 +744,7 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
    */
   resume(): void {
     this.isPaused = false;
-    this.emit('resumed');
+    this.emit("resumed");
     logger.info(`Stream processor resumed: ${this.config.name}`);
   }
 
@@ -713,12 +754,14 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
   isHealthy(): boolean {
     const metrics = this.getCurrentMetrics();
     const thresholds = this.config.monitoring.alertThresholds;
-    
-    return !this.circuitBreakerOpen &&
-           !this.isPaused &&
-           metrics.errorRate < thresholds.errorRate &&
-           metrics.bufferUtilization < 0.9 &&
-           this.consecutiveErrors < 3;
+
+    return (
+      !this.circuitBreakerOpen &&
+      !this.isPaused &&
+      metrics.errorRate < thresholds.errorRate &&
+      metrics.bufferUtilization < 0.9 &&
+      this.consecutiveErrors < 3
+    );
   }
 }
 
@@ -729,19 +772,21 @@ export class ServiceNowStreamProcessorFactory {
   /**
    * Create processor for real-time incident processing
    */
-  static createIncidentProcessor(config: Partial<StreamProcessorConfig> = {}): StreamProcessor {
+  static createIncidentProcessor(
+    config: Partial<StreamProcessorConfig> = {},
+  ): StreamProcessor {
     const defaultConfig: StreamProcessorConfig = {
-      name: 'ServiceNow_Incident_Processor',
+      name: "ServiceNow_Incident_Processor",
       batchSize: 100,
       maxConcurrency: 4,
       bufferSize: 1000,
       backpressureThreshold: 0.8,
-      backpressureStrategy: 'throttle',
+      backpressureStrategy: "throttle",
       timeoutMs: 30000,
       retryPolicy: {
         maxRetries: 3,
         backoffMultiplier: 2,
-        maxBackoffMs: 30000
+        maxBackoffMs: 30000,
       },
       monitoring: {
         enabled: true,
@@ -750,9 +795,9 @@ export class ServiceNowStreamProcessorFactory {
           bufferUtilization: 0.8,
           processingLatency: 10000,
           errorRate: 0.05,
-          throughput: 50
-        }
-      }
+          throughput: 50,
+        },
+      },
     };
 
     return new StreamProcessor({ ...defaultConfig, ...config });
@@ -761,19 +806,21 @@ export class ServiceNowStreamProcessorFactory {
   /**
    * Create processor for high-volume data export
    */
-  static createExportProcessor(config: Partial<StreamProcessorConfig> = {}): StreamProcessor {
+  static createExportProcessor(
+    config: Partial<StreamProcessorConfig> = {},
+  ): StreamProcessor {
     const defaultConfig: StreamProcessorConfig = {
-      name: 'ServiceNow_Export_Processor',
+      name: "ServiceNow_Export_Processor",
       batchSize: 1000,
       maxConcurrency: 8,
       bufferSize: 10000,
       backpressureThreshold: 0.9,
-      backpressureStrategy: 'buffer',
+      backpressureStrategy: "buffer",
       timeoutMs: 120000,
       retryPolicy: {
         maxRetries: 5,
         backoffMultiplier: 1.5,
-        maxBackoffMs: 60000
+        maxBackoffMs: 60000,
       },
       monitoring: {
         enabled: true,
@@ -782,9 +829,9 @@ export class ServiceNowStreamProcessorFactory {
           bufferUtilization: 0.9,
           processingLatency: 30000,
           errorRate: 0.01,
-          throughput: 1000
-        }
-      }
+          throughput: 1000,
+        },
+      },
     };
 
     return new StreamProcessor({ ...defaultConfig, ...config });
@@ -793,19 +840,21 @@ export class ServiceNowStreamProcessorFactory {
   /**
    * Create processor for real-time notifications
    */
-  static createNotificationProcessor(config: Partial<StreamProcessorConfig> = {}): StreamProcessor {
+  static createNotificationProcessor(
+    config: Partial<StreamProcessorConfig> = {},
+  ): StreamProcessor {
     const defaultConfig: StreamProcessorConfig = {
-      name: 'ServiceNow_Notification_Processor',
+      name: "ServiceNow_Notification_Processor",
       batchSize: 50,
       maxConcurrency: 2,
       bufferSize: 500,
       backpressureThreshold: 0.7,
-      backpressureStrategy: 'circuit_breaker',
+      backpressureStrategy: "circuit_breaker",
       timeoutMs: 5000,
       retryPolicy: {
         maxRetries: 2,
         backoffMultiplier: 2,
-        maxBackoffMs: 5000
+        maxBackoffMs: 5000,
       },
       monitoring: {
         enabled: true,
@@ -814,9 +863,9 @@ export class ServiceNowStreamProcessorFactory {
           bufferUtilization: 0.7,
           processingLatency: 3000,
           errorRate: 0.1,
-          throughput: 100
-        }
-      }
+          throughput: 100,
+        },
+      },
     };
 
     return new StreamProcessor({ ...defaultConfig, ...config });
@@ -846,17 +895,17 @@ export class StreamUtils {
   static createFanOut<T>(destinations: Writable[]): Transform {
     return new Transform({
       objectMode: true,
-      
+
       transform(chunk: T, encoding, callback) {
         // Send to all destinations
         for (const dest of destinations) {
           dest.write(chunk);
         }
-        
+
         // Also pass through to next stage
         this.push(chunk);
         callback();
-      }
+      },
     });
   }
 
@@ -866,11 +915,11 @@ export class StreamUtils {
   static createMerge<T>(sources: Readable[]): Transform {
     const mergeStream = new Transform({
       objectMode: true,
-      
+
       transform(chunk: T, encoding, callback) {
         this.push(chunk);
         callback();
-      }
+      },
     });
 
     // Pipe all sources to merge stream
@@ -885,14 +934,14 @@ export class StreamUtils {
    * Create a conditional routing stream
    */
   static createRouter<T>(
-    conditions: Array<{ predicate: (record: T) => boolean; stream: Writable }>
+    conditions: Array<{ predicate: (record: T) => boolean; stream: Writable }>,
   ): Transform {
     return new Transform({
       objectMode: true,
-      
+
       transform(chunk: T, encoding, callback) {
         let routed = false;
-        
+
         for (const { predicate, stream } of conditions) {
           if (predicate(chunk)) {
             stream.write(chunk);
@@ -900,14 +949,14 @@ export class StreamUtils {
             break;
           }
         }
-        
+
         if (!routed) {
           // Default: pass through if no conditions match
           this.push(chunk);
         }
-        
+
         callback();
-      }
+      },
     });
   }
 }

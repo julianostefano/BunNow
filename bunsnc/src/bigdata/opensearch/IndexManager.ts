@@ -3,10 +3,10 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { EventEmitter } from 'events';
-import { logger } from '../../utils/Logger';
-import { performanceMonitor } from '../../utils/PerformanceMonitor';
-import type { OpenSearchClient, IndexConfig } from './OpenSearchClient';
+import { EventEmitter } from "events";
+import { logger } from "../../utils/Logger";
+import { performanceMonitor } from "../../utils/PerformanceMonitor";
+import type { OpenSearchClient, IndexConfig } from "./OpenSearchClient";
 
 export interface IndexTemplate {
   name: string;
@@ -70,7 +70,7 @@ export interface IndexLifecyclePolicy {
 
 export interface IndexMetrics {
   name: string;
-  status: 'green' | 'yellow' | 'red';
+  status: "green" | "yellow" | "red";
   health: string;
   documentsCount: number;
   primarySize: number;
@@ -88,8 +88,8 @@ export interface IndexMetrics {
 
 export interface IndexOptimizationSuggestion {
   index: string;
-  type: 'performance' | 'storage' | 'mapping' | 'lifecycle';
-  priority: 'high' | 'medium' | 'low';
+  type: "performance" | "storage" | "mapping" | "lifecycle";
+  priority: "high" | "medium" | "low";
   description: string;
   action: string;
   estimatedImpact: string;
@@ -104,8 +104,8 @@ export class IndexManager extends EventEmitter {
   constructor(client: OpenSearchClient) {
     super();
     this.client = client;
-    
-    logger.info('IndexManager initialized');
+
+    logger.info("IndexManager initialized");
   }
 
   /**
@@ -119,66 +119,62 @@ export class IndexManager extends EventEmitter {
       replicas?: number;
       shards?: number;
       customMappings?: any;
-    } = {}
+    } = {},
   ): Promise<boolean> {
-    const timer = performanceMonitor.startTimer('index_create_template');
-    
+    const timer = performanceMonitor.startTimer("index_create_template");
+
     try {
       const template: IndexTemplate = {
         name: `servicenow-${table}-template`,
-        indexPatterns: [
-          `servicenow-${table}-*`,
-          `servicenow-${table}-write`
-        ],
+        indexPatterns: [`servicenow-${table}-*`, `servicenow-${table}-write`],
         template: {
           settings: {
             number_of_shards: options.shards || 1,
             number_of_replicas: options.replicas || 1,
-            refresh_interval: '30s',
-            'index.max_result_window': 50000,
-            'index.lifecycle.name': `servicenow-${table}-policy`,
-            'index.lifecycle.rollover_alias': `servicenow-${table}-write`,
+            refresh_interval: "30s",
+            "index.max_result_window": 50000,
+            "index.lifecycle.name": `servicenow-${table}-policy`,
+            "index.lifecycle.rollover_alias": `servicenow-${table}-write`,
             analysis: this.getServiceNowAnalysisSettings(),
             mapping: {
               total_fields: {
-                limit: 2000 // ServiceNow tables can have many fields
-              }
-            }
+                limit: 2000, // ServiceNow tables can have many fields
+              },
+            },
           },
           mappings: options.customMappings || this.getServiceNowMappings(table),
           aliases: {
             [`servicenow-${table}-read`]: {},
-            [`servicenow-${table}-latest`]: {}
-          }
+            [`servicenow-${table}-latest`]: {},
+          },
         },
         priority: 100,
-        version: 1
+        version: 1,
       };
 
-      const response = await this.client['client'].indices.putTemplate({
+      const response = await this.client["client"].indices.putTemplate({
         name: template.name,
         body: template.template,
-        include_type_name: false
+        include_type_name: false,
       });
 
       const success = response.statusCode === 200;
-      
+
       if (success) {
         logger.info(`Created index template: ${template.name}`);
-        this.emit('template:created', { templateName: template.name, table });
-        
+        this.emit("template:created", { templateName: template.name, table });
+
         // Create initial index
         await this.createInitialIndex(table, template.name);
-        
+
         // Create lifecycle policy
         await this.createLifecyclePolicy(table, {
-          rolloverSize: options.rolloverSize || '50gb',
-          rolloverAge: options.rolloverAge || '30d'
+          rolloverSize: options.rolloverSize || "50gb",
+          rolloverAge: options.rolloverAge || "30d",
         });
       }
 
       return success;
-
     } catch (error) {
       logger.error(`Error creating template for table ${table}:`, error);
       return false;
@@ -198,10 +194,10 @@ export class IndexManager extends EventEmitter {
       warmAge?: string;
       coldAge?: string;
       deleteAge?: string;
-    } = {}
+    } = {},
   ): Promise<boolean> {
-    const timer = performanceMonitor.startTimer('index_create_lifecycle');
-    
+    const timer = performanceMonitor.startTimer("index_create_lifecycle");
+
     try {
       const policy: IndexLifecyclePolicy = {
         policyId: `servicenow-${table}-policy`,
@@ -210,60 +206,62 @@ export class IndexManager extends EventEmitter {
             hot: {
               actions: {
                 rollover: {
-                  max_size: options.rolloverSize || '50gb',
-                  max_age: options.rolloverAge || '30d',
-                  max_docs: 100000000 // 100M documents
+                  max_size: options.rolloverSize || "50gb",
+                  max_age: options.rolloverAge || "30d",
+                  max_docs: 100000000, // 100M documents
                 },
                 set_priority: {
-                  priority: 100
-                }
-              }
+                  priority: 100,
+                },
+              },
             },
             warm: {
-              min_age: options.warmAge || '7d',
+              min_age: options.warmAge || "7d",
               actions: {
                 allocate: {
-                  number_of_replicas: 0 // Reduce replicas in warm phase
+                  number_of_replicas: 0, // Reduce replicas in warm phase
                 },
                 force_merge: {
-                  max_num_segments: 1
+                  max_num_segments: 1,
                 },
                 set_priority: {
-                  priority: 50
-                }
-              }
+                  priority: 50,
+                },
+              },
             },
             cold: {
-              min_age: options.coldAge || '90d',
+              min_age: options.coldAge || "90d",
               actions: {
                 allocate: {
-                  number_of_replicas: 0
+                  number_of_replicas: 0,
                 },
                 set_priority: {
-                  priority: 0
-                }
-              }
+                  priority: 0,
+                },
+              },
             },
             delete: {
-              min_age: options.deleteAge || '365d'
-            }
-          }
-        }
+              min_age: options.deleteAge || "365d",
+            },
+          },
+        },
       };
 
       // Note: This would use the ISM (Index State Management) plugin
       // For standard OpenSearch, we'll simulate the policy creation
       const success = await this.simulateLifecyclePolicyCreation(policy);
-      
+
       if (success) {
         logger.info(`Created lifecycle policy: ${policy.policyId}`);
-        this.emit('policy:created', { policyId: policy.policyId, table });
+        this.emit("policy:created", { policyId: policy.policyId, table });
       }
 
       return success;
-
     } catch (error) {
-      logger.error(`Error creating lifecycle policy for table ${table}:`, error);
+      logger.error(
+        `Error creating lifecycle policy for table ${table}:`,
+        error,
+      );
       return false;
     } finally {
       performanceMonitor.endTimer(timer);
@@ -279,15 +277,17 @@ export class IndexManager extends EventEmitter {
       forceOptimization?: boolean;
       maxSegments?: number;
       onlyExpungeDeletes?: boolean;
-    } = {}
+    } = {},
   ): Promise<boolean> {
-    const timer = performanceMonitor.startTimer('index_optimize');
-    
+    const timer = performanceMonitor.startTimer("index_optimize");
+
     try {
       // Get current index metrics
       const metrics = await this.getIndexMetrics(indexName);
       if (!metrics) {
-        logger.warn(`Cannot optimize index ${indexName} - metrics not available`);
+        logger.warn(
+          `Cannot optimize index ${indexName} - metrics not available`,
+        );
         return false;
       }
 
@@ -295,26 +295,30 @@ export class IndexManager extends EventEmitter {
 
       // Force merge if segments are fragmented
       if (metrics.segmentsCount > 20 || options.forceOptimization) {
-        optimizations.push(() => this.forceMergeIndex(indexName, {
-          maxSegments: options.maxSegments || 1,
-          onlyExpungeDeletes: options.onlyExpungeDeletes || false
-        }));
+        optimizations.push(() =>
+          this.forceMergeIndex(indexName, {
+            maxSegments: options.maxSegments || 1,
+            onlyExpungeDeletes: options.onlyExpungeDeletes || false,
+          }),
+        );
       }
 
       // Refresh index to make recent changes searchable
       optimizations.push(() => this.refreshIndex(indexName));
 
       // Execute optimizations
-      const results = await Promise.all(optimizations.map(opt => opt()));
-      const success = results.every(result => result);
+      const results = await Promise.all(optimizations.map((opt) => opt()));
+      const success = results.every((result) => result);
 
       if (success) {
         logger.info(`Successfully optimized index: ${indexName}`);
-        this.emit('index:optimized', { indexName, optimizations: optimizations.length });
+        this.emit("index:optimized", {
+          indexName,
+          optimizations: optimizations.length,
+        });
       }
 
       return success;
-
     } catch (error) {
       logger.error(`Error optimizing index ${indexName}:`, error);
       return false;
@@ -326,29 +330,34 @@ export class IndexManager extends EventEmitter {
   /**
    * Analyze index performance and suggest optimizations
    */
-  async analyzeIndexPerformance(indexName: string): Promise<IndexOptimizationSuggestion[]> {
-    const timer = performanceMonitor.startTimer('index_analyze_performance');
-    
+  async analyzeIndexPerformance(
+    indexName: string,
+  ): Promise<IndexOptimizationSuggestion[]> {
+    const timer = performanceMonitor.startTimer("index_analyze_performance");
+
     try {
       const suggestions: IndexOptimizationSuggestion[] = [];
       const metrics = await this.getIndexMetrics(indexName);
-      
+
       if (!metrics) {
         return suggestions;
       }
 
       // Check document count vs primary size ratio
-      const avgDocSize = metrics.documentsCount > 0 ? 
-        metrics.primarySize / metrics.documentsCount : 0;
-      
-      if (avgDocSize > 10000) { // > 10KB per document
+      const avgDocSize =
+        metrics.documentsCount > 0
+          ? metrics.primarySize / metrics.documentsCount
+          : 0;
+
+      if (avgDocSize > 10000) {
+        // > 10KB per document
         suggestions.push({
           index: indexName,
-          type: 'storage',
-          priority: 'medium',
-          description: 'Documents are larger than expected',
-          action: 'Consider enabling compression or reviewing field mappings',
-          estimatedImpact: 'Reduce storage by 20-30%'
+          type: "storage",
+          priority: "medium",
+          description: "Documents are larger than expected",
+          action: "Consider enabling compression or reviewing field mappings",
+          estimatedImpact: "Reduce storage by 20-30%",
         });
       }
 
@@ -356,11 +365,11 @@ export class IndexManager extends EventEmitter {
       if (metrics.segmentsCount > 50) {
         suggestions.push({
           index: indexName,
-          type: 'performance',
-          priority: 'high',
-          description: 'Too many segments',
-          action: 'Execute force merge to consolidate segments',
-          estimatedImpact: 'Improve search performance by 15-25%'
+          type: "performance",
+          priority: "high",
+          description: "Too many segments",
+          action: "Execute force merge to consolidate segments",
+          estimatedImpact: "Improve search performance by 15-25%",
         });
       }
 
@@ -368,11 +377,11 @@ export class IndexManager extends EventEmitter {
       if (metrics.searchRate > 100 && metrics.shards.replica === 0) {
         suggestions.push({
           index: indexName,
-          type: 'performance',
-          priority: 'medium',
-          description: 'High search load with no replicas',
-          action: 'Add replica shards to distribute search load',
-          estimatedImpact: 'Improve search latency by 30-40%'
+          type: "performance",
+          priority: "medium",
+          description: "High search load with no replicas",
+          action: "Add replica shards to distribute search load",
+          estimatedImpact: "Improve search latency by 30-40%",
         });
       }
 
@@ -381,31 +390,37 @@ export class IndexManager extends EventEmitter {
       if (primarySizeGB > 50 && metrics.shards.primary === 1) {
         suggestions.push({
           index: indexName,
-          type: 'performance',
-          priority: 'medium',
-          description: 'Large index with single primary shard',
-          action: 'Consider reindexing with more primary shards',
-          estimatedImpact: 'Improve indexing performance by 40-50%'
+          type: "performance",
+          priority: "medium",
+          description: "Large index with single primary shard",
+          action: "Consider reindexing with more primary shards",
+          estimatedImpact: "Improve indexing performance by 40-50%",
         });
       }
 
       // Check refresh interval
       const settings = await this.getIndexSettings(indexName);
-      if (settings && settings.refresh_interval === '1s' && metrics.indexingRate < 10) {
+      if (
+        settings &&
+        settings.refresh_interval === "1s" &&
+        metrics.indexingRate < 10
+      ) {
         suggestions.push({
           index: indexName,
-          type: 'performance',
-          priority: 'low',
-          description: 'Frequent refresh with low indexing rate',
-          action: 'Increase refresh interval to 30s or more',
-          estimatedImpact: 'Reduce CPU usage by 5-10%'
+          type: "performance",
+          priority: "low",
+          description: "Frequent refresh with low indexing rate",
+          action: "Increase refresh interval to 30s or more",
+          estimatedImpact: "Reduce CPU usage by 5-10%",
         });
       }
 
       return suggestions;
-
     } catch (error) {
-      logger.error(`Error analyzing performance for index ${indexName}:`, error);
+      logger.error(
+        `Error analyzing performance for index ${indexName}:`,
+        error,
+      );
       return [];
     } finally {
       performanceMonitor.endTimer(timer);
@@ -417,29 +432,28 @@ export class IndexManager extends EventEmitter {
    */
   startMonitoring(intervalMs: number = 60000): void {
     if (this.isMonitoring) {
-      logger.warn('Index monitoring is already running');
+      logger.warn("Index monitoring is already running");
       return;
     }
 
     this.isMonitoring = true;
-    
+
     this.monitoringInterval = setInterval(async () => {
       try {
         await this.updateAllIndexMetrics();
         await this.checkIndexHealth();
-        
-        this.emit('monitoring:update', {
+
+        this.emit("monitoring:update", {
           timestamp: Date.now(),
-          indicesCount: this.indexMetrics.size
+          indicesCount: this.indexMetrics.size,
         });
-        
       } catch (error) {
-        logger.error('Error during index monitoring:', error);
+        logger.error("Error during index monitoring:", error);
       }
     }, intervalMs);
 
     logger.info(`Started index monitoring (interval: ${intervalMs}ms)`);
-    this.emit('monitoring:started', { intervalMs });
+    this.emit("monitoring:started", { intervalMs });
   }
 
   /**
@@ -450,11 +464,11 @@ export class IndexManager extends EventEmitter {
       clearInterval(this.monitoringInterval);
       this.monitoringInterval = undefined;
     }
-    
+
     this.isMonitoring = false;
-    
-    logger.info('Stopped index monitoring');
-    this.emit('monitoring:stopped');
+
+    logger.info("Stopped index monitoring");
+    this.emit("monitoring:stopped");
   }
 
   /**
@@ -462,14 +476,14 @@ export class IndexManager extends EventEmitter {
    */
   async getIndexMetrics(indexName: string): Promise<IndexMetrics | null> {
     try {
-      const stats = await this.client['client'].indices.stats({
+      const stats = await this.client["client"].indices.stats({
         index: indexName,
-        metric: ['docs', 'store', 'segments', 'search', 'indexing']
+        metric: ["docs", "store", "segments", "search", "indexing"],
       });
 
-      const health = await this.client['client'].cluster.health({
+      const health = await this.client["client"].cluster.health({
         index: indexName,
-        level: 'indices'
+        level: "indices",
       });
 
       if (stats.statusCode !== 200 || health.statusCode !== 200) {
@@ -493,13 +507,12 @@ export class IndexManager extends EventEmitter {
         shards: {
           total: indexHealth.number_of_shards,
           primary: indexHealth.number_of_shards,
-          replica: indexHealth.number_of_replicas
-        }
+          replica: indexHealth.number_of_replicas,
+        },
       };
 
       this.indexMetrics.set(indexName, metrics);
       return metrics;
-
     } catch (error) {
       logger.error(`Error getting metrics for index ${indexName}:`, error);
       return null;
@@ -518,7 +531,7 @@ export class IndexManager extends EventEmitter {
    */
   async getOptimizationSuggestions(): Promise<IndexOptimizationSuggestion[]> {
     const allSuggestions: IndexOptimizationSuggestion[] = [];
-    
+
     for (const indexName of this.indexMetrics.keys()) {
       try {
         const suggestions = await this.analyzeIndexPerformance(indexName);
@@ -527,11 +540,13 @@ export class IndexManager extends EventEmitter {
         logger.error(`Error analyzing ${indexName}:`, error);
       }
     }
-    
+
     // Sort by priority
     const priorityOrder = { high: 3, medium: 2, low: 1 };
-    allSuggestions.sort((a, b) => priorityOrder[b.priority] - priorityOrder[a.priority]);
-    
+    allSuggestions.sort(
+      (a, b) => priorityOrder[b.priority] - priorityOrder[a.priority],
+    );
+
     return allSuggestions;
   }
 
@@ -544,7 +559,7 @@ export class IndexManager extends EventEmitter {
       maxActions?: number;
       onlyHighPriority?: boolean;
       dryRun?: boolean;
-    } = {}
+    } = {},
   ): Promise<{
     executed: number;
     skipped: number;
@@ -555,24 +570,26 @@ export class IndexManager extends EventEmitter {
       executed: 0,
       skipped: 0,
       errors: 0,
-      actions: [] as Array<{ index: string; action: string; success: boolean }>
+      actions: [] as Array<{ index: string; action: string; success: boolean }>,
     };
 
     const maxActions = options.maxActions || 10;
-    const filteredSuggestions = options.onlyHighPriority ? 
-      suggestions.filter(s => s.priority === 'high') : 
-      suggestions;
+    const filteredSuggestions = options.onlyHighPriority
+      ? suggestions.filter((s) => s.priority === "high")
+      : suggestions;
 
     const actionsToExecute = filteredSuggestions.slice(0, maxActions);
 
     for (const suggestion of actionsToExecute) {
       try {
         if (options.dryRun) {
-          logger.info(`[DRY RUN] Would execute: ${suggestion.action} on ${suggestion.index}`);
+          logger.info(
+            `[DRY RUN] Would execute: ${suggestion.action} on ${suggestion.index}`,
+          );
           result.actions.push({
             index: suggestion.index,
             action: suggestion.action,
-            success: true
+            success: true,
           });
           result.executed++;
           continue;
@@ -582,13 +599,15 @@ export class IndexManager extends EventEmitter {
 
         // Execute based on suggestion type
         switch (suggestion.type) {
-          case 'performance':
-            if (suggestion.action.includes('force merge')) {
-              success = await this.optimizeIndex(suggestion.index, { forceOptimization: true });
+          case "performance":
+            if (suggestion.action.includes("force merge")) {
+              success = await this.optimizeIndex(suggestion.index, {
+                forceOptimization: true,
+              });
             }
             break;
-          case 'storage':
-            if (suggestion.action.includes('compression')) {
+          case "storage":
+            if (suggestion.action.includes("compression")) {
               success = await this.enableIndexCompression(suggestion.index);
             }
             break;
@@ -598,7 +617,7 @@ export class IndexManager extends EventEmitter {
         result.actions.push({
           index: suggestion.index,
           action: suggestion.action,
-          success
+          success,
         });
 
         if (success) {
@@ -606,51 +625,59 @@ export class IndexManager extends EventEmitter {
         } else {
           result.errors++;
         }
-
       } catch (error) {
-        logger.error(`Error executing optimization for ${suggestion.index}:`, error);
+        logger.error(
+          `Error executing optimization for ${suggestion.index}:`,
+          error,
+        );
         result.errors++;
         result.actions.push({
           index: suggestion.index,
           action: suggestion.action,
-          success: false
+          success: false,
         });
       }
     }
 
     result.skipped = filteredSuggestions.length - actionsToExecute.length;
 
-    logger.info(`Auto-optimization completed: ${result.executed} executed, ${result.errors} errors, ${result.skipped} skipped`);
-    this.emit('auto:optimization:completed', result);
+    logger.info(
+      `Auto-optimization completed: ${result.executed} executed, ${result.errors} errors, ${result.skipped} skipped`,
+    );
+    this.emit("auto:optimization:completed", result);
 
     return result;
   }
 
-  private async createInitialIndex(table: string, templateName: string): Promise<boolean> {
+  private async createInitialIndex(
+    table: string,
+    templateName: string,
+  ): Promise<boolean> {
     try {
       const indexName = `servicenow-${table}-000001`;
       const aliasName = `servicenow-${table}-write`;
 
-      const response = await this.client['client'].indices.create({
+      const response = await this.client["client"].indices.create({
         index: indexName,
         body: {
           aliases: {
             [aliasName]: {
-              is_write_index: true
-            }
-          }
-        }
+              is_write_index: true,
+            },
+          },
+        },
       });
 
       return response.statusCode === 200;
-
     } catch (error) {
       logger.error(`Error creating initial index for table ${table}:`, error);
       return false;
     }
   }
 
-  private async simulateLifecyclePolicyCreation(policy: IndexLifecyclePolicy): Promise<boolean> {
+  private async simulateLifecyclePolicyCreation(
+    policy: IndexLifecyclePolicy,
+  ): Promise<boolean> {
     // This would integrate with OpenSearch ISM plugin
     // For now, we'll simulate successful creation
     logger.info(`Simulated creation of lifecycle policy: ${policy.policyId}`);
@@ -659,17 +686,16 @@ export class IndexManager extends EventEmitter {
 
   private async forceMergeIndex(
     indexName: string,
-    options: { maxSegments: number; onlyExpungeDeletes: boolean }
+    options: { maxSegments: number; onlyExpungeDeletes: boolean },
   ): Promise<boolean> {
     try {
-      const response = await this.client['client'].indices.forcemerge({
+      const response = await this.client["client"].indices.forcemerge({
         index: indexName,
         max_num_segments: options.maxSegments,
-        only_expunge_deletes: options.onlyExpungeDeletes
+        only_expunge_deletes: options.onlyExpungeDeletes,
       });
 
       return response.statusCode === 200;
-
     } catch (error) {
       logger.error(`Error force merging index ${indexName}:`, error);
       return false;
@@ -678,12 +704,11 @@ export class IndexManager extends EventEmitter {
 
   private async refreshIndex(indexName: string): Promise<boolean> {
     try {
-      const response = await this.client['client'].indices.refresh({
-        index: indexName
+      const response = await this.client["client"].indices.refresh({
+        index: indexName,
       });
 
       return response.statusCode === 200;
-
     } catch (error) {
       logger.error(`Error refreshing index ${indexName}:`, error);
       return false;
@@ -692,8 +717,8 @@ export class IndexManager extends EventEmitter {
 
   private async getIndexSettings(indexName: string): Promise<any | null> {
     try {
-      const response = await this.client['client'].indices.getSettings({
-        index: indexName
+      const response = await this.client["client"].indices.getSettings({
+        index: indexName,
       });
 
       if (response.statusCode === 200) {
@@ -701,7 +726,6 @@ export class IndexManager extends EventEmitter {
       }
 
       return null;
-
     } catch (error) {
       logger.error(`Error getting settings for index ${indexName}:`, error);
       return null;
@@ -710,17 +734,16 @@ export class IndexManager extends EventEmitter {
 
   private async enableIndexCompression(indexName: string): Promise<boolean> {
     try {
-      const response = await this.client['client'].indices.putSettings({
+      const response = await this.client["client"].indices.putSettings({
         index: indexName,
         body: {
           settings: {
-            'index.codec': 'best_compression'
-          }
-        }
+            "index.codec": "best_compression",
+          },
+        },
       });
 
       return response.statusCode === 200;
-
     } catch (error) {
       logger.error(`Error enabling compression for index ${indexName}:`, error);
       return false;
@@ -730,42 +753,43 @@ export class IndexManager extends EventEmitter {
   private async updateAllIndexMetrics(): Promise<void> {
     try {
       // Get all ServiceNow indices
-      const response = await this.client['client'].cat.indices({
-        index: 'servicenow-*',
-        format: 'json'
+      const response = await this.client["client"].cat.indices({
+        index: "servicenow-*",
+        format: "json",
       });
 
       if (response.statusCode === 200) {
         const indices = response.body as Array<{ index: string }>;
-        
+
         // Update metrics for each index
-        const promises = indices.map(({ index }) => this.getIndexMetrics(index));
+        const promises = indices.map(({ index }) =>
+          this.getIndexMetrics(index),
+        );
         await Promise.all(promises);
       }
-
     } catch (error) {
-      logger.error('Error updating all index metrics:', error);
+      logger.error("Error updating all index metrics:", error);
     }
   }
 
   private async checkIndexHealth(): Promise<void> {
     for (const [indexName, metrics] of this.indexMetrics) {
-      if (metrics.status === 'red') {
-        this.emit('index:unhealthy', {
+      if (metrics.status === "red") {
+        this.emit("index:unhealthy", {
           indexName,
           status: metrics.status,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
         logger.warn(`Index ${indexName} is unhealthy: ${metrics.status}`);
       }
 
       // Check for performance issues
       if (metrics.segmentsCount > 100) {
-        this.emit('index:performance:warning', {
+        this.emit("index:performance:warning", {
           indexName,
-          issue: 'high_segment_count',
+          issue: "high_segment_count",
           value: metrics.segmentsCount,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       }
     }
@@ -775,139 +799,139 @@ export class IndexManager extends EventEmitter {
     return {
       analyzer: {
         servicenow_standard: {
-          type: 'custom',
-          tokenizer: 'standard',
-          filter: ['lowercase', 'stop', 'snowball']
+          type: "custom",
+          tokenizer: "standard",
+          filter: ["lowercase", "stop", "snowball"],
         },
         servicenow_keyword: {
-          type: 'custom',
-          tokenizer: 'keyword',
-          filter: ['lowercase', 'trim']
+          type: "custom",
+          tokenizer: "keyword",
+          filter: ["lowercase", "trim"],
         },
         servicenow_text_search: {
-          type: 'custom',
-          tokenizer: 'standard',
-          filter: ['lowercase', 'stop', 'synonym']
-        }
+          type: "custom",
+          tokenizer: "standard",
+          filter: ["lowercase", "stop", "synonym"],
+        },
       },
       filter: {
         synonym: {
-          type: 'synonym',
+          type: "synonym",
           synonyms: [
-            'incident,case,ticket',
-            'problem,issue',
-            'change,modification',
-            'urgent,high priority',
-            'resolved,closed,fixed'
-          ]
-        }
-      }
+            "incident,case,ticket",
+            "problem,issue",
+            "change,modification",
+            "urgent,high priority",
+            "resolved,closed,fixed",
+          ],
+        },
+      },
     };
   }
 
   private getServiceNowMappings(table: string): any {
     const baseMappings = {
       properties: {
-        '@timestamp': { type: 'date' },
-        sys_id: { type: 'keyword' },
-        sys_created_on: { type: 'date' },
-        sys_updated_on: { type: 'date' },
-        sys_created_by: { 
-          type: 'keyword',
+        "@timestamp": { type: "date" },
+        sys_id: { type: "keyword" },
+        sys_created_on: { type: "date" },
+        sys_updated_on: { type: "date" },
+        sys_created_by: {
+          type: "keyword",
           fields: {
-            text: { type: 'text', analyzer: 'servicenow_standard' }
-          }
+            text: { type: "text", analyzer: "servicenow_standard" },
+          },
         },
-        sys_updated_by: { 
-          type: 'keyword',
+        sys_updated_by: {
+          type: "keyword",
           fields: {
-            text: { type: 'text', analyzer: 'servicenow_standard' }
-          }
-        }
-      }
+            text: { type: "text", analyzer: "servicenow_standard" },
+          },
+        },
+      },
     };
 
     // Add table-specific mappings
     switch (table) {
-      case 'incident':
+      case "incident":
         Object.assign(baseMappings.properties, {
-          number: { type: 'keyword' },
+          number: { type: "keyword" },
           short_description: {
-            type: 'text',
-            analyzer: 'servicenow_text_search',
+            type: "text",
+            analyzer: "servicenow_text_search",
             fields: {
-              keyword: { type: 'keyword' },
-              raw: { type: 'text', analyzer: 'servicenow_keyword' }
-            }
+              keyword: { type: "keyword" },
+              raw: { type: "text", analyzer: "servicenow_keyword" },
+            },
           },
           description: {
-            type: 'text',
-            analyzer: 'servicenow_text_search'
+            type: "text",
+            analyzer: "servicenow_text_search",
           },
-          state: { type: 'keyword' },
-          priority: { type: 'keyword' },
-          impact: { type: 'keyword' },
-          urgency: { type: 'keyword' },
-          category: { type: 'keyword' },
-          subcategory: { type: 'keyword' },
-          assignment_group: { type: 'keyword' },
-          assigned_to: { type: 'keyword' },
-          caller_id: { type: 'keyword' },
-          opened_at: { type: 'date' },
-          closed_at: { type: 'date' },
-          resolved_at: { type: 'date' }
+          state: { type: "keyword" },
+          priority: { type: "keyword" },
+          impact: { type: "keyword" },
+          urgency: { type: "keyword" },
+          category: { type: "keyword" },
+          subcategory: { type: "keyword" },
+          assignment_group: { type: "keyword" },
+          assigned_to: { type: "keyword" },
+          caller_id: { type: "keyword" },
+          opened_at: { type: "date" },
+          closed_at: { type: "date" },
+          resolved_at: { type: "date" },
         });
         break;
 
-      case 'problem':
+      case "problem":
         Object.assign(baseMappings.properties, {
-          number: { type: 'keyword' },
+          number: { type: "keyword" },
           short_description: {
-            type: 'text',
-            analyzer: 'servicenow_text_search',
-            fields: { keyword: { type: 'keyword' } }
+            type: "text",
+            analyzer: "servicenow_text_search",
+            fields: { keyword: { type: "keyword" } },
           },
-          state: { type: 'keyword' },
-          priority: { type: 'keyword' },
+          state: { type: "keyword" },
+          priority: { type: "keyword" },
           root_cause: {
-            type: 'text',
-            analyzer: 'servicenow_text_search'
-          }
+            type: "text",
+            analyzer: "servicenow_text_search",
+          },
         });
         break;
 
-      case 'change_request':
+      case "change_request":
         Object.assign(baseMappings.properties, {
-          number: { type: 'keyword' },
+          number: { type: "keyword" },
           short_description: {
-            type: 'text',
-            analyzer: 'servicenow_text_search',
-            fields: { keyword: { type: 'keyword' } }
+            type: "text",
+            analyzer: "servicenow_text_search",
+            fields: { keyword: { type: "keyword" } },
           },
-          state: { type: 'keyword' },
-          type: { type: 'keyword' },
-          risk: { type: 'keyword' },
-          impact: { type: 'keyword' },
-          start_date: { type: 'date' },
-          end_date: { type: 'date' }
+          state: { type: "keyword" },
+          type: { type: "keyword" },
+          risk: { type: "keyword" },
+          impact: { type: "keyword" },
+          start_date: { type: "date" },
+          end_date: { type: "date" },
         });
         break;
 
       default:
         // Generic ServiceNow table mappings
         Object.assign(baseMappings.properties, {
-          number: { type: 'keyword' },
+          number: { type: "keyword" },
           short_description: {
-            type: 'text',
-            analyzer: 'servicenow_text_search',
-            fields: { keyword: { type: 'keyword' } }
+            type: "text",
+            analyzer: "servicenow_text_search",
+            fields: { keyword: { type: "keyword" } },
           },
           description: {
-            type: 'text',
-            analyzer: 'servicenow_text_search'
+            type: "text",
+            analyzer: "servicenow_text_search",
           },
-          state: { type: 'keyword' },
-          active: { type: 'boolean' }
+          state: { type: "keyword" },
+          active: { type: "boolean" },
         });
     }
 

@@ -1,0 +1,12 @@
+[install]
+auto = true
+production = false
+save-exact = false
+peer = true
+
+[run]
+smol = true
+
+preload = [
+  "./src/instrumentation.ts"
+]

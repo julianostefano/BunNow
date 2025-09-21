@@ -2,17 +2,26 @@
  * Advanced QueryBuilder for ServiceNow with full PySNC compatibility
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
-import { Query } from './Query';
-import { QueryCondition } from './QueryCondition';
-import { OrCondition } from './OrCondition';
-import { JoinQuery } from './JoinQuery';
-import { RLQuery } from './RLQuery';
+import { Query } from "./Query";
+import { QueryCondition } from "./QueryCondition";
+import { OrCondition } from "./OrCondition";
+import { JoinQuery } from "./JoinQuery";
+import { RLQuery } from "./RLQuery";
 
 export interface IQueryBuilder {
   addQuery(field: string, operator: string, value?: any): QueryCondition;
   addOrCondition(field: string, operator: string, value?: any): OrCondition;
-  addJoinQuery(joinTable: string, primaryField?: string, joinTableField?: string): JoinQuery;
-  addRLQuery(relatedTable: string, relatedField: string, operatorCondition: string, stopAtRelationship?: boolean): RLQuery;
+  addJoinQuery(
+    joinTable: string,
+    primaryField?: string,
+    joinTableField?: string,
+  ): JoinQuery;
+  addRLQuery(
+    relatedTable: string,
+    relatedField: string,
+    operatorCondition: string,
+    stopAtRelationship?: boolean,
+  ): RLQuery;
   addNullQuery(field: string): QueryCondition;
   addNotNullQuery(field: string): QueryCondition;
   addActiveQuery(): QueryCondition;
@@ -33,7 +42,7 @@ export class QueryBuilder implements IQueryBuilder {
 
   /**
    * Add a query condition
-   * 
+   *
    * Supported operators:
    * - Numbers: =, !=, >, >=, <, <=
    * - Strings: =, !=, IN, NOT IN, STARTSWITH, ENDSWITH, CONTAINS, DOES NOT CONTAIN, INSTANCEOF, LIKE
@@ -48,22 +57,36 @@ export class QueryBuilder implements IQueryBuilder {
    */
   addOrCondition(field: string, operator: string, value?: any): OrCondition {
     // This should be called on a QueryCondition, but we'll create a new one for compatibility
-    const condition = this.query.addQuery('__temp__', '=', 'true');
+    const condition = this.query.addQuery("__temp__", "=", "true");
     return condition.addOrCondition(field, operator, value);
   }
 
   /**
    * Add a JOIN query
    */
-  addJoinQuery(joinTable: string, primaryField?: string, joinTableField?: string): JoinQuery {
+  addJoinQuery(
+    joinTable: string,
+    primaryField?: string,
+    joinTableField?: string,
+  ): JoinQuery {
     return this.query.addJoinQuery(joinTable, primaryField, joinTableField);
   }
 
   /**
    * Add a Related List query
    */
-  addRLQuery(relatedTable: string, relatedField: string, operatorCondition: string, stopAtRelationship: boolean = false): RLQuery {
-    return this.query.addRLQuery(relatedTable, relatedField, operatorCondition, stopAtRelationship);
+  addRLQuery(
+    relatedTable: string,
+    relatedField: string,
+    operatorCondition: string,
+    stopAtRelationship: boolean = false,
+  ): RLQuery {
+    return this.query.addRLQuery(
+      relatedTable,
+      relatedField,
+      operatorCondition,
+      stopAtRelationship,
+    );
   }
 
   /**
@@ -119,7 +142,7 @@ export class QueryBuilder implements IQueryBuilder {
    * Reset the query builder
    */
   clear(): void {
-    this.query = new Query(this.query['_table']);
+    this.query = new Query(this.query["_table"]);
     this.encodedQuery = undefined;
     this.orderByClause = undefined;
   }

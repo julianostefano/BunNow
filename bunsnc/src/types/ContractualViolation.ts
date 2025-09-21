@@ -3,7 +3,7 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { TicketType } from './ContractualSLA';
+import { TicketType } from "./ContractualSLA";
 
 /**
  * Contractual violation validation result
@@ -33,10 +33,10 @@ export interface ViolationReason {
  * Severity levels for violations
  */
 export enum ViolationSeverity {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-  CRITICAL = 'critical'
+  LOW = "low",
+  MEDIUM = "medium",
+  HIGH = "high",
+  CRITICAL = "critical",
 }
 
 /**

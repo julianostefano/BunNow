@@ -11,8 +11,25 @@ export interface StreamMessage {
 }
 
 export interface ServiceNowChange {
-  type: 'incident' | 'ctask' | 'sctask' | 'change_task' | 'sc_task' | 'problem' | 'change_request' | 'sc_request' | 'task' | 'incident_task' | 'problem_task';
-  action: 'created' | 'updated' | 'resolved' | 'completed' | 'synced' | 'slm_updated';
+  type:
+    | "incident"
+    | "ctask"
+    | "sctask"
+    | "change_task"
+    | "sc_task"
+    | "problem"
+    | "change_request"
+    | "sc_request"
+    | "task"
+    | "incident_task"
+    | "problem_task";
+  action:
+    | "created"
+    | "updated"
+    | "resolved"
+    | "completed"
+    | "synced"
+    | "slm_updated";
   sys_id: string;
   number: string;
   state: string;
@@ -20,7 +37,7 @@ export interface ServiceNowChange {
   short_description?: string;
   timestamp: string;
   data: any;
-  sync_type?: 'full' | 'incremental';
+  sync_type?: "full" | "incremental";
   slm_count?: number;
   notes_count?: number;
 }
@@ -41,16 +58,17 @@ export class ServiceNowStreams {
   private redis: Redis;
   private config: RedisStreamConfig;
   private isConnected = false;
-  private consumers: Map<string, (message: ServiceNowChange) => Promise<void>> = new Map();
+  private consumers: Map<string, (message: ServiceNowChange) => Promise<void>> =
+    new Map();
 
   constructor(config?: Partial<RedisStreamConfig>) {
     this.config = {
-      host: process.env.REDIS_HOST || '10.219.8.210',
-      port: parseInt(process.env.REDIS_PORT || '6380'),
-      password: process.env.REDIS_PASSWORD || 'nexcdc2025',
-      db: parseInt(process.env.REDIS_DB || '1'),
-      streamKey: process.env.REDIS_STREAMS_KEY || 'servicenow:changes',
-      consumerGroup: 'bunsnc-processors',
+      host: process.env.REDIS_HOST || "10.219.8.210",
+      port: parseInt(process.env.REDIS_PORT || "6380"),
+      password: process.env.REDIS_PASSWORD || "nexcdc2025",
+      db: parseInt(process.env.REDIS_DB || "1"),
+      streamKey: process.env.REDIS_STREAMS_KEY || "servicenow:changes",
+      consumerGroup: "bunsnc-processors",
       consumerName: `bunsnc-${process.pid}-${Date.now()}`,
       maxRetries: 3,
       retryDelayMs: 1000,
@@ -71,18 +89,18 @@ export class ServiceNowStreams {
   }
 
   private setupEventHandlers(): void {
-    this.redis.on('connect', () => {
-      console.log('🔗 Redis connected for ServiceNow streams');
+    this.redis.on("connect", () => {
+      console.log("🔗 Redis connected for ServiceNow streams");
       this.isConnected = true;
     });
 
-    this.redis.on('error', (error) => {
-      console.error(' Redis connection error:', error);
+    this.redis.on("error", (error) => {
+      console.error(" Redis connection error:", error);
       this.isConnected = false;
     });
 
-    this.redis.on('close', () => {
-      console.log(' Redis connection closed');
+    this.redis.on("close", () => {
+      console.log(" Redis connection closed");
       this.isConnected = false;
     });
   }
@@ -97,23 +115,25 @@ export class ServiceNowStreams {
       // Create consumer group if it doesn't exist
       try {
         await this.redis.xgroup(
-          'CREATE',
+          "CREATE",
           this.config.streamKey,
           this.config.consumerGroup,
-          '$',
-          'MKSTREAM'
+          "$",
+          "MKSTREAM",
         );
         console.log(` Consumer group '${this.config.consumerGroup}' created`);
       } catch (error: any) {
-        if (!error.message.includes('BUSYGROUP')) {
+        if (!error.message.includes("BUSYGROUP")) {
           throw error;
         }
-        console.log(`ℹ️ Consumer group '${this.config.consumerGroup}' already exists`);
+        console.log(
+          `ℹ️ Consumer group '${this.config.consumerGroup}' already exists`,
+        );
       }
 
-      console.log(' ServiceNow streams initialized successfully');
+      console.log(" ServiceNow streams initialized successfully");
     } catch (error) {
-      console.error(' Failed to initialize ServiceNow streams:', error);
+      console.error(" Failed to initialize ServiceNow streams:", error);
       throw error;
     }
   }
@@ -123,7 +143,7 @@ export class ServiceNowStreams {
    */
   async publishChange(change: ServiceNowChange): Promise<string> {
     if (!this.isConnected) {
-      throw new Error('Redis not connected');
+      throw new Error("Redis not connected");
     }
 
     try {
@@ -133,22 +153,24 @@ export class ServiceNowStreams {
         sys_id: change.sys_id,
         number: change.number,
         state: change.state,
-        assignment_group: change.assignment_group || '',
-        short_description: change.short_description || '',
+        assignment_group: change.assignment_group || "",
+        short_description: change.short_description || "",
         timestamp: change.timestamp,
         data: JSON.stringify(change.data),
       };
 
       const messageId = await this.redis.xadd(
         this.config.streamKey,
-        '*',
-        ...Object.entries(streamData).flat()
+        "*",
+        ...Object.entries(streamData).flat(),
       );
 
-      console.log(`📤 ServiceNow change published: ${change.type}:${change.action} (${messageId})`);
+      console.log(
+        `📤 ServiceNow change published: ${change.type}:${change.action} (${messageId})`,
+      );
       return messageId;
     } catch (error) {
-      console.error(' Failed to publish ServiceNow change:', error);
+      console.error(" Failed to publish ServiceNow change:", error);
       throw error;
     }
   }
@@ -158,9 +180,9 @@ export class ServiceNowStreams {
    */
   registerConsumer(
     changeTypes: string[],
-    handler: (change: ServiceNowChange) => Promise<void>
+    handler: (change: ServiceNowChange) => Promise<void>,
   ): void {
-    const key = changeTypes.join(',');
+    const key = changeTypes.join(",");
     this.consumers.set(key, handler);
     console.log(`🎯 Consumer registered for: ${key}`);
   }
@@ -170,7 +192,7 @@ export class ServiceNowStreams {
    */
   subscribe(
     eventType: string,
-    handler: (change: ServiceNowChange) => Promise<void>
+    handler: (change: ServiceNowChange) => Promise<void>,
   ): void {
     this.consumers.set(`sse:${eventType}`, handler);
     console.log(`📡 SSE subscription registered for: ${eventType}`);
@@ -190,16 +212,16 @@ export class ServiceNowStreams {
       try {
         // Read from consumer group
         const messages = await this.redis.xreadgroup(
-          'GROUP',
+          "GROUP",
           this.config.consumerGroup,
           this.config.consumerName,
-          'COUNT',
+          "COUNT",
           10,
-          'BLOCK',
+          "BLOCK",
           1000,
-          'STREAMS',
+          "STREAMS",
           this.config.streamKey,
-          '>'
+          ">",
         );
 
         if (messages && messages.length > 0) {
@@ -212,16 +234,17 @@ export class ServiceNowStreams {
 
         // Process pending messages
         await this.processPendingMessages();
-
       } catch (error: any) {
-        if (error.message.includes('NOGROUP')) {
-          console.log(' Consumer group not found, recreating...');
+        if (error.message.includes("NOGROUP")) {
+          console.log(" Consumer group not found, recreating...");
           await this.initialize();
           continue;
         }
-        
-        console.error(' Consumer error:', error);
-        await new Promise(resolve => setTimeout(resolve, this.config.retryDelayMs));
+
+        console.error(" Consumer error:", error);
+        await new Promise((resolve) =>
+          setTimeout(resolve, this.config.retryDelayMs),
+        );
       }
     }
   }
@@ -229,7 +252,10 @@ export class ServiceNowStreams {
   /**
    * Process individual stream message
    */
-  private async processMessage(messageId: string, fields: string[]): Promise<void> {
+  private async processMessage(
+    messageId: string,
+    fields: string[],
+  ): Promise<void> {
     try {
       const data: Record<string, string> = {};
       for (let i = 0; i < fields.length; i += 2) {
@@ -250,33 +276,45 @@ export class ServiceNowStreams {
 
       // Find matching consumers
       const changeKey = `${change.type}:${change.action}`;
-      
+
       for (const [consumerKey, handler] of this.consumers) {
-        const types = consumerKey.split(',');
-        
+        const types = consumerKey.split(",");
+
         // Handle SSE subscriptions
-        if (consumerKey.startsWith('sse:')) {
-          const eventType = consumerKey.replace('sse:', '');
-          if (eventType === 'ticket-updates' || eventType === '*') {
+        if (consumerKey.startsWith("sse:")) {
+          const eventType = consumerKey.replace("sse:", "");
+          if (eventType === "ticket-updates" || eventType === "*") {
             await handler(change);
           }
         }
         // Handle regular consumers
-        else if (types.some(type => type === changeKey || type === change.type || type === '*')) {
+        else if (
+          types.some(
+            (type) =>
+              type === changeKey || type === change.type || type === "*",
+          )
+        ) {
           await handler(change);
         }
       }
 
       // Acknowledge message
-      await this.redis.xack(this.config.streamKey, this.config.consumerGroup, messageId);
-      
-      console.log(` Processed message: ${changeKey} (${messageId})`);
+      await this.redis.xack(
+        this.config.streamKey,
+        this.config.consumerGroup,
+        messageId,
+      );
 
+      console.log(` Processed message: ${changeKey} (${messageId})`);
     } catch (error) {
       console.error(` Failed to process message ${messageId}:`, error);
-      
+
       // TODO: Implement dead letter queue for failed messages
-      await this.redis.xack(this.config.streamKey, this.config.consumerGroup, messageId);
+      await this.redis.xack(
+        this.config.streamKey,
+        this.config.consumerGroup,
+        messageId,
+      );
     }
   }
 
@@ -288,22 +326,22 @@ export class ServiceNowStreams {
       const pending = await this.redis.xpending(
         this.config.streamKey,
         this.config.consumerGroup,
-        '-',
-        '+',
+        "-",
+        "+",
         10,
-        this.config.consumerName
+        this.config.consumerName,
       );
 
       if (pending && pending.length > 0) {
         console.log(` Processing ${pending.length} pending messages`);
-        
+
         for (const [messageId] of pending) {
           const messages = await this.redis.xclaim(
             this.config.streamKey,
             this.config.consumerGroup,
             this.config.consumerName,
             60000, // 1 minute
-            messageId as string
+            messageId as string,
           );
 
           if (messages && messages.length > 0) {
@@ -313,7 +351,7 @@ export class ServiceNowStreams {
         }
       }
     } catch (error) {
-      console.error(' Failed to process pending messages:', error);
+      console.error(" Failed to process pending messages:", error);
     }
   }
 
@@ -322,13 +360,13 @@ export class ServiceNowStreams {
    */
   async getStreamStats(): Promise<any> {
     if (!this.isConnected) {
-      return { status: 'disconnected' };
+      return { status: "disconnected" };
     }
 
     try {
-      const info = await this.redis.xinfo('STREAM', this.config.streamKey);
-      const groups = await this.redis.xinfo('GROUPS', this.config.streamKey);
-      
+      const info = await this.redis.xinfo("STREAM", this.config.streamKey);
+      const groups = await this.redis.xinfo("GROUPS", this.config.streamKey);
+
       const stats = {
         stream: this.config.streamKey,
         length: info[1],
@@ -347,20 +385,23 @@ export class ServiceNowStreams {
 
       return stats;
     } catch (error) {
-      console.error(' Failed to get stream stats:', error);
-      return { status: 'error', error: error.message };
+      console.error(" Failed to get stream stats:", error);
+      return { status: "error", error: error.message };
     }
   }
 
   /**
    * Health check for Redis connection and streams
    */
-  async healthCheck(): Promise<{ status: 'healthy' | 'unhealthy'; details: any }> {
+  async healthCheck(): Promise<{
+    status: "healthy" | "unhealthy";
+    details: any;
+  }> {
     try {
       if (!this.isConnected) {
         return {
-          status: 'unhealthy',
-          details: { error: 'Redis not connected' },
+          status: "unhealthy",
+          details: { error: "Redis not connected" },
         };
       }
 
@@ -371,7 +412,7 @@ export class ServiceNowStreams {
       const stats = await this.getStreamStats();
 
       return {
-        status: 'healthy',
+        status: "healthy",
         details: {
           pingDuration,
           connection: {
@@ -384,7 +425,7 @@ export class ServiceNowStreams {
       };
     } catch (error) {
       return {
-        status: 'unhealthy',
+        status: "unhealthy",
         details: {
           error: error instanceof Error ? error.message : String(error),
         },
@@ -396,14 +437,14 @@ export class ServiceNowStreams {
    * Close Redis connection
    */
   async close(): Promise<void> {
-    console.log(' Closing ServiceNow streams connection...');
-    
+    console.log(" Closing ServiceNow streams connection...");
+
     if (this.redis) {
       await this.redis.quit();
     }
-    
+
     this.isConnected = false;
-    console.log(' ServiceNow streams connection closed');
+    console.log(" ServiceNow streams connection closed");
   }
 
   /**
@@ -411,8 +452,8 @@ export class ServiceNowStreams {
    */
   async publishIncidentCreated(incident: any): Promise<string> {
     return this.publishChange({
-      type: 'incident',
-      action: 'created',
+      type: "incident",
+      action: "created",
       sys_id: incident.sys_id,
       number: incident.number,
       state: incident.state,
@@ -425,8 +466,8 @@ export class ServiceNowStreams {
 
   async publishIncidentUpdated(incident: any): Promise<string> {
     return this.publishChange({
-      type: 'incident',
-      action: 'updated',
+      type: "incident",
+      action: "updated",
       sys_id: incident.sys_id,
       number: incident.number,
       state: incident.state,
@@ -439,8 +480,8 @@ export class ServiceNowStreams {
 
   async publishIncidentResolved(incident: any): Promise<string> {
     return this.publishChange({
-      type: 'incident',
-      action: 'resolved',
+      type: "incident",
+      action: "resolved",
       sys_id: incident.sys_id,
       number: incident.number,
       state: incident.state,
@@ -456,15 +497,15 @@ export class ServiceNowStreams {
 export const serviceNowStreams = new ServiceNowStreams();
 
 // Export convenience functions
-export const publishServiceNowChange = (change: ServiceNowChange) => 
+export const publishServiceNowChange = (change: ServiceNowChange) =>
   serviceNowStreams.publishChange(change);
 
 export const registerStreamConsumer = (
   changeTypes: string[],
-  handler: (change: ServiceNowChange) => Promise<void>
+  handler: (change: ServiceNowChange) => Promise<void>,
 ) => serviceNowStreams.registerConsumer(changeTypes, handler);
 
 // Initialize on import
-serviceNowStreams.initialize().catch(error => {
-  console.error('Failed to initialize ServiceNow streams on import:', error);
+serviceNowStreams.initialize().catch((error) => {
+  console.error("Failed to initialize ServiceNow streams on import:", error);
 });

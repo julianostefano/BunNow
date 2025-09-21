@@ -27,7 +27,13 @@ export class GlideElement implements IGlideElement {
   private _link: any;
   private _parentRecord: any;
 
-  constructor(name: string, value?: any, displayValue?: any, parentRecord?: any, link?: any) {
+  constructor(
+    name: string,
+    value?: any,
+    displayValue?: any,
+    parentRecord?: any,
+    link?: any,
+  ) {
     this._name = name;
     this._value = null;
     this._displayValue = null;
@@ -35,15 +41,20 @@ export class GlideElement implements IGlideElement {
     this._parentRecord = parentRecord;
 
     // Handle dict/object values from ServiceNow API
-    if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
-      if ('value' in value) {
+    if (
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      !(value instanceof Date)
+    ) {
+      if ("value" in value) {
         this._value = value.value;
       }
       // Only set display value if it's different from value
-      if ('display_value' in value && this._value !== value.display_value) {
+      if ("display_value" in value && this._value !== value.display_value) {
         this._displayValue = value.display_value;
       }
-      if ('link' in value) {
+      if ("link" in value) {
         this._link = value.link;
       }
     } else {
@@ -145,9 +156,12 @@ export class GlideElement implements IGlideElement {
    */
   nil(): boolean {
     const value = this._value;
-    return value === null || value === undefined || 
-           (typeof value === 'string' && value.length === 0) ||
-           (Array.isArray(value) && value.length === 0);
+    return (
+      value === null ||
+      value === undefined ||
+      (typeof value === "string" && value.length === 0) ||
+      (Array.isArray(value) && value.length === 0)
+    );
   }
 
   /**
@@ -156,7 +170,7 @@ export class GlideElement implements IGlideElement {
   serialize(): object {
     const result: any = {
       value: this.getValue(),
-      display_value: this.getDisplayValue()
+      display_value: this.getDisplayValue(),
     };
 
     if (this.getLink() !== null && this.getLink() !== undefined) {
@@ -174,14 +188,14 @@ export class GlideElement implements IGlideElement {
     if (value instanceof Date) {
       return value;
     }
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       const date = new Date(value);
       if (isNaN(date.getTime())) {
         throw new Error(`Cannot convert '${value}' to Date`);
       }
       return date;
     }
-    if (typeof value === 'number') {
+    if (typeof value === "number") {
       return new Date(value);
     }
     throw new Error(`Cannot convert '${typeof value}' to Date`);
@@ -206,7 +220,7 @@ export class GlideElement implements IGlideElement {
    */
   toString(): string {
     const value = this.getValue();
-    return value !== null && value !== undefined ? String(value) : '';
+    return value !== null && value !== undefined ? String(value) : "";
   }
 
   /**

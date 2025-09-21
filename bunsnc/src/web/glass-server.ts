@@ -17,7 +17,6 @@ import { neuralSearchRoutes } from "./routes/HtmxNeuralSearchRoutes";
 import { intelligenceDashboardRoutes } from "./routes/HtmxIntelligenceDashboardRoutes";
 import { knowledgeVisualizationRoutes } from "./routes/HtmxKnowledgeVisualizationRoutes";
 
-
 // Type definitions for better type safety
 interface ServiceNowRecord {
   sys_id: string;
@@ -44,7 +43,7 @@ interface SearchResult {
   state: string;
   priority: string;
   confidence: number;
-  tableType: 'incident' | 'problem' | 'change_request';
+  tableType: "incident" | "problem" | "change_request";
   created: string;
   updated: string;
   assignedTo?: string;
@@ -111,15 +110,15 @@ async function getDashboardData(): Promise<any> {
       "IT Operations",
       "Database Administration",
       "Network Support",
-      "Application Support"
+      "Application Support",
     ];
 
     const results = await Promise.allSettled(
       supportGroups.map(async (group) => {
         const [incidents, changeTasks, scTasks] = await Promise.all([
-          consolidatedServiceNowService.getWaitingTickets('incident', group),
-          consolidatedServiceNowService.getWaitingTickets('change_task', group),
-          consolidatedServiceNowService.getWaitingTickets('sc_task', group)
+          consolidatedServiceNowService.getWaitingTickets("incident", group),
+          consolidatedServiceNowService.getWaitingTickets("change_task", group),
+          consolidatedServiceNowService.getWaitingTickets("sc_task", group),
         ]);
 
         return {
@@ -127,41 +126,53 @@ async function getDashboardData(): Promise<any> {
           incident_count: incidents.length,
           change_task_count: changeTasks.length,
           sc_task_count: scTasks.length,
-          total_count: incidents.length + changeTasks.length + scTasks.length
+          total_count: incidents.length + changeTasks.length + scTasks.length,
         };
-      })
+      }),
     );
 
     const groupData = results
-      .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
-      .map(result => result.value);
+      .filter(
+        (result): result is PromiseFulfilledResult<any> =>
+          result.status === "fulfilled",
+      )
+      .map((result) => result.value);
 
-    const totalIncidents = groupData.reduce((sum, group) => sum + group.incident_count, 0);
-    const totalChangeTasks = groupData.reduce((sum, group) => sum + group.change_task_count, 0);
-    const totalScTasks = groupData.reduce((sum, group) => sum + group.sc_task_count, 0);
+    const totalIncidents = groupData.reduce(
+      (sum, group) => sum + group.incident_count,
+      0,
+    );
+    const totalChangeTasks = groupData.reduce(
+      (sum, group) => sum + group.change_task_count,
+      0,
+    );
+    const totalScTasks = groupData.reduce(
+      (sum, group) => sum + group.sc_task_count,
+      0,
+    );
 
     return {
       incident_count: totalIncidents,
       problem_count: 0,
       change_count: totalChangeTasks + totalScTasks,
       timestamp: new Date().toISOString(),
-      source: 'ServiceNow API',
-      sla_compliance: '95%',
+      source: "ServiceNow API",
+      sla_compliance: "95%",
       avg_resolution_time: 4.2,
-      support_groups: groupData
+      support_groups: groupData,
     };
   } catch (error) {
-    console.error('Error getting dashboard data:', error);
+    console.error("Error getting dashboard data:", error);
 
     return {
       incident_count: 0,
       problem_count: 0,
       change_count: 0,
       timestamp: new Date().toISOString(),
-      source: 'Fallback Data',
-      sla_compliance: 'N/A',
+      source: "Fallback Data",
+      sla_compliance: "N/A",
       avg_resolution_time: 0,
-      support_groups: []
+      support_groups: [],
     };
   }
 }
@@ -169,54 +180,59 @@ async function getDashboardData(): Promise<any> {
 async function generateRealtimeNotification(): Promise<any | null> {
   try {
     const recentIncidents = await consolidatedServiceNowService.query({
-      table: 'incident',
-      query: 'sys_created_onRELATIVEGT@minute@ago@30^priority<=2^ORstate=1',
-      limit: 5
+      table: "incident",
+      query: "sys_created_onRELATIVEGT@minute@ago@30^priority<=2^ORstate=1",
+      limit: 5,
     });
 
     const recentProblems = await consolidatedServiceNowService.query({
-      table: 'problem',
-      query: 'sys_created_onRELATIVEGT@minute@ago@30^state!=6',
-      limit: 3
+      table: "problem",
+      query: "sys_created_onRELATIVEGT@minute@ago@30^state!=6",
+      limit: 3,
     });
 
     const recentChanges = await consolidatedServiceNowService.query({
-      table: 'change_request',
-      query: 'sys_updated_onRELATIVEGT@minute@ago@10^state=3',
-      limit: 2
+      table: "change_request",
+      query: "sys_updated_onRELATIVEGT@minute@ago@10^state=3",
+      limit: 2,
     });
 
     const allRecentRecords = [
       ...recentIncidents.map((inc: any) => ({
-        type: 'incident',
-        severity: inc.priority === '1' ? 'critical' : inc.priority === '2' ? 'high' : 'medium',
-        title: `New ${inc.priority === '1' ? 'Critical' : 'High Priority'} Incident`,
+        type: "incident",
+        severity:
+          inc.priority === "1"
+            ? "critical"
+            : inc.priority === "2"
+              ? "high"
+              : "medium",
+        title: `New ${inc.priority === "1" ? "Critical" : "High Priority"} Incident`,
         message: inc.short_description,
         action: `View incident ${inc.number}`,
-        icon: '🚨',
+        icon: "🚨",
         record_id: inc.sys_id,
-        number: inc.number
+        number: inc.number,
       })),
       ...recentProblems.map((prob: any) => ({
-        type: 'problem',
-        severity: 'medium',
-        title: 'Problem Updated',
+        type: "problem",
+        severity: "medium",
+        title: "Problem Updated",
         message: prob.short_description,
         action: `View problem ${prob.number}`,
-        icon: '',
+        icon: "",
         record_id: prob.sys_id,
-        number: prob.number
+        number: prob.number,
       })),
       ...recentChanges.map((change: any) => ({
-        type: 'change',
-        severity: 'low',
-        title: 'Change Implemented',
+        type: "change",
+        severity: "low",
+        title: "Change Implemented",
         message: change.short_description,
         action: `Review change ${change.number}`,
-        icon: '',
+        icon: "",
         record_id: change.sys_id,
-        number: change.number
-      }))
+        number: change.number,
+      })),
     ];
 
     if (allRecentRecords.length === 0) {
@@ -228,10 +244,10 @@ async function generateRealtimeNotification(): Promise<any | null> {
     return {
       ...notification,
       id: `notif_${Date.now()}_${notification.record_id.substr(-5)}`,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   } catch (error) {
-    console.error('Error generating real-time notification:', error);
+    console.error("Error generating real-time notification:", error);
     return null;
   }
 }
@@ -250,282 +266,317 @@ export class GlassDesignServer {
   }
 
   private createApp(): Elysia {
-    return new Elysia()
-      .use(html())
-      .use(htmx())
+    return (
+      new Elysia()
+        .use(html())
+        .use(htmx())
 
-      // CORS configuration
-      .use(cors({
-        origin: true,
-        credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'HX-Request', 'HX-Target', 'HX-Current-URL']
-      }))
+        // CORS configuration
+        .use(
+          cors({
+            origin: true,
+            credentials: true,
+            methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            allowedHeaders: [
+              "Content-Type",
+              "Authorization",
+              "X-Requested-With",
+              "HX-Request",
+              "HX-Target",
+              "HX-Current-URL",
+            ],
+          }),
+        )
 
-      // Static files
-      .use(staticPlugin({
-        assets: "src/web/public",
-        prefix: "/public",
-        headers: {
-          'Cache-Control': 'public, max-age=31536000',
-          'X-Content-Type-Options': 'nosniff'
-        }
-      }))
+        // Static files
+        .use(
+          staticPlugin({
+            assets: "src/web/public",
+            prefix: "/public",
+            headers: {
+              "Cache-Control": "public, max-age=31536000",
+              "X-Content-Type-Options": "nosniff",
+            },
+          }),
+        )
 
-      // Swagger documentation
-      .use(swagger({
-        documentation: {
-          info: {
-            title: 'ServiceNow Analytics API',
-            version: '2.0.0',
-            description: 'Modern glass design HTMX interface for ServiceNow analytics and management',
-          },
-          tags: [
-            { name: 'Pages', description: 'HTML page endpoints' },
-            { name: 'API', description: 'HTMX API endpoints' },
-            { name: 'Events', description: 'Real-time event streams' },
-            { name: 'Components', description: 'Reusable HTMX components' }
+        // Swagger documentation
+        .use(
+          swagger({
+            documentation: {
+              info: {
+                title: "ServiceNow Analytics API",
+                version: "2.0.0",
+                description:
+                  "Modern glass design HTMX interface for ServiceNow analytics and management",
+              },
+              tags: [
+                { name: "Pages", description: "HTML page endpoints" },
+                { name: "API", description: "HTMX API endpoints" },
+                { name: "Events", description: "Real-time event streams" },
+                { name: "Components", description: "Reusable HTMX components" },
+              ],
+            },
+            path: "/docs",
+          }),
+        )
+
+        // Security headers
+        .onBeforeHandle(({ set }) => {
+          set.headers = {
+            ...set.headers,
+            "X-Frame-Options": "DENY",
+            "X-Content-Type-Options": "nosniff",
+            "Referrer-Policy": "strict-origin-when-cross-origin",
+            "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+          };
+        })
+
+        // HTMX detection middleware
+        .derive(({ headers }) => ({
+          isHtmx: headers["hx-request"] === "true",
+          htmxTarget: headers["hx-target"] || null,
+          htmxCurrentUrl: headers["hx-current-url"] || null,
+        }))
+
+        // Main dashboard route
+        .get("/", ({ isHtmx }) => {
+          return this.createLayout({
+            title: "Dashboard",
+            currentPath: "/",
+            children: this.createDashboard(),
+            isHtmx,
+          });
+        })
+
+        // Unified tickets page
+        .get("/tickets", ({ isHtmx }) => {
+          return this.createLayout({
+            title: "Tickets",
+            currentPath: "/tickets",
+            children: this.createTicketsPage(),
+            isHtmx,
+          });
+        })
+
+        // Health check
+        .get("/health", () => ({
+          status: "healthy",
+          timestamp: new Date().toISOString(),
+          version: "2.0.0",
+          server: "glass-design-server",
+          features: [
+            "htmx",
+            "sse",
+            "glass-design",
+            "real-time-analytics",
+            "responsive-ui",
+            "accessibility",
           ],
-        },
-        path: '/docs'
-      }))
+        }))
 
-      // Security headers
-      .onBeforeHandle(({ set }) => {
-        set.headers = {
-          ...set.headers,
-          'X-Frame-Options': 'DENY',
-          'X-Content-Type-Options': 'nosniff',
-          'Referrer-Policy': 'strict-origin-when-cross-origin',
-          'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
-        };
-      })
+        // API Routes
+        .get("/api/search", ({ query }) => {
+          const searchQuery = (query as SearchQuery)?.q || "";
+          return this.createSearchResults(searchQuery);
+        })
 
-      // HTMX detection middleware
-      .derive(({ headers }) => ({
-        isHtmx: headers['hx-request'] === 'true',
-        htmxTarget: headers['hx-target'] || null,
-        htmxCurrentUrl: headers['hx-current-url'] || null
-      }))
+        .get("/api/metrics", () => {
+          return this.createMetricsCards();
+        })
 
-      // Main dashboard route
-      .get("/", ({ isHtmx }) => {
-        return this.createLayout({
-          title: 'Dashboard',
-          currentPath: '/',
-          children: this.createDashboard(),
-          isHtmx
-        });
-      })
+        .get("/api/statistics", () => {
+          return this.createStatisticsPage();
+        })
 
-      // Unified tickets page
-      .get("/tickets", ({ isHtmx }) => {
-        return this.createLayout({
-          title: 'Tickets',
-          currentPath: '/tickets',
-          children: this.createTicketsPage(),
-          isHtmx
-        });
-      })
+        .get("/api/neural-search", async ({ query }) => {
+          const searchQuery = (query as SearchQuery)?.q || "";
+          return await this.executeNeuralSearch(searchQuery);
+        })
 
-      // Health check
-      .get("/health", () => ({
-        status: "healthy",
-        timestamp: new Date().toISOString(),
-        version: "2.0.0",
-        server: "glass-design-server",
-        features: [
-          "htmx",
-          "sse",
-          "glass-design",
-          "real-time-analytics",
-          "responsive-ui",
-          "accessibility"
-        ]
-      }))
-
-      // API Routes
-      .get("/api/search", ({ query }) => {
-        const searchQuery = (query as SearchQuery)?.q || '';
-        return this.createSearchResults(searchQuery);
-      })
-
-      .get("/api/metrics", () => {
-        return this.createMetricsCards();
-      })
-
-      .get("/api/statistics", () => {
-        return this.createStatisticsPage();
-      })
-
-      .get("/api/neural-search", async ({ query }) => {
-        const searchQuery = (query as SearchQuery)?.q || '';
-        return await this.executeNeuralSearch(searchQuery);
-      })
-
-      .get("/api/tickets/:type", async ({ params, query }) => {
-        const type = params.type;
-        const states = (query as TicketFilters)?.states || '';
-        return await this.createTicketList(type, states);
-      })
-
-      .get("/api/tickets-content/:type", async ({ params, query }) => {
-        const type = params.type;
-        const states = (query as TicketFilters)?.states || '';
-        return await this.createTicketCards(type, states);
-      })
-
-      // Enhanced Ticket CRUD Operations
-      .get("/api/ticket/:sys_id", async ({ params }) => {
-        try {
-          const ticket = await this.consolidatedService.getRecord('incident', params.sys_id);
-          return this.renderTicketDetails(ticket);
-        } catch (error) {
-          console.error(' [CRUD] Error fetching ticket:', error);
-          return this.renderError('Ticket not found');
-        }
-      })
-
-      .put("/api/ticket/:sys_id", async ({ params, body }) => {
-        try {
-          const updateData = await body;
-          const updatedTicket = await this.consolidatedService.updateRecord('incident', params.sys_id, updateData as Record<string, unknown>);
-          return this.renderTicketCard(updatedTicket, 'incident');
-        } catch (error) {
-          console.error(' [CRUD] Error updating ticket:', error);
-          return this.renderError('Failed to update ticket');
-        }
-      })
-
-      .post("/api/ticket/:type", async ({ params, body }) => {
-        try {
-          const ticketData = await body;
-          const newTicket = await this.consolidatedService.createRecord(params.type, ticketData as Record<string, unknown>);
-          return this.renderTicketCard(newTicket, params.type);
-        } catch (error) {
-          console.error(' [CRUD] Error creating ticket:', error);
-          return this.renderError('Failed to create ticket');
-        }
-      })
-
-      // Advanced Filter Operations
-      .get("/api/tickets-filter/:type", async ({ params, query }) => {
-        try {
+        .get("/api/tickets/:type", async ({ params, query }) => {
           const type = params.type;
-          const filters = query as TicketFilters;
+          const states = (query as TicketFilters)?.states || "";
+          return await this.createTicketList(type, states);
+        })
 
-          // Advanced filtering with priority, assignment group, date range
-          const results = await this.getAdvancedTicketFilter(type, filters);
-          return this.renderTicketCards(results, type);
-        } catch (error) {
-          console.error(' [Filter] Error:', error);
-          return this.renderError('Filter operation failed');
-        }
-      })
+        .get("/api/tickets-content/:type", async ({ params, query }) => {
+          const type = params.type;
+          const states = (query as TicketFilters)?.states || "";
+          return await this.createTicketCards(type, states);
+        })
 
-      // Bulk Operations
-      .post("/api/tickets-bulk/:action", async ({ params, body }) => {
-        try {
-          const action = params.action; // 'update', 'assign', 'close'
-          const bulkData = await body as BulkUpdateData;
+        // Enhanced Ticket CRUD Operations
+        .get("/api/ticket/:sys_id", async ({ params }) => {
+          try {
+            const ticket = await this.consolidatedService.getRecord(
+              "incident",
+              params.sys_id,
+            );
+            return this.renderTicketDetails(ticket);
+          } catch (error) {
+            console.error(" [CRUD] Error fetching ticket:", error);
+            return this.renderError("Ticket not found");
+          }
+        })
 
-          const results = await this.performBulkOperation(action, bulkData.ticket_ids, bulkData.data);
-          return this.renderBulkOperationResult(results);
-        } catch (error) {
-          console.error(' [Bulk] Error:', error);
-          return this.renderError('Bulk operation failed');
-        }
-      })
+        .put("/api/ticket/:sys_id", async ({ params, body }) => {
+          try {
+            const updateData = await body;
+            const updatedTicket = await this.consolidatedService.updateRecord(
+              "incident",
+              params.sys_id,
+              updateData as Record<string, unknown>,
+            );
+            return this.renderTicketCard(updatedTicket, "incident");
+          } catch (error) {
+            console.error(" [CRUD] Error updating ticket:", error);
+            return this.renderError("Failed to update ticket");
+          }
+        })
 
-      // Enhanced Real-time SSE Stream
-      .get("/events/stream", ({ set }) => {
-        set.headers = {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': 'Cache-Control'
-        };
+        .post("/api/ticket/:type", async ({ params, body }) => {
+          try {
+            const ticketData = await body;
+            const newTicket = await this.consolidatedService.createRecord(
+              params.type,
+              ticketData as Record<string, unknown>,
+            );
+            return this.renderTicketCard(newTicket, params.type);
+          } catch (error) {
+            console.error(" [CRUD] Error creating ticket:", error);
+            return this.renderError("Failed to create ticket");
+          }
+        })
 
-        return this.createEnhancedSSEStream();
-      })
+        // Advanced Filter Operations
+        .get("/api/tickets-filter/:type", async ({ params, query }) => {
+          try {
+            const type = params.type;
+            const filters = query as TicketFilters;
 
-      // Real-time Ticket Updates Stream
-      .get("/events/tickets/:type", ({ params, set }) => {
-        set.headers = {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': 'Cache-Control'
-        };
+            // Advanced filtering with priority, assignment group, date range
+            const results = await this.getAdvancedTicketFilter(type, filters);
+            return this.renderTicketCards(results, type);
+          } catch (error) {
+            console.error(" [Filter] Error:", error);
+            return this.renderError("Filter operation failed");
+          }
+        })
 
-        return this.createTicketUpdatesStream(params.type);
-      })
+        // Bulk Operations
+        .post("/api/tickets-bulk/:action", async ({ params, body }) => {
+          try {
+            const action = params.action; // 'update', 'assign', 'close'
+            const bulkData = (await body) as BulkUpdateData;
 
-      // Real-time Neural Search Results Stream
-      .get("/events/neural-search", ({ query, set }) => {
-        set.headers = {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': 'Cache-Control'
-        };
+            const results = await this.performBulkOperation(
+              action,
+              bulkData.ticket_ids,
+              bulkData.data,
+            );
+            return this.renderBulkOperationResult(results);
+          } catch (error) {
+            console.error(" [Bulk] Error:", error);
+            return this.renderError("Bulk operation failed");
+          }
+        })
 
-        const searchQuery = (query as SearchQuery)?.q || '';
-        return this.createNeuralSearchStream(searchQuery);
-      })
+        // Enhanced Real-time SSE Stream
+        .get("/events/stream", ({ set }) => {
+          set.headers = {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Cache-Control",
+          };
 
-      // System Health Monitoring Stream
-      .get("/events/system-health", ({ set }) => {
-        set.headers = {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': 'Cache-Control'
-        };
+          return this.createEnhancedSSEStream();
+        })
 
-        return this.createSystemHealthStream();
-      })
+        // Real-time Ticket Updates Stream
+        .get("/events/tickets/:type", ({ params, set }) => {
+          set.headers = {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Cache-Control",
+          };
 
-      // AI Services Routes - Phase 6 Implementation
-      .use(htmxAIRoutes)
-      .use(htmxAIChatRoutes)
-      .use(workflowGuidanceRoutes)
-      .use(neuralSearchRoutes)
-      .use(intelligenceDashboardRoutes)
-      .use(knowledgeVisualizationRoutes)
+          return this.createTicketUpdatesStream(params.type);
+        })
 
-      // Favicon
-      .get("/favicon.ico", () => new Response(null, { status: 204 }))
+        // Real-time Neural Search Results Stream
+        .get("/events/neural-search", ({ query, set }) => {
+          set.headers = {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Cache-Control",
+          };
 
-      // Error handling
-      .onError(({ code, error, set }) => {
-        console.error('Server Error:', code, error);
+          const searchQuery = (query as SearchQuery)?.q || "";
+          return this.createNeuralSearchStream(searchQuery);
+        })
 
-        if (code === 'NOT_FOUND') {
-          set.status = 404;
-          return this.create404Page();
-        }
+        // System Health Monitoring Stream
+        .get("/events/system-health", ({ set }) => {
+          set.headers = {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Cache-Control",
+          };
 
-        set.status = 500;
-        return this.create500Page();
-      })
+          return this.createSystemHealthStream();
+        })
 
-      // Request logging
-      .onBeforeHandle(({ request, isHtmx }) => {
-        const method = request.method;
-        const url = new URL(request.url).pathname;
-        const timestamp = new Date().toISOString();
-        const type = isHtmx ? '[HTMX]' : '[HTTP]';
+        // AI Services Routes - Phase 6 Implementation
+        .use(htmxAIRoutes)
+        .use(htmxAIChatRoutes)
+        .use(workflowGuidanceRoutes)
+        .use(neuralSearchRoutes)
+        .use(intelligenceDashboardRoutes)
+        .use(knowledgeVisualizationRoutes)
 
-        console.log(`${timestamp} ${type} ${method} ${url}`);
-      });
+        // Favicon
+        .get("/favicon.ico", () => new Response(null, { status: 204 }))
+
+        // Error handling
+        .onError(({ code, error, set }) => {
+          console.error("Server Error:", code, error);
+
+          if (code === "NOT_FOUND") {
+            set.status = 404;
+            return this.create404Page();
+          }
+
+          set.status = 500;
+          return this.create500Page();
+        })
+
+        // Request logging
+        .onBeforeHandle(({ request, isHtmx }) => {
+          const method = request.method;
+          const url = new URL(request.url).pathname;
+          const timestamp = new Date().toISOString();
+          const type = isHtmx ? "[HTMX]" : "[HTTP]";
+
+          console.log(`${timestamp} ${type} ${method} ${url}`);
+        })
+    );
   }
 
-  private createLayout({ title, currentPath, children, isHtmx = false }: {
+  private createLayout({
+    title,
+    currentPath,
+    children,
+    isHtmx = false,
+  }: {
     title: string;
     currentPath: string;
     children: string;
@@ -601,21 +652,46 @@ export class GlassDesignServer {
 
   private createNavigation(currentPath: string): string {
     const navItems = [
-      { href: '/', label: 'Dashboard', icon: 'dashboard', active: currentPath === '/' },
-      { href: '/tickets', label: 'Tickets', icon: '🎫', badge: '41', active: currentPath.startsWith('/tickets') },
-      { href: '/analytics', label: 'Analytics', icon: '📈', active: currentPath.startsWith('/analytics') },
-      { href: '/reports', label: 'Reports', icon: '📄', active: currentPath.startsWith('/reports') }
+      {
+        href: "/",
+        label: "Dashboard",
+        icon: "dashboard",
+        active: currentPath === "/",
+      },
+      {
+        href: "/tickets",
+        label: "Tickets",
+        icon: "🎫",
+        badge: "41",
+        active: currentPath.startsWith("/tickets"),
+      },
+      {
+        href: "/analytics",
+        label: "Analytics",
+        icon: "📈",
+        active: currentPath.startsWith("/analytics"),
+      },
+      {
+        href: "/reports",
+        label: "Reports",
+        icon: "📄",
+        active: currentPath.startsWith("/reports"),
+      },
     ];
 
-    const navItemsHtml = navItems.map(item => `
+    const navItemsHtml = navItems
+      .map(
+        (item) => `
       <li class="glass-nav__item">
-        <a href="${item.href}" class="glass-nav__link ${item.active ? 'glass-nav__link--active' : ''}">
+        <a href="${item.href}" class="glass-nav__link ${item.active ? "glass-nav__link--active" : ""}">
           <span>${item.icon}</span>
           <span>${item.label}</span>
-          ${item.badge ? `<span class="glass-nav__badge">${item.badge}</span>` : ''}
+          ${item.badge ? `<span class="glass-nav__badge">${item.badge}</span>` : ""}
         </a>
       </li>
-    `).join('');
+    `,
+      )
+      .join("");
 
     return `
       <nav class="glass-nav">
@@ -1150,32 +1226,33 @@ export class GlassDesignServer {
     // Mock search results
     const mockResults = [
       {
-        type: 'incident',
-        id: 'INC0012345',
+        type: "incident",
+        id: "INC0012345",
         title: `Email service disruption - ${query}`,
-        description: 'High priority incident affecting email services',
-        icon: '🚨',
-        url: '/incidents/INC0012345'
+        description: "High priority incident affecting email services",
+        icon: "🚨",
+        url: "/incidents/INC0012345",
       },
       {
-        type: 'problem',
-        id: 'PRB0005432',
+        type: "problem",
+        id: "PRB0005432",
         title: `Network connectivity issues - ${query}`,
-        description: 'Investigating network performance problems',
-        icon: '',
-        url: '/problems/PRB0005432'
+        description: "Investigating network performance problems",
+        icon: "",
+        url: "/problems/PRB0005432",
       },
       {
-        type: 'change',
-        id: 'CHG0009876',
+        type: "change",
+        id: "CHG0009876",
         title: `Database maintenance window - ${query}`,
-        description: 'Scheduled maintenance for database servers',
-        icon: '📋',
-        url: '/changes/CHG0009876'
-      }
-    ].filter(result =>
-      result.title.toLowerCase().includes(query.toLowerCase()) ||
-      result.id.toLowerCase().includes(query.toLowerCase())
+        description: "Scheduled maintenance for database servers",
+        icon: "📋",
+        url: "/changes/CHG0009876",
+      },
+    ].filter(
+      (result) =>
+        result.title.toLowerCase().includes(query.toLowerCase()) ||
+        result.id.toLowerCase().includes(query.toLowerCase()),
     );
 
     if (mockResults.length === 0) {
@@ -1194,7 +1271,9 @@ export class GlassDesignServer {
       `;
     }
 
-    return mockResults.map(result => `
+    return mockResults
+      .map(
+        (result) => `
       <a href="${result.url}" class="search-result">
         <div class="search-result__icon quick-action__icon--${result.type}s">
           <span>${result.icon}</span>
@@ -1205,7 +1284,9 @@ export class GlassDesignServer {
         </div>
         <div class="search-result__meta">${result.id}</div>
       </a>
-    `).join('');
+    `,
+      )
+      .join("");
   }
 
   private createMetricsCards(): string {
@@ -1213,7 +1294,7 @@ export class GlassDesignServer {
       total_tickets: 2850,
       resolved_tickets: 1950,
       active_tickets: 900,
-      response_time_avg: 24.5
+      response_time_avg: 24.5,
     };
 
     return `
@@ -1258,114 +1339,119 @@ export class GlassDesignServer {
   private createStatisticsPage(): string {
     const stats = [
       {
-        tipo_chamado: 'incident',
-        estado_numero: '1',
-        status_portugues: 'Novo',
+        tipo_chamado: "incident",
+        estado_numero: "1",
+        status_portugues: "Novo",
         total_chamados: 125,
-        percentual: 8.7
+        percentual: 8.7,
       },
       {
-        tipo_chamado: 'incident',
-        estado_numero: '2',
-        status_portugues: 'Em Andamento',
+        tipo_chamado: "incident",
+        estado_numero: "2",
+        status_portugues: "Em Andamento",
         total_chamados: 234,
-        percentual: 16.4
+        percentual: 16.4,
       },
       {
-        tipo_chamado: 'incident',
-        estado_numero: '6',
-        status_portugues: 'Resolvido',
+        tipo_chamado: "incident",
+        estado_numero: "6",
+        status_portugues: "Resolvido",
         total_chamados: 841,
-        percentual: 58.8
+        percentual: 58.8,
       },
       {
-        tipo_chamado: 'incident',
-        estado_numero: '7',
-        status_portugues: 'Fechado',
+        tipo_chamado: "incident",
+        estado_numero: "7",
+        status_portugues: "Fechado",
         total_chamados: 230,
-        percentual: 16.1
+        percentual: 16.1,
       },
       {
-        tipo_chamado: 'change_task',
-        estado_numero: '1',
-        status_portugues: 'Pendente',
+        tipo_chamado: "change_task",
+        estado_numero: "1",
+        status_portugues: "Pendente",
         total_chamados: 45,
-        percentual: 11.3
+        percentual: 11.3,
       },
       {
-        tipo_chamado: 'change_task',
-        estado_numero: '2',
-        status_portugues: 'Em Progresso',
+        tipo_chamado: "change_task",
+        estado_numero: "2",
+        status_portugues: "Em Progresso",
         total_chamados: 178,
-        percentual: 44.5
+        percentual: 44.5,
       },
       {
-        tipo_chamado: 'change_task',
-        estado_numero: '3',
-        status_portugues: 'Concluído',
+        tipo_chamado: "change_task",
+        estado_numero: "3",
+        status_portugues: "Concluído",
         total_chamados: 177,
-        percentual: 44.2
+        percentual: 44.2,
       },
       {
-        tipo_chamado: 'sc_task',
-        estado_numero: '1',
-        status_portugues: 'Aguardando Aprovação',
+        tipo_chamado: "sc_task",
+        estado_numero: "1",
+        status_portugues: "Aguardando Aprovação",
         total_chamados: 89,
-        percentual: 10.5
+        percentual: 10.5,
       },
       {
-        tipo_chamado: 'sc_task',
-        estado_numero: '2',
-        status_portugues: 'Aprovado',
+        tipo_chamado: "sc_task",
+        estado_numero: "2",
+        status_portugues: "Aprovado",
         total_chamados: 356,
-        percentual: 41.9
+        percentual: 41.9,
       },
       {
-        tipo_chamado: 'sc_task',
-        estado_numero: '3',
-        status_portugues: 'Rejeitado',
+        tipo_chamado: "sc_task",
+        estado_numero: "3",
+        status_portugues: "Rejeitado",
         total_chamados: 67,
-        percentual: 7.9
+        percentual: 7.9,
       },
       {
-        tipo_chamado: 'sc_task',
-        estado_numero: '7',
-        status_portugues: 'Entregue',
+        tipo_chamado: "sc_task",
+        estado_numero: "7",
+        status_portugues: "Entregue",
         total_chamados: 338,
-        percentual: 39.7
-      }
+        percentual: 39.7,
+      },
     ];
 
-    const groupedStats = stats.reduce((acc, stat) => {
-      if (!acc[stat.tipo_chamado]) acc[stat.tipo_chamado] = [];
-      acc[stat.tipo_chamado].push(stat);
-      return acc;
-    }, {} as Record<string, ServiceNowRecord[]>);
+    const groupedStats = stats.reduce(
+      (acc, stat) => {
+        if (!acc[stat.tipo_chamado]) acc[stat.tipo_chamado] = [];
+        acc[stat.tipo_chamado].push(stat);
+        return acc;
+      },
+      {} as Record<string, ServiceNowRecord[]>,
+    );
 
     const getStatusClass = (state: string): string => {
       const classes: Record<string, string> = {
-        '1': 'status-1',
-        '2': 'status-2',
-        '3': 'status-3',
-        '6': 'status-6',
-        '7': 'status-7',
-        '8': 'status-8'
+        "1": "status-1",
+        "2": "status-2",
+        "3": "status-3",
+        "6": "status-6",
+        "7": "status-7",
+        "8": "status-8",
       };
-      return classes[state] || 'status-badge';
+      return classes[state] || "status-badge";
     };
 
     const getTableLabel = (table: string): string => {
       const labels: Record<string, string> = {
-        'incident': 'Incidentes',
-        'change_request': 'Mudanças',
-        'change_task': 'Tarefas de Mudança',
-        'sc_req_item': 'Itens de Solicitação',
-        'sc_task': 'Tarefas de Solicitação'
+        incident: "Incidentes",
+        change_request: "Mudanças",
+        change_task: "Tarefas de Mudança",
+        sc_req_item: "Itens de Solicitação",
+        sc_task: "Tarefas de Solicitação",
       };
-      return labels[table] || table.replace('_', ' ');
+      return labels[table] || table.replace("_", " ");
     };
 
-    const statsTable = Object.entries(groupedStats).map(([type, typeStats]) => `
+    const statsTable = Object.entries(groupedStats)
+      .map(
+        ([type, typeStats]) => `
       <div style="background: rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem; backdrop-filter: blur(20px);">
         <h3 style="font-size: 1.25rem; font-weight: 600; color: rgba(255, 255, 255, 0.9); margin-bottom: 1rem;">${getTableLabel(type)}</h3>
         <div style="overflow-x: auto;">
@@ -1379,7 +1465,9 @@ export class GlassDesignServer {
               </tr>
             </thead>
             <tbody>
-              ${typeStats.map(stat => `
+              ${typeStats
+                .map(
+                  (stat) => `
                 <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
                   <td style="padding: 1rem 0.75rem; white-space: nowrap; font-weight: 600; color: rgba(255, 255, 255, 0.9);">
                     <span style="display: inline-block; padding: 0.25rem 0.5rem; background: rgba(102, 126, 234, 0.2); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 0.25rem; font-size: 0.875rem;">${stat.estado_numero}</span>
@@ -1395,12 +1483,16 @@ export class GlassDesignServer {
                     </div>
                   </td>
                 </tr>
-              `).join('')}
+              `,
+                )
+                .join("")}
             </tbody>
           </table>
         </div>
       </div>
-    `).join('');
+    `,
+      )
+      .join("");
 
     return `
       <div style="padding: 2rem;">
@@ -1418,16 +1510,16 @@ export class GlassDesignServer {
     if (!query) {
       return {
         success: false,
-        message: 'Search query is required',
-        results: []
+        message: "Search query is required",
+        results: [],
       };
     }
 
     if (query.length < 3) {
       return {
         success: false,
-        message: 'Enter at least 3 characters to search',
-        results: []
+        message: "Enter at least 3 characters to search",
+        results: [],
       };
     }
 
@@ -1444,14 +1536,14 @@ export class GlassDesignServer {
         query: query,
         total_results: searchResults.length,
         results: searchResults,
-        processing_time: '0.3s'
+        processing_time: "0.3s",
       };
     } catch (error) {
-      console.error(' [Neural Search] Error:', error);
+      console.error(" [Neural Search] Error:", error);
       return {
         success: false,
-        message: 'Search failed: ' + (error as Error).message,
-        results: []
+        message: "Search failed: " + (error as Error).message,
+        results: [],
       };
     }
   }
@@ -1461,44 +1553,84 @@ export class GlassDesignServer {
     let allResults: SearchResult[] = [];
     let hasServiceNowData = false;
 
-    console.log(`[Neural Search] Search terms: ${searchTerms.join(', ')}`);
+    console.log(`[Neural Search] Search terms: ${searchTerms.join(", ")}`);
 
     // Search across multiple ServiceNow tables with semantic weighting
     const tablesToSearch = [
-      { table: 'incident', weight: 1.0, fields: ['short_description', 'description', 'work_notes', 'close_notes'] },
-      { table: 'problem', weight: 0.9, fields: ['short_description', 'description', 'work_notes'] },
-      { table: 'change_request', weight: 0.8, fields: ['short_description', 'description', 'justification'] },
-      { table: 'sc_request', weight: 0.7, fields: ['short_description', 'description'] }
+      {
+        table: "incident",
+        weight: 1.0,
+        fields: [
+          "short_description",
+          "description",
+          "work_notes",
+          "close_notes",
+        ],
+      },
+      {
+        table: "problem",
+        weight: 0.9,
+        fields: ["short_description", "description", "work_notes"],
+      },
+      {
+        table: "change_request",
+        weight: 0.8,
+        fields: ["short_description", "description", "justification"],
+      },
+      {
+        table: "sc_request",
+        weight: 0.7,
+        fields: ["short_description", "description"],
+      },
     ];
 
     // Try ServiceNow integration first
     for (const config of tablesToSearch) {
       try {
         console.log(`[Neural Search] Searching table: ${config.table}`);
-        const tableResults = await this.searchServiceNowTable(config.table, searchTerms, config.fields);
+        const tableResults = await this.searchServiceNowTable(
+          config.table,
+          searchTerms,
+          config.fields,
+        );
 
         if (tableResults.length > 0) {
           hasServiceNowData = true;
-          console.log(`[Neural Search] Found ${tableResults.length} results in ${config.table}`);
+          console.log(
+            `[Neural Search] Found ${tableResults.length} results in ${config.table}`,
+          );
 
-          const enrichedResults = tableResults.map(record => ({
+          const enrichedResults = tableResults.map((record) => ({
             id: record.number || record.sys_id,
             type: config.table,
-            title: record.short_description || 'No title',
-            description: this.extractBestMatch(record, searchTerms, config.fields),
+            title: record.short_description || "No title",
+            description: this.extractBestMatch(
+              record,
+              searchTerms,
+              config.fields,
+            ),
             state: this.mapServiceNowState(record.state, config.table),
             priority: this.mapServiceNowPriority(record.priority),
-            confidence: this.calculateSemanticConfidence(query, record, config.weight),
+            confidence: this.calculateSemanticConfidence(
+              query,
+              record,
+              config.weight,
+            ),
             created_at: record.sys_created_on || new Date().toISOString(),
-            assignment_group: record.assignment_group?.display_value || record.assignment_group,
-            assigned_to: record.assigned_to?.display_value || record.assigned_to,
-            sys_id: record.sys_id
+            assignment_group:
+              record.assignment_group?.display_value || record.assignment_group,
+            assigned_to:
+              record.assigned_to?.display_value || record.assigned_to,
+            sys_id: record.sys_id,
           }));
 
           allResults.push(...enrichedResults);
         }
       } catch (error) {
-        console.warn(`[Neural Search] Search failed for table ${config.table}:`, error);
+        console.warn(
+          `[Neural Search] Search failed for table ${config.table}:`,
+          error,
+        );
 
         // Continue searching other tables on error
         continue;
@@ -1511,59 +1643,86 @@ export class GlassDesignServer {
     }
 
     // Sort by confidence and return top results
-    return allResults
-      .sort((a, b) => b.confidence - a.confidence)
-      .slice(0, 15);
+    return allResults.sort((a, b) => b.confidence - a.confidence).slice(0, 15);
   }
-
 
   private extractSearchTerms(query: string): string[] {
-    return query.toLowerCase()
-      .replace(/[^a-z0-9\s]/g, ' ')
+    return query
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
       .split(/\s+/)
-      .filter(term => term.length > 2);
+      .filter((term) => term.length > 2);
   }
 
-  private async searchServiceNowTable(table: string, searchTerms: string[], fields: string[]) {
+  private async searchServiceNowTable(
+    table: string,
+    searchTerms: string[],
+    fields: string[],
+  ) {
     // Create ServiceNow query filter for semantic search
-    const filters = fields.map(field =>
-      searchTerms.map(term => `${field}LIKE${term}`).join('^OR')
-    ).join('^OR');
+    const filters = fields
+      .map((field) =>
+        searchTerms.map((term) => `${field}LIKE${term}`).join("^OR"),
+      )
+      .join("^OR");
 
     const queryOptions = {
       table,
       filter: filters,
       limit: 50,
-      fields: ['sys_id', 'number', 'short_description', 'description', 'state', 'priority',
-              'assignment_group', 'assigned_to', 'sys_created_on', ...fields],
-      orderBy: 'sys_updated_on DESC'
+      fields: [
+        "sys_id",
+        "number",
+        "short_description",
+        "description",
+        "state",
+        "priority",
+        "assignment_group",
+        "assigned_to",
+        "sys_created_on",
+        ...fields,
+      ],
+      orderBy: "sys_updated_on DESC",
     };
 
     return await this.consolidatedService.query(queryOptions);
   }
 
-  private extractBestMatch(record: ServiceNowRecord, searchTerms: string[], fields: string[]): string {
-    let bestMatch = '';
+  private extractBestMatch(
+    record: ServiceNowRecord,
+    searchTerms: string[],
+    fields: string[],
+  ): string {
+    let bestMatch = "";
     let maxMatches = 0;
 
     for (const field of fields) {
       const content = this.extractValue(record[field]);
       if (content) {
-        const matches = searchTerms.filter(term =>
-          content.toLowerCase().includes(term)
+        const matches = searchTerms.filter((term) =>
+          content.toLowerCase().includes(term),
         ).length;
 
         if (matches > maxMatches) {
           maxMatches = matches;
-          bestMatch = content.substring(0, 200) + (content.length > 200 ? '...' : '');
+          bestMatch =
+            content.substring(0, 200) + (content.length > 200 ? "..." : "");
         }
       }
     }
 
-    return bestMatch || this.extractValue(record.short_description) || 'No description available';
+    return (
+      bestMatch ||
+      this.extractValue(record.short_description) ||
+      "No description available"
+    );
   }
 
-  private calculateSemanticConfidence(query: string, record: ServiceNowRecord, tableWeight: number): number {
+  private calculateSemanticConfidence(
+    query: string,
+    record: ServiceNowRecord,
+    tableWeight: number,
+  ): number {
     const queryLower = query.toLowerCase();
     const title = this.extractValue(record.short_description).toLowerCase();
     const description = this.extractValue(record.description).toLowerCase();
@@ -1574,18 +1733,18 @@ export class GlassDesignServer {
     if (title.includes(queryLower)) score += 0.4;
 
     // Partial matches in title
-    const queryWords = queryLower.split(' ');
-    queryWords.forEach(word => {
+    const queryWords = queryLower.split(" ");
+    queryWords.forEach((word) => {
       if (word.length > 2 && title.includes(word)) score += 0.2;
       if (word.length > 2 && description.includes(word)) score += 0.1;
     });
 
     // Priority and state boost
     const priority = this.extractValue(record.priority);
-    if (priority === '1' || priority === '2') score += 0.1;
+    if (priority === "1" || priority === "2") score += 0.1;
 
     const state = this.extractValue(record.state);
-    if (['1', '2', '6'].includes(state)) score += 0.05; // Active states
+    if (["1", "2", "6"].includes(state)) score += 0.05; // Active states
 
     // Apply table weight and normalize
     return Math.min(0.99, Math.max(0.1, score * tableWeight));
@@ -1596,37 +1755,39 @@ export class GlassDesignServer {
 
     // Common ServiceNow state mappings
     const stateMap: { [key: string]: string } = {
-      '1': 'Novo',
-      '2': 'Em Progresso',
-      '3': 'Pendente',
-      '6': 'Resolvido',
-      '7': 'Fechado',
-      '8': 'Cancelado'
+      "1": "Novo",
+      "2": "Em Progresso",
+      "3": "Pendente",
+      "6": "Resolvido",
+      "7": "Fechado",
+      "8": "Cancelado",
     };
 
-    return stateMap[stateValue] || stateValue || 'Desconhecido';
+    return stateMap[stateValue] || stateValue || "Desconhecido";
   }
 
   private mapServiceNowPriority(priority: string | number): string {
     const priorityValue = this.extractValue(priority);
 
     const priorityMap: { [key: string]: string } = {
-      '1': 'Crítica',
-      '2': 'Alta',
-      '3': 'Moderada',
-      '4': 'Baixa',
-      '5': 'Planejamento'
+      "1": "Crítica",
+      "2": "Alta",
+      "3": "Moderada",
+      "4": "Baixa",
+      "5": "Planejamento",
     };
 
-    return priorityMap[priorityValue] || priorityValue || 'Não definida';
+    return priorityMap[priorityValue] || priorityValue || "Não definida";
   }
 
-  private extractValue(field: string | { display_value: string; value: string }): string {
-    if (typeof field === 'string') return field;
-    if (field && typeof field === 'object') {
-      return field.display_value || field.value || '';
+  private extractValue(
+    field: string | { display_value: string; value: string },
+  ): string {
+    if (typeof field === "string") return field;
+    if (field && typeof field === "object") {
+      return field.display_value || field.value || "";
     }
-    return '';
+    return "";
   }
 
   private async createNeuralSearchResults(query: string): Promise<string> {
@@ -1641,35 +1802,42 @@ export class GlassDesignServer {
 
     try {
       // Search across multiple ServiceNow tables for relevant tickets
-      const searchTables = ['incident', 'problem', 'change_request'];
+      const searchTables = ["incident", "problem", "change_request"];
       const searchPromises = searchTables.map(async (table) => {
         const queryFilter = `short_descriptionLIKE${query}^ORdescriptionLIKE${query}^ORnumberLIKE${query}`;
-        return consolidatedServiceNowService.queryRecords(
-          table,
-          queryFilter,
-          { limit: 10, orderBy: 'sys_created_on', orderDirection: 'desc' }
-        ).then((records: any[]) =>
-          records.map((record: any) => ({
-            id: record.number || record.sys_id,
-            type: table === 'change_request' ? 'change' : table,
-            title: record.short_description || 'Sem título',
-            description: record.description || record.short_description || 'Sem descrição',
-            confidence: 85 + Math.floor(Math.random() * 15), // Simulate confidence score
-            priority: this.mapPriorityToText(record.priority),
-            assignee: record.assigned_to?.display_value || 'Unassigned',
-            created: this.formatRelativeTime(record.sys_created_on)
-          }))
-        );
+        return consolidatedServiceNowService
+          .queryRecords(table, queryFilter, {
+            limit: 10,
+            orderBy: "sys_created_on",
+            orderDirection: "desc",
+          })
+          .then((records: any[]) =>
+            records.map((record: any) => ({
+              id: record.number || record.sys_id,
+              type: table === "change_request" ? "change" : table,
+              title: record.short_description || "Sem título",
+              description:
+                record.description ||
+                record.short_description ||
+                "Sem descrição",
+              confidence: 85 + Math.floor(Math.random() * 15), // Simulate confidence score
+              priority: this.mapPriorityToText(record.priority),
+              assignee: record.assigned_to?.display_value || "Unassigned",
+              created: this.formatRelativeTime(record.sys_created_on),
+            })),
+          );
       });
 
       const searchResults = await Promise.all(searchPromises);
       const allResults = searchResults.flat();
 
       // Sort by confidence and relevance
-      const filteredResults = allResults.sort((a, b) => b.confidence - a.confidence);
+      const filteredResults = allResults.sort(
+        (a, b) => b.confidence - a.confidence,
+      );
 
-    if (filteredResults.length === 0) {
-      return `
+      if (filteredResults.length === 0) {
+        return `
         <div style="text-align: center; padding: 2rem; color: rgba(255, 255, 255, 0.6);">
           <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">Search</div>
           <div>No results found for "${query}"</div>
@@ -1678,9 +1846,11 @@ export class GlassDesignServer {
           </div>
         </div>
       `;
-    }
+      }
 
-    const resultsHtml = filteredResults.map(result => `
+      const resultsHtml = filteredResults
+        .map(
+          (result) => `
       <div class="neural-result">
         <div class="neural-result__header">
           <div class="neural-result__title">${result.title}</div>
@@ -1701,9 +1871,11 @@ export class GlassDesignServer {
           </div>
         </div>
       </div>
-    `).join('');
+    `,
+        )
+        .join("");
 
-    return `
+      return `
       <div style="margin-bottom: 1rem; padding: 0.75rem; background: rgba(102, 126, 234, 0.1); border-radius: 0.5rem; border: 1px solid rgba(102, 126, 234, 0.2);">
         <div style="font-size: 0.875rem; color: rgba(102, 126, 234, 0.9); font-weight: 600;">
           Neural Search Results
@@ -1715,7 +1887,7 @@ export class GlassDesignServer {
       ${resultsHtml}
     `;
     } catch (error) {
-      console.error('Error in neural search:', error);
+      console.error("Error in neural search:", error);
       return `
         <div style="text-align: center; padding: 2rem; color: rgba(255, 255, 255, 0.6);">
           <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">⚠️</div>
@@ -1728,16 +1900,26 @@ export class GlassDesignServer {
     }
   }
 
-  private async createTicketCards(type: string, states: string): Promise<string> {
+  private async createTicketCards(
+    type: string,
+    states: string,
+  ): Promise<string> {
     try {
-      console.log(`🎫 [Tickets] Loading ${type} tickets with states: ${states}`);
+      console.log(
+        `🎫 [Tickets] Loading ${type} tickets with states: ${states}`,
+      );
 
       // Try to get real ServiceNow data
-      const stateList = states.split(',').filter(s => s.trim());
-      const serviceNowResults = await this.getServiceNowTickets(type, stateList);
+      const stateList = states.split(",").filter((s) => s.trim());
+      const serviceNowResults = await this.getServiceNowTickets(
+        type,
+        stateList,
+      );
 
       if (serviceNowResults.length > 0) {
-        console.log(` [Tickets] Found ${serviceNowResults.length} real ${type} tickets`);
+        console.log(
+          ` [Tickets] Found ${serviceNowResults.length} real ${type} tickets`,
+        );
         return this.renderTicketCards(serviceNowResults, type);
       }
 
@@ -1745,36 +1927,55 @@ export class GlassDesignServer {
       console.log(` [Tickets] Using demo data for ${type} tickets`);
       const demoTickets = this.getDemoTickets(type, stateList);
       return this.renderTicketCards(demoTickets, type);
-
     } catch (error) {
       console.error(` [Tickets] Error loading ${type} tickets:`, error);
-      return this.renderTicketCards(this.getDemoTickets(type, states.split(',')), type);
+      return this.renderTicketCards(
+        this.getDemoTickets(type, states.split(",")),
+        type,
+      );
     }
   }
 
-  private async getServiceNowTickets(type: string, states: string[]): Promise<ServiceNowRecord[]> {
+  private async getServiceNowTickets(
+    type: string,
+    states: string[],
+  ): Promise<ServiceNowRecord[]> {
     try {
       // Map states to ServiceNow values
       const stateMap: { [key: string]: string } = {
-        'novo': '1',
-        'em_progresso': '2',
-        'pendente': '3',
-        'resolvido': '6',
-        'fechado': '7'
+        novo: "1",
+        em_progresso: "2",
+        pendente: "3",
+        resolvido: "6",
+        fechado: "7",
       };
 
-      const mappedStates = states.map(state => stateMap[state.trim()]).filter(Boolean);
+      const mappedStates = states
+        .map((state) => stateMap[state.trim()])
+        .filter(Boolean);
       if (mappedStates.length === 0) return [];
 
-      const stateFilter = mappedStates.map(state => `state=${state}`).join('^OR');
+      const stateFilter = mappedStates
+        .map((state) => `state=${state}`)
+        .join("^OR");
 
       const queryOptions = {
         table: type,
         filter: stateFilter,
         limit: 50,
-        fields: ['sys_id', 'number', 'short_description', 'description', 'state', 'priority',
-                'assignment_group', 'assigned_to', 'sys_created_on', 'sys_updated_on'],
-        orderBy: 'sys_updated_on DESC'
+        fields: [
+          "sys_id",
+          "number",
+          "short_description",
+          "description",
+          "state",
+          "priority",
+          "assignment_group",
+          "assigned_to",
+          "sys_created_on",
+          "sys_updated_on",
+        ],
+        orderBy: "sys_updated_on DESC",
       };
 
       return await this.consolidatedService.query(queryOptions);
@@ -1795,7 +1996,9 @@ export class GlassDesignServer {
       `;
     }
 
-    const ticketCards = tickets.map(ticket => this.createTicketCard(ticket, type)).join('');
+    const ticketCards = tickets
+      .map((ticket) => this.createTicketCard(ticket, type))
+      .join("");
 
     return `
       <div class="tickets-grid">
@@ -1811,12 +2014,16 @@ export class GlassDesignServer {
   }
 
   private createTicketCard(ticket: ServiceNowRecord, type: string): string {
-    const title = ticket.short_description || ticket.title || 'No title';
-    const description = ticket.description || 'No description available';
+    const title = ticket.short_description || ticket.title || "No title";
+    const description = ticket.description || "No description available";
     const state = this.mapServiceNowState(ticket.state, type);
     const priority = this.mapServiceNowPriority(ticket.priority);
     const id = ticket.number || ticket.id || ticket.sys_id;
-    const assignee = ticket.assigned_to?.display_value || ticket.assigned_to || ticket.assignee || 'Unassigned';
+    const assignee =
+      ticket.assigned_to?.display_value ||
+      ticket.assigned_to ||
+      ticket.assignee ||
+      "Unassigned";
     const created = this.formatDate(ticket.sys_created_on || ticket.created_at);
 
     return `
@@ -1831,7 +2038,7 @@ export class GlassDesignServer {
 
         <div class="ticket-card-content">
           <h4 class="ticket-card-title">${title}</h4>
-          <p class="ticket-card-description">${description.substring(0, 150)}${description.length > 150 ? '...' : ''}</p>
+          <p class="ticket-card-description">${description.substring(0, 150)}${description.length > 150 ? "..." : ""}</p>
         </div>
 
         <div class="ticket-card-footer">
@@ -1845,7 +2052,7 @@ export class GlassDesignServer {
               ${created}
             </div>
           </div>
-          <div class="ticket-card-state ticket-card-state--${state.toLowerCase().replace(' ', '-')}">${state}</div>
+          <div class="ticket-card-state ticket-card-state--${state.toLowerCase().replace(" ", "-")}">${state}</div>
         </div>
 
         <div class="ticket-card-actions">
@@ -1862,26 +2069,26 @@ export class GlassDesignServer {
 
   private getTypeIcon(type: string): string {
     const icons = {
-      'incident': '🚨',
-      'problem': '',
-      'change_request': '📋',
-      'sc_request': ''
+      incident: "🚨",
+      problem: "",
+      change_request: "📋",
+      sc_request: "",
     };
-    return icons[type as keyof typeof icons] || '🎫';
+    return icons[type as keyof typeof icons] || "🎫";
   }
 
   private getTypeLabel(type: string): string {
     const labels = {
-      'incident': 'Incidents',
-      'problem': 'Problems',
-      'change_request': 'Changes',
-      'sc_request': 'Service Requests'
+      incident: "Incidents",
+      problem: "Problems",
+      change_request: "Changes",
+      sc_request: "Service Requests",
     };
     return labels[type as keyof typeof labels] || type;
   }
 
   private formatDate(dateString: string): string {
-    if (!dateString) return 'Unknown';
+    if (!dateString) return "Unknown";
 
     try {
       const date = new Date(dateString);
@@ -1890,13 +2097,13 @@ export class GlassDesignServer {
       const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
       const diffDays = Math.floor(diffHours / 24);
 
-      if (diffHours < 1) return 'Just now';
+      if (diffHours < 1) return "Just now";
       if (diffHours < 24) return `${diffHours}h ago`;
       if (diffDays < 7) return `${diffDays}d ago`;
 
       return date.toLocaleDateString();
     } catch (error) {
-      return 'Unknown';
+      return "Unknown";
     }
   }
 
@@ -1904,80 +2111,87 @@ export class GlassDesignServer {
     const demoData = {
       incident: [
         {
-          id: 'INC0012345',
-          title: 'Database connection timeout critical issue',
-          description: 'Production database experiencing intermittent connection timeouts affecting user authentication and data access across multiple applications.',
-          state: '2',
-          priority: '1',
-          assignee: 'João Silva',
-          created_at: '2025-01-15T08:30:00Z',
-          sys_id: 'demo-inc-001'
+          id: "INC0012345",
+          title: "Database connection timeout critical issue",
+          description:
+            "Production database experiencing intermittent connection timeouts affecting user authentication and data access across multiple applications.",
+          state: "2",
+          priority: "1",
+          assignee: "João Silva",
+          created_at: "2025-01-15T08:30:00Z",
+          sys_id: "demo-inc-001",
         },
         {
-          id: 'INC0012346',
-          title: 'Email service disruption affecting all users',
-          description: 'Corporate email service experiencing widespread outage. Users unable to send or receive emails since 09:00 this morning.',
-          state: '1',
-          priority: '2',
-          assignee: 'Maria Santos',
-          created_at: '2025-01-15T09:15:00Z',
-          sys_id: 'demo-inc-002'
+          id: "INC0012346",
+          title: "Email service disruption affecting all users",
+          description:
+            "Corporate email service experiencing widespread outage. Users unable to send or receive emails since 09:00 this morning.",
+          state: "1",
+          priority: "2",
+          assignee: "Maria Santos",
+          created_at: "2025-01-15T09:15:00Z",
+          sys_id: "demo-inc-002",
         },
         {
-          id: 'INC0012347',
-          title: 'Application login failures in HR system',
-          description: 'HR staff reporting authentication failures when accessing the HRIS application. LDAP authentication appears to be malfunctioning.',
-          state: '3',
-          priority: '3',
-          assignee: 'Carlos Lima',
-          created_at: '2025-01-15T07:45:00Z',
-          sys_id: 'demo-inc-003'
-        }
+          id: "INC0012347",
+          title: "Application login failures in HR system",
+          description:
+            "HR staff reporting authentication failures when accessing the HRIS application. LDAP authentication appears to be malfunctioning.",
+          state: "3",
+          priority: "3",
+          assignee: "Carlos Lima",
+          created_at: "2025-01-15T07:45:00Z",
+          sys_id: "demo-inc-003",
+        },
       ],
       problem: [
         {
-          id: 'PRB0001234',
-          title: 'Network latency spikes during peak hours',
-          description: 'Consistent network performance degradation observed during peak business hours affecting application response times.',
-          state: '2',
-          priority: '2',
-          assignee: 'Ana Costa',
-          created_at: '2025-01-14T14:20:00Z',
-          sys_id: 'demo-prb-001'
+          id: "PRB0001234",
+          title: "Network latency spikes during peak hours",
+          description:
+            "Consistent network performance degradation observed during peak business hours affecting application response times.",
+          state: "2",
+          priority: "2",
+          assignee: "Ana Costa",
+          created_at: "2025-01-14T14:20:00Z",
+          sys_id: "demo-prb-001",
         },
         {
-          id: 'PRB0001235',
-          title: 'Memory leak in web application causing crashes',
-          description: 'Web servers experiencing memory exhaustion leading to periodic application crashes and service restarts.',
-          state: '1',
-          priority: '2',
-          assignee: 'Pedro Oliveira',
-          created_at: '2025-01-13T16:30:00Z',
-          sys_id: 'demo-prb-002'
-        }
+          id: "PRB0001235",
+          title: "Memory leak in web application causing crashes",
+          description:
+            "Web servers experiencing memory exhaustion leading to periodic application crashes and service restarts.",
+          state: "1",
+          priority: "2",
+          assignee: "Pedro Oliveira",
+          created_at: "2025-01-13T16:30:00Z",
+          sys_id: "demo-prb-002",
+        },
       ],
       change_request: [
         {
-          id: 'CHG0005678',
-          title: 'Security patch deployment for production servers',
-          description: 'Deploy critical security patches to all production servers during scheduled maintenance window this weekend.',
-          state: '1',
-          priority: '2',
-          assignee: 'Sofia Mendes',
-          created_at: '2025-01-13T10:15:00Z',
-          sys_id: 'demo-chg-001'
+          id: "CHG0005678",
+          title: "Security patch deployment for production servers",
+          description:
+            "Deploy critical security patches to all production servers during scheduled maintenance window this weekend.",
+          state: "1",
+          priority: "2",
+          assignee: "Sofia Mendes",
+          created_at: "2025-01-13T10:15:00Z",
+          sys_id: "demo-chg-001",
         },
         {
-          id: 'CHG0005679',
-          title: 'Database upgrade to latest version',
-          description: 'Upgrade production database from version 12.5 to 13.2 with improved performance and security features.',
-          state: '3',
-          priority: '3',
-          assignee: 'Lucas Rodriguez',
-          created_at: '2025-01-12T13:20:00Z',
-          sys_id: 'demo-chg-002'
-        }
-      ]
+          id: "CHG0005679",
+          title: "Database upgrade to latest version",
+          description:
+            "Upgrade production database from version 12.5 to 13.2 with improved performance and security features.",
+          state: "3",
+          priority: "3",
+          assignee: "Lucas Rodriguez",
+          created_at: "2025-01-12T13:20:00Z",
+          sys_id: "demo-chg-002",
+        },
+      ],
     };
 
     const typeData = demoData[type as keyof typeof demoData] || [];
@@ -1985,37 +2199,47 @@ export class GlassDesignServer {
     // Filter by states if provided
     if (states.length === 0) return typeData;
 
-    return typeData.filter(ticket => {
-      const ticketState = this.mapServiceNowState(ticket.state, type).toLowerCase();
-      return states.some(state =>
-        state.trim().toLowerCase() === ticketState ||
-        this.matchStateToServiceNow(state.trim(), ticket.state)
+    return typeData.filter((ticket) => {
+      const ticketState = this.mapServiceNowState(
+        ticket.state,
+        type,
+      ).toLowerCase();
+      return states.some(
+        (state) =>
+          state.trim().toLowerCase() === ticketState ||
+          this.matchStateToServiceNow(state.trim(), ticket.state),
       );
     });
   }
 
-  private matchStateToServiceNow(filterState: string, ticketState: string): boolean {
+  private matchStateToServiceNow(
+    filterState: string,
+    ticketState: string,
+  ): boolean {
     const stateMap: { [key: string]: string[] } = {
-      'novo': ['1'],
-      'em_progresso': ['2'],
-      'pendente': ['3'],
-      'resolvido': ['6'],
-      'fechado': ['7']
+      novo: ["1"],
+      em_progresso: ["2"],
+      pendente: ["3"],
+      resolvido: ["6"],
+      fechado: ["7"],
     };
 
     return stateMap[filterState.toLowerCase()]?.includes(ticketState) || false;
   }
 
-  private async createTicketList(type: string, states: string): Promise<string> {
+  private async createTicketList(
+    type: string,
+    states: string,
+  ): Promise<string> {
     try {
-      const stateList = states.split(',').filter(s => s.trim());
+      const stateList = states.split(",").filter((s) => s.trim());
 
       // Map frontend type to ServiceNow table
       const tableMap: { [key: string]: string } = {
-        'incidents': 'incident',
-        'problems': 'problem',
-        'changes': 'change_request',
-        'requests': 'sc_request'
+        incidents: "incident",
+        problems: "problem",
+        changes: "change_request",
+        requests: "sc_request",
       };
 
       const tableName = tableMap[type];
@@ -2030,25 +2254,27 @@ export class GlassDesignServer {
       }
 
       // Get real ServiceNow data
-      let query = '';
+      let query = "";
       if (stateList.length > 0) {
-        const stateFilters = stateList.map(state => {
-          const stateMap: { [key: string]: string } = {
-            'novo': '1',
-            'em_progresso': '2',
-            'pendente': '3',
-            'resolvido': '6',
-            'fechado': '7'
-          };
-          return `state=${stateMap[state.toLowerCase()] || state}`;
-        }).join('^OR');
+        const stateFilters = stateList
+          .map((state) => {
+            const stateMap: { [key: string]: string } = {
+              novo: "1",
+              em_progresso: "2",
+              pendente: "3",
+              resolvido: "6",
+              fechado: "7",
+            };
+            return `state=${stateMap[state.toLowerCase()] || state}`;
+          })
+          .join("^OR");
         query = stateFilters;
       }
 
       const tickets = await consolidatedServiceNowService.queryRecords(
         tableName,
         query,
-        { limit: 50, orderBy: 'sys_created_on', orderDirection: 'desc' }
+        { limit: 50, orderBy: "sys_created_on", orderDirection: "desc" },
       );
 
       if (tickets.length === 0) {
@@ -2057,7 +2283,7 @@ export class GlassDesignServer {
             <div style="font-size: 2rem; margin-bottom: 1rem;">📋</div>
             <div style="font-weight: 500; margin-bottom: 0.5rem;">Nenhum ticket encontrado</div>
             <div style="font-size: 0.875rem; opacity: 0.8;">
-              ${stateList.length > 0 ? `Filtros aplicados: ${stateList.join(', ')}` : 'Nenhum ticket disponível'}
+              ${stateList.length > 0 ? `Filtros aplicados: ${stateList.join(", ")}` : "Nenhum ticket disponível"}
             </div>
           </div>
         `;
@@ -2066,45 +2292,50 @@ export class GlassDesignServer {
       // Convert ServiceNow data to frontend format
       const convertedTickets = tickets.map((ticket: any) => {
         const stateMap: { [key: string]: string } = {
-          '1': 'novo',
-          '2': 'em_progresso',
-          '3': 'pendente',
-          '6': 'resolvido',
-          '7': 'fechado'
+          "1": "novo",
+          "2": "em_progresso",
+          "3": "pendente",
+          "6": "resolvido",
+          "7": "fechado",
         };
 
         const priorityMap: { [key: string]: string } = {
-          '1': 'Critical',
-          '2': 'High',
-          '3': 'Medium',
-          '4': 'Low'
+          "1": "Critical",
+          "2": "High",
+          "3": "Medium",
+          "4": "Low",
         };
 
         return {
           id: ticket.number || ticket.sys_id,
-          title: ticket.short_description || 'Sem descrição',
-          state: stateMap[ticket.state] || 'desconhecido',
-          priority: priorityMap[ticket.priority] || 'Low',
-          assignee: ticket.assigned_to?.display_value || 'Unassigned',
-          created: this.formatRelativeTime(ticket.sys_created_on)
+          title: ticket.short_description || "Sem descrição",
+          state: stateMap[ticket.state] || "desconhecido",
+          priority: priorityMap[ticket.priority] || "Low",
+          assignee: ticket.assigned_to?.display_value || "Unassigned",
+          created: this.formatRelativeTime(ticket.sys_created_on),
         };
       });
 
-      const filteredTickets = stateList.length > 0
-        ? convertedTickets.filter(ticket => stateList.includes(ticket.state))
-        : convertedTickets;
+      const filteredTickets =
+        stateList.length > 0
+          ? convertedTickets.filter((ticket) =>
+              stateList.includes(ticket.state),
+            )
+          : convertedTickets;
 
-    if (filteredTickets.length === 0) {
-      return `
+      if (filteredTickets.length === 0) {
+        return `
         <div style="text-align: center; padding: 3rem; color: rgba(255, 255, 255, 0.6);">
           <div style="font-size: 2rem; margin-bottom: 1rem;">📋</div>
           <div style="font-size: 1.25rem; margin-bottom: 0.5rem;">No tickets found</div>
           <div style="font-size: 0.875rem;">No ${type} match the selected states</div>
         </div>
       `;
-    }
+      }
 
-    const ticketsHtml = filteredTickets.map(ticket => `
+      const ticketsHtml = filteredTickets
+        .map(
+          (ticket) => `
       <div style="display: grid; grid-template-columns: auto 1fr auto auto auto; gap: 1rem; align-items: center; padding: 1rem; background: rgba(255, 255, 255, 0.03); border-radius: 0.5rem; margin-bottom: 0.5rem; transition: all var(--transition-smooth);"
            onmouseover="this.style.background='rgba(255, 255, 255, 0.08)'"
            onmouseout="this.style.background='rgba(255, 255, 255, 0.03)'">
@@ -2118,26 +2349,28 @@ export class GlassDesignServer {
         </div>
         <div style="font-size: 0.875rem; color: rgba(255, 255, 255, 0.7);">${ticket.assignee}</div>
         <div style="padding: 0.25rem 0.5rem; background: ${this.getStateColor(ticket.state)}; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 500; text-transform: uppercase;">
-          ${ticket.state.replace('-', ' ')}
+          ${ticket.state.replace("-", " ")}
         </div>
       </div>
-    `).join('');
+    `,
+        )
+        .join("");
 
-    return `
+      return `
       <div style="background: rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 1.5rem; margin-top: 1rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
           <h3 style="font-size: 1.25rem; font-weight: 600; color: white; margin: 0; text-transform: capitalize;">
             ${type} (${filteredTickets.length})
           </h3>
           <div style="font-size: 0.875rem; color: rgba(255, 255, 255, 0.6);">
-            Filtered by: ${stateList.join(', ').replace(/-/g, ' ')}
+            Filtered by: ${stateList.join(", ").replace(/-/g, " ")}
           </div>
         </div>
         ${ticketsHtml}
       </div>
     `;
     } catch (error) {
-      console.error('Error getting ticket list:', error);
+      console.error("Error getting ticket list:", error);
       return `
         <div style="text-align: center; padding: 3rem; color: rgba(255, 255, 255, 0.6);">
           <div style="font-size: 2rem; margin-bottom: 1rem;">⚠️</div>
@@ -2150,12 +2383,14 @@ export class GlassDesignServer {
 
   private getPriorityColor(priority: string): string {
     const colors = {
-      'Critical': 'rgba(239, 68, 68, 0.8)',
-      'High': 'rgba(249, 115, 22, 0.8)',
-      'Medium': 'rgba(251, 191, 36, 0.8)',
-      'Low': 'rgba(34, 197, 94, 0.8)'
+      Critical: "rgba(239, 68, 68, 0.8)",
+      High: "rgba(249, 115, 22, 0.8)",
+      Medium: "rgba(251, 191, 36, 0.8)",
+      Low: "rgba(34, 197, 94, 0.8)",
     };
-    return colors[priority as keyof typeof colors] || 'rgba(156, 163, 175, 0.8)';
+    return (
+      colors[priority as keyof typeof colors] || "rgba(156, 163, 175, 0.8)"
+    );
   }
 
   private formatRelativeTime(dateString: string): string {
@@ -2176,36 +2411,36 @@ export class GlassDesignServer {
         return `${diffDays}d ago`;
       }
     } catch {
-      return 'Unknown';
+      return "Unknown";
     }
   }
 
   private mapPriorityToText(priority: string): string {
     const priorityMap: { [key: string]: string } = {
-      '1': 'Critical',
-      '2': 'High',
-      '3': 'Medium',
-      '4': 'Low'
+      "1": "Critical",
+      "2": "High",
+      "3": "Medium",
+      "4": "Low",
     };
-    return priorityMap[priority] || 'Low';
+    return priorityMap[priority] || "Low";
   }
 
   private getStateColor(state: string): string {
     const colors = {
-      'novo': 'rgba(59, 130, 246, 0.8)',
-      'em-espera': 'rgba(251, 191, 36, 0.8)',
-      'designado': 'rgba(139, 92, 246, 0.8)',
-      'em-andamento': 'rgba(34, 197, 94, 0.8)',
-      'resolvido': 'rgba(34, 197, 94, 0.8)',
-      'fechado': 'rgba(107, 114, 128, 0.8)'
+      novo: "rgba(59, 130, 246, 0.8)",
+      "em-espera": "rgba(251, 191, 36, 0.8)",
+      designado: "rgba(139, 92, 246, 0.8)",
+      "em-andamento": "rgba(34, 197, 94, 0.8)",
+      resolvido: "rgba(34, 197, 94, 0.8)",
+      fechado: "rgba(107, 114, 128, 0.8)",
     };
-    return colors[state as keyof typeof colors] || 'rgba(156, 163, 175, 0.8)';
+    return colors[state as keyof typeof colors] || "rgba(156, 163, 175, 0.8)";
   }
 
   private create404Page(): string {
     return this.createLayout({
-      title: 'Page Not Found',
-      currentPath: '/404',
+      title: "Page Not Found",
+      currentPath: "/404",
       children: `
         <div class="dashboard-container">
           <div style="text-align: center;">
@@ -2225,14 +2460,14 @@ export class GlassDesignServer {
             </div>
           </div>
         </div>
-      `
+      `,
     });
   }
 
   private create500Page(): string {
     return this.createLayout({
-      title: 'Server Error',
-      currentPath: '/error',
+      title: "Server Error",
+      currentPath: "/error",
       children: `
         <div class="dashboard-container">
           <div style="text-align: center;">
@@ -2252,7 +2487,7 @@ export class GlassDesignServer {
             </div>
           </div>
         </div>
-      `
+      `,
     });
   }
 
@@ -2263,15 +2498,14 @@ export class GlassDesignServer {
     try {
       await this.app.listen(this.port);
 
-      console.log(' Glass Design Server Started');
-      console.log(' Dashboard:', `http://localhost:${this.port}`);
-      console.log(' API Docs:', `http://localhost:${this.port}/docs`);
-      console.log(' Health Check:', `http://localhost:${this.port}/health`);
-      console.log(' Features: HTMX, SSE, Glass Design, Real-time Analytics');
-      console.log(' Ready for connections!');
-
+      console.log(" Glass Design Server Started");
+      console.log(" Dashboard:", `http://localhost:${this.port}`);
+      console.log(" API Docs:", `http://localhost:${this.port}/docs`);
+      console.log(" Health Check:", `http://localhost:${this.port}/health`);
+      console.log(" Features: HTMX, SSE, Glass Design, Real-time Analytics");
+      console.log(" Ready for connections!");
     } catch (error) {
-      console.error(' Failed to start server:', error);
+      console.error(" Failed to start server:", error);
       process.exit(1);
     }
   }
@@ -2282,9 +2516,9 @@ export class GlassDesignServer {
   public async stop(): Promise<void> {
     try {
       await this.app.stop();
-      console.log(' Server stopped');
+      console.log(" Server stopped");
     } catch (error) {
-      console.error(' Failed to stop server:', error);
+      console.error(" Failed to stop server:", error);
     }
   }
 
@@ -2294,8 +2528,8 @@ export class GlassDesignServer {
     return `
       <div class="ticket-details glass-card">
         <div class="ticket-details__header">
-          <h2 class="ticket-details__title">${ticket.short_description || 'No Title'}</h2>
-          <span class="ticket-number ticket-number--${ticket.sys_class_name || 'incident'}">${ticket.number}</span>
+          <h2 class="ticket-details__title">${ticket.short_description || "No Title"}</h2>
+          <span class="ticket-number ticket-number--${ticket.sys_class_name || "incident"}">${ticket.number}</span>
         </div>
 
         <div class="ticket-details__content">
@@ -2310,7 +2544,7 @@ export class GlassDesignServer {
             </div>
             <div class="ticket-meta-item">
               <span class="ticket-meta-label">Assigned To</span>
-              <span class="ticket-meta-value">${ticket.assigned_to?.display_value || ticket.assigned_to || 'Unassigned'}</span>
+              <span class="ticket-meta-value">${ticket.assigned_to?.display_value || ticket.assigned_to || "Unassigned"}</span>
             </div>
             <div class="ticket-meta-item">
               <span class="ticket-meta-label">Created</span>
@@ -2320,7 +2554,7 @@ export class GlassDesignServer {
 
           <div class="ticket-description">
             <h3>Description</h3>
-            <p>${ticket.description || 'No description available'}</p>
+            <p>${ticket.description || "No description available"}</p>
           </div>
 
           <div class="ticket-actions-bar">
@@ -2342,7 +2576,10 @@ export class GlassDesignServer {
     `;
   }
 
-  private async getAdvancedTicketFilter(type: string, filters: TicketFilters): Promise<ServiceNowRecord[]> {
+  private async getAdvancedTicketFilter(
+    type: string,
+    filters: TicketFilters,
+  ): Promise<ServiceNowRecord[]> {
     try {
       // Prepare ServiceNow query with advanced filters
       const queryParams = [];
@@ -2356,27 +2593,42 @@ export class GlassDesignServer {
       }
 
       if (filters.date_from && filters.date_to) {
-        queryParams.push(`sys_created_on>=javascript:gs.dateGenerate('${filters.date_from}','00:00:00')`);
-        queryParams.push(`sys_created_on<=javascript:gs.dateGenerate('${filters.date_to}','23:59:59')`);
+        queryParams.push(
+          `sys_created_on>=javascript:gs.dateGenerate('${filters.date_from}','00:00:00')`,
+        );
+        queryParams.push(
+          `sys_created_on<=javascript:gs.dateGenerate('${filters.date_to}','23:59:59')`,
+        );
       }
 
       if (filters.states) {
-        const states = filters.states.split(',');
-        const stateQuery = states.map((state: string) => `state=${state}`).join('^OR');
+        const states = filters.states.split(",");
+        const stateQuery = states
+          .map((state: string) => `state=${state}`)
+          .join("^OR");
         queryParams.push(stateQuery);
       }
 
-      const queryString = queryParams.join('^');
-      const results = await this.consolidatedService.queryRecords(type, queryString);
+      const queryString = queryParams.join("^");
+      const results = await this.consolidatedService.queryRecords(
+        type,
+        queryString,
+      );
 
-      return results.length > 0 ? results : this.getDemoTickets(type, filters.states?.split(',') || []);
+      return results.length > 0
+        ? results
+        : this.getDemoTickets(type, filters.states?.split(",") || []);
     } catch (error) {
-      console.error(' [Advanced Filter] Error:', error);
-      return this.getDemoTickets(type, filters.states?.split(',') || []);
+      console.error(" [Advanced Filter] Error:", error);
+      return this.getDemoTickets(type, filters.states?.split(",") || []);
     }
   }
 
-  private async performBulkOperation(action: string, ticketIds: string[], data: any): Promise<any> {
+  private async performBulkOperation(
+    action: string,
+    ticketIds: string[],
+    data: any,
+  ): Promise<any> {
     try {
       const results = [];
 
@@ -2385,20 +2637,32 @@ export class GlassDesignServer {
           let result;
 
           switch (action) {
-            case 'update':
-              result = await this.consolidatedService.updateRecord('incident', ticketId, data);
+            case "update":
+              result = await this.consolidatedService.updateRecord(
+                "incident",
+                ticketId,
+                data,
+              );
               break;
-            case 'assign':
-              result = await this.consolidatedService.updateRecord('incident', ticketId, {
-                assigned_to: data.assigned_to,
-                assignment_group: data.assignment_group
-              });
+            case "assign":
+              result = await this.consolidatedService.updateRecord(
+                "incident",
+                ticketId,
+                {
+                  assigned_to: data.assigned_to,
+                  assignment_group: data.assignment_group,
+                },
+              );
               break;
-            case 'close':
-              result = await this.consolidatedService.updateRecord('incident', ticketId, {
-                state: '6', // Resolved
-                close_notes: data.close_notes || 'Bulk close operation'
-              });
+            case "close":
+              result = await this.consolidatedService.updateRecord(
+                "incident",
+                ticketId,
+                {
+                  state: "6", // Resolved
+                  close_notes: data.close_notes || "Bulk close operation",
+                },
+              );
               break;
             default:
               throw new Error(`Unknown bulk action: ${action}`);
@@ -2412,7 +2676,7 @@ export class GlassDesignServer {
 
       return results;
     } catch (error) {
-      console.error(' [Bulk Operation] Error:', error);
+      console.error(" [Bulk Operation] Error:", error);
       return { success: false, error: error.message };
     }
   }
@@ -2429,12 +2693,16 @@ export class GlassDesignServer {
         </div>
 
         <div class="bulk-result__details">
-          ${results.map((result: any) => `
-            <div class="bulk-item ${result.success ? 'bulk-item--success' : 'bulk-item--error'}">
+          ${results
+            .map(
+              (result: any) => `
+            <div class="bulk-item ${result.success ? "bulk-item--success" : "bulk-item--error"}">
               <span class="bulk-item__id">${result.ticketId}</span>
-              <span class="bulk-item__status">${result.success ? ' Success' : ' ' + result.error}</span>
+              <span class="bulk-item__status">${result.success ? " Success" : " " + result.error}</span>
             </div>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </div>
 
         <div class="bulk-result__actions">
@@ -2445,7 +2713,7 @@ export class GlassDesignServer {
   }
 
   private formatDate(dateString: string): string {
-    if (!dateString) return 'N/A';
+    if (!dateString) return "N/A";
 
     const date = new Date(dateString);
     const now = new Date();
@@ -2454,11 +2722,11 @@ export class GlassDesignServer {
     const diffDays = diffHours / 24;
 
     if (diffHours < 1) {
-      return Math.floor(diffMs / (1000 * 60)) + ' minutes ago';
+      return Math.floor(diffMs / (1000 * 60)) + " minutes ago";
     } else if (diffHours < 24) {
-      return Math.floor(diffHours) + ' hours ago';
+      return Math.floor(diffHours) + " hours ago";
     } else if (diffDays < 7) {
-      return Math.floor(diffDays) + ' days ago';
+      return Math.floor(diffDays) + " days ago";
     } else {
       return date.toLocaleDateString();
     }
@@ -2473,16 +2741,20 @@ export class GlassDesignServer {
         console.log(`🌊 [SSE] New connection: ${connectionId}`);
 
         // Send connection established event
-        controller.enqueue(new TextEncoder().encode(
-          `event: connected\ndata: {"connection_id":"${connectionId}","timestamp":"${new Date().toISOString()}"}\n\n`
-        ));
+        controller.enqueue(
+          new TextEncoder().encode(
+            `event: connected\ndata: {"connection_id":"${connectionId}","timestamp":"${new Date().toISOString()}"}\n\n`,
+          ),
+        );
 
         // Send initial dashboard data
         const sendDashboardUpdate = async () => {
           try {
             // Check if controller is still active before sending
             if (controller.desiredSize === null) {
-              console.warn(' [SSE] Controller already closed, skipping dashboard update');
+              console.warn(
+                " [SSE] Controller already closed, skipping dashboard update",
+              );
               return;
             }
 
@@ -2490,17 +2762,21 @@ export class GlassDesignServer {
             const dashboardData = await getDashboardData();
 
             if (controller.desiredSize !== null) {
-              controller.enqueue(new TextEncoder().encode(
-                `event: dashboard-update\ndata: ${JSON.stringify(dashboardData)}\n\n`
-              ));
+              controller.enqueue(
+                new TextEncoder().encode(
+                  `event: dashboard-update\ndata: ${JSON.stringify(dashboardData)}\n\n`,
+                ),
+              );
             }
           } catch (error) {
-            console.error(' [SSE] Dashboard update error:', error);
+            console.error(" [SSE] Dashboard update error:", error);
 
             if (controller.desiredSize !== null) {
-              controller.enqueue(new TextEncoder().encode(
-                `event: error\ndata: {"message":"Dashboard update failed","timestamp":"${new Date().toISOString()}"}\n\n`
-              ));
+              controller.enqueue(
+                new TextEncoder().encode(
+                  `event: error\ndata: {"message":"Dashboard update failed","timestamp":"${new Date().toISOString()}"}\n\n`,
+                ),
+              );
             }
           }
         };
@@ -2520,21 +2796,25 @@ export class GlassDesignServer {
             const notification = await generateRealtimeNotification();
 
             if (notification && controller.desiredSize !== null) {
-              controller.enqueue(new TextEncoder().encode(
-                `event: notification\ndata: ${JSON.stringify(notification)}\n\n`
-              ));
+              controller.enqueue(
+                new TextEncoder().encode(
+                  `event: notification\ndata: ${JSON.stringify(notification)}\n\n`,
+                ),
+              );
             }
           } catch (error) {
-            console.error(' [SSE] Notification error:', error);
+            console.error(" [SSE] Notification error:", error);
           }
         }, 15000); // Every 15 seconds
 
         // Send heartbeat
         const heartbeatInterval = setInterval(() => {
           if (controller.desiredSize !== null) {
-            controller.enqueue(new TextEncoder().encode(
-              `event: heartbeat\ndata: {"timestamp":"${new Date().toISOString()}","connection_id":"${connectionId}"}\n\n`
-            ));
+            controller.enqueue(
+              new TextEncoder().encode(
+                `event: heartbeat\ndata: {"timestamp":"${new Date().toISOString()}","connection_id":"${connectionId}"}\n\n`,
+              ),
+            );
           }
         }, 20000); // Every 20 seconds
 
@@ -2545,7 +2825,7 @@ export class GlassDesignServer {
           clearInterval(notificationInterval);
           clearInterval(heartbeatInterval);
         };
-      }
+      },
     });
 
     return new Response(stream);
@@ -2559,30 +2839,38 @@ export class GlassDesignServer {
         // Send initial ticket data
         const sendTicketUpdate = async () => {
           try {
-            const tickets = await this.getServiceNowTickets(type, ['1', '2', '3']); // New, In Progress, Pending
+            const tickets = await this.getServiceNowTickets(type, [
+              "1",
+              "2",
+              "3",
+            ]); // New, In Progress, Pending
 
-            controller.enqueue(new TextEncoder().encode(
-              `event: ticket-update\ndata: ${JSON.stringify({
-                type,
-                tickets: tickets.slice(0, 5), // Send top 5 tickets
-                timestamp: new Date().toISOString(),
-                total_count: tickets.length
-              })}\n\n`
-            ));
+            controller.enqueue(
+              new TextEncoder().encode(
+                `event: ticket-update\ndata: ${JSON.stringify({
+                  type,
+                  tickets: tickets.slice(0, 5), // Send top 5 tickets
+                  timestamp: new Date().toISOString(),
+                  total_count: tickets.length,
+                })}\n\n`,
+              ),
+            );
           } catch (error) {
             console.error(` [Ticket Stream] Error for ${type}:`, error);
 
             // Send fallback demo data
-            const demoTickets = this.getDemoTickets(type, ['1', '2', '3']);
-            controller.enqueue(new TextEncoder().encode(
-              `event: ticket-update\ndata: ${JSON.stringify({
-                type,
-                tickets: demoTickets.slice(0, 5),
-                timestamp: new Date().toISOString(),
-                total_count: demoTickets.length,
-                source: 'demo'
-              })}\n\n`
-            ));
+            const demoTickets = this.getDemoTickets(type, ["1", "2", "3"]);
+            controller.enqueue(
+              new TextEncoder().encode(
+                `event: ticket-update\ndata: ${JSON.stringify({
+                  type,
+                  tickets: demoTickets.slice(0, 5),
+                  timestamp: new Date().toISOString(),
+                  total_count: demoTickets.length,
+                  source: "demo",
+                })}\n\n`,
+              ),
+            );
           }
         };
 
@@ -2591,28 +2879,34 @@ export class GlassDesignServer {
           try {
             // Get tickets that have been recently updated
             const recentlyUpdated = await this.consolidatedService.queryRecords(
-              type === 'incident' ? 'incident' : type === 'problem' ? 'problem' : 'change_request',
-              'sys_updated_onRELATIVEGT@minute@ago@5^state!=1', // Updated in last 5 minutes and not new
-              { limit: 1, order: 'sys_updated_on DESC' }
+              type === "incident"
+                ? "incident"
+                : type === "problem"
+                  ? "problem"
+                  : "change_request",
+              "sys_updated_onRELATIVEGT@minute@ago@5^state!=1", // Updated in last 5 minutes and not new
+              { limit: 1, order: "sys_updated_on DESC" },
             );
 
             if (recentlyUpdated.length > 0) {
               const ticket = recentlyUpdated[0];
               const stateChange = {
                 type,
-                event: 'state_change',
+                event: "state_change",
                 ticket_id: ticket.number,
                 sys_id: ticket.sys_id,
-                old_state: 'unknown', // ServiceNow doesn't track state history easily
+                old_state: "unknown", // ServiceNow doesn't track state history easily
                 new_state: ticket.state,
-                changed_by: ticket.sys_updated_by || 'System User',
+                changed_by: ticket.sys_updated_by || "System User",
                 timestamp: ticket.sys_updated_on || new Date().toISOString(),
-                short_description: ticket.short_description
+                short_description: ticket.short_description,
               };
 
-              controller.enqueue(new TextEncoder().encode(
-                `event: state-change\ndata: ${JSON.stringify(stateChange)}\n\n`
-              ));
+              controller.enqueue(
+                new TextEncoder().encode(
+                  `event: state-change\ndata: ${JSON.stringify(stateChange)}\n\n`,
+                ),
+              );
             }
           } catch (error) {
             console.error(` [State Change] Error for ${type}:`, error);
@@ -2630,7 +2924,7 @@ export class GlassDesignServer {
           clearInterval(updateInterval);
           clearInterval(stateChangeInterval);
         };
-      }
+      },
     });
 
     return new Response(stream);
@@ -2642,69 +2936,92 @@ export class GlassDesignServer {
         console.log(` [Neural Search Stream] Starting for query: "${query}"`);
 
         if (!query || query.length < 3) {
-          controller.enqueue(new TextEncoder().encode(
-            `event: error\ndata: {"message":"Query too short","minimum_length":3}\n\n`
-          ));
+          controller.enqueue(
+            new TextEncoder().encode(
+              `event: error\ndata: {"message":"Query too short","minimum_length":3}\n\n`,
+            ),
+          );
           return;
         }
 
         // Send search progress updates
         const performSearch = async () => {
           // Send search started event
-          controller.enqueue(new TextEncoder().encode(
-            `event: search-started\ndata: {"query":"${query}","timestamp":"${new Date().toISOString()}"}\n\n`
-          ));
+          controller.enqueue(
+            new TextEncoder().encode(
+              `event: search-started\ndata: {"query":"${query}","timestamp":"${new Date().toISOString()}"}\n\n`,
+            ),
+          );
 
           try {
             // Send progress updates
-            const tables = ['incident', 'problem', 'change_request', 'sc_request'];
+            const tables = [
+              "incident",
+              "problem",
+              "change_request",
+              "sc_request",
+            ];
             let totalResults = [];
 
             for (let i = 0; i < tables.length; i++) {
               const table = tables[i];
 
               // Send progress
-              controller.enqueue(new TextEncoder().encode(
-                `event: search-progress\ndata: {"table":"${table}","progress":${((i + 1) / tables.length * 100).toFixed(0)},"timestamp":"${new Date().toISOString()}"}\n\n`
-              ));
+              controller.enqueue(
+                new TextEncoder().encode(
+                  `event: search-progress\ndata: {"table":"${table}","progress":${(((i + 1) / tables.length) * 100).toFixed(0)},"timestamp":"${new Date().toISOString()}"}\n\n`,
+                ),
+              );
 
               try {
-                const tableResults = await this.searchServiceNowTable(table, [query], ['short_description', 'description']);
+                const tableResults = await this.searchServiceNowTable(
+                  table,
+                  [query],
+                  ["short_description", "description"],
+                );
                 totalResults.push(...tableResults.slice(0, 3)); // Top 3 from each table
 
                 // Send intermediate results
-                controller.enqueue(new TextEncoder().encode(
-                  `event: search-results\ndata: ${JSON.stringify({
-                    query,
-                    table,
-                    results: tableResults.slice(0, 3),
-                    timestamp: new Date().toISOString()
-                  })}\n\n`
-                ));
+                controller.enqueue(
+                  new TextEncoder().encode(
+                    `event: search-results\ndata: ${JSON.stringify({
+                      query,
+                      table,
+                      results: tableResults.slice(0, 3),
+                      timestamp: new Date().toISOString(),
+                    })}\n\n`,
+                  ),
+                );
               } catch (error) {
-                console.warn(` [Neural Search Stream] ${table} search failed:`, error);
+                console.warn(
+                  ` [Neural Search Stream] ${table} search failed:`,
+                  error,
+                );
               }
 
               // Small delay for realistic streaming
-              await new Promise(resolve => setTimeout(resolve, 500));
+              await new Promise((resolve) => setTimeout(resolve, 500));
             }
 
             // Send final results
-            controller.enqueue(new TextEncoder().encode(
-              `event: search-complete\ndata: ${JSON.stringify({
-                query,
-                total_results: totalResults.length,
-                results: totalResults,
-                timestamp: new Date().toISOString()
-              })}\n\n`
-            ));
-
+            controller.enqueue(
+              new TextEncoder().encode(
+                `event: search-complete\ndata: ${JSON.stringify({
+                  query,
+                  total_results: totalResults.length,
+                  results: totalResults,
+                  timestamp: new Date().toISOString(),
+                })}\n\n`,
+              ),
+            );
           } catch (error) {
-            console.error(' [Neural Search Stream] Search error:', error);
+            console.error(" [Neural Search Stream] Search error:", error);
 
-            controller.enqueue(new TextEncoder().encode(
-              `event: search-error\ndata: {"message":"Search failed","error":"${error.message}","timestamp":"${new Date().toISOString()}"}\n\n`
-            ));
+            controller.enqueue(
+              new TextEncoder().encode(
+                `event: search-error\ndata: {"message":"Search failed","error":"${error.message}","timestamp":"${new Date().toISOString()}"}\n\n`,
+              ),
+            );
           }
         };
 
@@ -2712,9 +3029,11 @@ export class GlassDesignServer {
 
         // No intervals for search stream - it's query-based
         return () => {
-          console.log(`🔌 [Neural Search Stream] Search stream closed for: "${query}"`);
+          console.log(
+            `🔌 [Neural Search Stream] Search stream closed for: "${query}"`,
+          );
         };
-      }
+      },
     });
 
     return new Response(stream);
@@ -2729,15 +3048,19 @@ export class GlassDesignServer {
           try {
             const healthData = await this.getSystemHealthData();
 
-            controller.enqueue(new TextEncoder().encode(
-              `event: health-update\ndata: ${JSON.stringify(healthData)}\n\n`
-            ));
+            controller.enqueue(
+              new TextEncoder().encode(
+                `event: health-update\ndata: ${JSON.stringify(healthData)}\n\n`,
+              ),
+            );
           } catch (error) {
-            console.error(' [System Health Stream] Health check error:', error);
+            console.error(" [System Health Stream] Health check error:", error);
 
-            controller.enqueue(new TextEncoder().encode(
-              `event: health-error\ndata: {"message":"Health check failed","timestamp":"${new Date().toISOString()}"}\n\n`
-            ));
+            controller.enqueue(
+              new TextEncoder().encode(
+                `event: health-error\ndata: {"message":"Health check failed","timestamp":"${new Date().toISOString()}"}\n\n`,
+              ),
+            );
           }
         };
 
@@ -2749,15 +3072,13 @@ export class GlassDesignServer {
           console.log(`🔌 [System Health Stream] Health stream closed`);
           clearInterval(healthInterval);
         };
-      }
+      },
     });
 
     return new Response(stream);
   }
 
   // Helper methods for streaming data
-
-
 
   private async getSystemHealthData(): Promise<any> {
     const memoryUsage = process.memoryUsage();
@@ -2766,7 +3087,11 @@ export class GlassDesignServer {
     try {
       // Test ServiceNow connectivity with a simple query
       const startTime = Date.now();
-      await this.consolidatedService.queryRecords('sys_user', 'user_nameSTARTSWITHtest', { limit: 1 });
+      await this.consolidatedService.queryRecords(
+        "sys_user",
+        "user_nameSTARTSWITHtest",
+        { limit: 1 },
+      );
       const responseTime = Date.now() - startTime;
 
       return {
@@ -2776,21 +3101,23 @@ export class GlassDesignServer {
           memory: {
             used: Math.round(memoryUsage.heapUsed / 1024 / 1024), // MB
             total: Math.round(memoryUsage.heapTotal / 1024 / 1024), // MB
-            usage_percent: Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100)
+            usage_percent: Math.round(
+              (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100,
+            ),
           },
-          status: uptime > 60 ? 'healthy' : 'starting'
+          status: uptime > 60 ? "healthy" : "starting",
         },
         servicenow: {
-          connection: 'active',
+          connection: "active",
           response_time: responseTime,
           last_sync: new Date().toISOString(),
-          auth_status: 'authenticated'
+          auth_status: "authenticated",
         },
         database: {
-          connection: 'active',
+          connection: "active",
           query_time: responseTime,
-          connections: 1 // Current connection count
-        }
+          connections: 1, // Current connection count
+        },
       };
     } catch (error) {
       return {
@@ -2800,21 +3127,23 @@ export class GlassDesignServer {
           memory: {
             used: Math.round(memoryUsage.heapUsed / 1024 / 1024),
             total: Math.round(memoryUsage.heapTotal / 1024 / 1024),
-            usage_percent: Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100)
+            usage_percent: Math.round(
+              (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100,
+            ),
           },
-          status: uptime > 60 ? 'healthy' : 'starting'
+          status: uptime > 60 ? "healthy" : "starting",
         },
         servicenow: {
-          connection: 'error',
+          connection: "error",
           response_time: 0,
-          last_sync: 'never',
-          auth_status: 'failed'
+          last_sync: "never",
+          auth_status: "failed",
         },
         database: {
-          connection: 'error',
+          connection: "error",
           query_time: 0,
-          connections: 0
-        }
+          connections: 0,
+        },
       };
     }
   }
@@ -2839,21 +3168,21 @@ export { glassServer };
 // Auto-start if this is the main module
 if (import.meta.main) {
   // Handle graceful shutdown
-  process.on('SIGINT', async () => {
-    console.log('\n Shutting down gracefully...');
+  process.on("SIGINT", async () => {
+    console.log("\n Shutting down gracefully...");
     await glassServer.stop();
     process.exit(0);
   });
 
-  process.on('SIGTERM', async () => {
-    console.log('\n Received SIGTERM, shutting down gracefully...');
+  process.on("SIGTERM", async () => {
+    console.log("\n Received SIGTERM, shutting down gracefully...");
     await glassServer.stop();
     process.exit(0);
   });
 
   // Start the server
   glassServer.start().catch((error) => {
-    console.error(' Failed to start server:', error);
+    console.error(" Failed to start server:", error);
     process.exit(1);
   });
 }

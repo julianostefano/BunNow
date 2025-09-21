@@ -3,9 +3,9 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-export { RedisStreamManager, RedisConsumer } from './RedisStreamManager';
-export { RedisCache } from './RedisCache';
-export { RedisPubSub } from './RedisPubSub';
+export { RedisStreamManager, RedisConsumer } from "./RedisStreamManager";
+export { RedisCache } from "./RedisCache";
+export { RedisPubSub } from "./RedisPubSub";
 
 export type {
   RedisStreamOptions,
@@ -19,31 +19,32 @@ export type {
   PubSubMessage,
   PubSubOptions,
   ChannelMetrics,
-  PubSubMetrics
-} from './RedisStreamManager';
+  PubSubMetrics,
+} from "./RedisStreamManager";
 
-import Redis from 'ioredis';
-import { RedisStreamManager } from './RedisStreamManager';
-import { RedisCache } from './RedisCache';
-import { RedisPubSub } from './RedisPubSub';
+import Redis from "ioredis";
+import { RedisStreamManager } from "./RedisStreamManager";
+import { RedisCache } from "./RedisCache";
+import { RedisPubSub } from "./RedisPubSub";
 
 /**
  * Factory class for creating integrated Redis services for ServiceNow data
  */
 export class ServiceNowRedisFactory {
   private redis: Redis;
-  
-  constructor(redisConfig: {
-    host?: string;
-    port?: number;
-    password?: string;
-    db?: number;
-    cluster?: {
-      nodes: Array<{ host: string; port: number }>;
-      options?: any;
-    };
-  } = {}) {
-    
+
+  constructor(
+    redisConfig: {
+      host?: string;
+      port?: number;
+      password?: string;
+      db?: number;
+      cluster?: {
+        nodes: Array<{ host: string; port: number }>;
+        options?: any;
+      };
+    } = {},
+  ) {
     if (redisConfig.cluster) {
       this.redis = new Redis.Cluster(redisConfig.cluster.nodes, {
         ...redisConfig.cluster.options,
@@ -53,11 +54,11 @@ export class ServiceNowRedisFactory {
       });
     } else {
       this.redis = new Redis({
-        host: redisConfig.host || 'localhost',
+        host: redisConfig.host || "localhost",
         port: redisConfig.port || 6379,
         password: redisConfig.password,
         db: redisConfig.db || 0,
-        keyPrefix: 'bunsnc:',
+        keyPrefix: "bunsnc:",
         maxRetriesPerRequest: 3,
         retryDelayOnFailover: 100,
         connectTimeout: 10000,
@@ -71,37 +72,43 @@ export class ServiceNowRedisFactory {
   /**
    * Create Redis Stream Manager for real-time data processing
    */
-  createStreamManager(options: import('./RedisStreamManager').RedisStreamOptions = {}): RedisStreamManager {
+  createStreamManager(
+    options: import("./RedisStreamManager").RedisStreamOptions = {},
+  ): RedisStreamManager {
     return new RedisStreamManager(this.redis, options);
   }
 
   /**
    * Create Redis Cache for high-performance caching
    */
-  createCache(options: import('./RedisCache').RedisCacheOptions = {}): RedisCache {
+  createCache(
+    options: import("./RedisCache").RedisCacheOptions = {},
+  ): RedisCache {
     return new RedisCache(this.redis, {
-      keyPrefix: 'cache:servicenow:',
+      keyPrefix: "cache:servicenow:",
       defaultTtl: 3600, // 1 hour
-      serialization: 'json',
-      compression: 'none',
+      serialization: "json",
+      compression: "none",
       enableMetrics: true,
-      maxMemoryPolicy: 'lru',
-      ...options
+      maxMemoryPolicy: "lru",
+      ...options,
     });
   }
 
   /**
    * Create Redis Pub/Sub for real-time messaging
    */
-  createPubSub(options: import('./RedisPubSub').PubSubOptions = {}): RedisPubSub {
+  createPubSub(
+    options: import("./RedisPubSub").PubSubOptions = {},
+  ): RedisPubSub {
     const subscriber = this.redis.duplicate();
-    
+
     return new RedisPubSub(this.redis, subscriber, {
       enablePatternSubscription: true,
       enableMessageHistory: true,
       historySize: 1000,
       enableMetrics: true,
-      ...options
+      ...options,
     });
   }
 
@@ -112,7 +119,7 @@ export class ServiceNowRedisFactory {
     return new ServiceNowDataPipeline(
       this.createStreamManager(),
       this.createCache(),
-      this.createPubSub()
+      this.createPubSub(),
     );
   }
 
@@ -129,23 +136,22 @@ export class ServiceNowRedisFactory {
       const startTime = Date.now();
       const pong = await this.redis.ping();
       const latency = Date.now() - startTime;
-      
-      const info = await this.redis.info('memory');
-      const keyspace = await this.redis.info('keyspace');
-      
+
+      const info = await this.redis.info("memory");
+      const keyspace = await this.redis.info("keyspace");
+
       return {
-        connected: pong === 'PONG',
+        connected: pong === "PONG",
         latency,
         memory: this.parseInfoString(info),
-        keyspace: this.parseInfoString(keyspace)
+        keyspace: this.parseInfoString(keyspace),
       };
-      
     } catch (error) {
       return {
         connected: false,
         latency: -1,
         memory: null,
-        keyspace: null
+        keyspace: null,
       };
     }
   }
@@ -159,15 +165,15 @@ export class ServiceNowRedisFactory {
 
   private parseInfoString(info: string): any {
     const result: any = {};
-    const lines = info.split('\r\n');
-    
+    const lines = info.split("\r\n");
+
     for (const line of lines) {
-      if (line.includes(':')) {
-        const [key, value] = line.split(':');
+      if (line.includes(":")) {
+        const [key, value] = line.split(":");
         result[key] = isNaN(Number(value)) ? value : Number(value);
       }
     }
-    
+
     return result;
   }
 }
@@ -179,31 +185,34 @@ export class ServiceNowDataPipeline {
   constructor(
     private streamManager: RedisStreamManager,
     private cache: RedisCache,
-    private pubsub: RedisPubSub
+    private pubsub: RedisPubSub,
   ) {}
 
   /**
    * Process ServiceNow record through the pipeline
    */
-  async processRecord(record: any, options: {
-    streamKey?: string;
-    cacheKey?: string;
-    publishChannel?: string;
-    cacheTtl?: number;
-  } = {}): Promise<void> {
+  async processRecord(
+    record: any,
+    options: {
+      streamKey?: string;
+      cacheKey?: string;
+      publishChannel?: string;
+      cacheTtl?: number;
+    } = {},
+  ): Promise<void> {
     const {
-      streamKey = 'servicenow:records',
+      streamKey = "servicenow:records",
       cacheKey,
       publishChannel,
-      cacheTtl = 3600
+      cacheTtl = 3600,
     } = options;
 
     // Add to stream for processing
     const messageId = await this.streamManager.addMessage(streamKey, {
-      table: record.table || 'unknown',
+      table: record.table || "unknown",
       sys_id: record.sys_id,
-      operation: record.operation || 'update',
-      data: record
+      operation: record.operation || "update",
+      data: record,
     });
 
     // Cache the record if cacheKey provided
@@ -214,11 +223,11 @@ export class ServiceNowDataPipeline {
     // Publish notification if channel provided
     if (publishChannel) {
       await this.pubsub.publish(publishChannel, {
-        type: 'record_processed',
+        type: "record_processed",
         table: record.table,
         sys_id: record.sys_id,
         messageId,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
     }
   }
@@ -228,13 +237,13 @@ export class ServiceNowDataPipeline {
    */
   async getStats(): Promise<{
     streams: any;
-    cache: import('./RedisCache').CacheMetrics;
-    pubsub: import('./RedisPubSub').PubSubMetrics;
+    cache: import("./RedisCache").CacheMetrics;
+    pubsub: import("./RedisPubSub").PubSubMetrics;
   }> {
     return {
       streams: this.streamManager.getActiveConsumers(),
       cache: this.cache.getMetrics(),
-      pubsub: this.pubsub.getMetrics()
+      pubsub: this.pubsub.getMetrics(),
     };
   }
 
@@ -251,28 +260,28 @@ export class ServiceNowDataPipeline {
 // Constants for ServiceNow-specific Redis operations
 export const SERVICENOW_REDIS_DEFAULTS = {
   STREAM_KEYS: {
-    INCIDENTS: 'servicenow:incidents',
-    PROBLEMS: 'servicenow:problems',
-    CHANGES: 'servicenow:changes',
-    USERS: 'servicenow:users',
-    ATTACHMENTS: 'servicenow:attachments'
+    INCIDENTS: "servicenow:incidents",
+    PROBLEMS: "servicenow:problems",
+    CHANGES: "servicenow:changes",
+    USERS: "servicenow:users",
+    ATTACHMENTS: "servicenow:attachments",
   },
   CACHE_PREFIXES: {
-    RECORDS: 'record:',
-    QUERIES: 'query:',
-    USERS: 'user:',
-    SESSIONS: 'session:'
+    RECORDS: "record:",
+    QUERIES: "query:",
+    USERS: "user:",
+    SESSIONS: "session:",
   },
   PUBSUB_CHANNELS: {
-    RECORD_UPDATES: 'servicenow:record_updates',
-    BULK_OPERATIONS: 'servicenow:bulk_operations',
-    SYSTEM_EVENTS: 'servicenow:system_events',
-    NOTIFICATIONS: 'servicenow:notifications'
+    RECORD_UPDATES: "servicenow:record_updates",
+    BULK_OPERATIONS: "servicenow:bulk_operations",
+    SYSTEM_EVENTS: "servicenow:system_events",
+    NOTIFICATIONS: "servicenow:notifications",
   },
   DEFAULT_TTL: {
-    RECORDS: 3600,    // 1 hour
-    QUERIES: 1800,    // 30 minutes  
-    USERS: 7200,      // 2 hours
-    SESSIONS: 86400   // 24 hours
-  }
+    RECORDS: 3600, // 1 hour
+    QUERIES: 1800, // 30 minutes
+    USERS: 7200, // 2 hours
+    SESSIONS: 86400, // 24 hours
+  },
 };

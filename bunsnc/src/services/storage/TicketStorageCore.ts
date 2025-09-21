@@ -3,14 +3,14 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { MongoClient, Collection, Db, CreateCollectionOptions } from 'mongodb';
-import type { SLMRecord, TicketSLASummary } from '../../types/servicenow';
+import { MongoClient, Collection, Db, CreateCollectionOptions } from "mongodb";
+import type { SLMRecord, TicketSLASummary } from "../../types/servicenow";
 
 // Enhanced type definitions based on endpoint mapping analysis
 export interface BaseTicketDocument {
   sys_id: string;
   number: string;
-  ticketType: 'incident' | 'change_task' | 'sc_task';
+  ticketType: "incident" | "change_task" | "sc_task";
   short_description: string;
   description?: string;
   state: number;
@@ -31,16 +31,16 @@ export interface BaseTicketDocument {
   // SLA/SLM Integration - following Python reference pattern
   slms: SLMRecord[];
   sla_summary?: TicketSLASummary;
-  // Audit and sync fields  
+  // Audit and sync fields
   _syncedAt: Date;
   _version?: number;
-  _source: 'servicenow' | 'bunsnc';
+  _source: "servicenow" | "bunsnc";
   _hash?: string; // For change detection
   _slmsHash?: string; // For SLM change detection
 }
 
 export interface IncidentDocument extends BaseTicketDocument {
-  ticketType: 'incident';
+  ticketType: "incident";
   incident_state?: number;
   severity?: number;
   urgency?: number;
@@ -62,7 +62,7 @@ export interface IncidentDocument extends BaseTicketDocument {
 }
 
 export interface ChangeTaskDocument extends BaseTicketDocument {
-  ticketType: 'change_task';
+  ticketType: "change_task";
   change_request: string;
   change_task_type?: string;
   planned_start_date?: Date;
@@ -82,7 +82,7 @@ export interface ChangeTaskDocument extends BaseTicketDocument {
 }
 
 export interface SCTaskDocument extends BaseTicketDocument {
-  ticketType: 'sc_task';
+  ticketType: "sc_task";
   request: string;
   request_item: string;
   catalog_item?: string;
@@ -98,7 +98,10 @@ export interface SCTaskDocument extends BaseTicketDocument {
   special_instructions?: string;
 }
 
-export type TicketDocument = IncidentDocument | ChangeTaskDocument | SCTaskDocument;
+export type TicketDocument =
+  | IncidentDocument
+  | ChangeTaskDocument
+  | SCTaskDocument;
 
 // Query interfaces for type safety
 export interface TicketQuery {
@@ -107,7 +110,7 @@ export interface TicketQuery {
   assignment_group?: string[];
   priority?: number[];
   dateRange?: {
-    field: 'sys_created_on' | 'opened_at' | 'closed_at';
+    field: "sys_created_on" | "opened_at" | "closed_at";
     start?: Date;
     end?: Date;
   };
@@ -134,11 +137,11 @@ export class TicketStorageCore {
 
   constructor(connectionConfig?: any) {
     this.connectionConfig = connectionConfig || {
-      host: process.env.MONGODB_HOST || '10.219.8.210',
-      port: parseInt(process.env.MONGODB_PORT || '27018'),
-      username: process.env.MONGODB_USERNAME || 'admin',
-      password: process.env.MONGODB_PASSWORD || 'Logica2011_',
-      database: process.env.MONGODB_DATABASE || 'bunsnc'
+      host: process.env.MONGODB_HOST || "10.219.8.210",
+      port: parseInt(process.env.MONGODB_PORT || "27018"),
+      username: process.env.MONGODB_USERNAME || "admin",
+      password: process.env.MONGODB_PASSWORD || "Logica2011_",
+      database: process.env.MONGODB_DATABASE || "bunsnc",
     };
   }
 
@@ -150,7 +153,7 @@ export class TicketStorageCore {
 
     try {
       const connectionString = `mongodb://${this.connectionConfig.username}:${this.connectionConfig.password}@${this.connectionConfig.host}:${this.connectionConfig.port}/${this.connectionConfig.database}?authSource=admin`;
-      
+
       this.client = new MongoClient(connectionString, {
         maxPoolSize: 20,
         serverSelectionTimeoutMS: 5000,
@@ -158,25 +161,27 @@ export class TicketStorageCore {
         socketTimeoutMS: 45000,
         retryWrites: true,
         retryReads: true,
-        readPreference: 'primary',
-        readConcern: { level: 'majority' },
-        writeConcern: { w: 'majority', j: true, wtimeout: 5000 }
+        readPreference: "primary",
+        readConcern: { level: "majority" },
+        writeConcern: { w: "majority", j: true, wtimeout: 5000 },
       });
 
       await this.client.connect();
       this.db = this.client.db(this.connectionConfig.database);
-      
+
       // Setup optimized collections and indexes
       await this.setupCollections();
       await this.setupIndexes();
-      
-      this.ticketsCollection = this.db.collection<TicketDocument>('tickets');
+
+      this.ticketsCollection = this.db.collection<TicketDocument>("tickets");
       this.isConnected = true;
 
-      console.log(' Enhanced Ticket Storage Service initialized successfully');
-      
+      console.log(" Enhanced Ticket Storage Service initialized successfully");
     } catch (error) {
-      console.error(' Failed to initialize Enhanced Ticket Storage Service:', error);
+      console.error(
+        " Failed to initialize Enhanced Ticket Storage Service:",
+        error,
+      );
       throw error;
     }
   }
@@ -185,18 +190,28 @@ export class TicketStorageCore {
    * Setup collections with validation schemas based on data mapping insights
    */
   private async setupCollections(): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
+    if (!this.db) throw new Error("Database not initialized");
 
     // Check if tickets collection exists
-    const collections = await this.db.listCollections({ name: 'tickets' }).toArray();
-    
+    const collections = await this.db
+      .listCollections({ name: "tickets" })
+      .toArray();
+
     if (collections.length === 0) {
-      console.log('📋 Creating tickets collection with validation schema...');
-      
+      console.log("📋 Creating tickets collection with validation schema...");
+
       const validationSchema = {
         $jsonSchema: {
           bsonType: "object",
-          required: ["sys_id", "number", "ticketType", "short_description", "state", "assignment_group", "sys_created_on"],
+          required: [
+            "sys_id",
+            "number",
+            "ticketType",
+            "short_description",
+            "state",
+            "assignment_group",
+            "sys_created_on",
+          ],
           properties: {
             sys_id: { bsonType: "string" },
             number: { bsonType: "string" },
@@ -210,26 +225,28 @@ export class TicketStorageCore {
             _source: { enum: ["servicenow", "bunsnc"] },
             active: { bsonType: "bool" },
             priority: { bsonType: ["number", "null"] },
-            slms: { bsonType: "array" }
-          }
-        }
+            slms: { bsonType: "array" },
+          },
+        },
       };
 
       const options: CreateCollectionOptions = {
         validator: validationSchema,
-        validationLevel: 'moderate',
-        validationAction: 'warn'
+        validationLevel: "moderate",
+        validationAction: "warn",
       };
 
-      await this.db.createCollection('tickets', options);
-      console.log(' Tickets collection created with validation');
+      await this.db.createCollection("tickets", options);
+      console.log(" Tickets collection created with validation");
     }
 
     // Create audit trail collection
-    const auditCollections = await this.db.listCollections({ name: 'ticket_audit' }).toArray();
+    const auditCollections = await this.db
+      .listCollections({ name: "ticket_audit" })
+      .toArray();
     if (auditCollections.length === 0) {
-      await this.db.createCollection('ticket_audit');
-      console.log(' Audit trail collection created');
+      await this.db.createCollection("ticket_audit");
+      console.log(" Audit trail collection created");
     }
   }
 
@@ -237,92 +254,158 @@ export class TicketStorageCore {
    * Setup comprehensive indexes for optimal query performance
    */
   private async setupIndexes(): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
+    if (!this.db) throw new Error("Database not initialized");
 
-    const collection = this.db.collection('tickets');
-    
-    const createIndexSafe = async (collection: any, indexSpec: any, options: any) => {
+    const collection = this.db.collection("tickets");
+
+    const createIndexSafe = async (
+      collection: any,
+      indexSpec: any,
+      options: any,
+    ) => {
       try {
         await collection.createIndex(indexSpec, options);
         console.log(` Index created: ${JSON.stringify(indexSpec)}`);
       } catch (error: any) {
-        if (error.code !== 85) { // Index already exists
+        if (error.code !== 85) {
+          // Index already exists
           console.warn(` Index creation warning: ${error.message}`);
         }
       }
     };
 
     // Primary and unique indexes
-    await createIndexSafe(collection, { sys_id: 1 }, { unique: true, name: 'sys_id_unique' });
-    await createIndexSafe(collection, { number: 1 }, { unique: true, name: 'number_unique' });
+    await createIndexSafe(
+      collection,
+      { sys_id: 1 },
+      { unique: true, name: "sys_id_unique" },
+    );
+    await createIndexSafe(
+      collection,
+      { number: 1 },
+      { unique: true, name: "number_unique" },
+    );
 
     // Query optimization indexes based on common patterns
-    await createIndexSafe(collection, { ticketType: 1, state: 1 }, { name: 'type_state' });
-    await createIndexSafe(collection, { assignment_group: 1, state: 1 }, { name: 'group_state' });
-    await createIndexSafe(collection, { sys_created_on: -1 }, { name: 'created_desc' });
-    await createIndexSafe(collection, { sys_updated_on: -1 }, { name: 'updated_desc' });
-    
+    await createIndexSafe(
+      collection,
+      { ticketType: 1, state: 1 },
+      { name: "type_state" },
+    );
+    await createIndexSafe(
+      collection,
+      { assignment_group: 1, state: 1 },
+      { name: "group_state" },
+    );
+    await createIndexSafe(
+      collection,
+      { sys_created_on: -1 },
+      { name: "created_desc" },
+    );
+    await createIndexSafe(
+      collection,
+      { sys_updated_on: -1 },
+      { name: "updated_desc" },
+    );
+
     // Compound indexes for dashboard queries
-    await createIndexSafe(collection, { ticketType: 1, assignment_group: 1, state: 1 }, { name: 'dashboard_compound' });
-    await createIndexSafe(collection, { active: 1, sys_created_on: -1 }, { name: 'active_recent' });
-    
+    await createIndexSafe(
+      collection,
+      { ticketType: 1, assignment_group: 1, state: 1 },
+      { name: "dashboard_compound" },
+    );
+    await createIndexSafe(
+      collection,
+      { active: 1, sys_created_on: -1 },
+      { name: "active_recent" },
+    );
+
     // Text search index for full-text search
-    await createIndexSafe(collection, { 
-      short_description: "text", 
-      description: "text", 
-      number: "text" 
-    }, { name: 'text_search' });
+    await createIndexSafe(
+      collection,
+      {
+        short_description: "text",
+        description: "text",
+        number: "text",
+      },
+      { name: "text_search" },
+    );
 
     // SLM and audit indexes
-    await createIndexSafe(collection, { "_syncedAt": -1 }, { name: 'sync_time' });
-    await createIndexSafe(collection, { "slms.sla_id": 1 }, { name: 'sla_reference' });
-    await createIndexSafe(collection, { "_hash": 1 }, { name: 'change_detection' });
+    await createIndexSafe(collection, { _syncedAt: -1 }, { name: "sync_time" });
+    await createIndexSafe(
+      collection,
+      { "slms.sla_id": 1 },
+      { name: "sla_reference" },
+    );
+    await createIndexSafe(
+      collection,
+      { _hash: 1 },
+      { name: "change_detection" },
+    );
 
     // Performance indexes for specific ticket types
-    await createIndexSafe(collection, { 
-      ticketType: 1, 
-      priority: 1, 
-      urgency: 1, 
-      impact: 1 
-    }, { 
-      name: 'incident_priority', 
-      partialFilterExpression: { ticketType: 'incident' } 
-    });
+    await createIndexSafe(
+      collection,
+      {
+        ticketType: 1,
+        priority: 1,
+        urgency: 1,
+        impact: 1,
+      },
+      {
+        name: "incident_priority",
+        partialFilterExpression: { ticketType: "incident" },
+      },
+    );
 
-    await createIndexSafe(collection, { 
-      ticketType: 1, 
-      change_request: 1, 
-      planned_start_date: 1 
-    }, { 
-      name: 'change_task_scheduling', 
-      partialFilterExpression: { ticketType: 'change_task' } 
-    });
+    await createIndexSafe(
+      collection,
+      {
+        ticketType: 1,
+        change_request: 1,
+        planned_start_date: 1,
+      },
+      {
+        name: "change_task_scheduling",
+        partialFilterExpression: { ticketType: "change_task" },
+      },
+    );
 
-    await createIndexSafe(collection, { 
-      ticketType: 1, 
-      request: 1, 
-      requested_for: 1 
-    }, { 
-      name: 'sc_task_request', 
-      partialFilterExpression: { ticketType: 'sc_task' } 
-    });
+    await createIndexSafe(
+      collection,
+      {
+        ticketType: 1,
+        request: 1,
+        requested_for: 1,
+      },
+      {
+        name: "sc_task_request",
+        partialFilterExpression: { ticketType: "sc_task" },
+      },
+    );
 
-    console.log(' All indexes setup completed');
+    console.log(" All indexes setup completed");
   }
 
   /**
    * Ensure connection is active
    */
   protected async ensureConnected(): Promise<void> {
-    if (!this.isConnected || !this.client || !this.db || !this.ticketsCollection) {
+    if (
+      !this.isConnected ||
+      !this.client ||
+      !this.db ||
+      !this.ticketsCollection
+    ) {
       await this.initialize();
     }
 
     try {
       // Ping to verify connection is still active
-      await this.client!.db('admin').command({ ping: 1 });
+      await this.client!.db("admin").command({ ping: 1 });
     } catch (error) {
-      console.log(' Reconnecting to MongoDB...');
+      console.log(" Reconnecting to MongoDB...");
       this.isConnected = false;
       await this.initialize();
     }
@@ -366,7 +449,7 @@ export class TicketStorageCore {
       this.db = null;
       this.ticketsCollection = null;
       this.isConnected = false;
-      console.log('📴 Enhanced Ticket Storage Service shutdown completed');
+      console.log("📴 Enhanced Ticket Storage Service shutdown completed");
     }
   }
 }

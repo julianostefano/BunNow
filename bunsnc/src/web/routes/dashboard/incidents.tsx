@@ -3,13 +3,11 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { Elysia } from 'elysia';
-import { html } from '@elysiajs/html';
+import { Elysia } from "elysia";
+import { html } from "@elysiajs/html";
 
-const app = new Elysia()
-  .use(html())
-  .get('/dashboard/incidents', () => {
-    return `
+const app = new Elysia().use(html()).get("/dashboard/incidents", () => {
+  return `
 <!DOCTYPE html>
 <html lang="en" class="h-full">
 <head>
@@ -602,6 +600,6 @@ const app = new Elysia()
 </body>
 </html>
     `;
-  });
+});
 
 export default app;

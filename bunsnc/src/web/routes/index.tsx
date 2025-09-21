@@ -3,17 +3,15 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { Elysia } from 'elysia';
-import { html } from '@elysiajs/html';
-import { MainLayout, createPageMeta } from '../layouts/MainLayout';
+import { Elysia } from "elysia";
+import { html } from "@elysiajs/html";
+import { MainLayout, createPageMeta } from "../layouts/MainLayout";
 
-const app = new Elysia()
-  .use(html())
-  .get('/', ({ request }) => {
-    const url = new URL(request.url);
-    const currentPath = url.pathname;
+const app = new Elysia().use(html()).get("/", ({ request }) => {
+  const url = new URL(request.url);
+  const currentPath = url.pathname;
 
-    const pageContent = `
+  const pageContent = `
       <!-- Header Section -->
       <div class="text-center mb-12 lazy-load-item">
         <h1 class="text-4xl font-bold gradient-text mb-4">Real-time Analytics Dashboard</h1>
@@ -299,20 +297,21 @@ const app = new Elysia()
       </script>
     `;
 
-    return MainLayout({
+  return MainLayout({
+    title: "Dashboard",
+    currentPath,
+    children: pageContent,
+    user: {
+      name: "Admin User",
+      role: "System Administrator",
+    },
+    additionalHead: createPageMeta({
       title: "Dashboard",
-      currentPath,
-      children: pageContent,
-      user: {
-        name: "Admin User",
-        role: "System Administrator"
-      },
-      additionalHead: createPageMeta({
-        title: "Dashboard",
-        description: "Real-time ServiceNow analytics and monitoring dashboard with modern glass design",
-        canonical: "/"
-      })
-    });
+      description:
+        "Real-time ServiceNow analytics and monitoring dashboard with modern glass design",
+      canonical: "/",
+    }),
   });
+});
 
 export default app;

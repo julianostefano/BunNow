@@ -3,9 +3,9 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { unifiedStreamingService } from '../services/UnifiedStreamingService';
-import { ServiceNowStreams } from '../config/redis-streams';
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { unifiedStreamingService } from "../services/UnifiedStreamingService";
+import { ServiceNowStreams } from "../config/redis-streams";
 
 // Mock Redis Streams
 const mockRedisStreams = {
@@ -15,12 +15,12 @@ const mockRedisStreams = {
   },
   publishChange: (change: any) => {
     console.log(`Mock Redis publish:`, change);
-    return Promise.resolve('test-message-id');
+    return Promise.resolve("test-message-id");
   },
-  healthCheck: () => Promise.resolve({ status: 'healthy' })
+  healthCheck: () => Promise.resolve({ status: "healthy" }),
 } as any;
 
-describe('Unified Streaming Service Simple Tests', () => {
+describe("Unified Streaming Service Simple Tests", () => {
   beforeEach(() => {
     unifiedStreamingService.initialize(mockRedisStreams);
   });
@@ -29,42 +29,43 @@ describe('Unified Streaming Service Simple Tests', () => {
     unifiedStreamingService.cleanup();
   });
 
-  it('should create unified streaming service successfully', () => {
+  it("should create unified streaming service successfully", () => {
     expect(unifiedStreamingService).toBeDefined();
   });
 
-  it('should create SSE connection for ticket', () => {
-    const ticketSysId = 'test-ticket-123';
-    const response = unifiedStreamingService.createTicketSSEConnection(ticketSysId);
-    
+  it("should create SSE connection for ticket", () => {
+    const ticketSysId = "test-ticket-123";
+    const response =
+      unifiedStreamingService.createTicketSSEConnection(ticketSysId);
+
     expect(response).toBeInstanceOf(Response);
-    expect(response.headers.get('Content-Type')).toBe('text/event-stream');
-    expect(response.headers.get('Cache-Control')).toBe('no-cache');
-    expect(response.headers.get('Connection')).toBe('keep-alive');
+    expect(response.headers.get("Content-Type")).toBe("text/event-stream");
+    expect(response.headers.get("Cache-Control")).toBe("no-cache");
+    expect(response.headers.get("Connection")).toBe("keep-alive");
   });
 
-  it('should return connection stats', () => {
+  it("should return connection stats", () => {
     const stats = unifiedStreamingService.getConnectionStats();
-    
+
     expect(stats).toBeDefined();
     expect(stats.totalConnections).toBe(0);
     expect(stats.ticketConnections).toBeInstanceOf(Map);
     expect(stats.connectionsByType).toBeDefined();
   });
 
-  it('should broadcast message to specific ticket', () => {
-    const ticketSysId = 'test-ticket-456';
+  it("should broadcast message to specific ticket", () => {
+    const ticketSysId = "test-ticket-456";
     const message = {
-      event: 'ticket-updated' as const,
+      event: "ticket-updated" as const,
       data: {
         sysId: ticketSysId,
-        number: 'INC0012345',
-        ticketType: 'incident' as const,
-        action: 'update' as const,
-        state: '2',
-        timestamp: new Date().toISOString()
+        number: "INC0012345",
+        ticketType: "incident" as const,
+        action: "update" as const,
+        state: "2",
+        timestamp: new Date().toISOString(),
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     // This should not throw even with no active connections
@@ -73,17 +74,17 @@ describe('Unified Streaming Service Simple Tests', () => {
     }).not.toThrow();
   });
 
-  it('should cleanup connections properly', () => {
+  it("should cleanup connections properly", () => {
     expect(() => {
       unifiedStreamingService.cleanup();
     }).not.toThrow();
   });
 
-  it('should handle multiple connection stats correctly', () => {
+  it("should handle multiple connection stats correctly", () => {
     // Create a couple of mock connections
-    unifiedStreamingService.createTicketSSEConnection('ticket-1');
-    unifiedStreamingService.createTicketSSEConnection('ticket-2');
-    
+    unifiedStreamingService.createTicketSSEConnection("ticket-1");
+    unifiedStreamingService.createTicketSSEConnection("ticket-2");
+
     const stats = unifiedStreamingService.getConnectionStats();
     expect(stats.totalConnections).toBe(2);
   });

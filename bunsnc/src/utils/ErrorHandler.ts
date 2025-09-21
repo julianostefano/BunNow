@@ -15,9 +15,14 @@ export class ServiceNowError extends Error {
   context: ErrorContext;
   response?: Response;
 
-  constructor(message: string, statusCode: number = 500, context: ErrorContext, response?: Response) {
+  constructor(
+    message: string,
+    statusCode: number = 500,
+    context: ErrorContext,
+    response?: Response,
+  ) {
     super(message);
-    this.name = 'ServiceNowError';
+    this.name = "ServiceNowError";
     this.statusCode = statusCode;
     this.context = context;
     this.response = response;
@@ -25,7 +30,6 @@ export class ServiceNowError extends Error {
 }
 
 export class ErrorHandler {
-  
   /**
    * Log error with context information
    * @param operation - Operation that failed
@@ -37,9 +41,9 @@ export class ErrorHandler {
       operation,
       error: error.message || error,
       timestamp: new Date().toISOString(),
-      context
+      context,
     };
-    
+
     console.error(`Operation failed: ${operation}`, logData);
   }
 
@@ -49,19 +53,19 @@ export class ErrorHandler {
    * @returns User-friendly error message
    */
   static getUserMessage(error: any): string {
-    if (error.message?.includes('not found')) {
-      return 'Recurso não encontrado';
+    if (error.message?.includes("not found")) {
+      return "Recurso não encontrado";
     }
-    
-    if (error.message?.includes('timeout')) {
-      return 'Tempo limite excedido. Tente novamente.';
+
+    if (error.message?.includes("timeout")) {
+      return "Tempo limite excedido. Tente novamente.";
     }
-    
-    if (error.message?.includes('unauthorized')) {
-      return 'Acesso não autorizado';
+
+    if (error.message?.includes("unauthorized")) {
+      return "Acesso não autorizado";
     }
-    
-    return 'Erro interno do servidor';
+
+    return "Erro interno do servidor";
   }
 
   /**
@@ -70,10 +74,10 @@ export class ErrorHandler {
    * @returns True if error is retryable
    */
   static isRetryable(error: any): boolean {
-    const retryableErrors = ['timeout', 'network', 'connection'];
-    const message = error.message?.toLowerCase() || '';
-    
-    return retryableErrors.some(keyword => message.includes(keyword));
+    const retryableErrors = ["timeout", "network", "connection"];
+    const message = error.message?.toLowerCase() || "";
+
+    return retryableErrors.some((keyword) => message.includes(keyword));
   }
 
   /**
@@ -89,8 +93,8 @@ export class ErrorHandler {
         message: this.getUserMessage(error),
         operation,
         timestamp: new Date().toISOString(),
-        retryable: this.isRetryable(error)
-      }
+        retryable: this.isRetryable(error),
+      },
     };
   }
 }

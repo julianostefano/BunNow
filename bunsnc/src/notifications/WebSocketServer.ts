@@ -4,16 +4,16 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { EventEmitter } from 'events';
-import { Elysia, t } from 'elysia';
+import { EventEmitter } from "events";
+import { Elysia, t } from "elysia";
 import {
   Notification,
   WebSocketMessage,
   WebSocketSubscription,
   NotificationPriority,
   NotificationType,
-  NotificationChannel
-} from './NotificationTypes';
+  NotificationChannel,
+} from "./NotificationTypes";
 
 export interface WebSocketServerOptions {
   maxConnections: number;
@@ -46,13 +46,13 @@ export class WebSocketServer extends EventEmitter {
 
   // Channel definitions
   private readonly SYSTEM_CHANNELS = [
-    'system.health',
-    'system.errors',
-    'system.performance',
-    'tasks.all',
-    'tasks.critical',
-    'servicenow.all',
-    'data.processing'
+    "system.health",
+    "system.errors",
+    "system.performance",
+    "tasks.all",
+    "tasks.critical",
+    "servicenow.all",
+    "data.processing",
   ];
 
   constructor(options: WebSocketServerOptions) {
@@ -72,8 +72,9 @@ export class WebSocketServer extends EventEmitter {
    * Create Elysia WebSocket route
    */
   createElysiaRoute(): Elysia {
-    return new Elysia()
-      .ws('/ws/notifications', {
+    return new Elysia().ws(
+      "/ws/notifications",
+      {
         // Connection opened
         open: (ws) => {
           this.handleConnection(ws);
@@ -92,35 +93,39 @@ export class WebSocketServer extends EventEmitter {
         // Error occurred
         error: (ws, error) => {
           this.handleError(ws, error);
-        }
-      }, {
+        },
+      },
+      {
         // Message validation schema
         body: t.Object({
           type: t.Union([
-            t.Literal('subscribe'),
-            t.Literal('unsubscribe'),
-            t.Literal('ping'),
-            t.Literal('pong'),
-            t.Literal('get_channels'),
-            t.Literal('get_stats')
+            t.Literal("subscribe"),
+            t.Literal("unsubscribe"),
+            t.Literal("ping"),
+            t.Literal("pong"),
+            t.Literal("get_channels"),
+            t.Literal("get_stats"),
           ]),
           channel: t.Optional(t.String()),
           channels: t.Optional(t.Array(t.String())),
           data: t.Optional(t.Any()),
           clientId: t.Optional(t.String()),
-          filters: t.Optional(t.Object({
-            priority: t.Optional(t.Array(t.String())),
-            types: t.Optional(t.Array(t.String())),
-            sources: t.Optional(t.Array(t.String()))
-          }))
+          filters: t.Optional(
+            t.Object({
+              priority: t.Optional(t.Array(t.String())),
+              types: t.Optional(t.Array(t.String())),
+              sources: t.Optional(t.Array(t.String())),
+            }),
+          ),
         }),
 
         // WebSocket configuration
         perMessageDeflate: this.options.enableCompression,
         maxPayloadLength: this.options.maxMessageSize,
         idleTimeout: this.options.idleTimeout / 1000, // Convert to seconds
-        backpressureLimit: 64 * 1024 // 64KB
-      });
+        backpressureLimit: 64 * 1024, // 64KB
+      },
+    );
   }
 
   /**
@@ -128,7 +133,7 @@ export class WebSocketServer extends EventEmitter {
    */
   async start(): Promise<void> {
     if (this.isRunning) {
-      throw new Error('WebSocket server is already running');
+      throw new Error("WebSocket server is already running");
     }
 
     this.isRunning = true;
@@ -136,17 +141,17 @@ export class WebSocketServer extends EventEmitter {
     // Start heartbeat timer
     this.heartbeatTimer = setInterval(
       () => this.sendHeartbeat(),
-      this.options.heartbeatInterval
+      this.options.heartbeatInterval,
     );
 
     // Start cleanup timer
     this.cleanupTimer = setInterval(
       () => this.cleanupInactiveClients(),
-      60000 // Clean up every minute
+      60000, // Clean up every minute
     );
 
-    console.log('WebSocket notification server started');
-    this.emit('started');
+    console.log("WebSocket notification server started");
+    this.emit("started");
   }
 
   /**
@@ -171,9 +176,9 @@ export class WebSocketServer extends EventEmitter {
     // Close all client connections
     for (const client of this.clients.values()) {
       try {
-        client.socket.close(1000, 'Server shutting down');
+        client.socket.close(1000, "Server shutting down");
       } catch (error) {
-        console.error('Error closing WebSocket connection:', error);
+        console.error("Error closing WebSocket connection:", error);
       }
     }
 
@@ -181,8 +186,8 @@ export class WebSocketServer extends EventEmitter {
     this.channels.clear();
     this.setupChannels();
 
-    console.log('WebSocket notification server stopped');
-    this.emit('stopped');
+    console.log("WebSocket notification server stopped");
+    this.emit("stopped");
   }
 
   /**
@@ -191,7 +196,7 @@ export class WebSocketServer extends EventEmitter {
   private handleConnection(ws: any): void {
     // Check connection limit
     if (this.clients.size >= this.options.maxConnections) {
-      ws.close(1008, 'Connection limit exceeded');
+      ws.close(1008, "Connection limit exceeded");
       return;
     }
 
@@ -200,8 +205,8 @@ export class WebSocketServer extends EventEmitter {
       clientId,
       channels: new Set(),
       lastSeen: new Date(),
-      userAgent: ws.data?.headers?.['user-agent'],
-      ip: ws.data?.ip
+      userAgent: ws.data?.headers?.["user-agent"],
+      ip: ws.data?.ip,
     };
 
     const clientInfo: WebSocketClientInfo = {
@@ -210,7 +215,7 @@ export class WebSocketServer extends EventEmitter {
       subscription,
       messageCount: 0,
       lastMessageTime: new Date(),
-      rateLimitReset: new Date(Date.now() + 60000) // Reset every minute
+      rateLimitReset: new Date(Date.now() + 60000), // Reset every minute
     };
 
     // Store client reference on WebSocket
@@ -220,18 +225,18 @@ export class WebSocketServer extends EventEmitter {
 
     // Send welcome message
     this.sendToClient(clientId, {
-      type: 'notification',
+      type: "notification",
       data: {
-        type: 'connection.established',
+        type: "connection.established",
         clientId,
         availableChannels: this.SYSTEM_CHANNELS,
-        serverTime: new Date().toISOString()
+        serverTime: new Date().toISOString(),
       },
-      timestamp: new Date()
+      timestamp: new Date(),
     });
 
     console.log(`WebSocket client connected: ${clientId}`);
-    this.emit('client_connected', { clientId, subscription });
+    this.emit("client_connected", { clientId, subscription });
   }
 
   /**
@@ -247,12 +252,12 @@ export class WebSocketServer extends EventEmitter {
     // Rate limiting
     if (!this.checkRateLimit(client)) {
       this.sendToClient(clientId, {
-        type: 'error',
+        type: "error",
         data: {
-          error: 'Rate limit exceeded',
-          resetTime: client.rateLimitReset
+          error: "Rate limit exceeded",
+          resetTime: client.rateLimitReset,
         },
-        timestamp: new Date()
+        timestamp: new Date(),
       });
       return;
     }
@@ -266,12 +271,12 @@ export class WebSocketServer extends EventEmitter {
     } catch (error) {
       console.error(`Error processing message from client ${clientId}:`, error);
       this.sendToClient(clientId, {
-        type: 'error',
+        type: "error",
         data: {
-          error: 'Message processing failed',
-          details: error instanceof Error ? error.message : String(error)
+          error: "Message processing failed",
+          details: error instanceof Error ? error.message : String(error),
         },
-        timestamp: new Date()
+        timestamp: new Date(),
       });
     }
   }
@@ -284,31 +289,31 @@ export class WebSocketServer extends EventEmitter {
     if (!client) return;
 
     switch (message.type) {
-      case 'subscribe':
+      case "subscribe":
         this.handleSubscribe(clientId, message);
         break;
 
-      case 'unsubscribe':
+      case "unsubscribe":
         this.handleUnsubscribe(clientId, message);
         break;
 
-      case 'ping':
+      case "ping":
         this.handlePing(clientId);
         break;
 
-      case 'get_channels':
+      case "get_channels":
         this.handleGetChannels(clientId);
         break;
 
-      case 'get_stats':
+      case "get_stats":
         this.handleGetStats(clientId);
         break;
 
       default:
         this.sendToClient(clientId, {
-          type: 'error',
+          type: "error",
           data: { error: `Unknown message type: ${message.type}` },
-          timestamp: new Date()
+          timestamp: new Date(),
         });
     }
   }
@@ -320,13 +325,17 @@ export class WebSocketServer extends EventEmitter {
     const client = this.clients.get(clientId);
     if (!client) return;
 
-    const channelsToSubscribe = message.channels || (message.channel ? [message.channel] : []);
+    const channelsToSubscribe =
+      message.channels || (message.channel ? [message.channel] : []);
     const subscribed: string[] = [];
     const errors: string[] = [];
 
     for (const channel of channelsToSubscribe) {
       // Check subscription limit
-      if (client.subscription.channels.size >= this.options.rateLimits.subscriptionsPerClient) {
+      if (
+        client.subscription.channels.size >=
+        this.options.rateLimits.subscriptionsPerClient
+      ) {
         errors.push(`Subscription limit exceeded for channel: ${channel}`);
         continue;
       }
@@ -339,7 +348,7 @@ export class WebSocketServer extends EventEmitter {
 
       // Subscribe to channel
       client.subscription.channels.add(channel);
-      
+
       // Add to channel mapping
       if (!this.channels.has(channel)) {
         this.channels.set(channel, new Set());
@@ -356,17 +365,19 @@ export class WebSocketServer extends EventEmitter {
 
     // Send response
     this.sendToClient(clientId, {
-      type: 'notification',
+      type: "notification",
       data: {
-        type: 'subscription.updated',
+        type: "subscription.updated",
         subscribed,
         errors,
-        totalSubscriptions: client.subscription.channels.size
+        totalSubscriptions: client.subscription.channels.size,
       },
-      timestamp: new Date()
+      timestamp: new Date(),
     });
 
-    console.log(`Client ${clientId} subscribed to channels: ${subscribed.join(', ')}`);
+    console.log(
+      `Client ${clientId} subscribed to channels: ${subscribed.join(", ")}`,
+    );
   }
 
   /**
@@ -376,7 +387,8 @@ export class WebSocketServer extends EventEmitter {
     const client = this.clients.get(clientId);
     if (!client) return;
 
-    const channelsToUnsubscribe = message.channels || (message.channel ? [message.channel] : []);
+    const channelsToUnsubscribe =
+      message.channels || (message.channel ? [message.channel] : []);
     const unsubscribed: string[] = [];
 
     for (const channel of channelsToUnsubscribe) {
@@ -388,16 +400,18 @@ export class WebSocketServer extends EventEmitter {
     }
 
     this.sendToClient(clientId, {
-      type: 'notification',
+      type: "notification",
       data: {
-        type: 'subscription.updated',
+        type: "subscription.updated",
         unsubscribed,
-        totalSubscriptions: client.subscription.channels.size
+        totalSubscriptions: client.subscription.channels.size,
       },
-      timestamp: new Date()
+      timestamp: new Date(),
     });
 
-    console.log(`Client ${clientId} unsubscribed from channels: ${unsubscribed.join(', ')}`);
+    console.log(
+      `Client ${clientId} unsubscribed from channels: ${unsubscribed.join(", ")}`,
+    );
   }
 
   /**
@@ -405,8 +419,8 @@ export class WebSocketServer extends EventEmitter {
    */
   private handlePing(clientId: string): void {
     this.sendToClient(clientId, {
-      type: 'pong',
-      timestamp: new Date()
+      type: "pong",
+      timestamp: new Date(),
     });
   }
 
@@ -418,19 +432,19 @@ export class WebSocketServer extends EventEmitter {
     if (!client) return;
 
     this.sendToClient(clientId, {
-      type: 'notification',
+      type: "notification",
       data: {
-        type: 'channels.list',
+        type: "channels.list",
         availableChannels: this.SYSTEM_CHANNELS,
         subscribedChannels: Array.from(client.subscription.channels),
         channelStats: Object.fromEntries(
           Array.from(this.channels.entries()).map(([channel, clients]) => [
             channel,
-            { subscribers: clients.size }
-          ])
-        )
+            { subscribers: clients.size },
+          ]),
+        ),
       },
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 
@@ -439,12 +453,12 @@ export class WebSocketServer extends EventEmitter {
    */
   private handleGetStats(clientId: string): void {
     this.sendToClient(clientId, {
-      type: 'notification',
+      type: "notification",
       data: {
-        type: 'server.stats',
-        stats: this.getServerStats()
+        type: "server.stats",
+        stats: this.getServerStats(),
       },
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 
@@ -456,8 +470,10 @@ export class WebSocketServer extends EventEmitter {
     if (!clientId) return;
 
     this.removeClient(clientId);
-    console.log(`WebSocket client disconnected: ${clientId} (${code}: ${reason})`);
-    this.emit('client_disconnected', { clientId, code, reason });
+    console.log(
+      `WebSocket client disconnected: ${clientId} (${code}: ${reason})`,
+    );
+    this.emit("client_disconnected", { clientId, code, reason });
   }
 
   /**
@@ -466,7 +482,7 @@ export class WebSocketServer extends EventEmitter {
   private handleError(ws: any, error: Error): void {
     const clientId = ws.data?.clientId;
     console.error(`WebSocket error for client ${clientId}:`, error);
-    this.emit('websocket_error', { clientId, error });
+    this.emit("websocket_error", { clientId, error });
   }
 
   /**
@@ -477,9 +493,9 @@ export class WebSocketServer extends EventEmitter {
 
     const channels = this.getNotificationChannels(notification);
     const message: WebSocketMessage = {
-      type: 'notification',
+      type: "notification",
       data: notification,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
     let deliveredCount = 0;
@@ -505,10 +521,10 @@ export class WebSocketServer extends EventEmitter {
       }
     }
 
-    this.emit('broadcast_completed', {
+    this.emit("broadcast_completed", {
       notification,
       targetClients: targetClients.size,
-      delivered: deliveredCount
+      delivered: deliveredCount,
     });
   }
 
@@ -550,8 +566,8 @@ export class WebSocketServer extends EventEmitter {
   private sendHeartbeat(): void {
     for (const clientId of this.clients.keys()) {
       this.sendToClient(clientId, {
-        type: 'ping',
-        timestamp: new Date()
+        type: "ping",
+        timestamp: new Date(),
       });
     }
   }
@@ -566,13 +582,13 @@ export class WebSocketServer extends EventEmitter {
     for (const [clientId, client] of this.clients.entries()) {
       const lastActivity = Math.max(
         client.lastMessageTime.getTime(),
-        client.subscription.lastSeen.getTime()
+        client.subscription.lastSeen.getTime(),
       );
 
       if (now - lastActivity > timeout) {
         console.log(`Removing inactive client: ${clientId}`);
         try {
-          client.socket.close(1000, 'Idle timeout');
+          client.socket.close(1000, "Idle timeout");
         } catch (error) {
           // Client already disconnected
         }
@@ -609,13 +625,13 @@ export class WebSocketServer extends EventEmitter {
       case NotificationType.SYSTEM_ERROR:
       case NotificationType.SYSTEM_WARNING:
       case NotificationType.SYSTEM_INFO:
-        channels.push('system.health', 'system.errors');
+        channels.push("system.health", "system.errors");
         break;
 
       case NotificationType.PERFORMANCE_ALERT:
       case NotificationType.PERFORMANCE_DEGRADATION:
       case NotificationType.PERFORMANCE_RECOVERY:
-        channels.push('system.performance');
+        channels.push("system.performance");
         break;
 
       case NotificationType.TASK_CREATED:
@@ -624,10 +640,12 @@ export class WebSocketServer extends EventEmitter {
       case NotificationType.TASK_COMPLETED:
       case NotificationType.TASK_FAILED:
       case NotificationType.TASK_CANCELLED:
-        channels.push('tasks.all');
-        if (notification.priority === NotificationPriority.CRITICAL || 
-            notification.priority === NotificationPriority.HIGH) {
-          channels.push('tasks.critical');
+        channels.push("tasks.all");
+        if (
+          notification.priority === NotificationPriority.CRITICAL ||
+          notification.priority === NotificationPriority.HIGH
+        ) {
+          channels.push("tasks.critical");
         }
         break;
 
@@ -635,7 +653,7 @@ export class WebSocketServer extends EventEmitter {
       case NotificationType.SERVICENOW_PROBLEM:
       case NotificationType.SERVICENOW_CHANGE:
       case NotificationType.SERVICENOW_CONNECTION:
-        channels.push('servicenow.all');
+        channels.push("servicenow.all");
         break;
 
       case NotificationType.DATA_EXPORT_START:
@@ -644,7 +662,7 @@ export class WebSocketServer extends EventEmitter {
       case NotificationType.DATA_SYNC_COMPLETE:
       case NotificationType.DATA_PIPELINE_START:
       case NotificationType.DATA_PIPELINE_COMPLETE:
-        channels.push('data.processing');
+        channels.push("data.processing");
         break;
     }
 
@@ -654,7 +672,10 @@ export class WebSocketServer extends EventEmitter {
   /**
    * Check if client should receive notification based on filters
    */
-  private shouldReceiveNotification(client: WebSocketClientInfo, notification: Notification): boolean {
+  private shouldReceiveNotification(
+    client: WebSocketClientInfo,
+    notification: Notification,
+  ): boolean {
     const filters = client.subscription.filters;
     if (!filters) return true;
 
@@ -698,18 +719,18 @@ export class WebSocketServer extends EventEmitter {
       clients: {
         total: this.clients.size,
         active: Array.from(this.clients.values()).filter(
-          client => Date.now() - client.lastMessageTime.getTime() < 300000 // 5 minutes
-        ).length
+          (client) => Date.now() - client.lastMessageTime.getTime() < 300000, // 5 minutes
+        ).length,
       },
       channels: Object.fromEntries(
         Array.from(this.channels.entries()).map(([channel, clients]) => [
           channel,
-          { subscribers: clients.size }
-        ])
+          { subscribers: clients.size },
+        ]),
       ),
       isRunning: this.isRunning,
       uptime: process.uptime(),
-      memoryUsage: process.memoryUsage()
+      memoryUsage: process.memoryUsage(),
     };
   }
 }

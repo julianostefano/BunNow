@@ -111,29 +111,29 @@ export interface Task {
 }
 
 export enum TaskType {
-  PARQUET_EXPORT = 'PARQUET_EXPORT',
-  DATA_SYNC = 'DATA_SYNC',
-  PIPELINE_EXECUTION = 'PIPELINE_EXECUTION',
-  REPORT_GENERATION = 'REPORT_GENERATION',
-  CACHE_REFRESH = 'CACHE_REFRESH',
-  INDEX_OPTIMIZATION = 'INDEX_OPTIMIZATION',
-  HDFS_CLEANUP = 'HDFS_CLEANUP',
+  PARQUET_EXPORT = "PARQUET_EXPORT",
+  DATA_SYNC = "DATA_SYNC",
+  PIPELINE_EXECUTION = "PIPELINE_EXECUTION",
+  REPORT_GENERATION = "REPORT_GENERATION",
+  CACHE_REFRESH = "CACHE_REFRESH",
+  INDEX_OPTIMIZATION = "INDEX_OPTIMIZATION",
+  HDFS_CLEANUP = "HDFS_CLEANUP",
 }
 
 export enum TaskStatus {
-  PENDING = 'pending',
-  RUNNING = 'running',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  CANCELLED = 'cancelled',
-  RETRYING = 'retrying',
+  PENDING = "pending",
+  RUNNING = "running",
+  COMPLETED = "completed",
+  FAILED = "failed",
+  CANCELLED = "cancelled",
+  RETRYING = "retrying",
 }
 
 export enum TaskPriority {
-  LOW = 'low',
-  NORMAL = 'normal',
-  HIGH = 'high',
-  CRITICAL = 'critical',
+  LOW = "low",
+  NORMAL = "normal",
+  HIGH = "high",
+  CRITICAL = "critical",
 }
 
 export interface CreateTaskRequest {
@@ -347,31 +347,31 @@ export class BunSNCError extends Error {
   constructor(
     message: string,
     public statusCode?: number,
-    public response?: any
+    public response?: any,
   ) {
     super(message);
-    this.name = 'BunSNCError';
+    this.name = "BunSNCError";
   }
 }
 
 export class TaskTimeoutError extends BunSNCError {
   constructor(taskId: string, timeout: number) {
     super(`Task ${taskId} timed out after ${timeout}ms`);
-    this.name = 'TaskTimeoutError';
+    this.name = "TaskTimeoutError";
   }
 }
 
 export class TaskFailedError extends BunSNCError {
   constructor(taskId: string, reason: string) {
     super(`Task ${taskId} failed: ${reason}`);
-    this.name = 'TaskFailedError';
+    this.name = "TaskFailedError";
   }
 }
 
 export class ConnectionError extends BunSNCError {
   constructor(message: string) {
     super(`Connection error: ${message}`);
-    this.name = 'ConnectionError';
+    this.name = "ConnectionError";
   }
 }
 
@@ -379,6 +379,6 @@ export class ConnectionError extends BunSNCError {
 // EXPORT ALL TYPES
 // ============================================================================
 
-export * from '../background/TaskQueue';
-export * from '../background/TaskScheduler';
-export * from '../background/TaskManager';
+export * from "../background/TaskQueue";
+export * from "../background/TaskScheduler";
+export * from "../background/TaskManager";

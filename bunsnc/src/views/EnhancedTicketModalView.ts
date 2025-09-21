@@ -4,7 +4,7 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { TicketData } from '../services/ConsolidatedDataService';
+import { TicketData } from "../services/ConsolidatedDataService";
 
 export interface EnhancedModalProps {
   ticket: TicketData;
@@ -20,7 +20,7 @@ export class EnhancedTicketModalView {
    */
   static generateModal(props: EnhancedModalProps): string {
     const { ticket, slaData = [], notes = [], history = [] } = props;
-    
+
     return `
       <div id="ticketModal" class="fixed inset-0 z-50 overflow-y-auto bg-black/50" 
            x-data="{ activeTab: 'details' }" 
@@ -66,7 +66,7 @@ export class EnhancedTicketModalView {
           <div>
             <h2 class="text-2xl font-bold text-white">${ticket.number}</h2>
             <p class="text-gray-400 text-sm mt-1 max-w-2xl line-clamp-2">
-              ${ticket.short_description || 'Sem descrição'}
+              ${ticket.short_description || "Sem descrição"}
             </p>
           </div>
         </div>
@@ -199,15 +199,15 @@ export class EnhancedTicketModalView {
             <div class="space-y-3">
               <div class="flex justify-between py-2 border-b border-gray-700/50">
                 <span class="text-gray-400">Grupo:</span>
-                <span class="text-white">${ticket.assignment_group?.display_value || ticket.assignment_group || 'N/A'}</span>
+                <span class="text-white">${ticket.assignment_group?.display_value || ticket.assignment_group || "N/A"}</span>
               </div>
               <div class="flex justify-between py-2 border-b border-gray-700/50">
                 <span class="text-gray-400">Atribuído para:</span>
-                <span class="text-white">${ticket.assigned_to?.display_value || ticket.assigned_to || 'Não atribuído'}</span>
+                <span class="text-white">${ticket.assigned_to?.display_value || ticket.assigned_to || "Não atribuído"}</span>
               </div>
               <div class="flex justify-between py-2">
                 <span class="text-gray-400">Solicitante:</span>
-                <span class="text-white">${ticket.caller_id?.display_value || ticket.caller_id || 'N/A'}</span>
+                <span class="text-white">${ticket.caller_id?.display_value || ticket.caller_id || "N/A"}</span>
               </div>
             </div>
           </div>
@@ -224,7 +224,7 @@ export class EnhancedTicketModalView {
             
             <div class="prose prose-invert max-w-none">
               <p class="text-gray-300 leading-relaxed whitespace-pre-wrap">
-                ${ticket.description || ticket.short_description || 'Sem descrição disponível'}
+                ${ticket.description || ticket.short_description || "Sem descrição disponível"}
               </p>
             </div>
           </div>
@@ -252,8 +252,8 @@ export class EnhancedTicketModalView {
       `;
     }
 
-    const slaCards = slaData.map(sla => this.generateSLACard(sla)).join('');
-    
+    const slaCards = slaData.map((sla) => this.generateSLACard(sla)).join("");
+
     return `
       <div x-show="activeTab === 'sla'" class="p-6">
         <div class="space-y-4">
@@ -267,25 +267,27 @@ export class EnhancedTicketModalView {
    * Generate individual SLA card with progress bar
    */
   private static generateSLACard(sla: any): string {
-    const percentage = parseFloat(sla.taskslatable_business_percentage || '0');
-    const hasBreached = sla.taskslatable_has_breached === 'true' || sla.taskslatable_has_breached === true;
-    const slaName = sla.taskslatable_sla || 'SLA';
-    
-    let statusIcon = '🟢';
-    let statusText = 'CUMPRIDO';
-    let statusColor = 'text-green-400';
-    let barColor = 'bg-green-500';
-    
+    const percentage = parseFloat(sla.taskslatable_business_percentage || "0");
+    const hasBreached =
+      sla.taskslatable_has_breached === "true" ||
+      sla.taskslatable_has_breached === true;
+    const slaName = sla.taskslatable_sla || "SLA";
+
+    let statusIcon = "🟢";
+    let statusText = "CUMPRIDO";
+    let statusColor = "text-green-400";
+    let barColor = "bg-green-500";
+
     if (hasBreached) {
-      statusIcon = '🔴';
-      statusText = 'VIOLADO';
-      statusColor = 'text-red-400';
-      barColor = 'bg-red-500';
+      statusIcon = "🔴";
+      statusText = "VIOLADO";
+      statusColor = "text-red-400";
+      barColor = "bg-red-500";
     } else if (percentage > 80) {
-      statusIcon = '🟡';
-      statusText = 'EM ANDAMENTO';
-      statusColor = 'text-yellow-400';
-      barColor = 'bg-yellow-500';
+      statusIcon = "🟡";
+      statusText = "EM ANDAMENTO";
+      statusColor = "text-yellow-400";
+      barColor = "bg-yellow-500";
     }
 
     return `
@@ -358,16 +360,18 @@ export class EnhancedTicketModalView {
    * Generate modal action buttons
    */
   private static generateModalActions(ticket: TicketData): string {
-    const canResolve = ['1', '2', '3'].includes(ticket.state); // New, In Progress, On Hold
-    const canClose = ticket.state === '6'; // Resolved
-    const canReopen = ['6', '7'].includes(ticket.state); // Resolved, Closed
-    const canAssign = !['7'].includes(ticket.state); // Not Closed
+    const canResolve = ["1", "2", "3"].includes(ticket.state); // New, In Progress, On Hold
+    const canClose = ticket.state === "6"; // Resolved
+    const canReopen = ["6", "7"].includes(ticket.state); // Resolved, Closed
+    const canAssign = !["7"].includes(ticket.state); // Not Closed
 
     return `
       <div class="flex justify-between p-6 border-t border-gray-700 bg-gray-800/30">
         <!-- Action Buttons -->
         <div class="flex space-x-2">
-          ${canResolve ? `
+          ${
+            canResolve
+              ? `
             <button onclick="window.showResolveModal('${ticket.sys_id}', '${ticket.table}')" 
                     class="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors flex items-center space-x-1">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -375,9 +379,13 @@ export class EnhancedTicketModalView {
               </svg>
               <span>Resolver</span>
             </button>
-          ` : ''}
+          `
+              : ""
+          }
           
-          ${canClose ? `
+          ${
+            canClose
+              ? `
             <button onclick="window.showCloseModal('${ticket.sys_id}', '${ticket.table}')" 
                     class="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors flex items-center space-x-1">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -385,9 +393,13 @@ export class EnhancedTicketModalView {
               </svg>
               <span>Fechar</span>
             </button>
-          ` : ''}
+          `
+              : ""
+          }
           
-          ${canReopen ? `
+          ${
+            canReopen
+              ? `
             <button onclick="window.showReopenModal('${ticket.sys_id}', '${ticket.table}')" 
                     class="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-sm rounded-lg transition-colors flex items-center space-x-1">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -395,9 +407,13 @@ export class EnhancedTicketModalView {
               </svg>
               <span>Reabrir</span>
             </button>
-          ` : ''}
+          `
+              : ""
+          }
           
-          ${canAssign ? `
+          ${
+            canAssign
+              ? `
             <button onclick="window.showAssignModal('${ticket.sys_id}', '${ticket.table}')" 
                     class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors flex items-center space-x-1">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -405,7 +421,9 @@ export class EnhancedTicketModalView {
               </svg>
               <span>Atribuir</span>
             </button>
-          ` : ''}
+          `
+              : ""
+          }
           
           <div class="relative">
             <button onclick="window.toggleActionsMenu()" 
@@ -548,33 +566,65 @@ export class EnhancedTicketModalView {
   // Helper methods for formatting and styling
   private static getPriorityConfig(priority: string) {
     const configs = {
-      '1': { color: 'text-red-400', bgColor: 'bg-red-500/20 text-red-300 border-red-500/30' },
-      '2': { color: 'text-orange-400', bgColor: 'bg-orange-500/20 text-orange-300 border-orange-500/30' },
-      '3': { color: 'text-yellow-400', bgColor: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
-      '4': { color: 'text-green-400', bgColor: 'bg-green-500/20 text-green-300 border-green-500/30' }
+      "1": {
+        color: "text-red-400",
+        bgColor: "bg-red-500/20 text-red-300 border-red-500/30",
+      },
+      "2": {
+        color: "text-orange-400",
+        bgColor: "bg-orange-500/20 text-orange-300 border-orange-500/30",
+      },
+      "3": {
+        color: "text-yellow-400",
+        bgColor: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
+      },
+      "4": {
+        color: "text-green-400",
+        bgColor: "bg-green-500/20 text-green-300 border-green-500/30",
+      },
     };
-    return configs[priority as keyof typeof configs] || configs['3'];
+    return configs[priority as keyof typeof configs] || configs["3"];
   }
 
   private static getStatusConfig(state: string) {
     const configs = {
-      '1': { label: 'Novo', color: 'text-blue-300', bgColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
-      '2': { label: 'Em Andamento', color: 'text-yellow-300', bgColor: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
-      '3': { label: 'Em Espera', color: 'text-orange-300', bgColor: 'bg-orange-500/20 text-orange-300 border-orange-500/30' },
-      '6': { label: 'Resolvido', color: 'text-green-300', bgColor: 'bg-green-500/20 text-green-300 border-green-500/30' },
-      '7': { label: 'Fechado', color: 'text-gray-300', bgColor: 'bg-gray-500/20 text-gray-300 border-gray-500/30' }
+      "1": {
+        label: "Novo",
+        color: "text-blue-300",
+        bgColor: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+      },
+      "2": {
+        label: "Em Andamento",
+        color: "text-yellow-300",
+        bgColor: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
+      },
+      "3": {
+        label: "Em Espera",
+        color: "text-orange-300",
+        bgColor: "bg-orange-500/20 text-orange-300 border-orange-500/30",
+      },
+      "6": {
+        label: "Resolvido",
+        color: "text-green-300",
+        bgColor: "bg-green-500/20 text-green-300 border-green-500/30",
+      },
+      "7": {
+        label: "Fechado",
+        color: "text-gray-300",
+        bgColor: "bg-gray-500/20 text-gray-300 border-gray-500/30",
+      },
     };
-    return configs[state as keyof typeof configs] || configs['1'];
+    return configs[state as keyof typeof configs] || configs["1"];
   }
 
   private static getPriorityLabel(priority: string): string {
-    const labels = { '1': 'Crítica', '2': 'Alta', '3': 'Média', '4': 'Baixa' };
-    return labels[priority as keyof typeof labels] || 'Média';
+    const labels = { "1": "Crítica", "2": "Alta", "3": "Média", "4": "Baixa" };
+    return labels[priority as keyof typeof labels] || "Média";
   }
 
   private static formatDate(dateString: string): string {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleString('pt-BR');
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleString("pt-BR");
   }
 
   private static generateEmptyNotes(): string {
@@ -591,12 +641,16 @@ export class EnhancedTicketModalView {
   }
 
   private static generateNotesList(notes: any[]): string {
-    return notes.map(note => {
-      const author = note.sys_created_by?.display_value || note.sys_created_by || 'Sistema';
-      const noteContent = note.value || '';
-      const isWorkNote = note.work_notes;
-      
-      return `
+    return notes
+      .map((note) => {
+        const author =
+          note.sys_created_by?.display_value ||
+          note.sys_created_by ||
+          "Sistema";
+        const noteContent = note.value || "";
+        const isWorkNote = note.work_notes;
+
+        return `
         <div class="mb-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
           <div class="flex justify-between items-start mb-2">
             <div class="flex items-center space-x-2">
@@ -608,7 +662,8 @@ export class EnhancedTicketModalView {
           <p class="text-gray-300 whitespace-pre-wrap leading-relaxed">${noteContent}</p>
         </div>
       `;
-    }).join('');
+      })
+      .join("");
   }
 
   private static generateEmptyHistory(): string {
@@ -625,14 +680,18 @@ export class EnhancedTicketModalView {
   }
 
   private static generateHistoryList(history: any[]): string {
-    return history.map(item => `
+    return history
+      .map(
+        (item) => `
       <div class="mb-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
         <div class="flex justify-between items-start mb-2">
-          <span class="font-medium text-white">${item.user || 'Sistema'}</span>
+          <span class="font-medium text-white">${item.user || "Sistema"}</span>
           <span class="text-sm text-gray-400">${this.formatDate(item.timestamp)}</span>
         </div>
-        <p class="text-gray-300">${item.description || item.change || ''}</p>
+        <p class="text-gray-300">${item.description || item.change || ""}</p>
       </div>
-    `).join('');
+    `,
+      )
+      .join("");
   }
 }

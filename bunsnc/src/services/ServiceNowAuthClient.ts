@@ -3,9 +3,13 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { ServiceNowAuthCore, ServiceNowRecord, ServiceNowQueryResult } from './auth/ServiceNowAuthCore';
-import { ServiceNowSLAService } from './auth/ServiceNowSLAService';
-import { ServiceNowQueryService } from './auth/ServiceNowQueryService';
+import {
+  ServiceNowAuthCore,
+  ServiceNowRecord,
+  ServiceNowQueryResult,
+} from "./auth/ServiceNowAuthCore";
+import { ServiceNowSLAService } from "./auth/ServiceNowSLAService";
+import { ServiceNowQueryService } from "./auth/ServiceNowQueryService";
 
 export class ServiceNowAuthClient {
   private authCore: ServiceNowAuthCore;
@@ -17,13 +21,13 @@ export class ServiceNowAuthClient {
     this.authCore = new ServiceNowAuthCore();
     this.slaService = new ServiceNowSLAService();
     this.queryService = new ServiceNowQueryService();
-    
+
     // Pre-warm cache for critical data on startup
-    this.queryService.preWarmCache().catch(error => {
-      console.warn('Cache pre-warming failed:', error.message);
+    this.queryService.preWarmCache().catch((error) => {
+      console.warn("Cache pre-warming failed:", error.message);
     });
 
-    console.log('ServiceNowAuthClient initialized with modular architecture');
+    console.log("ServiceNowAuthClient initialized with modular architecture");
   }
 
   // === Authentication Methods ===
@@ -44,16 +48,20 @@ export class ServiceNowAuthClient {
   }
 
   // === Query Methods ===
-  async makeRequest(table: string, method: string = 'GET', params: Record<string, unknown> = {}): Promise<ServiceNowQueryResult> {
+  async makeRequest(
+    table: string,
+    method: string = "GET",
+    params: Record<string, unknown> = {},
+  ): Promise<ServiceNowQueryResult> {
     return this.queryService.makeRequest(table, method, params);
   }
 
   async makeRequestPaginated(
-    table: string, 
-    group: string, 
-    state: string, 
-    page: number = 1, 
-    limit: number = 10
+    table: string,
+    group: string,
+    state: string,
+    page: number = 1,
+    limit: number = 10,
   ): Promise<{
     data: ServiceNowRecord[];
     hasMore: boolean;
@@ -61,31 +69,47 @@ export class ServiceNowAuthClient {
     currentPage: number;
     totalPages: number;
   }> {
-    return this.queryService.makeRequestPaginated(table, group, state, page, limit);
+    return this.queryService.makeRequestPaginated(
+      table,
+      group,
+      state,
+      page,
+      limit,
+    );
   }
 
-  async getWaitingIncidents(assignmentGroup: string): Promise<ServiceNowRecord[]> {
+  async getWaitingIncidents(
+    assignmentGroup: string,
+  ): Promise<ServiceNowRecord[]> {
     return this.queryService.getWaitingIncidents(assignmentGroup);
   }
 
-  async getWaitingChangeTasks(assignmentGroup: string): Promise<ServiceNowRecord[]> {
+  async getWaitingChangeTasks(
+    assignmentGroup: string,
+  ): Promise<ServiceNowRecord[]> {
     return this.queryService.getWaitingChangeTasks(assignmentGroup);
   }
 
-  async getWaitingServiceCatalogTasks(assignmentGroup: string): Promise<ServiceNowRecord[]> {
+  async getWaitingServiceCatalogTasks(
+    assignmentGroup: string,
+  ): Promise<ServiceNowRecord[]> {
     return this.queryService.getWaitingServiceCatalogTasks(assignmentGroup);
   }
 
   async searchTickets(
-    searchTerm: string, 
-    tables: string[] = ['incident', 'change_task', 'sc_task'],
-    limit: number = 50
+    searchTerm: string,
+    tables: string[] = ["incident", "change_task", "sc_task"],
+    limit: number = 50,
   ): Promise<ServiceNowRecord[]> {
     return this.queryService.searchTickets(searchTerm, tables, limit);
   }
 
   // === SLA Methods ===
-  async makeRequestFullFields(table: string, query: string, limit: number = 1): Promise<ServiceNowQueryResult> {
+  async makeRequestFullFields(
+    table: string,
+    query: string,
+    limit: number = 1,
+  ): Promise<ServiceNowQueryResult> {
     return this.slaService.makeRequestFullFields(table, query, limit);
   }
 
@@ -93,20 +117,29 @@ export class ServiceNowAuthClient {
     return this.slaService.getSLADataForTask(taskSysId);
   }
 
-  async getContractSLAData(company?: string, location?: string): Promise<ServiceNowRecord[]> {
+  async getContractSLAData(
+    company?: string,
+    location?: string,
+  ): Promise<ServiceNowRecord[]> {
     return this.slaService.getContractSLAData(company, location);
   }
 
-  async getTicketSLABreakdown(ticketSysId: string): Promise<ServiceNowRecord[]> {
+  async getTicketSLABreakdown(
+    ticketSysId: string,
+  ): Promise<ServiceNowRecord[]> {
     return this.slaService.getTicketSLABreakdown(ticketSysId);
   }
 
   async getSLAPerformanceMetrics(
-    startDate: string, 
-    endDate: string, 
-    slaType?: string
+    startDate: string,
+    endDate: string,
+    slaType?: string,
   ): Promise<ServiceNowRecord[]> {
-    return this.slaService.getSLAPerformanceMetrics(startDate, endDate, slaType);
+    return this.slaService.getSLAPerformanceMetrics(
+      startDate,
+      endDate,
+      slaType,
+    );
   }
 
   // === Legacy compatibility methods ===

@@ -4,7 +4,7 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import type { ServiceNowClient } from '../../../types/servicenow';
+import type { ServiceNowClient } from "../../../types/servicenow";
 
 // Mock interfaces that match the original ConsolidatedServiceNowService
 export interface HybridQueryParams {
@@ -24,12 +24,12 @@ export interface HybridQueryResult {
   total: number;
   currentPage: number;
   totalPages: number;
-  source: 'mongodb' | 'servicenow' | 'hybrid';
+  source: "mongodb" | "servicenow" | "hybrid";
   cached?: boolean;
 }
 
 export interface BatchOperation {
-  operation: 'create' | 'update' | 'delete';
+  operation: "create" | "update" | "delete";
   table: string;
   sysId?: string;
   data: any;
@@ -95,9 +95,9 @@ export class E2EConsolidatedServiceNowService {
       const result = await this.serviceNowClient.makeRequestFullFields(
         table,
         `sys_id=${sysId}`,
-        1
+        1,
       );
-      
+
       if (!result.result || result.result.length === 0) {
         throw new Error(`Ticket not found: ${sysId}`);
       }
@@ -114,7 +114,7 @@ export class E2EConsolidatedServiceNowService {
         category: result.result[0].category,
         subcategory: result.result[0].subcategory,
         createdOn: result.result[0].sys_created_on,
-        updatedOn: result.result[0].sys_updated_on
+        updatedOn: result.result[0].sys_updated_on,
       };
     } catch (error) {
       throw new Error(`Failed to get ticket details: ${error}`);
@@ -126,7 +126,11 @@ export class E2EConsolidatedServiceNowService {
    */
   async updateTicket(table: string, sysId: string, data: any): Promise<any> {
     try {
-      const result = await this.serviceNowClient.updateRecord(table, sysId, data);
+      const result = await this.serviceNowClient.updateRecord(
+        table,
+        sysId,
+        data,
+      );
       return result.result;
     } catch (error) {
       throw new Error(`Failed to update ${table} ticket: ${error}`);
@@ -154,12 +158,12 @@ export class E2EConsolidatedServiceNowService {
       const useServiceNow = params.fallbackToServiceNow !== false;
       const useCache = params.useCache === true;
 
-      let source: 'mongodb' | 'servicenow' | 'hybrid' = 'servicenow';
-      
+      let source: "mongodb" | "servicenow" | "hybrid" = "servicenow";
+
       if (useCache && Math.random() > 0.5) {
-        source = 'mongodb';
+        source = "mongodb";
       } else if (useServiceNow && useCache) {
-        source = 'hybrid';
+        source = "hybrid";
       }
 
       const limit = params.limit || 10;
@@ -169,7 +173,7 @@ export class E2EConsolidatedServiceNowService {
       const result = await this.serviceNowClient.makeRequest(
         params.table,
         params.query,
-        limit
+        limit,
       );
 
       return {
@@ -179,7 +183,7 @@ export class E2EConsolidatedServiceNowService {
         currentPage: page,
         totalPages: Math.ceil((result.result?.length || 0) / limit),
         source,
-        cached: source === 'mongodb' || source === 'hybrid'
+        cached: source === "mongodb" || source === "hybrid",
       };
     } catch (error) {
       throw new Error(`Hybrid query failed: ${error}`);
@@ -198,20 +202,24 @@ export class E2EConsolidatedServiceNowService {
     for (const operation of operations) {
       try {
         let result;
-        
+
         switch (operation.operation) {
-          case 'create':
+          case "create":
             result = await this.createTicket(operation.table, operation.data);
             break;
-          case 'update':
+          case "update":
             if (!operation.sysId) {
-              throw new Error('sysId required for update operation');
+              throw new Error("sysId required for update operation");
             }
-            result = await this.updateTicket(operation.table, operation.sysId, operation.data);
+            result = await this.updateTicket(
+              operation.table,
+              operation.sysId,
+              operation.data,
+            );
             break;
-          case 'delete':
+          case "delete":
             if (!operation.sysId) {
-              throw new Error('sysId required for delete operation');
+              throw new Error("sysId required for delete operation");
             }
             result = await this.deleteTicket(operation.table, operation.sysId);
             break;
@@ -223,7 +231,7 @@ export class E2EConsolidatedServiceNowService {
           operation: operation.operation,
           table: operation.table,
           success: true,
-          result
+          result,
         });
         successful++;
       } catch (error) {
@@ -231,7 +239,7 @@ export class E2EConsolidatedServiceNowService {
           operation: operation.operation,
           table: operation.table,
           success: false,
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error),
         });
         failed++;
       }
@@ -245,15 +253,17 @@ export class E2EConsolidatedServiceNowService {
         total: operations.length,
         successful,
         failed,
-        duration: endTime - startTime
-      }
+        duration: endTime - startTime,
+      },
     };
   }
 
   /**
    * Get ticket collection with filters
    */
-  async getTicketCollection(params: TicketCollectionParams): Promise<TicketCollectionResult> {
+  async getTicketCollection(
+    params: TicketCollectionParams,
+  ): Promise<TicketCollectionResult> {
     try {
       const limit = params.limit || 50;
       const filterQuery = this.buildFilterQuery(params.filters);
@@ -261,7 +271,7 @@ export class E2EConsolidatedServiceNowService {
       const result = await this.serviceNowClient.makeRequest(
         params.table,
         filterQuery,
-        limit
+        limit,
       );
 
       const tickets = result.result || [];
@@ -272,7 +282,7 @@ export class E2EConsolidatedServiceNowService {
           ticket.related = {
             comments: [],
             attachments: [],
-            workNotes: []
+            workNotes: [],
           };
         }
       }
@@ -283,8 +293,8 @@ export class E2EConsolidatedServiceNowService {
           total: tickets.length,
           filtered: tickets.length,
           limit,
-          hasMore: tickets.length === limit
-        }
+          hasMore: tickets.length === limit,
+        },
       };
     } catch (error) {
       throw new Error(`Failed to get ticket collection: ${error}`);
@@ -295,17 +305,17 @@ export class E2EConsolidatedServiceNowService {
    * Build filter query string from filters object
    */
   private buildFilterQuery(filters?: any): string {
-    if (!filters) return '';
+    if (!filters) return "";
 
     const conditions = [];
-    
+
     for (const [key, value] of Object.entries(filters)) {
       if (value !== undefined && value !== null) {
         conditions.push(`${key}=${value}`);
       }
     }
 
-    return conditions.join('^');
+    return conditions.join("^");
   }
 
   /**
@@ -313,8 +323,8 @@ export class E2EConsolidatedServiceNowService {
    */
   async healthCheck(): Promise<{ status: string; timestamp: string }> {
     return {
-      status: 'healthy',
-      timestamp: new Date().toISOString()
+      status: "healthy",
+      timestamp: new Date().toISOString(),
     };
   }
 }

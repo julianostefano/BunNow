@@ -9,32 +9,45 @@ export interface ConflictData {
   mongoData: any;
   serviceNowData: any;
   conflictFields: string[];
-  resolution: 'pending' | 'resolved';
-  resolvedWith: 'mongodb' | 'servicenow' | null;
+  resolution: "pending" | "resolved";
+  resolvedWith: "mongodb" | "servicenow" | null;
   timestamp: string;
 }
 
-export type ConflictResolutionStrategy = 'servicenow_wins' | 'mongodb_wins' | 'newest_wins' | 'manual';
+export type ConflictResolutionStrategy =
+  | "servicenow_wins"
+  | "mongodb_wins"
+  | "newest_wins"
+  | "manual";
 
 export class ConflictResolver {
   private conflicts: Map<string, ConflictData> = new Map();
   private strategy: ConflictResolutionStrategy;
 
-  constructor(strategy: ConflictResolutionStrategy = 'newest_wins') {
+  constructor(strategy: ConflictResolutionStrategy = "newest_wins") {
     this.strategy = strategy;
   }
 
   /**
    * Check for data conflicts between MongoDB and ServiceNow data
    */
-  checkForConflicts(mongoData: any, serviceNowData: any, table: string): ConflictData | null {
+  checkForConflicts(
+    mongoData: any,
+    serviceNowData: any,
+    table: string,
+  ): ConflictData | null {
     const conflictFields: string[] = [];
-    const criticalFields = ['state', 'priority', 'short_description', 'assignment_group'];
-    
+    const criticalFields = [
+      "state",
+      "priority",
+      "short_description",
+      "assignment_group",
+    ];
+
     for (const field of criticalFields) {
       const mongoValue = this.normalizeValue(mongoData[field]);
       const snowValue = this.normalizeValue(serviceNowData[field]);
-      
+
       if (mongoValue !== snowValue) {
         conflictFields.push(field);
       }
@@ -47,15 +60,17 @@ export class ConflictResolver {
         mongoData,
         serviceNowData,
         conflictFields,
-        resolution: 'pending',
+        resolution: "pending",
         resolvedWith: null,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       const conflictId = `${table}:${serviceNowData.sys_id}`;
       this.conflicts.set(conflictId, conflictData);
 
-      console.log(`⚔️ Conflict detected for ${table}/${serviceNowData.sys_id}: ${conflictFields.join(', ')}`);
+      console.log(
+        `⚔️ Conflict detected for ${table}/${serviceNowData.sys_id}: ${conflictFields.join(", ")}`,
+      );
       return conflictData;
     }
 
@@ -65,48 +80,55 @@ export class ConflictResolver {
   /**
    * Resolve conflict based on strategy
    */
-  resolveConflict(conflict: ConflictData): { data: any; source: 'mongodb' | 'servicenow' } {
+  resolveConflict(conflict: ConflictData): {
+    data: any;
+    source: "mongodb" | "servicenow";
+  } {
     let winningData: any;
-    let resolution: 'mongodb' | 'servicenow';
+    let resolution: "mongodb" | "servicenow";
 
     switch (this.strategy) {
-      case 'servicenow_wins':
+      case "servicenow_wins":
         winningData = conflict.serviceNowData;
-        resolution = 'servicenow';
+        resolution = "servicenow";
         break;
-      
-      case 'mongodb_wins':
+
+      case "mongodb_wins":
         winningData = conflict.mongoData;
-        resolution = 'mongodb';
+        resolution = "mongodb";
         break;
-      
-      case 'newest_wins':
+
+      case "newest_wins":
         const mongoTime = new Date(conflict.mongoData.sys_updated_on || 0);
         const snowTime = new Date(conflict.serviceNowData.sys_updated_on || 0);
-        
+
         if (snowTime > mongoTime) {
           winningData = conflict.serviceNowData;
-          resolution = 'servicenow';
+          resolution = "servicenow";
         } else {
           winningData = conflict.mongoData;
-          resolution = 'mongodb';
+          resolution = "mongodb";
         }
         break;
-      
-      case 'manual':
-        throw new Error(`Manual resolution required for ${conflict.table}/${conflict.sys_id}`);
-      
+
+      case "manual":
+        throw new Error(
+          `Manual resolution required for ${conflict.table}/${conflict.sys_id}`,
+        );
+
       default:
         winningData = conflict.serviceNowData;
-        resolution = 'servicenow';
+        resolution = "servicenow";
     }
 
     // Update conflict status
-    conflict.resolution = 'resolved';
+    conflict.resolution = "resolved";
     conflict.resolvedWith = resolution;
 
-    console.log(` Resolved conflict for ${conflict.table}/${conflict.sys_id}: ${resolution} wins`);
-    
+    console.log(
+      ` Resolved conflict for ${conflict.table}/${conflict.sys_id}: ${resolution} wins`,
+    );
+
     return { data: winningData, source: resolution };
   }
 
@@ -114,7 +136,9 @@ export class ConflictResolver {
    * Get all pending conflicts
    */
   getPendingConflicts(): ConflictData[] {
-    return Array.from(this.conflicts.values()).filter(c => c.resolution === 'pending');
+    return Array.from(this.conflicts.values()).filter(
+      (c) => c.resolution === "pending",
+    );
   }
 
   /**
@@ -122,7 +146,7 @@ export class ConflictResolver {
    */
   clearResolvedConflicts(): void {
     for (const [key, conflict] of this.conflicts) {
-      if (conflict.resolution === 'resolved') {
+      if (conflict.resolution === "resolved") {
         this.conflicts.delete(key);
       }
     }
@@ -141,11 +165,11 @@ export class ConflictResolver {
       total: this.conflicts.size,
       pending: 0,
       resolved: 0,
-      byTable: {} as Record<string, number>
+      byTable: {} as Record<string, number>,
     };
 
     for (const conflict of this.conflicts.values()) {
-      if (conflict.resolution === 'pending') {
+      if (conflict.resolution === "pending") {
         stats.pending++;
       } else {
         stats.resolved++;
@@ -161,10 +185,11 @@ export class ConflictResolver {
    * Normalize field values for comparison
    */
   private normalizeValue(value: any): string {
-    if (!value) return '';
-    if (typeof value === 'string') return value.trim();
-    if (typeof value === 'object' && value.display_value) return value.display_value.trim();
-    if (typeof value === 'object' && value.value) return value.value.trim();
+    if (!value) return "";
+    if (typeof value === "string") return value.trim();
+    if (typeof value === "object" && value.display_value)
+      return value.display_value.trim();
+    if (typeof value === "object" && value.value) return value.value.trim();
     return String(value).trim();
   }
 

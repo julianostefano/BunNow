@@ -16,7 +16,7 @@ export abstract class BaseCondition {
     } else {
       // Two parameters: name, value (operator defaults to '=')
       this._name = name;
-      this._operator = '=';
+      this._operator = "=";
       this._value = operator;
     }
   }

@@ -7,7 +7,11 @@
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { createApp } from "./app";
-import { createNotificationRoutes, getRealtimeRoutes, shutdownNotificationSystem } from "./notifications";
+import {
+  createNotificationRoutes,
+  getRealtimeRoutes,
+  shutdownNotificationSystem,
+} from "./notifications";
 // BackgroundSyncManager consolidated into ConsolidatedDataService
 import { createGroupRoutes } from "./GroupRoutes";
 import { createModalRoutes, createSSERoutes } from "./ModalRoutes";
@@ -18,17 +22,19 @@ export async function createMainApp(): Promise<Elysia> {
   const mainApp = new Elysia();
 
   // Add CORS support - Allow all origins
-  mainApp.use(cors({
-    origin: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
-  }));
+  mainApp.use(
+    cors({
+      origin: true,
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+      credentials: true,
+    }),
+  );
 
   // Favicon endpoint - return 404 with proper CORS (must be before other routes)
   mainApp.get("/favicon.ico", ({ set }) => {
     set.status = 404;
-    set.headers['content-type'] = 'text/plain';
+    set.headers["content-type"] = "text/plain";
     return "Favicon not found";
   });
 
@@ -37,16 +43,18 @@ export async function createMainApp(): Promise<Elysia> {
 
   // Initialize system service (includes performance monitoring and cache optimization)
   try {
-    const mongoClient = new MongoClient(process.env.MONGODB_URL || "mongodb://localhost:27017");
+    const mongoClient = new MongoClient(
+      process.env.MONGODB_URL || "mongodb://localhost:27017",
+    );
     const systemConfig: SystemConfig = {
       mongodb: {
         client: mongoClient,
-        database: process.env.MONGODB_DATABASE || "bunsnc"
+        database: process.env.MONGODB_DATABASE || "bunsnc",
       },
       redis: {
         host: process.env.REDIS_HOST || "localhost",
         port: parseInt(process.env.REDIS_PORT || "6379"),
-        password: process.env.REDIS_PASSWORD
+        password: process.env.REDIS_PASSWORD,
       },
       performance: {
         monitoring: true,
@@ -54,38 +62,41 @@ export async function createMainApp(): Promise<Elysia> {
           response_time_warning: 1000,
           response_time_critical: 5000,
           memory_warning: 500,
-          memory_critical: 1000
-        }
+          memory_critical: 1000,
+        },
       },
       tasks: {
         concurrency: 3,
         retryDelay: 5000,
         maxRetries: 3,
-        cleanupInterval: 300000
-      }
+        cleanupInterval: 300000,
+      },
     };
 
     const systemService = createSystemService(systemConfig);
-    systemService.initialize()
+    systemService
+      .initialize()
       .then(() => {
-        console.log(' System service initialized (performance monitoring + cache optimization)');
+        console.log(
+          " System service initialized (performance monitoring + cache optimization)",
+        );
       })
       .catch((error) => {
-        console.error(' Failed to initialize system service:', error);
-        console.warn(' Server will continue without system monitoring');
+        console.error(" Failed to initialize system service:", error);
+        console.warn(" Server will continue without system monitoring");
       });
   } catch (error) {
-    console.error(' Failed to create system service:', error);
-    console.warn(' Server will continue without system monitoring');
+    console.error(" Failed to create system service:", error);
+    console.warn(" Server will continue without system monitoring");
   }
 
   // Add main application routes with error handling
   try {
     const appRoutes = await createApp();
     mainApp.use(appRoutes);
-    console.log(' Main application routes added');
+    console.log(" Main application routes added");
   } catch (error) {
-    console.error(' Failed to add main application routes:', error);
+    console.error(" Failed to add main application routes:", error);
     throw error;
   }
 
@@ -93,84 +104,84 @@ export async function createMainApp(): Promise<Elysia> {
   try {
     const notificationRoutes = createNotificationRoutes();
     mainApp.use(notificationRoutes);
-    console.log(' Notification routes added');
+    console.log(" Notification routes added");
   } catch (error) {
-    console.error(' Failed to add notification routes:', error);
-    console.warn(' Server will continue without notifications');
+    console.error(" Failed to add notification routes:", error);
+    console.warn(" Server will continue without notifications");
   }
 
   // Add SSE and Modal routes with error handling
   try {
     mainApp.use(createSSERoutes());
     mainApp.use(createModalRoutes());
-    console.log(' SSE and Modal routes added');
+    console.log(" SSE and Modal routes added");
   } catch (error) {
-    console.error(' Failed to add SSE/Modal routes:', error);
-    console.warn(' Server will continue without SSE/Modal functionality');
+    console.error(" Failed to add SSE/Modal routes:", error);
+    console.warn(" Server will continue without SSE/Modal functionality");
   }
 
   // Add real-time endpoints with error handling
   try {
     const realtimeRoutes = getRealtimeRoutes();
     mainApp.use(realtimeRoutes);
-    console.log(' Real-time endpoints added');
+    console.log(" Real-time endpoints added");
   } catch (error) {
-    console.error(' Failed to add real-time endpoints:', error);
-    console.warn(' Server will continue without real-time functionality');
+    console.error(" Failed to add real-time endpoints:", error);
+    console.warn(" Server will continue without real-time functionality");
   }
 
   // Background sync management endpoints (deprecated - moved to ConsolidatedDataService)
-  mainApp.group("/sync", (app) => 
+  mainApp.group("/sync", (app) =>
     app
       .get("/status", async () => {
-        return { 
-          status: "consolidated", 
+        return {
+          status: "consolidated",
           message: "Sync functionality moved to ConsolidatedDataService",
-          deprecated: true
+          deprecated: true,
         };
       })
       .get("/stats", async () => {
-        return { 
-          status: "consolidated", 
+        return {
+          status: "consolidated",
           message: "Sync functionality moved to ConsolidatedDataService",
-          deprecated: true
+          deprecated: true,
         };
       })
       .post("/start", async () => {
-        return { 
-          success: false, 
+        return {
+          success: false,
           message: "Sync functionality moved to ConsolidatedDataService",
-          deprecated: true
+          deprecated: true,
         };
       })
       .post("/stop", async () => {
-        return { 
-          success: false, 
+        return {
+          success: false,
           message: "Sync functionality moved to ConsolidatedDataService",
-          deprecated: true
+          deprecated: true,
         };
       })
       .post("/force", async () => {
-        return { 
-          success: false, 
+        return {
+          success: false,
           message: "Sync functionality moved to ConsolidatedDataService",
-          deprecated: true
+          deprecated: true,
         };
       })
       .get("/troubleshoot", async () => {
-        return { 
-          status: "consolidated", 
+        return {
+          status: "consolidated",
           message: "Sync functionality moved to ConsolidatedDataService",
-          deprecated: true
+          deprecated: true,
         };
       })
       .post("/optimize", async () => {
-        return { 
-          success: false, 
+        return {
+          success: false,
           message: "Sync functionality moved to ConsolidatedDataService",
-          deprecated: true
+          deprecated: true,
         };
-      })
+      }),
   );
 
   // Performance monitoring endpoints
@@ -212,7 +223,7 @@ export async function createMainApp(): Promise<Elysia> {
         } catch (error) {
           return { success: false, error: error.message };
         }
-      })
+      }),
   );
 
   // Health check endpoint
@@ -223,8 +234,8 @@ export async function createMainApp(): Promise<Elysia> {
       services: {
         api: "ready",
         notifications: "ready",
-        background_sync: "consolidated_into_hybrid_data_service"
-      }
+        background_sync: "consolidated_into_hybrid_data_service",
+      },
     };
   });
 
@@ -232,20 +243,20 @@ export async function createMainApp(): Promise<Elysia> {
   try {
     const groupRoutes = createGroupRoutes();
     mainApp.use(groupRoutes);
-    console.log(' Group management routes added');
+    console.log(" Group management routes added");
   } catch (error) {
-    console.error(' Failed to add group routes:', error);
-    console.warn(' Server will continue without group management');
+    console.error(" Failed to add group routes:", error);
+    console.warn(" Server will continue without group management");
   }
 
-  console.log('🎯 BunSNC main application initialized successfully');
+  console.log("🎯 BunSNC main application initialized successfully");
   return mainApp;
 }
 
 // Graceful shutdown handler
 export async function gracefulShutdown(): Promise<void> {
   console.log(" Shutting down BunSNC server...");
-  
+
   try {
     // Sync functionality moved to ConsolidatedDataService (handled by WebServerController)
     console.log(" Background sync handled by ConsolidatedDataService");

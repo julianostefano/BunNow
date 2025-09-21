@@ -3,10 +3,9 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import type { TicketData, ModalProps } from '../types/TicketTypes';
+import type { TicketData, ModalProps } from "../types/TicketTypes";
 
 export class TicketModalView {
-  
   /**
    * Generate complete modal HTML for ticket details
    * @param props - Modal properties with ticket data and labels
@@ -14,7 +13,7 @@ export class TicketModalView {
    */
   static generateModal(props: ModalProps): string {
     const { ticket, statusLabel, priorityLabel } = props;
-    
+
     return `
       <div id="ticketModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick="closeModal()">
         <div class="bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 rounded-xl border border-gray-600 shadow-2xl max-w-6xl w-full max-h-[95vh] flex flex-col" onclick="event.stopPropagation()">
@@ -35,7 +34,11 @@ export class TicketModalView {
    * @param priorityLabel - Readable priority label
    * @returns Header HTML string
    */
-  private static generateHeader(ticket: TicketData, statusLabel: string, priorityLabel: string): string {
+  private static generateHeader(
+    ticket: TicketData,
+    statusLabel: string,
+    priorityLabel: string,
+  ): string {
     return `
       <div class="border-b border-gray-600 p-6">
         <div class="flex items-center justify-between">
@@ -97,13 +100,13 @@ export class TicketModalView {
           Informações Básicas
         </h3>
         <div class="space-y-3">
-          ${this.generateInfoRow('ID do Sistema', ticket.sysId)}
-          ${this.generateInfoRow('Número', ticket.number)}
-          ${this.generateInfoRow('Tabela', ticket.table)}
-          ${this.generateInfoRow('Categoria', ticket.category)}
-          ${this.generateInfoRow('Subcategoria', ticket.subcategory)}
-          ${this.generateInfoRow('Criado em', ticket.createdOn)}
-          ${this.generateInfoRow('Atualizado em', ticket.updatedOn)}
+          ${this.generateInfoRow("ID do Sistema", ticket.sysId)}
+          ${this.generateInfoRow("Número", ticket.number)}
+          ${this.generateInfoRow("Tabela", ticket.table)}
+          ${this.generateInfoRow("Categoria", ticket.category)}
+          ${this.generateInfoRow("Subcategoria", ticket.subcategory)}
+          ${this.generateInfoRow("Criado em", ticket.createdOn)}
+          ${this.generateInfoRow("Atualizado em", ticket.updatedOn)}
         </div>
       </div>
     `;
@@ -122,9 +125,9 @@ export class TicketModalView {
           Atribuições
         </h3>
         <div class="space-y-3">
-          ${this.generateInfoRow('Atribuído para', ticket.assignedTo)}
-          ${this.generateInfoRow('Grupo', ticket.assignmentGroup)}
-          ${this.generateInfoRow('Solicitante', ticket.caller)}
+          ${this.generateInfoRow("Atribuído para", ticket.assignedTo)}
+          ${this.generateInfoRow("Grupo", ticket.assignmentGroup)}
+          ${this.generateInfoRow("Solicitante", ticket.caller)}
         </div>
       </div>
     `;
@@ -139,7 +142,7 @@ export class TicketModalView {
     const priorityLabel = this.getPriorityLabel(ticket.priority);
     const urgencyLabel = this.getUrgencyLabel(ticket.urgency);
     const impactLabel = this.getImpactLabel(ticket.impact);
-    
+
     return `
       <div class="bg-gray-800/50 rounded-lg p-4">
         <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
@@ -147,9 +150,9 @@ export class TicketModalView {
           Prioridade e Impacto
         </h3>
         <div class="space-y-3">
-          ${this.generateInfoRow('Prioridade', priorityLabel)}
-          ${this.generateInfoRow('Urgência', urgencyLabel)}
-          ${this.generateInfoRow('Impacto', impactLabel)}
+          ${this.generateInfoRow("Prioridade", priorityLabel)}
+          ${this.generateInfoRow("Urgência", urgencyLabel)}
+          ${this.generateInfoRow("Impacto", impactLabel)}
         </div>
       </div>
     `;
@@ -168,7 +171,7 @@ export class TicketModalView {
           Descrição
         </h3>
         <div class="text-white max-h-40 overflow-y-auto text-sm bg-gray-800 p-3 rounded border">
-          ${ticket.description.replace(/\n/g, '<br>')}
+          ${ticket.description.replace(/\n/g, "<br>")}
         </div>
       </div>
     `;
@@ -187,9 +190,9 @@ export class TicketModalView {
           Informações SLA
         </h3>
         <div class="space-y-3">
-          ${this.generateInfoRow('Vencimento SLA', ticket.slaDue || 'N/A')}
-          ${this.generateInfoRow('Tempo de Negócio', ticket.businessStc || 'N/A')}
-          ${this.generateInfoRow('Tempo de Resolução', ticket.resolveTime || 'N/A')}
+          ${this.generateInfoRow("Vencimento SLA", ticket.slaDue || "N/A")}
+          ${this.generateInfoRow("Tempo de Negócio", ticket.businessStc || "N/A")}
+          ${this.generateInfoRow("Tempo de Resolução", ticket.resolveTime || "N/A")}
         </div>
       </div>
     `;
@@ -306,7 +309,7 @@ export class TicketModalView {
    * @returns Not found modal HTML string
    */
   static generateNotFoundModal(): string {
-    return this.generateErrorModal('Ticket não encontrado');
+    return this.generateErrorModal("Ticket não encontrado");
   }
 
   /**
@@ -314,13 +317,13 @@ export class TicketModalView {
    */
   private static getPriorityLabel(priority: string): string {
     const priorityLabels: Record<string, string> = {
-      '1': 'Crítica',
-      '2': 'Alta',
-      '3': 'Média',
-      '4': 'Baixa',
-      '5': 'Planejamento'
+      "1": "Crítica",
+      "2": "Alta",
+      "3": "Média",
+      "4": "Baixa",
+      "5": "Planejamento",
     };
-    return priorityLabels[priority] || 'Desconhecida';
+    return priorityLabels[priority] || "Desconhecida";
   }
 
   /**
@@ -328,11 +331,11 @@ export class TicketModalView {
    */
   private static getUrgencyLabel(urgency: string): string {
     const urgencyLabels: Record<string, string> = {
-      '1': 'Alta',
-      '2': 'Média',
-      '3': 'Baixa'
+      "1": "Alta",
+      "2": "Média",
+      "3": "Baixa",
     };
-    return urgencyLabels[urgency] || 'Desconhecida';
+    return urgencyLabels[urgency] || "Desconhecida";
   }
 
   /**
@@ -340,10 +343,10 @@ export class TicketModalView {
    */
   private static getImpactLabel(impact: string): string {
     const impactLabels: Record<string, string> = {
-      '1': 'Alto',
-      '2': 'Médio',
-      '3': 'Baixo'
+      "1": "Alto",
+      "2": "Médio",
+      "3": "Baixo",
     };
-    return impactLabels[impact] || 'Desconhecido';
+    return impactLabels[impact] || "Desconhecido";
   }
 }

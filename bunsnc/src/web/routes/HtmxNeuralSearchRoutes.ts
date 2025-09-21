@@ -3,13 +3,13 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { Elysia } from 'elysia';
-import { html } from '@elysiajs/html';
-import { EmbeddingClient } from '../../clients/EmbeddingClient';
-import { RerankClient } from '../../clients/RerankClient';
-import { OpenSearchClient } from '../../clients/OpenSearchClient';
-import { LLMClient } from '../../clients/LLMClient';
-import { logger } from '../../utils/Logger';
+import { Elysia } from "elysia";
+import { html } from "@elysiajs/html";
+import { EmbeddingClient } from "../../clients/EmbeddingClient";
+import { RerankClient } from "../../clients/RerankClient";
+import { OpenSearchClient } from "../../clients/OpenSearchClient";
+import { LLMClient } from "../../clients/LLMClient";
+import { logger } from "../../utils/Logger";
 
 interface SearchResult {
   id: string;
@@ -19,7 +19,7 @@ interface SearchResult {
   relevanceScore: number;
   supportGroup: string;
   lastUpdated: string;
-  documentType: 'runbook' | 'procedure' | 'troubleshooting' | 'reference';
+  documentType: "runbook" | "procedure" | "troubleshooting" | "reference";
   tags: string[];
   url: string;
 }
@@ -29,7 +29,7 @@ interface SearchSession {
   queries: Array<{ query: string; timestamp: string; resultsCount: number }>;
   savedSearches: Array<{ name: string; query: string; filters: any }>;
   preferences: {
-    searchMode: 'semantic' | 'hybrid' | 'sparse';
+    searchMode: "semantic" | "hybrid" | "sparse";
     maxResults: number;
     enableRerank: boolean;
   };
@@ -48,18 +48,18 @@ const searchSessions = new Map<string, SearchSession>();
 const embeddingClient = new EmbeddingClient();
 const rerankClient = new RerankClient();
 const openSearchClient = new OpenSearchClient({
-  host: process.env.OPENSEARCH_HOST || '10.219.8.210',
-  port: parseInt(process.env.OPENSEARCH_PORT || '9200'),
+  host: process.env.OPENSEARCH_HOST || "10.219.8.210",
+  port: parseInt(process.env.OPENSEARCH_PORT || "9200"),
   ssl: false,
-  timeout: 30000
+  timeout: 30000,
 });
 const llmClient = new LLMClient();
 
-export const neuralSearchRoutes = new Elysia({ prefix: '/search' })
+export const neuralSearchRoutes = new Elysia({ prefix: "/search" })
   .use(html())
 
   // Main Search Interface
-  .get('/neural', async ({ html }) => {
+  .get("/neural", async ({ html }) => {
     return html(`
       <div class="neural-search-container">
         <div class="search-header">
@@ -180,17 +180,17 @@ export const neuralSearchRoutes = new Elysia({ prefix: '/search' })
   })
 
   // Execute Search
-  .post('/execute', async ({ body, html }) => {
+  .post("/execute", async ({ body, html }) => {
     const startTime = Date.now();
 
     try {
       const {
-        'neural-search-input': query,
-        searchMode = 'semantic',
-        category = '',
-        supportGroup = '',
-        documentType = '',
-        enableRerank = false
+        "neural-search-input": query,
+        searchMode = "semantic",
+        category = "",
+        supportGroup = "",
+        documentType = "",
+        enableRerank = false,
       } = body as any;
 
       if (!query || query.trim().length === 0) {
@@ -204,10 +204,15 @@ export const neuralSearchRoutes = new Elysia({ prefix: '/search' })
       const filters: SearchFilters = {
         ...(category && { category }),
         ...(supportGroup && { supportGroup }),
-        ...(documentType && { documentType })
+        ...(documentType && { documentType }),
       };
 
-      const results = await performNeuralSearch(query.trim(), searchMode, filters, enableRerank);
+      const results = await performNeuralSearch(
+        query.trim(),
+        searchMode,
+        filters,
+        enableRerank,
+      );
       const searchTime = Date.now() - startTime;
 
       // Store search in session
@@ -219,11 +224,13 @@ export const neuralSearchRoutes = new Elysia({ prefix: '/search' })
             <span class="results-count">${results.length} results found</span>
             <span class="search-time">${searchTime}ms</span>
             <span class="search-mode">${searchMode} search</span>
-            ${enableRerank ? '<span class="rerank-indicator">AI Reranked</span>' : ''}
+            ${enableRerank ? '<span class="rerank-indicator">AI Reranked</span>' : ""}
           </div>
 
           <div class="results-list">
-            ${results.map((result, index) => `
+            ${results
+              .map(
+                (result, index) => `
               <div class="result-item" data-relevance="${result.relevanceScore}">
                 <div class="result-header">
                   <h4 class="result-title">
@@ -242,7 +249,7 @@ export const neuralSearchRoutes = new Elysia({ prefix: '/search' })
 
                 <div class="result-footer">
                   <div class="result-tags">
-                    ${result.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                    ${result.tags.map((tag) => `<span class="tag">${tag}</span>`).join("")}
                   </div>
                   <div class="result-actions">
                     <button class="btn-small"
@@ -263,10 +270,14 @@ export const neuralSearchRoutes = new Elysia({ prefix: '/search' })
                   </div>
                 </div>
               </div>
-            `).join('')}
+            `,
+              )
+              .join("")}
           </div>
 
-          ${results.length === 0 ? `
+          ${
+            results.length === 0
+              ? `
             <div class="no-results">
               <h3>No results found</h3>
               <p>Try adjusting your search terms or filters. Consider:</p>
@@ -276,12 +287,13 @@ export const neuralSearchRoutes = new Elysia({ prefix: '/search' })
                 <li>Switching to hybrid or keyword search modes</li>
               </ul>
             </div>
-          ` : ''}
+          `
+              : ""
+          }
         </div>
       `);
-
     } catch (error) {
-      logger.error('[NeuralSearch] Search execution failed:', error);
+      logger.error("[NeuralSearch] Search execution failed:", error);
       return html(`
         <div class="search-error">
           <h3>Search Error</h3>
@@ -292,40 +304,45 @@ export const neuralSearchRoutes = new Elysia({ prefix: '/search' })
   })
 
   // Search Suggestions
-  .post('/suggest', async ({ body, html }) => {
+  .post("/suggest", async ({ body, html }) => {
     try {
-      const { 'neural-search-input': query } = body as any;
+      const { "neural-search-input": query } = body as any;
 
       if (!query || query.length < 3) {
-        return html('');
+        return html("");
       }
 
       const suggestions = await generateSearchSuggestions(query);
 
       return html(`
         <div class="suggestions-list">
-          ${suggestions.map(suggestion => `
+          ${suggestions
+            .map(
+              (suggestion) => `
             <div class="suggestion-item"
                  onclick="document.getElementById('neural-search-input').value = '${suggestion}'; this.parentElement.style.display = 'none';">
               ${suggestion}
             </div>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </div>
       `);
-
     } catch (error) {
-      logger.error('[NeuralSearch] Suggestion generation failed:', error);
-      return html('');
+      logger.error("[NeuralSearch] Suggestion generation failed:", error);
+      return html("");
     }
   })
 
   // Search History
-  .get('/history', async ({ html }) => {
+  .get("/history", async ({ html }) => {
     const recentSearches = await getRecentSearches();
 
     return html(`
       <div class="history-list">
-        ${recentSearches.map(search => `
+        ${recentSearches
+          .map(
+            (search) => `
           <div class="history-item">
             <span class="history-query"
                   onclick="document.getElementById('neural-search-input').value = '${search.query}'"
@@ -334,13 +351,15 @@ export const neuralSearchRoutes = new Elysia({ prefix: '/search' })
             </span>
             <span class="history-meta">${search.timestamp} • ${search.resultsCount} results</span>
           </div>
-        `).join('')}
+        `,
+          )
+          .join("")}
       </div>
     `);
   })
 
   // Similar Documents
-  .get('/similar/:id', async ({ params, html }) => {
+  .get("/similar/:id", async ({ params, html }) => {
     try {
       const similarResults = await findSimilarDocuments(params.id);
 
@@ -351,7 +370,9 @@ export const neuralSearchRoutes = new Elysia({ prefix: '/search' })
           </div>
 
           <div class="results-list">
-            ${similarResults.map(result => `
+            ${similarResults
+              .map(
+                (result) => `
               <div class="result-item similar-result">
                 <div class="result-header">
                   <h4 class="result-title">
@@ -361,38 +382,40 @@ export const neuralSearchRoutes = new Elysia({ prefix: '/search' })
                 </div>
                 <p class="result-content">${truncateContent(result.content, 150)}</p>
               </div>
-            `).join('')}
+            `,
+              )
+              .join("")}
           </div>
         </div>
       `);
-
     } catch (error) {
-      logger.error('[NeuralSearch] Similar search failed:', error);
-      return html(`<div class="search-error">Unable to find similar documents</div>`);
+      logger.error("[NeuralSearch] Similar search failed:", error);
+      return html(
+        `<div class="search-error">Unable to find similar documents</div>`,
+      );
     }
   })
 
   // Search Feedback
-  .post('/feedback', async ({ body, html }) => {
+  .post("/feedback", async ({ body, html }) => {
     try {
       const { resultId, query, helpful } = body as any;
 
-      await recordFeedback(resultId, query, helpful === 'true');
+      await recordFeedback(resultId, query, helpful === "true");
 
       return html(`
         <span class="feedback-thanks">
           Thanks for your feedback! This helps improve our search results.
         </span>
       `);
-
     } catch (error) {
-      logger.error('[NeuralSearch] Feedback recording failed:', error);
-      return html('');
+      logger.error("[NeuralSearch] Feedback recording failed:", error);
+      return html("");
     }
   })
 
   // Advanced Search Interface
-  .get('/advanced', async ({ html }) => {
+  .get("/advanced", async ({ html }) => {
     return html(`
       <div class="advanced-search-container">
         <h2>Advanced Neural Search</h2>
@@ -458,19 +481,19 @@ async function performNeuralSearch(
   query: string,
   mode: string,
   filters: SearchFilters,
-  enableRerank: boolean
+  enableRerank: boolean,
 ): Promise<SearchResult[]> {
   try {
     let results: SearchResult[] = [];
 
     switch (mode) {
-      case 'semantic':
+      case "semantic":
         results = await performSemanticSearch(query, filters);
         break;
-      case 'hybrid':
+      case "hybrid":
         results = await performHybridSearch(query, filters);
         break;
-      case 'sparse':
+      case "sparse":
         results = await performKeywordSearch(query, filters);
         break;
       default:
@@ -483,44 +506,61 @@ async function performNeuralSearch(
     }
 
     return results;
-
   } catch (error) {
-    logger.error('[NeuralSearch] Search execution failed:', error);
+    logger.error("[NeuralSearch] Search execution failed:", error);
     return [];
   }
 }
 
-async function performSemanticSearch(query: string, filters: SearchFilters): Promise<SearchResult[]> {
+async function performSemanticSearch(
+  query: string,
+  filters: SearchFilters,
+): Promise<SearchResult[]> {
   // Generate embedding for the query
   const embedding = await embeddingClient.generateSingleEmbedding(query);
 
   // Mock implementation - replace with actual OpenSearch neural search
-  return generateMockResults(query, 'semantic', filters);
+  return generateMockResults(query, "semantic", filters);
 }
 
-async function performHybridSearch(query: string, filters: SearchFilters): Promise<SearchResult[]> {
+async function performHybridSearch(
+  query: string,
+  filters: SearchFilters,
+): Promise<SearchResult[]> {
   // Combine semantic + keyword search
-  return generateMockResults(query, 'hybrid', filters);
+  return generateMockResults(query, "hybrid", filters);
 }
 
-async function performKeywordSearch(query: string, filters: SearchFilters): Promise<SearchResult[]> {
+async function performKeywordSearch(
+  query: string,
+  filters: SearchFilters,
+): Promise<SearchResult[]> {
   // Traditional keyword search
-  return generateMockResults(query, 'keyword', filters);
+  return generateMockResults(query, "keyword", filters);
 }
 
-async function applyReranking(query: string, results: SearchResult[]): Promise<SearchResult[]> {
+async function applyReranking(
+  query: string,
+  results: SearchResult[],
+): Promise<SearchResult[]> {
   try {
-    const documents = results.map(r => r.content);
-    const reranked = await rerankClient.rerank(query, documents, { top_k: results.length });
+    const documents = results.map((r) => r.content);
+    const reranked = await rerankClient.rerank(query, documents, {
+      top_k: results.length,
+    });
 
     // Reorder results based on rerank scores
-    return reranked.results.map(r => ({
-      ...results[r.index],
-      relevanceScore: r.relevance_score
-    })).sort((a, b) => b.relevanceScore - a.relevanceScore);
-
+    return reranked.results
+      .map((r) => ({
+        ...results[r.index],
+        relevanceScore: r.relevance_score,
+      }))
+      .sort((a, b) => b.relevanceScore - a.relevanceScore);
   } catch (error) {
-    logger.warn('[NeuralSearch] Reranking failed, returning original results:', error);
+    logger.warn(
+      "[NeuralSearch] Reranking failed, returning original results:",
+      error,
+    );
     return results;
   }
 }
@@ -532,90 +572,133 @@ async function generateSearchSuggestions(query: string): Promise<string[]> {
     `${query} configuration`,
     `${query} best practices`,
     `how to fix ${query}`,
-    `${query} step by step guide`
+    `${query} step by step guide`,
   ];
 
   return suggestions.slice(0, 5);
 }
 
-async function findSimilarDocuments(documentId: string): Promise<SearchResult[]> {
+async function findSimilarDocuments(
+  documentId: string,
+): Promise<SearchResult[]> {
   // Mock implementation - find documents similar to the given one
-  return generateMockResults('similar to ' + documentId, 'semantic', {}).slice(0, 5);
+  return generateMockResults("similar to " + documentId, "semantic", {}).slice(
+    0,
+    5,
+  );
 }
 
-async function recordSearch(query: string, resultsCount: number): Promise<void> {
+async function recordSearch(
+  query: string,
+  resultsCount: number,
+): Promise<void> {
   // Store search in session/database for history
-  logger.info(`[NeuralSearch] Search recorded: "${query}" - ${resultsCount} results`);
+  logger.info(
+    `[NeuralSearch] Search recorded: "${query}" - ${resultsCount} results`,
+  );
 }
 
-async function recordFeedback(resultId: string, query: string, helpful: boolean): Promise<void> {
+async function recordFeedback(
+  resultId: string,
+  query: string,
+  helpful: boolean,
+): Promise<void> {
   // Store feedback for improving search relevance
-  logger.info(`[NeuralSearch] Feedback recorded for ${resultId}: ${helpful ? 'helpful' : 'not helpful'}`);
+  logger.info(
+    `[NeuralSearch] Feedback recorded for ${resultId}: ${helpful ? "helpful" : "not helpful"}`,
+  );
 }
 
 async function getRecentSearches() {
   // Return recent search history
   return [
-    { query: 'database connection timeout', timestamp: '2 minutes ago', resultsCount: 12 },
-    { query: 'apache restart procedure', timestamp: '15 minutes ago', resultsCount: 8 },
-    { query: 'network connectivity issues', timestamp: '1 hour ago', resultsCount: 15 }
+    {
+      query: "database connection timeout",
+      timestamp: "2 minutes ago",
+      resultsCount: 12,
+    },
+    {
+      query: "apache restart procedure",
+      timestamp: "15 minutes ago",
+      resultsCount: 8,
+    },
+    {
+      query: "network connectivity issues",
+      timestamp: "1 hour ago",
+      resultsCount: 15,
+    },
   ];
 }
 
-function generateMockResults(query: string, mode: string, filters: SearchFilters): SearchResult[] {
+function generateMockResults(
+  query: string,
+  mode: string,
+  filters: SearchFilters,
+): SearchResult[] {
   // Mock search results based on query and mode
   const baseResults = [
     {
-      id: 'doc_001',
-      title: 'Database Connection Troubleshooting Guide',
-      content: 'Complete guide for diagnosing and resolving database connectivity issues including timeout problems, authentication failures, and network-related connection drops.',
-      category: 'database',
-      supportGroup: 'Database Administration',
-      documentType: 'troubleshooting' as const,
-      tags: ['database', 'connection', 'timeout', 'troubleshooting'],
-      lastUpdated: '2025-01-10',
-      url: '/docs/database-connection-troubleshooting'
+      id: "doc_001",
+      title: "Database Connection Troubleshooting Guide",
+      content:
+        "Complete guide for diagnosing and resolving database connectivity issues including timeout problems, authentication failures, and network-related connection drops.",
+      category: "database",
+      supportGroup: "Database Administration",
+      documentType: "troubleshooting" as const,
+      tags: ["database", "connection", "timeout", "troubleshooting"],
+      lastUpdated: "2025-01-10",
+      url: "/docs/database-connection-troubleshooting",
     },
     {
-      id: 'doc_002',
-      title: 'Apache Web Server Management Procedures',
-      content: 'Comprehensive procedures for managing Apache web servers including startup, shutdown, configuration changes, and performance optimization.',
-      category: 'application',
-      supportGroup: 'Application Support',
-      documentType: 'procedure' as const,
-      tags: ['apache', 'web server', 'management', 'procedures'],
-      lastUpdated: '2025-01-09',
-      url: '/docs/apache-management'
+      id: "doc_002",
+      title: "Apache Web Server Management Procedures",
+      content:
+        "Comprehensive procedures for managing Apache web servers including startup, shutdown, configuration changes, and performance optimization.",
+      category: "application",
+      supportGroup: "Application Support",
+      documentType: "procedure" as const,
+      tags: ["apache", "web server", "management", "procedures"],
+      lastUpdated: "2025-01-09",
+      url: "/docs/apache-management",
     },
     {
-      id: 'doc_003',
-      title: 'Network Connectivity Diagnostic Runbook',
-      content: 'Step-by-step runbook for diagnosing network connectivity issues across different network layers and infrastructure components.',
-      category: 'network',
-      supportGroup: 'Network Support',
-      documentType: 'runbook' as const,
-      tags: ['network', 'connectivity', 'diagnostics', 'runbook'],
-      lastUpdated: '2025-01-08',
-      url: '/docs/network-diagnostics'
-    }
+      id: "doc_003",
+      title: "Network Connectivity Diagnostic Runbook",
+      content:
+        "Step-by-step runbook for diagnosing network connectivity issues across different network layers and infrastructure components.",
+      category: "network",
+      supportGroup: "Network Support",
+      documentType: "runbook" as const,
+      tags: ["network", "connectivity", "diagnostics", "runbook"],
+      lastUpdated: "2025-01-08",
+      url: "/docs/network-diagnostics",
+    },
   ];
 
   // Apply filters
-  let filteredResults = baseResults.filter(result => {
+  let filteredResults = baseResults.filter((result) => {
     if (filters.category && result.category !== filters.category) return false;
-    if (filters.supportGroup && result.supportGroup !== filters.supportGroup) return false;
-    if (filters.documentType && result.documentType !== filters.documentType) return false;
+    if (filters.supportGroup && result.supportGroup !== filters.supportGroup)
+      return false;
+    if (filters.documentType && result.documentType !== filters.documentType)
+      return false;
     return true;
   });
 
   // Calculate relevance scores based on search mode
-  return filteredResults.map(result => ({
-    ...result,
-    relevanceScore: calculateRelevanceScore(query, result, mode)
-  })).sort((a, b) => b.relevanceScore - a.relevanceScore);
+  return filteredResults
+    .map((result) => ({
+      ...result,
+      relevanceScore: calculateRelevanceScore(query, result, mode),
+    }))
+    .sort((a, b) => b.relevanceScore - a.relevanceScore);
 }
 
-function calculateRelevanceScore(query: string, result: SearchResult, mode: string): number {
+function calculateRelevanceScore(
+  query: string,
+  result: SearchResult,
+  mode: string,
+): number {
   const queryLower = query.toLowerCase();
   const contentLower = result.content.toLowerCase();
   const titleLower = result.title.toLowerCase();
@@ -627,18 +710,20 @@ function calculateRelevanceScore(query: string, result: SearchResult, mode: stri
   if (contentLower.includes(queryLower)) score += 0.3;
 
   // Tag matches
-  const matchingTags = result.tags.filter(tag => queryLower.includes(tag.toLowerCase()));
+  const matchingTags = result.tags.filter((tag) =>
+    queryLower.includes(tag.toLowerCase()),
+  );
   score += matchingTags.length * 0.1;
 
   // Mode-specific adjustments
   switch (mode) {
-    case 'semantic':
+    case "semantic":
       score += Math.random() * 0.2; // Simulate semantic understanding
       break;
-    case 'hybrid':
+    case "hybrid":
       score += Math.random() * 0.15;
       break;
-    case 'keyword':
+    case "keyword":
       // Exact matches get higher scores in keyword mode
       if (titleLower === queryLower) score += 0.3;
       break;
@@ -651,7 +736,9 @@ function truncateContent(content: string, maxLength: number): string {
   if (content.length <= maxLength) return content;
 
   const truncated = content.substring(0, maxLength);
-  const lastSpace = truncated.lastIndexOf(' ');
+  const lastSpace = truncated.lastIndexOf(" ");
 
-  return lastSpace > 0 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
+  return lastSpace > 0
+    ? truncated.substring(0, lastSpace) + "..."
+    : truncated + "...";
 }

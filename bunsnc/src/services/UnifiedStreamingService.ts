@@ -4,10 +4,14 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { StreamingCore, StreamConnection, UnifiedStreamEvent } from './streaming/StreamingCore';
-import { StreamHandlers } from './streaming/StreamHandlers';
-import { StreamNotifications } from './streaming/StreamNotifications';
-import type { ServiceNowStreams } from '../config/redis-streams';
+import {
+  StreamingCore,
+  StreamConnection,
+  UnifiedStreamEvent,
+} from "./streaming/StreamingCore";
+import { StreamHandlers } from "./streaming/StreamHandlers";
+import { StreamNotifications } from "./streaming/StreamNotifications";
+import type { ServiceNowStreams } from "../config/redis-streams";
 
 // Re-export types for compatibility
 export type {
@@ -16,8 +20,8 @@ export type {
   TicketUpdateEvent,
   SLAEvent,
   SyncProgressEvent,
-  DashboardStatsEvent
-} from './streaming/StreamingCore';
+  DashboardStatsEvent,
+} from "./streaming/StreamingCore";
 
 export class UnifiedStreamingService extends StreamingCore {
   private static instance: UnifiedStreamingService;
@@ -28,8 +32,13 @@ export class UnifiedStreamingService extends StreamingCore {
     super();
     // Initialize modular components with shared state
     this.handlers = new StreamHandlers();
-    this.notifications = new StreamNotifications(this.connections, this.eventHistory);
-    console.log(' UnifiedStreamingService initialized with modular architecture');
+    this.notifications = new StreamNotifications(
+      this.connections,
+      this.eventHistory,
+    );
+    console.log(
+      " UnifiedStreamingService initialized with modular architecture",
+    );
   }
 
   static getInstance(): UnifiedStreamingService {
@@ -45,19 +54,23 @@ export class UnifiedStreamingService extends StreamingCore {
   initialize(redisStreams: ServiceNowStreams): void {
     super.initialize(redisStreams);
     this.notifications.initializeRedisStreams(redisStreams);
-    console.log(' All streaming modules initialized');
+    console.log(" All streaming modules initialized");
   }
 
   // === Stream Handler Methods ===
   /**
    * Create Elysia generator-based stream (Modern streaming)
    */
-  *createStream(clientId: string, streamType: StreamConnection['streamType'], options?: {
-    filters?: any;
-    maxHistory?: number;
-    ticketSysId?: string;
-    intervalSeconds?: number;
-  }) {
+  *createStream(
+    clientId: string,
+    streamType: StreamConnection["streamType"],
+    options?: {
+      filters?: any;
+      maxHistory?: number;
+      ticketSysId?: string;
+      intervalSeconds?: number;
+    },
+  ) {
     yield* this.handlers.createStream(clientId, streamType, options);
   }
 
@@ -79,7 +92,10 @@ export class UnifiedStreamingService extends StreamingCore {
   /**
    * Broadcast event to all matching connections
    */
-  broadcastEvent(event: UnifiedStreamEvent, filters?: { streamTypes?: string[] }): void {
+  broadcastEvent(
+    event: UnifiedStreamEvent,
+    filters?: { streamTypes?: string[] },
+  ): void {
     this.notifications.broadcastEvent(event, filters);
   }
 
@@ -106,7 +122,9 @@ export class UnifiedStreamingService extends StreamingCore {
   /**
    * Get connections by stream type
    */
-  getConnectionsByType(streamType: StreamConnection['streamType']): StreamConnection[] {
+  getConnectionsByType(
+    streamType: StreamConnection["streamType"],
+  ): StreamConnection[] {
     return super.getConnectionsByType(streamType);
   }
 
@@ -114,7 +132,7 @@ export class UnifiedStreamingService extends StreamingCore {
    * Get service health status
    */
   getHealthStatus(): {
-    status: 'healthy' | 'degraded' | 'unhealthy';
+    status: "healthy" | "degraded" | "unhealthy";
     connections: number;
     eventHistory: number;
     redisConnected: boolean;
@@ -132,14 +150,17 @@ export class UnifiedStreamingService extends StreamingCore {
     // Shutdown core functionality
     super.shutdown();
 
-    console.log('🧹 UnifiedStreamingService cleanup completed');
+    console.log("🧹 UnifiedStreamingService cleanup completed");
   }
 
   // === Legacy Compatibility Methods ===
   /**
    * Legacy method for backward compatibility
    */
-  sendSSEMessage(connection: StreamConnection, message: UnifiedStreamEvent): void {
+  sendSSEMessage(
+    connection: StreamConnection,
+    message: UnifiedStreamEvent,
+  ): void {
     this.notifications.sendSSEMessage(connection, message);
   }
 

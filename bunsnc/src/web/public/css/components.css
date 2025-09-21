@@ -63,11 +63,16 @@
 }
 
 @keyframes neural-pulse {
-  0%, 100% {
-    box-shadow: var(--glass-shadow), 0 0 0 0 rgba(102, 126, 234, 0.4);
+  0%,
+  100% {
+    box-shadow:
+      var(--glass-shadow),
+      0 0 0 0 rgba(102, 126, 234, 0.4);
   }
   50% {
-    box-shadow: var(--glass-shadow), 0 0 0 10px rgba(102, 126, 234, 0);
+    box-shadow:
+      var(--glass-shadow),
+      0 0 0 10px rgba(102, 126, 234, 0);
   }
 }
 
@@ -147,7 +152,11 @@
   left: var(--space-xs);
   bottom: var(--space-xs);
   width: calc(25% - var(--space-xs));
-  background: linear-gradient(135deg, var(--glass-primary) 0%, rgba(118, 75, 162, 0.8) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--glass-primary) 0%,
+    rgba(118, 75, 162, 0.8) 100%
+  );
   border-radius: var(--radius-md);
   transition: transform var(--transition-smooth);
   z-index: 1;
@@ -155,10 +164,18 @@
   -webkit-backdrop-filter: blur(10px);
 }
 
-.filter-tab-indicator--incidents { transform: translateX(0); }
-.filter-tab-indicator--problems { transform: translateX(100%); }
-.filter-tab-indicator--changes { transform: translateX(200%); }
-.filter-tab-indicator--requests { transform: translateX(300%); }
+.filter-tab-indicator--incidents {
+  transform: translateX(0);
+}
+.filter-tab-indicator--problems {
+  transform: translateX(100%);
+}
+.filter-tab-indicator--changes {
+  transform: translateX(200%);
+}
+.filter-tab-indicator--requests {
+  transform: translateX(300%);
+}
 
 .filter-states {
   display: flex;
@@ -196,21 +213,30 @@
 }
 
 .filter-state--active {
-  background: linear-gradient(135deg, var(--glass-primary) 0%, rgba(118, 75, 162, 0.8) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--glass-primary) 0%,
+    rgba(118, 75, 162, 0.8) 100%
+  );
   border-color: var(--glass-primary);
   color: white;
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
 .filter-state--default {
-  background: linear-gradient(135deg, var(--glass-warning) 0%, rgba(251, 191, 36, 0.8) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--glass-warning) 0%,
+    rgba(251, 191, 36, 0.8) 100%
+  );
   border-color: var(--glass-warning);
   color: white;
   animation: default-glow 2s infinite ease-in-out;
 }
 
 @keyframes default-glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
   }
   50% {
@@ -332,7 +358,11 @@
 
 .confidence-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--glass-success) 0%, var(--glass-primary) 100%);
+  background: linear-gradient(
+    90deg,
+    var(--glass-success) 0%,
+    var(--glass-primary) 100%
+  );
   border-radius: 2px;
   transition: width var(--transition-smooth);
 }
@@ -353,19 +383,52 @@
 }
 
 .stat-card::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   right: 0;
   width: 4px;
   height: 100%;
-  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
 }
 
-.stat-card:nth-child(1)::after { background: linear-gradient(180deg, transparent, var(--glass-danger), transparent); }
-.stat-card:nth-child(2)::after { background: linear-gradient(180deg, transparent, var(--glass-warning), transparent); }
-.stat-card:nth-child(3)::after { background: linear-gradient(180deg, transparent, var(--glass-primary), transparent); }
-.stat-card:nth-child(4)::after { background: linear-gradient(180deg, transparent, var(--glass-success), transparent); }
+.stat-card:nth-child(1)::after {
+  background: linear-gradient(
+    180deg,
+    transparent,
+    var(--glass-danger),
+    transparent
+  );
+}
+.stat-card:nth-child(2)::after {
+  background: linear-gradient(
+    180deg,
+    transparent,
+    var(--glass-warning),
+    transparent
+  );
+}
+.stat-card:nth-child(3)::after {
+  background: linear-gradient(
+    180deg,
+    transparent,
+    var(--glass-primary),
+    transparent
+  );
+}
+.stat-card:nth-child(4)::after {
+  background: linear-gradient(
+    180deg,
+    transparent,
+    var(--glass-success),
+    transparent
+  );
+}
 
 .stat-value {
   font-size: var(--text-4xl);
@@ -576,8 +639,13 @@
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* ========== Control Panel ========== */
@@ -613,9 +681,15 @@
   animation: pulse 2s infinite;
 }
 
-.control-section__status--active { background: var(--glass-success); }
-.control-section__status--warning { background: var(--glass-warning); }
-.control-section__status--error { background: var(--glass-danger); }
+.control-section__status--active {
+  background: var(--glass-success);
+}
+.control-section__status--warning {
+  background: var(--glass-warning);
+}
+.control-section__status--error {
+  background: var(--glass-danger);
+}
 
 .control-grid {
   display: grid;
@@ -649,11 +723,21 @@
   word-break: break-word;
 }
 
-.log-entry--info { color: #60a5fa; }
-.log-entry--success { color: #4ade80; }
-.log-entry--warning { color: #fbbf24; }
-.log-entry--error { color: #f87171; }
-.log-entry--debug { color: rgba(255, 255, 255, 0.6); }
+.log-entry--info {
+  color: #60a5fa;
+}
+.log-entry--success {
+  color: #4ade80;
+}
+.log-entry--warning {
+  color: #fbbf24;
+}
+.log-entry--error {
+  color: #f87171;
+}
+.log-entry--debug {
+  color: rgba(255, 255, 255, 0.6);
+}
 
 .log-timestamp {
   color: rgba(255, 255, 255, 0.5);
@@ -695,7 +779,7 @@
 }
 
 .quick-action__icon::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   background: inherit;
@@ -703,27 +787,51 @@
 }
 
 .quick-action__icon--incidents {
-  background: linear-gradient(135deg, var(--glass-danger), rgba(239, 68, 68, 0.7));
+  background: linear-gradient(
+    135deg,
+    var(--glass-danger),
+    rgba(239, 68, 68, 0.7)
+  );
 }
 
 .quick-action__icon--problems {
-  background: linear-gradient(135deg, var(--glass-warning), rgba(251, 191, 36, 0.7));
+  background: linear-gradient(
+    135deg,
+    var(--glass-warning),
+    rgba(251, 191, 36, 0.7)
+  );
 }
 
 .quick-action__icon--changes {
-  background: linear-gradient(135deg, var(--glass-primary), rgba(102, 126, 234, 0.7));
+  background: linear-gradient(
+    135deg,
+    var(--glass-primary),
+    rgba(102, 126, 234, 0.7)
+  );
 }
 
 .quick-action__icon--analytics {
-  background: linear-gradient(135deg, var(--glass-accent), rgba(59, 130, 246, 0.7));
+  background: linear-gradient(
+    135deg,
+    var(--glass-accent),
+    rgba(59, 130, 246, 0.7)
+  );
 }
 
 .quick-action__icon--reports {
-  background: linear-gradient(135deg, var(--glass-secondary), rgba(139, 92, 246, 0.7));
+  background: linear-gradient(
+    135deg,
+    var(--glass-secondary),
+    rgba(139, 92, 246, 0.7)
+  );
 }
 
 .quick-action__icon--settings {
-  background: linear-gradient(135deg, rgba(107, 114, 128, 0.8), rgba(75, 85, 99, 0.7));
+  background: linear-gradient(
+    135deg,
+    rgba(107, 114, 128, 0.8),
+    rgba(75, 85, 99, 0.7)
+  );
 }
 
 .quick-action__title {
@@ -984,7 +1092,7 @@
 }
 
 .tickets-loading::before {
-  content: '';
+  content: "";
   width: 20px;
   height: 20px;
   border: 2px solid rgba(255, 255, 255, 0.2);
@@ -995,8 +1103,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .tickets-empty {
@@ -1029,12 +1141,14 @@
 
 .ticket-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--glass-shadow-strong), 0 10px 40px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    var(--glass-shadow-strong),
+    0 10px 40px rgba(0, 0, 0, 0.3);
   border-color: var(--glass-primary);
 }
 
 .ticket-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -1046,19 +1160,35 @@
 
 /* Ticket Type Specific Colors */
 .ticket-card--incident::before {
-  background: linear-gradient(90deg, var(--glass-danger), rgba(239, 68, 68, 0.8));
+  background: linear-gradient(
+    90deg,
+    var(--glass-danger),
+    rgba(239, 68, 68, 0.8)
+  );
 }
 
 .ticket-card--problem::before {
-  background: linear-gradient(90deg, var(--glass-warning), rgba(251, 191, 36, 0.8));
+  background: linear-gradient(
+    90deg,
+    var(--glass-warning),
+    rgba(251, 191, 36, 0.8)
+  );
 }
 
 .ticket-card--change::before {
-  background: linear-gradient(90deg, var(--glass-primary), rgba(102, 126, 234, 0.8));
+  background: linear-gradient(
+    90deg,
+    var(--glass-primary),
+    rgba(102, 126, 234, 0.8)
+  );
 }
 
 .ticket-card--request::before {
-  background: linear-gradient(90deg, var(--glass-success), rgba(34, 197, 94, 0.8));
+  background: linear-gradient(
+    90deg,
+    var(--glass-success),
+    rgba(34, 197, 94, 0.8)
+  );
 }
 
 /* Ticket Header */
@@ -1141,7 +1271,8 @@
 }
 
 @keyframes priority-pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
@@ -1219,14 +1350,22 @@
 .ticket-status--novo,
 .ticket-status--new {
   color: white;
-  background: linear-gradient(135deg, var(--glass-primary), rgba(102, 126, 234, 0.8));
+  background: linear-gradient(
+    135deg,
+    var(--glass-primary),
+    rgba(102, 126, 234, 0.8)
+  );
 }
 
 .ticket-status--em_progresso,
 .ticket-status--in_progress,
 .ticket-status--work_in_progress {
   color: white;
-  background: linear-gradient(135deg, var(--glass-warning), rgba(251, 191, 36, 0.8));
+  background: linear-gradient(
+    135deg,
+    var(--glass-warning),
+    rgba(251, 191, 36, 0.8)
+  );
 }
 
 .ticket-status--pendente,
@@ -1239,7 +1378,11 @@
 .ticket-status--resolved,
 .ticket-status--closed {
   color: white;
-  background: linear-gradient(135deg, var(--glass-success), rgba(34, 197, 94, 0.8));
+  background: linear-gradient(
+    135deg,
+    var(--glass-success),
+    rgba(34, 197, 94, 0.8)
+  );
 }
 
 .ticket-status--cancelled,
@@ -1249,7 +1392,7 @@
 }
 
 .ticket-status::before {
-  content: '';
+  content: "";
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -1258,7 +1401,8 @@
 }
 
 @keyframes status-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

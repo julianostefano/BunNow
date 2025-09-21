@@ -5,19 +5,19 @@
 
 // ========== Global HTMX Configuration ==========
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener("DOMContentLoaded", function () {
   // Configure HTMX defaults
-  htmx.config.defaultSwapStyle = 'innerHTML';
+  htmx.config.defaultSwapStyle = "innerHTML";
   htmx.config.defaultSwapDelay = 0;
   htmx.config.defaultSettleDelay = 20;
   htmx.config.includeIndicatorStyles = false;
   htmx.config.useTemplateFragments = true;
 
   // Add custom headers to all HTMX requests
-  document.body.addEventListener('htmx:configRequest', function(evt) {
-    evt.detail.headers['X-Requested-With'] = 'HTMX';
-    evt.detail.headers['X-Client-Version'] = '2.0.0';
-    evt.detail.headers['X-Timestamp'] = new Date().toISOString();
+  document.body.addEventListener("htmx:configRequest", function (evt) {
+    evt.detail.headers["X-Requested-With"] = "HTMX";
+    evt.detail.headers["X-Client-Version"] = "2.0.0";
+    evt.detail.headers["X-Timestamp"] = new Date().toISOString();
   });
 
   initializeGlobalFeatures();
@@ -41,26 +41,31 @@ let notificationId = 0;
 
 function initializeNotificationSystem() {
   // Create notification container
-  notificationContainer = document.createElement('div');
-  notificationContainer.className = 'notification-container';
-  notificationContainer.setAttribute('aria-live', 'polite');
+  notificationContainer = document.createElement("div");
+  notificationContainer.className = "notification-container";
+  notificationContainer.setAttribute("aria-live", "polite");
   document.body.appendChild(notificationContainer);
 }
 
-window.showNotification = function(message, type = 'info', duration = 5000, title = null) {
+window.showNotification = function (
+  message,
+  type = "info",
+  duration = 5000,
+  title = null,
+) {
   if (!notificationContainer) return;
 
   const id = ++notificationId;
-  const notification = document.createElement('div');
+  const notification = document.createElement("div");
   notification.className = `notification notification--${type}`;
-  notification.setAttribute('data-notification-id', id);
-  notification.setAttribute('role', 'alert');
+  notification.setAttribute("data-notification-id", id);
+  notification.setAttribute("role", "alert");
 
   const icons = {
-    success: '✅',
-    error: '❌',
-    warning: '⚠️',
-    info: 'ℹ️'
+    success: "✅",
+    error: "❌",
+    warning: "⚠️",
+    info: "ℹ️",
   };
 
   notification.innerHTML = `
@@ -80,7 +85,7 @@ window.showNotification = function(message, type = 'info', duration = 5000, titl
 
   // Trigger animation
   setTimeout(() => {
-    notification.classList.add('notification--visible');
+    notification.classList.add("notification--visible");
   }, 10);
 
   // Auto remove
@@ -93,10 +98,10 @@ window.showNotification = function(message, type = 'info', duration = 5000, titl
   return id;
 };
 
-window.removeNotification = function(id) {
+window.removeNotification = function (id) {
   const notification = document.querySelector(`[data-notification-id="${id}"]`);
   if (notification) {
-    notification.classList.remove('notification--visible');
+    notification.classList.remove("notification--visible");
     setTimeout(() => {
       notification.remove();
     }, 300);
@@ -111,17 +116,17 @@ let searchResults = null;
 
 function initializeSearchModal() {
   // Create search modal if it doesn't exist
-  if (!document.getElementById('search-modal')) {
+  if (!document.getElementById("search-modal")) {
     createSearchModal();
   }
 
-  searchModal = document.getElementById('search-modal');
-  searchInput = document.getElementById('search-input');
-  searchResults = document.getElementById('search-results');
+  searchModal = document.getElementById("search-modal");
+  searchInput = document.getElementById("search-input");
+  searchResults = document.getElementById("search-results");
 
   // Add search modal events
   if (searchModal) {
-    searchModal.addEventListener('click', function(e) {
+    searchModal.addEventListener("click", function (e) {
       if (e.target === searchModal) {
         closeSearchModal();
       }
@@ -130,23 +135,23 @@ function initializeSearchModal() {
 
   if (searchInput) {
     let searchTimeout;
-    searchInput.addEventListener('input', function(e) {
+    searchInput.addEventListener("input", function (e) {
       clearTimeout(searchTimeout);
       searchTimeout = setTimeout(() => {
         performSearch(e.target.value);
       }, 300);
     });
 
-    searchInput.addEventListener('keydown', function(e) {
+    searchInput.addEventListener("keydown", function (e) {
       handleSearchNavigation(e);
     });
   }
 }
 
 function createSearchModal() {
-  const modal = document.createElement('div');
-  modal.id = 'search-modal';
-  modal.className = 'glass-modal-overlay';
+  const modal = document.createElement("div");
+  modal.id = "search-modal";
+  modal.className = "glass-modal-overlay";
   modal.innerHTML = `
     <div class="glass-modal" style="width: 600px; max-width: 90vw;">
       <div class="glass-modal__header">
@@ -185,9 +190,9 @@ function createSearchModal() {
   document.body.appendChild(modal);
 }
 
-window.openSearchModal = function() {
+window.openSearchModal = function () {
   if (searchModal) {
-    searchModal.classList.add('glass-modal-overlay--active');
+    searchModal.classList.add("glass-modal-overlay--active");
     setTimeout(() => {
       if (searchInput) {
         searchInput.focus();
@@ -196,11 +201,11 @@ window.openSearchModal = function() {
   }
 };
 
-window.closeSearchModal = function() {
+window.closeSearchModal = function () {
   if (searchModal) {
-    searchModal.classList.remove('glass-modal-overlay--active');
+    searchModal.classList.remove("glass-modal-overlay--active");
     if (searchInput) {
-      searchInput.value = '';
+      searchInput.value = "";
     }
     if (searchResults) {
       searchResults.innerHTML = `
@@ -226,30 +231,30 @@ function performSearch(query) {
   }
 
   // Use HTMX to perform the search
-  htmx.ajax('GET', `/api/search?q=${encodeURIComponent(query)}`, {
-    target: '#search-results',
-    swap: 'innerHTML'
+  htmx.ajax("GET", `/api/search?q=${encodeURIComponent(query)}`, {
+    target: "#search-results",
+    swap: "innerHTML",
   });
 }
 
 function handleSearchNavigation(e) {
-  const results = document.querySelectorAll('.search-result');
-  const current = document.querySelector('.search-result--active');
+  const results = document.querySelectorAll(".search-result");
+  const current = document.querySelector(".search-result--active");
   let currentIndex = current ? Array.from(results).indexOf(current) : -1;
 
   switch (e.key) {
-    case 'ArrowDown':
+    case "ArrowDown":
       e.preventDefault();
       currentIndex = (currentIndex + 1) % results.length;
       break;
-    case 'ArrowUp':
+    case "ArrowUp":
       e.preventDefault();
       currentIndex = currentIndex <= 0 ? results.length - 1 : currentIndex - 1;
       break;
-    case 'Enter':
+    case "Enter":
       if (current) {
         e.preventDefault();
-        const link = current.querySelector('a') || current;
+        const link = current.querySelector("a") || current;
         if (link.href) {
           window.location.href = link.href;
         } else if (link.onclick) {
@@ -258,16 +263,16 @@ function handleSearchNavigation(e) {
         closeSearchModal();
       }
       return;
-    case 'Escape':
+    case "Escape":
       e.preventDefault();
       closeSearchModal();
       return;
   }
 
   // Update active state
-  results.forEach(result => result.classList.remove('search-result--active'));
+  results.forEach((result) => result.classList.remove("search-result--active"));
   if (results[currentIndex]) {
-    results[currentIndex].classList.add('search-result--active');
+    results[currentIndex].classList.add("search-result--active");
   }
 }
 
@@ -276,35 +281,40 @@ function handleSearchNavigation(e) {
 let intersectionObserver = null;
 
 function initializeIntersectionObserver() {
-  intersectionObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        // Handle fade-in animations
-        if (entry.target.classList.contains('fade-in')) {
-          entry.target.classList.add('fade-in--visible');
-          intersectionObserver.unobserve(entry.target);
-        }
+  intersectionObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          // Handle fade-in animations
+          if (entry.target.classList.contains("fade-in")) {
+            entry.target.classList.add("fade-in--visible");
+            intersectionObserver.unobserve(entry.target);
+          }
 
-        // Handle HTMX lazy loading
-        if (entry.target.hasAttribute('hx-trigger') &&
-            entry.target.getAttribute('hx-trigger').includes('revealed')) {
-          htmx.trigger(entry.target, 'revealed');
-          intersectionObserver.unobserve(entry.target);
+          // Handle HTMX lazy loading
+          if (
+            entry.target.hasAttribute("hx-trigger") &&
+            entry.target.getAttribute("hx-trigger").includes("revealed")
+          ) {
+            htmx.trigger(entry.target, "revealed");
+            intersectionObserver.unobserve(entry.target);
+          }
         }
-      }
-    });
-  }, {
-    threshold: 0.1,
-    rootMargin: '50px'
-  });
+      });
+    },
+    {
+      threshold: 0.1,
+      rootMargin: "50px",
+    },
+  );
 
   // Observe all fade-in elements
-  document.querySelectorAll('.fade-in').forEach(el => {
+  document.querySelectorAll(".fade-in").forEach((el) => {
     intersectionObserver.observe(el);
   });
 
   // Observe all elements with revealed trigger
-  document.querySelectorAll('[hx-trigger*="revealed"]').forEach(el => {
+  document.querySelectorAll('[hx-trigger*="revealed"]').forEach((el) => {
     intersectionObserver.observe(el);
   });
 }
@@ -312,41 +322,43 @@ function initializeIntersectionObserver() {
 // ========== Keyboard Shortcuts ==========
 
 function initializeKeyboardShortcuts() {
-  document.addEventListener('keydown', function(e) {
+  document.addEventListener("keydown", function (e) {
     // Global shortcuts
-    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    if ((e.ctrlKey || e.metaKey) && e.key === "k") {
       e.preventDefault();
       openSearchModal();
       return;
     }
 
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       closeSearchModal();
       // Close any other modals
-      document.querySelectorAll('.glass-modal-overlay--active').forEach(modal => {
-        modal.classList.remove('glass-modal-overlay--active');
-      });
+      document
+        .querySelectorAll(".glass-modal-overlay--active")
+        .forEach((modal) => {
+          modal.classList.remove("glass-modal-overlay--active");
+        });
       return;
     }
 
     // Dashboard shortcuts
     if (e.altKey) {
       switch (e.key) {
-        case '1':
+        case "1":
           e.preventDefault();
-          window.location.href = '/';
+          window.location.href = "/";
           break;
-        case '2':
+        case "2":
           e.preventDefault();
-          window.location.href = '/incidents';
+          window.location.href = "/incidents";
           break;
-        case '3':
+        case "3":
           e.preventDefault();
-          window.location.href = '/problems';
+          window.location.href = "/problems";
           break;
-        case '4':
+        case "4":
           e.preventDefault();
-          window.location.href = '/changes';
+          window.location.href = "/changes";
           break;
       }
     }
@@ -358,14 +370,18 @@ function initializeKeyboardShortcuts() {
 function initializeOfflineDetection() {
   function updateOnlineStatus() {
     if (navigator.onLine) {
-      showNotification('Connection restored', 'success', 3000);
+      showNotification("Connection restored", "success", 3000);
     } else {
-      showNotification('You are offline. Some features may not work.', 'warning', 0);
+      showNotification(
+        "You are offline. Some features may not work.",
+        "warning",
+        0,
+      );
     }
   }
 
-  window.addEventListener('online', updateOnlineStatus);
-  window.addEventListener('offline', updateOnlineStatus);
+  window.addEventListener("online", updateOnlineStatus);
+  window.addEventListener("offline", updateOnlineStatus);
 }
 
 // ========== Performance Monitoring ==========
@@ -375,18 +391,20 @@ function initializePerformanceMonitoring() {
   let requestCount = 0;
   let requestTimes = [];
 
-  document.body.addEventListener('htmx:beforeRequest', function(evt) {
+  document.body.addEventListener("htmx:beforeRequest", function (evt) {
     evt.detail.requestStart = performance.now();
     requestCount++;
   });
 
-  document.body.addEventListener('htmx:afterRequest', function(evt) {
+  document.body.addEventListener("htmx:afterRequest", function (evt) {
     const duration = performance.now() - evt.detail.requestStart;
     requestTimes.push(duration);
 
     // Log slow requests
     if (duration > 2000) {
-      console.warn(`Slow HTMX request: ${evt.detail.pathInfo.requestPath} took ${duration.toFixed(2)}ms`);
+      console.warn(
+        `Slow HTMX request: ${evt.detail.pathInfo.requestPath} took ${duration.toFixed(2)}ms`,
+      );
     }
 
     // Keep only last 50 request times
@@ -396,7 +414,7 @@ function initializePerformanceMonitoring() {
   });
 
   // Expose performance stats
-  window.getHTMXPerformanceStats = function() {
+  window.getHTMXPerformanceStats = function () {
     const avg = requestTimes.reduce((a, b) => a + b, 0) / requestTimes.length;
     const max = Math.max(...requestTimes);
     const min = Math.min(...requestTimes);
@@ -406,7 +424,7 @@ function initializePerformanceMonitoring() {
       averageTime: avg ? avg.toFixed(2) : 0,
       maxTime: max ? max.toFixed(2) : 0,
       minTime: min ? min.toFixed(2) : 0,
-      recentRequests: requestTimes.length
+      recentRequests: requestTimes.length,
     };
   };
 }
@@ -414,63 +432,63 @@ function initializePerformanceMonitoring() {
 // ========== HTMX Event Handlers ==========
 
 // Global HTMX event listeners
-document.body.addEventListener('htmx:beforeRequest', function(evt) {
-  console.log('HTMX Request:', evt.detail.pathInfo.requestPath);
+document.body.addEventListener("htmx:beforeRequest", function (evt) {
+  console.log("HTMX Request:", evt.detail.pathInfo.requestPath);
 });
 
-document.body.addEventListener('htmx:afterRequest', function(evt) {
+document.body.addEventListener("htmx:afterRequest", function (evt) {
   if (!evt.detail.successful) {
     const status = evt.detail.xhr.status;
     const path = evt.detail.pathInfo.requestPath;
 
-    let message = 'Request failed. Please try again.';
-    if (status === 404) message = 'Resource not found.';
-    else if (status === 500) message = 'Server error. Please try again later.';
-    else if (status === 403) message = 'Access denied.';
-    else if (status === 401) message = 'Authentication required.';
+    let message = "Request failed. Please try again.";
+    if (status === 404) message = "Resource not found.";
+    else if (status === 500) message = "Server error. Please try again later.";
+    else if (status === 403) message = "Access denied.";
+    else if (status === 401) message = "Authentication required.";
 
-    showNotification(message, 'error');
-    console.error('HTMX Error:', status, path);
+    showNotification(message, "error");
+    console.error("HTMX Error:", status, path);
   }
 });
 
-document.body.addEventListener('htmx:responseError', function(evt) {
-  showNotification('Network error. Please check your connection.', 'error');
+document.body.addEventListener("htmx:responseError", function (evt) {
+  showNotification("Network error. Please check your connection.", "error");
 });
 
-document.body.addEventListener('htmx:timeout', function(evt) {
-  showNotification('Request timed out. Please try again.', 'warning');
+document.body.addEventListener("htmx:timeout", function (evt) {
+  showNotification("Request timed out. Please try again.", "warning");
 });
 
 // SSE connection monitoring
-document.body.addEventListener('htmx:sseConnecting', function(evt) {
-  console.log('SSE: Connecting to', evt.detail.source.url);
+document.body.addEventListener("htmx:sseConnecting", function (evt) {
+  console.log("SSE: Connecting to", evt.detail.source.url);
 });
 
-document.body.addEventListener('htmx:sseOpen', function(evt) {
-  console.log('SSE: Connected to', evt.detail.source.url);
-  showNotification('Real-time connection established', 'success', 2000);
+document.body.addEventListener("htmx:sseOpen", function (evt) {
+  console.log("SSE: Connected to", evt.detail.source.url);
+  showNotification("Real-time connection established", "success", 2000);
 });
 
-document.body.addEventListener('htmx:sseClose', function(evt) {
-  console.log('SSE: Disconnected from', evt.detail.source.url);
-  showNotification('Real-time connection lost', 'warning');
+document.body.addEventListener("htmx:sseClose", function (evt) {
+  console.log("SSE: Disconnected from", evt.detail.source.url);
+  showNotification("Real-time connection lost", "warning");
 });
 
-document.body.addEventListener('htmx:sseError', function(evt) {
-  console.error('SSE Error:', evt.detail);
-  showNotification('Real-time connection error', 'error');
+document.body.addEventListener("htmx:sseError", function (evt) {
+  console.error("SSE Error:", evt.detail);
+  showNotification("Real-time connection error", "error");
 });
 
 // ========== Utility Functions ==========
 
 // Debounce function for performance
-window.debounce = function(func, wait, immediate) {
+window.debounce = function (func, wait, immediate) {
   let timeout;
   return function executedFunction() {
     const context = this;
     const args = arguments;
-    const later = function() {
+    const later = function () {
       timeout = null;
       if (!immediate) func.apply(context, args);
     };
@@ -482,17 +500,17 @@ window.debounce = function(func, wait, immediate) {
 };
 
 // Format numbers for display
-window.formatNumber = function(num, decimals = 0) {
+window.formatNumber = function (num, decimals = 0) {
   if (num >= 1000000) {
-    return (num / 1000000).toFixed(decimals) + 'M';
+    return (num / 1000000).toFixed(decimals) + "M";
   } else if (num >= 1000) {
-    return (num / 1000).toFixed(decimals) + 'k';
+    return (num / 1000).toFixed(decimals) + "k";
   }
   return num.toLocaleString();
 };
 
 // Format time ago
-window.timeAgo = function(date) {
+window.timeAgo = function (date) {
   const now = new Date();
   const diffMs = now - new Date(date);
   const diffSecs = Math.floor(diffMs / 1000);
@@ -503,36 +521,36 @@ window.timeAgo = function(date) {
   if (diffDays > 0) return `${diffDays}d ago`;
   if (diffHours > 0) return `${diffHours}h ago`;
   if (diffMins > 0) return `${diffMins}m ago`;
-  return 'just now';
+  return "just now";
 };
 
 // Copy to clipboard
-window.copyToClipboard = async function(text) {
+window.copyToClipboard = async function (text) {
   try {
     await navigator.clipboard.writeText(text);
-    showNotification('Copied to clipboard', 'success', 2000);
+    showNotification("Copied to clipboard", "success", 2000);
     return true;
   } catch (err) {
-    showNotification('Failed to copy to clipboard', 'error');
+    showNotification("Failed to copy to clipboard", "error");
     return false;
   }
 };
 
 // ========== Neural Search Functions ==========
 
-window.openNeuralSearch = function() {
-  showNotification('Opening Neural Search...', 'info', 2000, 'Neural Search');
+window.openNeuralSearch = function () {
+  showNotification("Opening Neural Search...", "info", 2000, "Neural Search");
 
   // Create neural search modal if it doesn't exist
-  if (!document.getElementById('neural-search-modal')) {
+  if (!document.getElementById("neural-search-modal")) {
     createNeuralSearchModal();
   }
 
-  const modal = document.getElementById('neural-search-modal');
-  const input = document.getElementById('neural-search-input');
+  const modal = document.getElementById("neural-search-modal");
+  const input = document.getElementById("neural-search-input");
 
   if (modal && input) {
-    modal.classList.add('glass-modal-overlay--active');
+    modal.classList.add("glass-modal-overlay--active");
     setTimeout(() => {
       input.focus();
     }, 150);
@@ -540,9 +558,9 @@ window.openNeuralSearch = function() {
 };
 
 function createNeuralSearchModal() {
-  const modal = document.createElement('div');
-  modal.id = 'neural-search-modal';
-  modal.className = 'glass-modal-overlay';
+  const modal = document.createElement("div");
+  modal.id = "neural-search-modal";
+  modal.className = "glass-modal-overlay";
   modal.innerHTML = `
     <div class="glass-modal" style="width: 700px; max-width: 95vw;">
       <div class="glass-modal__header">
@@ -586,39 +604,39 @@ function createNeuralSearchModal() {
   document.body.appendChild(modal);
 
   // Add event listeners
-  modal.addEventListener('click', function(e) {
+  modal.addEventListener("click", function (e) {
     if (e.target === modal) {
       closeNeuralSearch();
     }
   });
 
-  const input = document.getElementById('neural-search-input');
+  const input = document.getElementById("neural-search-input");
   if (input) {
     let searchTimeout;
-    input.addEventListener('input', function(e) {
+    input.addEventListener("input", function (e) {
       clearTimeout(searchTimeout);
       searchTimeout = setTimeout(() => {
         performNeuralSearch(e.target.value);
       }, 500);
     });
 
-    input.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") {
         closeNeuralSearch();
       }
     });
   }
 }
 
-window.closeNeuralSearch = function() {
-  const modal = document.getElementById('neural-search-modal');
+window.closeNeuralSearch = function () {
+  const modal = document.getElementById("neural-search-modal");
   if (modal) {
-    modal.classList.remove('glass-modal-overlay--active');
-    const input = document.getElementById('neural-search-input');
+    modal.classList.remove("glass-modal-overlay--active");
+    const input = document.getElementById("neural-search-input");
     if (input) {
-      input.value = '';
+      input.value = "";
     }
-    const results = document.getElementById('neural-search-results');
+    const results = document.getElementById("neural-search-results");
     if (results) {
       results.innerHTML = `
         <div style="text-align: center; padding: 2rem; color: rgba(255, 255, 255, 0.6);">
@@ -630,8 +648,8 @@ window.closeNeuralSearch = function() {
   }
 };
 
-window.setNeuralQuery = function(query) {
-  const input = document.getElementById('neural-search-input');
+window.setNeuralQuery = function (query) {
+  const input = document.getElementById("neural-search-input");
   if (input) {
     input.value = query;
     input.focus();
@@ -644,7 +662,7 @@ async function performNeuralSearch(query) {
     return;
   }
 
-  const results = document.getElementById('neural-search-results');
+  const results = document.getElementById("neural-search-results");
   if (!results) return;
 
   // Show loading state
@@ -659,7 +677,9 @@ async function performNeuralSearch(query) {
 
   try {
     // Fetch real ServiceNow data
-    const response = await fetch(`/api/neural-search?q=${encodeURIComponent(query)}`);
+    const response = await fetch(
+      `/api/neural-search?q=${encodeURIComponent(query)}`,
+    );
     const data = await response.json();
 
     if (!data.success) {
@@ -697,7 +717,9 @@ async function performNeuralSearch(query) {
       </div>
     `;
 
-    const resultsHtml = data.results.map(result => `
+    const resultsHtml = data.results
+      .map(
+        (result) => `
       <div class="neural-result">
         <div class="neural-result__header">
           <div class="neural-result__title">${result.title}</div>
@@ -708,7 +730,7 @@ async function performNeuralSearch(query) {
           <div>ID: ${result.id}</div>
           <div>Priority: ${result.priority}</div>
           <div>State: ${result.state}</div>
-          ${result.assigned_to ? `<div>Assigned: ${result.assigned_to}</div>` : ''}
+          ${result.assigned_to ? `<div>Assigned: ${result.assigned_to}</div>` : ""}
           <div class="neural-result__confidence">
             Confidence:
             <div class="confidence-bar">
@@ -718,88 +740,101 @@ async function performNeuralSearch(query) {
           </div>
         </div>
       </div>
-    `).join('');
+    `,
+      )
+      .join("");
 
     results.innerHTML = headerHtml + resultsHtml;
 
     // Show success notification
-    showNotification(`Found ${data.total_results} results with neural search`, 'success', 3000, 'Neural Search');
-
+    showNotification(
+      `Found ${data.total_results} results with neural search`,
+      "success",
+      3000,
+      "Neural Search",
+    );
   } catch (error) {
-    console.error('Neural Search Error:', error);
+    console.error("Neural Search Error:", error);
     results.innerHTML = `
       <div style="text-align: center; padding: 2rem; color: rgba(255, 99, 99, 0.8);">
         <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">❌</div>
         <div>Search failed</div>
         <div style="font-size: 0.875rem; margin-top: 0.5rem; color: rgba(255, 99, 99, 0.6);">
-          ${error.message || 'Unknown error occurred'}
+          ${error.message || "Unknown error occurred"}
         </div>
       </div>
     `;
 
-    showNotification('Neural search failed. Please try again.', 'error', 5000, 'Neural Search');
+    showNotification(
+      "Neural search failed. Please try again.",
+      "error",
+      5000,
+      "Neural Search",
+    );
   }
 }
 
 // ========== Tickets Page Functions ==========
 
-window.initializeTicketsPage = function() {
-  console.log('🎫 Initializing tickets page...');
+window.initializeTicketsPage = function () {
+  console.log("🎫 Initializing tickets page...");
 
   // Set default active tab
-  setActiveTicketTab('incident');
+  setActiveTicketTab("incident");
 
   // Initialize state tracking
-  window.currentTicketType = 'incident';
-  window.activeTicketStates = ['novo', 'em_progresso', 'pendente'];
+  window.currentTicketType = "incident";
+  window.activeTicketStates = ["novo", "em_progresso", "pendente"];
 
-  showNotification('Tickets page initialized', 'success', 2000, 'Tickets');
+  showNotification("Tickets page initialized", "success", 2000, "Tickets");
 };
 
-window.loadInitialTickets = function() {
-  const currentStates = window.activeTicketStates?.join(',') || 'novo,em_progresso,pendente';
-  loadTicketsForType('incident', currentStates);
+window.loadInitialTickets = function () {
+  const currentStates =
+    window.activeTicketStates?.join(",") || "novo,em_progresso,pendente";
+  loadTicketsForType("incident", currentStates);
 };
 
-window.setActiveTicketTab = function(type) {
+window.setActiveTicketTab = function (type) {
   console.log(`🎯 Setting active ticket tab: ${type}`);
 
   // Update current type
   window.currentTicketType = type;
 
   // Update tab visual states
-  document.querySelectorAll('.filter-tab').forEach(tab => {
-    tab.classList.remove('filter-tab--active');
+  document.querySelectorAll(".filter-tab").forEach((tab) => {
+    tab.classList.remove("filter-tab--active");
     if (tab.dataset.type === type) {
-      tab.classList.add('filter-tab--active');
+      tab.classList.add("filter-tab--active");
     }
   });
 
   // Update tab indicator
-  const indicator = document.querySelector('.filter-tab-indicator');
+  const indicator = document.querySelector(".filter-tab-indicator");
   if (indicator) {
     indicator.className = `filter-tab-indicator filter-tab-indicator--${type}`;
   }
 
   // Load tickets for new type
-  const currentStates = window.activeTicketStates?.join(',') || 'novo,em_progresso,pendente';
+  const currentStates =
+    window.activeTicketStates?.join(",") || "novo,em_progresso,pendente";
   loadTicketsForType(type, currentStates);
 
   // Update loading text
-  const loadingText = document.querySelector('.glass-loading__text');
+  const loadingText = document.querySelector(".glass-loading__text");
   if (loadingText) {
     const typeLabels = {
-      'incident': 'incidents',
-      'problem': 'problems',
-      'change_request': 'changes'
+      incident: "incidents",
+      problem: "problems",
+      change_request: "changes",
     };
     loadingText.textContent = `Loading ${typeLabels[type] || type}...`;
   }
 
-  showNotification(`Switched to ${type} view`, 'info', 1500, 'Tickets');
+  showNotification(`Switched to ${type} view`, "info", 1500, "Tickets");
 };
 
-window.toggleTicketState = function(state) {
+window.toggleTicketState = function (state) {
   console.log(`🔘 Toggling ticket state: ${state}`);
 
   const stateButton = document.querySelector(`[data-state="${state}"]`);
@@ -807,30 +842,32 @@ window.toggleTicketState = function(state) {
 
   // Initialize active states array if not exists
   if (!window.activeTicketStates) {
-    window.activeTicketStates = ['novo', 'em_progresso', 'pendente'];
+    window.activeTicketStates = ["novo", "em_progresso", "pendente"];
   }
 
   // Toggle state
-  const isActive = stateButton.classList.contains('filter-state--active');
+  const isActive = stateButton.classList.contains("filter-state--active");
   if (isActive) {
-    stateButton.classList.remove('filter-state--active');
-    window.activeTicketStates = window.activeTicketStates.filter(s => s !== state);
+    stateButton.classList.remove("filter-state--active");
+    window.activeTicketStates = window.activeTicketStates.filter(
+      (s) => s !== state,
+    );
   } else {
-    stateButton.classList.add('filter-state--active');
+    stateButton.classList.add("filter-state--active");
     if (!window.activeTicketStates.includes(state)) {
       window.activeTicketStates.push(state);
     }
   }
 
   // Reload tickets with new state filter
-  const currentType = window.currentTicketType || 'incident';
-  const statesParam = window.activeTicketStates.join(',');
+  const currentType = window.currentTicketType || "incident";
+  const statesParam = window.activeTicketStates.join(",");
 
   if (window.activeTicketStates.length > 0) {
     loadTicketsForType(currentType, statesParam);
   } else {
     // Show empty state if no states selected
-    const ticketsContent = document.getElementById('tickets-content');
+    const ticketsContent = document.getElementById("tickets-content");
     if (ticketsContent) {
       ticketsContent.innerHTML = `
         <div class="empty-state">
@@ -842,13 +879,13 @@ window.toggleTicketState = function(state) {
     }
   }
 
-  console.log(`Active states: ${window.activeTicketStates.join(', ')}`);
+  console.log(`Active states: ${window.activeTicketStates.join(", ")}`);
 };
 
 async function loadTicketsForType(type, states) {
   console.log(`📋 Loading tickets for type: ${type}, states: ${states}`);
 
-  const ticketsContent = document.getElementById('tickets-content');
+  const ticketsContent = document.getElementById("tickets-content");
   if (!ticketsContent) return;
 
   // Show loading state
@@ -862,7 +899,9 @@ async function loadTicketsForType(type, states) {
   `;
 
   try {
-    const response = await fetch(`/api/tickets-content/${type}?states=${encodeURIComponent(states)}`);
+    const response = await fetch(
+      `/api/tickets-content/${type}?states=${encodeURIComponent(states)}`,
+    );
     const ticketCards = await response.text();
 
     // Add fade-in animation
@@ -870,10 +909,14 @@ async function loadTicketsForType(type, states) {
 
     // Show success notification
     const ticketCount = (ticketCards.match(/ticket-card/g) || []).length;
-    showNotification(`Loaded ${ticketCount} ${type} tickets`, 'success', 2000, 'Tickets');
-
+    showNotification(
+      `Loaded ${ticketCount} ${type} tickets`,
+      "success",
+      2000,
+      "Tickets",
+    );
   } catch (error) {
-    console.error('Error loading tickets:', error);
+    console.error("Error loading tickets:", error);
     ticketsContent.innerHTML = `
       <div class="error-state">
         <div class="error-state-icon">❌</div>
@@ -885,54 +928,64 @@ async function loadTicketsForType(type, states) {
       </div>
     `;
 
-    showNotification('Failed to load tickets', 'error', 3000, 'Tickets');
+    showNotification("Failed to load tickets", "error", 3000, "Tickets");
   }
 }
 
 // Ticket action functions
-window.viewTicket = function(ticketId) {
+window.viewTicket = function (ticketId) {
   console.log(`👁️ Viewing ticket: ${ticketId}`);
-  showNotification(`Opening ticket ${ticketId}`, 'info', 2000, 'Tickets');
+  showNotification(`Opening ticket ${ticketId}`, "info", 2000, "Tickets");
 
   // In a real implementation, this would open a modal or navigate to ticket details
   // For now, just show a notification
   setTimeout(() => {
-    showNotification(`Ticket ${ticketId} details would open here`, 'info', 3000, 'View Ticket');
+    showNotification(
+      `Ticket ${ticketId} details would open here`,
+      "info",
+      3000,
+      "View Ticket",
+    );
   }, 500);
 };
 
-window.editTicket = function(ticketId) {
+window.editTicket = function (ticketId) {
   console.log(`✏️ Editing ticket: ${ticketId}`);
-  showNotification(`Opening editor for ${ticketId}`, 'info', 2000, 'Tickets');
+  showNotification(`Opening editor for ${ticketId}`, "info", 2000, "Tickets");
 
   // In a real implementation, this would open edit modal or form
   setTimeout(() => {
-    showNotification(`Edit form for ${ticketId} would open here`, 'info', 3000, 'Edit Ticket');
+    showNotification(
+      `Edit form for ${ticketId} would open here`,
+      "info",
+      3000,
+      "Edit Ticket",
+    );
   }, 500);
 };
 
 // ========== Filter Bar Functions ==========
 
-window.initializeFilterBar = function() {
+window.initializeFilterBar = function () {
   // Set default active tab and states
-  setActiveTab('incidents');
-  loadStatesForType('incidents');
+  setActiveTab("incidents");
+  loadStatesForType("incidents");
 };
 
-window.setActiveTab = function(type) {
+window.setActiveTab = function (type) {
   // Update tab indicator
-  const indicator = document.querySelector('.filter-tab-indicator');
-  const tabs = document.querySelectorAll('.filter-tab');
+  const indicator = document.querySelector(".filter-tab-indicator");
+  const tabs = document.querySelectorAll(".filter-tab");
 
   if (indicator) {
     indicator.className = `filter-tab-indicator filter-tab-indicator--${type}`;
   }
 
   // Update active tab
-  tabs.forEach(tab => {
-    tab.classList.remove('filter-tab--active');
+  tabs.forEach((tab) => {
+    tab.classList.remove("filter-tab--active");
     if (tab.dataset.type === type) {
-      tab.classList.add('filter-tab--active');
+      tab.classList.add("filter-tab--active");
     }
   });
 
@@ -940,105 +993,112 @@ window.setActiveTab = function(type) {
   loadStatesForType(type);
 
   // Trigger content update
-  htmx.ajax('GET', `/api/tickets/${type}?states=em-espera,novo,designado`, {
-    target: '#ticket-content',
-    swap: 'innerHTML'
+  htmx.ajax("GET", `/api/tickets/${type}?states=em-espera,novo,designado`, {
+    target: "#ticket-content",
+    swap: "innerHTML",
   });
 };
 
 function loadStatesForType(type) {
-  const statesContainer = document.querySelector('.filter-states');
+  const statesContainer = document.querySelector(".filter-states");
   if (!statesContainer) return;
 
   // Add loading state
-  statesContainer.classList.add('filter-states--loading');
+  statesContainer.classList.add("filter-states--loading");
 
   // Define states by type
   const statesByType = {
     incidents: [
-      { key: 'em-espera', label: 'Em Espera', default: true },
-      { key: 'novo', label: 'Novo', default: true },
-      { key: 'designado', label: 'Designado', default: true },
-      { key: 'em-andamento', label: 'Em Andamento', default: false },
-      { key: 'resolvido', label: 'Resolvido', default: false },
-      { key: 'fechado', label: 'Fechado', default: false }
+      { key: "em-espera", label: "Em Espera", default: true },
+      { key: "novo", label: "Novo", default: true },
+      { key: "designado", label: "Designado", default: true },
+      { key: "em-andamento", label: "Em Andamento", default: false },
+      { key: "resolvido", label: "Resolvido", default: false },
+      { key: "fechado", label: "Fechado", default: false },
     ],
     problems: [
-      { key: 'em-espera', label: 'Em Espera', default: true },
-      { key: 'novo', label: 'Novo', default: true },
-      { key: 'designado', label: 'Designado', default: true },
-      { key: 'investigando', label: 'Investigando', default: false },
-      { key: 'solucionado', label: 'Solucionado', default: false }
+      { key: "em-espera", label: "Em Espera", default: true },
+      { key: "novo", label: "Novo", default: true },
+      { key: "designado", label: "Designado", default: true },
+      { key: "investigando", label: "Investigando", default: false },
+      { key: "solucionado", label: "Solucionado", default: false },
     ],
     changes: [
-      { key: 'em-espera', label: 'Em Espera', default: true },
-      { key: 'novo', label: 'Novo', default: true },
-      { key: 'designado', label: 'Designado', default: true },
-      { key: 'em-revisao', label: 'Em Revisão', default: false },
-      { key: 'aprovado', label: 'Aprovado', default: false },
-      { key: 'rejeitado', label: 'Rejeitado', default: false }
+      { key: "em-espera", label: "Em Espera", default: true },
+      { key: "novo", label: "Novo", default: true },
+      { key: "designado", label: "Designado", default: true },
+      { key: "em-revisao", label: "Em Revisão", default: false },
+      { key: "aprovado", label: "Aprovado", default: false },
+      { key: "rejeitado", label: "Rejeitado", default: false },
     ],
     requests: [
-      { key: 'em-espera', label: 'Em Espera', default: true },
-      { key: 'novo', label: 'Novo', default: true },
-      { key: 'designado', label: 'Designado', default: true },
-      { key: 'em-progresso', label: 'Em Progresso', default: false },
-      { key: 'entregue', label: 'Entregue', default: false }
-    ]
+      { key: "em-espera", label: "Em Espera", default: true },
+      { key: "novo", label: "Novo", default: true },
+      { key: "designado", label: "Designado", default: true },
+      { key: "em-progresso", label: "Em Progresso", default: false },
+      { key: "entregue", label: "Entregue", default: false },
+    ],
   };
 
   const states = statesByType[type] || statesByType.incidents;
 
   setTimeout(() => {
-    statesContainer.innerHTML = states.map(state => `
-      <button class="filter-state ${state.default ? 'filter-state--default filter-state--active' : ''}"
+    statesContainer.innerHTML = states
+      .map(
+        (state) => `
+      <button class="filter-state ${state.default ? "filter-state--default filter-state--active" : ""}"
               data-state="${state.key}"
               onclick="toggleFilterState(this, '${type}')">
         ${state.label}
       </button>
-    `).join('');
+    `,
+      )
+      .join("");
 
-    statesContainer.classList.remove('filter-states--loading');
+    statesContainer.classList.remove("filter-states--loading");
   }, 200);
 }
 
-window.toggleFilterState = function(button, type) {
-  button.classList.toggle('filter-state--active');
-  button.classList.remove('filter-state--default');
+window.toggleFilterState = function (button, type) {
+  button.classList.toggle("filter-state--active");
+  button.classList.remove("filter-state--default");
 
   // Get all active states
-  const activeStates = Array.from(document.querySelectorAll('.filter-state--active'))
-    .map(btn => btn.dataset.state);
+  const activeStates = Array.from(
+    document.querySelectorAll(".filter-state--active"),
+  ).map((btn) => btn.dataset.state);
 
   // Update ticket content based on selected states
   if (activeStates.length > 0) {
-    htmx.ajax('GET', `/api/tickets/${type}?states=${activeStates.join(',')}`, {
-      target: '#ticket-content',
-      swap: 'innerHTML'
+    htmx.ajax("GET", `/api/tickets/${type}?states=${activeStates.join(",")}`, {
+      target: "#ticket-content",
+      swap: "innerHTML",
     });
   }
 };
 
 // Add neural search keyboard shortcut
-document.addEventListener('keydown', function(e) {
-  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'N') {
+document.addEventListener("keydown", function (e) {
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "N") {
     e.preventDefault();
     openNeuralSearch();
   }
 });
 
 // Export performance data
-window.exportPerformanceData = function() {
+window.exportPerformanceData = function () {
   const data = {
     timestamp: new Date().toISOString(),
     performance: window.getHTMXPerformanceStats(),
     userAgent: navigator.userAgent,
-    url: window.location.href
+    url: window.location.href,
   };
 
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(data, null, 2)], {
+    type: "application/json",
+  });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
   a.download = `bunsnc-performance-${Date.now()}.json`;
   document.body.appendChild(a);
@@ -1047,5 +1107,7 @@ window.exportPerformanceData = function() {
   URL.revokeObjectURL(url);
 };
 
-console.log('🚀 HTMX Extensions loaded successfully');
-console.log('💡 Available shortcuts: Ctrl+K (search), Alt+1-4 (navigation), Esc (close modals)');
+console.log("🚀 HTMX Extensions loaded successfully");
+console.log(
+  "💡 Available shortcuts: Ctrl+K (search), Alt+1-4 (navigation), Esc (close modals)",
+);

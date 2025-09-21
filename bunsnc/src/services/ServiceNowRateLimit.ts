@@ -37,16 +37,20 @@ export class ServiceNowRateLimiter {
 
   constructor(config?: Partial<RateLimitConfig>) {
     this.config = {
-      maxRequestsPerSecond: parseInt(process.env.SERVICENOW_RATE_LIMIT || '35'),
-      maxConcurrentRequests: parseInt(process.env.SERVICENOW_MAX_CONCURRENT || '35'),
+      maxRequestsPerSecond: parseInt(process.env.SERVICENOW_RATE_LIMIT || "35"),
+      maxConcurrentRequests: parseInt(
+        process.env.SERVICENOW_MAX_CONCURRENT || "35",
+      ),
       exponentialBackoffBase: 2,
       maxRetries: 3,
       jitterEnabled: true,
       ...config,
     };
 
-    console.log('🚦 ServiceNow Rate Limiter initialized:');
-    console.log(`   - Max requests/second: ${this.config.maxRequestsPerSecond}`);
+    console.log("🚦 ServiceNow Rate Limiter initialized:");
+    console.log(
+      `   - Max requests/second: ${this.config.maxRequestsPerSecond}`,
+    );
     console.log(`   - Max concurrent: ${this.config.maxConcurrentRequests}`);
     console.log(`   - Max retries: ${this.config.maxRetries}`);
 
@@ -59,7 +63,7 @@ export class ServiceNowRateLimiter {
    */
   async executeRequest<T>(
     requestFn: () => Promise<T>,
-    priority: 'high' | 'normal' | 'low' = 'normal'
+    priority: "high" | "normal" | "low" = "normal",
   ): Promise<T> {
     return new Promise((resolve, reject) => {
       const requestWrapper = async () => {
@@ -72,7 +76,7 @@ export class ServiceNowRateLimiter {
       };
 
       // Add to queue based on priority
-      if (priority === 'high') {
+      if (priority === "high") {
         this.requestQueue.unshift(requestWrapper);
       } else {
         this.requestQueue.push(requestWrapper);
@@ -93,7 +97,7 @@ export class ServiceNowRateLimiter {
       try {
         // Wait for rate limit availability
         await this.waitForRateLimit();
-        
+
         // Wait for concurrent request slot
         await this.waitForConcurrentSlot();
 
@@ -106,14 +110,13 @@ export class ServiceNowRateLimiter {
 
         try {
           const result = await requestFn();
-          
+
           const duration = Date.now() - startTime;
           this.updateAverageResponseTime(duration);
           this.metrics.successfulRequests++;
-          
+
           console.log(` ServiceNow request completed in ${duration}ms`);
           return result;
-
         } catch (error: any) {
           const duration = Date.now() - startTime;
           this.updateAverageResponseTime(duration);
@@ -121,8 +124,10 @@ export class ServiceNowRateLimiter {
           // Check if it's a rate limit error
           if (this.isRateLimitError(error)) {
             this.metrics.rateLimitedRequests++;
-            console.log(`🚦 Rate limit hit, retry ${retryCount + 1}/${this.config.maxRetries}`);
-            
+            console.log(
+              `🚦 Rate limit hit, retry ${retryCount + 1}/${this.config.maxRetries}`,
+            );
+
             if (retryCount < this.config.maxRetries) {
               const backoffDelay = this.calculateBackoffDelay(retryCount);
               console.log(`⏳ Backing off for ${backoffDelay}ms`);
@@ -139,13 +144,17 @@ export class ServiceNowRateLimiter {
           this.concurrentRequests--;
           this.metrics.currentConcurrentRequests = this.concurrentRequests;
         }
-
       } catch (error: any) {
         lastError = error;
-        
-        if (retryCount < this.config.maxRetries && this.isRetryableError(error)) {
+
+        if (
+          retryCount < this.config.maxRetries &&
+          this.isRetryableError(error)
+        ) {
           const backoffDelay = this.calculateBackoffDelay(retryCount);
-          console.log(` Retrying request in ${backoffDelay}ms (${retryCount + 1}/${this.config.maxRetries})`);
+          console.log(
+            ` Retrying request in ${backoffDelay}ms (${retryCount + 1}/${this.config.maxRetries})`,
+          );
           await this.sleep(backoffDelay);
           retryCount++;
           continue;
@@ -173,8 +182,8 @@ export class ServiceNowRateLimiter {
       const request = this.requestQueue.shift();
       if (request) {
         // Process request without waiting - the request itself handles rate limiting
-        request().catch(error => {
-          console.error(' Request from queue failed:', error);
+        request().catch((error) => {
+          console.error(" Request from queue failed:", error);
         });
       }
 
@@ -193,14 +202,18 @@ export class ServiceNowRateLimiter {
     const oneSecondAgo = now - 1000;
 
     // Count requests in the last second
-    const recentRequests = this.requestTimes.filter(time => time > oneSecondAgo);
+    const recentRequests = this.requestTimes.filter(
+      (time) => time > oneSecondAgo,
+    );
 
     if (recentRequests.length >= this.config.maxRequestsPerSecond) {
       const oldestRecentRequest = Math.min(...recentRequests);
       const waitTime = 1000 - (now - oldestRecentRequest) + 50; // Add 50ms buffer
 
       if (waitTime > 0) {
-        console.log(`🚦 Rate limit: waiting ${waitTime}ms (${recentRequests.length}/${this.config.maxRequestsPerSecond} requests)`);
+        console.log(
+          `🚦 Rate limit: waiting ${waitTime}ms (${recentRequests.length}/${this.config.maxRequestsPerSecond} requests)`,
+        );
         await this.sleep(waitTime);
       }
     }
@@ -212,13 +225,17 @@ export class ServiceNowRateLimiter {
   private async waitForConcurrentSlot(): Promise<void> {
     let waitTime = 0;
     const maxWaitTime = 30000; // 30 seconds max wait
-    
+
     while (this.concurrentRequests >= this.config.maxConcurrentRequests) {
       if (waitTime >= maxWaitTime) {
-        throw new Error('ServiceNow concurrent request timeout - max wait time exceeded');
+        throw new Error(
+          "ServiceNow concurrent request timeout - max wait time exceeded",
+        );
       }
-      
-      console.log(`⏳ Max concurrent requests reached (${this.concurrentRequests}/${this.config.maxConcurrentRequests}), waiting...`);
+
+      console.log(
+        `⏳ Max concurrent requests reached (${this.concurrentRequests}/${this.config.maxConcurrentRequests}), waiting...`,
+      );
       await this.sleep(500); // Increased sleep time
       waitTime += 500;
     }
@@ -229,15 +246,18 @@ export class ServiceNowRateLimiter {
    */
   private cleanOldRequestTimes(): void {
     const fiveSecondsAgo = Date.now() - 5000;
-    this.requestTimes = this.requestTimes.filter(time => time > fiveSecondsAgo);
+    this.requestTimes = this.requestTimes.filter(
+      (time) => time > fiveSecondsAgo,
+    );
   }
 
   /**
    * Calculate exponential backoff delay with jitter
    */
   private calculateBackoffDelay(retryCount: number): number {
-    const baseDelay = Math.pow(this.config.exponentialBackoffBase, retryCount) * 1000;
-    
+    const baseDelay =
+      Math.pow(this.config.exponentialBackoffBase, retryCount) * 1000;
+
     if (this.config.jitterEnabled) {
       // Add jitter: ±25% of base delay
       const jitter = (Math.random() - 0.5) * 0.5 * baseDelay;
@@ -254,14 +274,14 @@ export class ServiceNowRateLimiter {
     if (!error) return false;
 
     const statusCode = error.response?.status || error.status;
-    const message = error.message?.toLowerCase() || '';
+    const message = error.message?.toLowerCase() || "";
 
     return (
       statusCode === 429 || // Too Many Requests
       statusCode === 503 || // Service Unavailable
-      message.includes('rate limit') ||
-      message.includes('too many requests') ||
-      message.includes('quota exceeded')
+      message.includes("rate limit") ||
+      message.includes("too many requests") ||
+      message.includes("quota exceeded")
     );
   }
 
@@ -275,8 +295,10 @@ export class ServiceNowRateLimiter {
 
     // Retryable HTTP status codes
     const retryableStatuses = [408, 429, 500, 502, 503, 504];
-    
-    return retryableStatuses.includes(statusCode) || this.isRateLimitError(error);
+
+    return (
+      retryableStatuses.includes(statusCode) || this.isRateLimitError(error)
+    );
   }
 
   /**
@@ -284,13 +306,16 @@ export class ServiceNowRateLimiter {
    */
   private updateAverageResponseTime(duration: number): void {
     const currentAvg = this.metrics.averageResponseTime;
-    const totalRequests = this.metrics.successfulRequests + this.metrics.failedRequests;
-    
+    const totalRequests =
+      this.metrics.successfulRequests + this.metrics.failedRequests;
+
     if (totalRequests === 1) {
       this.metrics.averageResponseTime = duration;
     } else {
       // Exponential moving average
-      this.metrics.averageResponseTime = Math.round(currentAvg * 0.9 + duration * 0.1);
+      this.metrics.averageResponseTime = Math.round(
+        currentAvg * 0.9 + duration * 0.1,
+      );
     }
   }
 
@@ -298,7 +323,7 @@ export class ServiceNowRateLimiter {
    * Sleep utility function
    */
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -327,29 +352,34 @@ export class ServiceNowRateLimiter {
       averageResponseTime: 0,
       currentConcurrentRequests: this.concurrentRequests,
     };
-    console.log(' ServiceNow rate limiter metrics reset');
+    console.log(" ServiceNow rate limiter metrics reset");
   }
 
   /**
    * Get health status
    */
   getHealthStatus(): {
-    status: 'healthy' | 'degraded' | 'unhealthy';
+    status: "healthy" | "degraded" | "unhealthy";
     details: any;
   } {
     const metrics = this.getMetrics();
     const queueSize = this.getQueueSize();
-    
-    const successRate = metrics.totalRequests > 0 
-      ? metrics.successfulRequests / metrics.totalRequests 
-      : 1;
 
-    let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
+    const successRate =
+      metrics.totalRequests > 0
+        ? metrics.successfulRequests / metrics.totalRequests
+        : 1;
+
+    let status: "healthy" | "degraded" | "unhealthy" = "healthy";
 
     if (successRate < 0.5 || queueSize > 100) {
-      status = 'unhealthy';
-    } else if (successRate < 0.8 || queueSize > 20 || metrics.averageResponseTime > 5000) {
-      status = 'degraded';
+      status = "unhealthy";
+    } else if (
+      successRate < 0.8 ||
+      queueSize > 20 ||
+      metrics.averageResponseTime > 5000
+    ) {
+      status = "degraded";
     }
 
     return {
@@ -360,7 +390,7 @@ export class ServiceNowRateLimiter {
         successRate: Math.round(successRate * 100) / 100,
         config: this.config,
         recentRequestsCount: this.requestTimes.filter(
-          time => time > Date.now() - 1000
+          (time) => time > Date.now() - 1000,
         ).length,
       },
     };
@@ -370,11 +400,11 @@ export class ServiceNowRateLimiter {
 // Export singleton instance
 export const serviceNowRateLimiter = new ServiceNowRateLimiter({
   maxRequestsPerSecond: 35,
-  maxConcurrentRequests: 35
+  maxConcurrentRequests: 35,
 });
 
 // Export convenience function
 export const executeWithRateLimit = <T>(
   requestFn: () => Promise<T>,
-  priority: 'high' | 'normal' | 'low' = 'normal'
+  priority: "high" | "normal" | "low" = "normal",
 ): Promise<T> => serviceNowRateLimiter.executeRequest(requestFn, priority);

@@ -30,18 +30,22 @@ export const MainNavigation = ({
   currentPath,
   user,
   showSearch = true,
-  onSearchToggle
+  onSearchToggle,
 }: NavigationProps) => {
-  const isActive = (href: string) => currentPath === href || currentPath.startsWith(href + '/');
+  const isActive = (href: string) =>
+    currentPath === href || currentPath.startsWith(href + "/");
 
   return (
     <nav class="glass-nav fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
       <div class="flex items-center space-x-6 px-6 py-3">
-
         {/* Logo/Brand */}
         <div class="flex items-center space-x-2">
           <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+            <svg
+              class="w-5 h-5 text-white"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path d="M13 3V9H21L11 23V17H3L13 3Z" />
             </svg>
           </div>
@@ -50,16 +54,17 @@ export const MainNavigation = ({
 
         {/* Navigation Items */}
         <div class="flex items-center space-x-1">
-          {items.map(item => (
+          {items.map((item) => (
             <a
               href={item.href}
               key={item.id}
               class={`
                 relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
                 flex items-center space-x-2 group
-                ${isActive(item.href)
-                  ? 'bg-white/20 text-white backdrop-blur-sm'
-                  : 'text-white/80 hover:text-white hover:bg-white/10'
+                ${
+                  isActive(item.href)
+                    ? "bg-white/20 text-white backdrop-blur-sm"
+                    : "text-white/80 hover:text-white hover:bg-white/10"
                 }
               `}
               title={item.description}
@@ -84,12 +89,26 @@ export const MainNavigation = ({
         {/* Search Button */}
         {showSearch && (
           <button
-            onclick={onSearchToggle ? `(${onSearchToggle.toString()})()` : "toggleSearch()"}
+            onclick={
+              onSearchToggle
+                ? `(${onSearchToggle.toString()})()`
+                : "toggleSearch()"
+            }
             class="glass-btn p-2 rounded-lg hover:bg-white/10 transition-colors"
             title="Search (Ctrl+K)"
           >
-            <svg class="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <svg
+              class="w-5 h-5 text-white/80"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="m21 21-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
             </svg>
           </button>
         )}
@@ -99,13 +118,21 @@ export const MainNavigation = ({
           <div class="relative">
             <button class="flex items-center space-x-2 glass-btn p-2 rounded-lg hover:bg-white/10 transition-colors">
               {user.avatar ? (
-                <img src={user.avatar} alt={user.name} class="w-6 h-6 rounded-full" />
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  class="w-6 h-6 rounded-full"
+                />
               ) : (
                 <div class="w-6 h-6 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
-                  <span class="text-xs text-white font-medium">{user.name.charAt(0).toUpperCase()}</span>
+                  <span class="text-xs text-white font-medium">
+                    {user.name.charAt(0).toUpperCase()}
+                  </span>
                 </div>
               )}
-              <span class="text-white/80 text-sm hidden lg:block">{user.name}</span>
+              <span class="text-white/80 text-sm hidden lg:block">
+                {user.name}
+              </span>
             </button>
           </div>
         )}
@@ -126,8 +153,18 @@ export const SearchOverlay = () => (
             onclick="closeSearch()"
             class="text-white/60 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors"
           >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -135,8 +172,18 @@ export const SearchOverlay = () => (
         {/* Search Input */}
         <div class="glass-search mb-6">
           <div class="glass-search-icon">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="m21 21-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
             </svg>
           </div>
           <input
@@ -231,9 +278,9 @@ export const NavigationIcons = {
   ),
   Settings: (
     <svg fill="currentColor" viewBox="0 0 24 24">
-      <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+      <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z" />
     </svg>
-  )
+  ),
 };
 
 // Search and Navigation JavaScript

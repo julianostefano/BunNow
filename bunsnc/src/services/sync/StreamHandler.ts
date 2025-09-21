@@ -3,9 +3,9 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { ServiceNowAuthClient } from '../ServiceNowAuthClient';
-import { SyncManager, SyncResult } from './SyncManager';
-import { ServiceNowChange } from '../../config/redis-streams';
+import { ServiceNowAuthClient } from "../ServiceNowAuthClient";
+import { SyncManager, SyncResult } from "./SyncManager";
+import { ServiceNowChange } from "../../config/redis-streams";
 
 export class StreamHandler {
   private serviceNowService: ServiceNowAuthClient;
@@ -13,7 +13,7 @@ export class StreamHandler {
 
   constructor(
     serviceNowService: ServiceNowAuthClient,
-    syncManager: SyncManager
+    syncManager: SyncManager,
   ) {
     this.serviceNowService = serviceNowService;
     this.syncManager = syncManager;
@@ -24,13 +24,15 @@ export class StreamHandler {
    */
   async handleStreamChange(change: ServiceNowChange): Promise<void> {
     try {
-      console.log(`📡 Received stream change: ${change.type}:${change.action} for ${change.sys_id}`);
+      console.log(
+        `📡 Received stream change: ${change.type}:${change.action} for ${change.sys_id}`,
+      );
 
       // Fetch fresh data from ServiceNow
       const response = await this.serviceNowService.makeRequestFullFields(
         change.type,
         `sys_id=${change.sys_id}`,
-        1
+        1,
       );
 
       const tickets = response?.result;
@@ -43,13 +45,14 @@ export class StreamHandler {
           errors: 0,
           conflicts: 0,
           duration: 0,
-          lastSyncTime: new Date().toISOString()
+          lastSyncTime: new Date().toISOString(),
         };
 
         await this.syncManager.syncTicket(tickets[0], change.type, result);
-        console.log(` Real-time sync completed for ${change.type}/${change.sys_id}`);
+        console.log(
+          ` Real-time sync completed for ${change.type}/${change.sys_id}`,
+        );
       }
-
     } catch (error) {
       console.error(` Error handling stream change:`, error);
     }

@@ -2,8 +2,8 @@
  * Standard query condition with support for sub OR conditions
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
-import { BaseCondition } from './BaseCondition';
-import { OrCondition } from './OrCondition';
+import { BaseCondition } from "./BaseCondition";
+import { OrCondition } from "./OrCondition";
 
 export class QueryCondition extends BaseCondition {
   private __subQuery: OrCondition[] = [];
@@ -26,11 +26,11 @@ export class QueryCondition extends BaseCondition {
    */
   generate(): string {
     let query = `${this._name}${this._operator}${this._value}`;
-    
+
     for (const subQuery of this.__subQuery) {
       query = `${query}^${subQuery.generate()}`;
     }
-    
+
     return query;
   }
 }

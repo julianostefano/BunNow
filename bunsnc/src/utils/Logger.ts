@@ -8,7 +8,7 @@ export enum LogLevel {
   INFO = 1,
   WARN = 2,
   ERROR = 3,
-  CRITICAL = 4
+  CRITICAL = 4,
 }
 
 export interface LogEntry {
@@ -30,7 +30,7 @@ export interface LoggerConfig {
   enableFile: boolean;
   maxFileSize: number;
   maxFiles: number;
-  logFormat: 'json' | 'pretty';
+  logFormat: "json" | "pretty";
   includeStackTrace: boolean;
 }
 
@@ -47,9 +47,9 @@ export class Logger {
       enableFile: false,
       maxFileSize: 10 * 1024 * 1024, // 10MB
       maxFiles: 5,
-      logFormat: 'pretty',
+      logFormat: "pretty",
       includeStackTrace: false,
-      ...config
+      ...config,
     };
   }
 
@@ -68,31 +68,63 @@ export class Logger {
     }
   }
 
-  debug(message: string, context?: string, metadata?: Record<string, any>): void {
+  debug(
+    message: string,
+    context?: string,
+    metadata?: Record<string, any>,
+  ): void {
     this.log(LogLevel.DEBUG, message, context, metadata);
   }
 
-  info(message: string, context?: string, metadata?: Record<string, any>): void {
+  info(
+    message: string,
+    context?: string,
+    metadata?: Record<string, any>,
+  ): void {
     this.log(LogLevel.INFO, message, context, metadata);
   }
 
-  warn(message: string, context?: string, metadata?: Record<string, any>): void {
+  warn(
+    message: string,
+    context?: string,
+    metadata?: Record<string, any>,
+  ): void {
     this.log(LogLevel.WARN, message, context, metadata);
   }
 
-  error(message: string, error?: Error, context?: string, metadata?: Record<string, any>): void {
+  error(
+    message: string,
+    error?: Error,
+    context?: string,
+    metadata?: Record<string, any>,
+  ): void {
     this.log(LogLevel.ERROR, message, context, { ...metadata, error });
   }
 
-  critical(message: string, error?: Error, context?: string, metadata?: Record<string, any>): void {
+  critical(
+    message: string,
+    error?: Error,
+    context?: string,
+    metadata?: Record<string, any>,
+  ): void {
     this.log(LogLevel.CRITICAL, message, context, { ...metadata, error });
   }
 
-  operation(operation: string, table?: string, sysId?: string, metadata?: Record<string, any>): OperationLogger {
+  operation(
+    operation: string,
+    table?: string,
+    sysId?: string,
+    metadata?: Record<string, any>,
+  ): OperationLogger {
     return new OperationLogger(this, operation, table, sysId, metadata);
   }
 
-  private log(level: LogLevel, message: string, context?: string, metadata?: Record<string, any>): void {
+  private log(
+    level: LogLevel,
+    message: string,
+    context?: string,
+    metadata?: Record<string, any>,
+  ): void {
     if (level < this.config.level) {
       return;
     }
@@ -102,7 +134,7 @@ export class Logger {
       level,
       message,
       context,
-      ...metadata
+      ...metadata,
     };
 
     this.logBuffer.push(entry);
@@ -135,11 +167,11 @@ export class Logger {
             }
 
             await Promise.all(promises);
-          })
+          }),
         );
       } catch (error) {
         // Fallback to synchronous console error to avoid log loops
-        console.error('[Logger] Async processing failed:', error);
+        console.error("[Logger] Async processing failed:", error);
       } finally {
         this.isProcessing = false;
 
@@ -158,7 +190,7 @@ export class Logger {
           this.writeToConsole(entry);
           resolve();
         } catch (error) {
-          console.error('[Logger] Console write failed:', error);
+          console.error("[Logger] Console write failed:", error);
           resolve();
         }
       });
@@ -172,7 +204,7 @@ export class Logger {
           await this.writeToFile(entry);
           resolve();
         } catch (error) {
-          console.error('[Logger] File write failed:', error);
+          console.error("[Logger] File write failed:", error);
           resolve();
         }
       });
@@ -180,22 +212,22 @@ export class Logger {
   }
 
   private writeToConsole(entry: LogEntry): void {
-    const levelNames = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL'];
+    const levelNames = ["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"];
     const levelColors = {
-      [LogLevel.DEBUG]: '\x1b[36m',
-      [LogLevel.INFO]: '\x1b[32m',
-      [LogLevel.WARN]: '\x1b[33m',
-      [LogLevel.ERROR]: '\x1b[31m',
-      [LogLevel.CRITICAL]: '\x1b[35m'
+      [LogLevel.DEBUG]: "\x1b[36m",
+      [LogLevel.INFO]: "\x1b[32m",
+      [LogLevel.WARN]: "\x1b[33m",
+      [LogLevel.ERROR]: "\x1b[31m",
+      [LogLevel.CRITICAL]: "\x1b[35m",
     };
-    const resetColor = '\x1b[0m';
+    const resetColor = "\x1b[0m";
 
-    if (this.config.logFormat === 'json') {
+    if (this.config.logFormat === "json") {
       console.log(JSON.stringify(entry));
     } else {
-      const timestamp = entry.timestamp.split('T')[1]?.split('.')[0] || '';
+      const timestamp = entry.timestamp.split("T")[1]?.split(".")[0] || "";
       const levelName = levelNames[entry.level];
-      const color = levelColors[entry.level] || '';
+      const color = levelColors[entry.level] || "";
 
       let logLine = `${color}[${timestamp}] ${levelName}${resetColor}: ${entry.message}`;
 
@@ -229,23 +261,25 @@ export class Logger {
         const cleanMetadata = { ...entry.metadata };
         delete cleanMetadata.error; // Already handled above
         if (Object.keys(cleanMetadata).length > 0) {
-          console.log('  Metadata:', JSON.stringify(cleanMetadata, null, 2));
+          console.log("  Metadata:", JSON.stringify(cleanMetadata, null, 2));
         }
       }
     }
   }
 
   private async writeToFile(entry: LogEntry): Promise<void> {
-    if (typeof process !== 'undefined' && process.env.BUNSNC_LOG_FILE) {
+    if (typeof process !== "undefined" && process.env.BUNSNC_LOG_FILE) {
       try {
-        const logLine = JSON.stringify(entry) + '\n';
+        const logLine = JSON.stringify(entry) + "\n";
         // Use Bun's async file API
-        if (typeof Bun !== 'undefined') {
-          await Bun.write(process.env.BUNSNC_LOG_FILE, logLine, { createPath: true });
+        if (typeof Bun !== "undefined") {
+          await Bun.write(process.env.BUNSNC_LOG_FILE, logLine, {
+            createPath: true,
+          });
         }
       } catch (error) {
         // Fallback to console if file write fails
-        console.error('[Logger] File write error:', error);
+        console.error("[Logger] File write error:", error);
       }
     }
   }
@@ -269,7 +303,7 @@ export class Logger {
     return {
       totalLogs: 0,
       logsByLevel: {},
-      averageProcessingTime: 0
+      averageProcessingTime: 0,
     };
   }
 }
@@ -286,7 +320,7 @@ export class OperationLogger {
     operation: string,
     table?: string,
     sysId?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ) {
     this.startTime = performance.now();
     this.operation = operation;
@@ -294,63 +328,67 @@ export class OperationLogger {
     this.sysId = sysId;
     this.metadata = metadata;
 
-    this.logger.debug(`Starting operation: ${operation}`, 'OperationLogger', {
+    this.logger.debug(`Starting operation: ${operation}`, "OperationLogger", {
       operation,
       table,
       sysId,
-      ...metadata
+      ...metadata,
     });
   }
 
   success(message?: string, additionalMetadata?: Record<string, any>): void {
     const duration = performance.now() - this.startTime;
-    
+
     this.logger.info(
       message || `Operation completed: ${this.operation}`,
-      'OperationLogger',
+      "OperationLogger",
       {
         operation: this.operation,
         table: this.table,
         sysId: this.sysId,
         duration,
         ...this.metadata,
-        ...additionalMetadata
-      }
+        ...additionalMetadata,
+      },
     );
   }
 
-  error(message: string, error?: Error, additionalMetadata?: Record<string, any>): void {
+  error(
+    message: string,
+    error?: Error,
+    additionalMetadata?: Record<string, any>,
+  ): void {
     const duration = performance.now() - this.startTime;
-    
+
     this.logger.error(
       `Operation failed: ${this.operation} - ${message}`,
       error,
-      'OperationLogger',
+      "OperationLogger",
       {
         operation: this.operation,
         table: this.table,
         sysId: this.sysId,
         duration,
         ...this.metadata,
-        ...additionalMetadata
-      }
+        ...additionalMetadata,
+      },
     );
   }
 
   progress(message: string, additionalMetadata?: Record<string, any>): void {
     const duration = performance.now() - this.startTime;
-    
+
     this.logger.debug(
       `Operation progress: ${this.operation} - ${message}`,
-      'OperationLogger',
+      "OperationLogger",
       {
         operation: this.operation,
         table: this.table,
         sysId: this.sysId,
         duration,
         ...this.metadata,
-        ...additionalMetadata
-      }
+        ...additionalMetadata,
+      },
     );
   }
 }

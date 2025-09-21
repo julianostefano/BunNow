@@ -4,15 +4,15 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { EventEmitter } from 'events';
-import { MongoClient } from 'mongodb';
-import { logger } from '../utils/Logger';
-import { ServiceNowAuthClient } from './ServiceNowAuthClient';
-import { SystemPerformanceMonitor } from './system/SystemPerformanceMonitor';
-import { SystemTaskManager } from './system/SystemTaskManager';
-import { SystemGroupManager } from './system/SystemGroupManager';
-import { SystemTransactionManager } from './system/SystemTransactionManager';
-import { LegacyServiceBridge } from './system/LegacyServiceBridge';
+import { EventEmitter } from "events";
+import { MongoClient } from "mongodb";
+import { logger } from "../utils/Logger";
+import { ServiceNowAuthClient } from "./ServiceNowAuthClient";
+import { SystemPerformanceMonitor } from "./system/SystemPerformanceMonitor";
+import { SystemTaskManager } from "./system/SystemTaskManager";
+import { SystemGroupManager } from "./system/SystemGroupManager";
+import { SystemTransactionManager } from "./system/SystemTransactionManager";
+import { LegacyServiceBridge } from "./system/LegacyServiceBridge";
 
 export interface SystemConfig {
   mongodb: {
@@ -42,7 +42,7 @@ export interface SystemConfig {
 }
 
 export interface SystemHealth {
-  status: 'healthy' | 'degraded' | 'unhealthy';
+  status: "healthy" | "degraded" | "unhealthy";
   services: {
     performance: boolean;
     tasks: boolean;
@@ -76,7 +76,7 @@ export interface PerformanceStats {
     cpuUsage: number;
   };
   alerts: Array<{
-    type: 'warning' | 'critical';
+    type: "warning" | "critical";
     message: string;
     timestamp: string;
   }>;
@@ -85,7 +85,7 @@ export interface PerformanceStats {
 export interface TaskData {
   id: string;
   type: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: "pending" | "running" | "completed" | "failed";
   priority: number;
   createdAt: Date;
   updatedAt: Date;
@@ -169,7 +169,7 @@ export class SystemService extends EventEmitter {
     // Set up cross-component event listeners
     this.setupEventListeners();
 
-    logger.info(' SystemService components initialized');
+    logger.info(" SystemService components initialized");
   }
 
   /**
@@ -177,24 +177,24 @@ export class SystemService extends EventEmitter {
    */
   private setupEventListeners(): void {
     // Performance monitoring events
-    this.performanceMonitor.on('thresholdExceeded', (event) => {
+    this.performanceMonitor.on("thresholdExceeded", (event) => {
       logger.warn(`🚨 Performance threshold exceeded: ${event.type}`);
-      this.emit('performanceAlert', event);
+      this.emit("performanceAlert", event);
     });
 
     // Task manager events
-    this.taskManager.on('taskCompleted', (event) => {
+    this.taskManager.on("taskCompleted", (event) => {
       this.performanceMonitor.recordMetric({
-        operation: 'task_execution',
+        operation: "task_execution",
         response_time_ms: event.duration,
-        endpoint: event.taskType
+        endpoint: event.taskType,
       });
     });
 
     // Transaction events
-    this.transactionManager.on('transactionFailed', (event) => {
+    this.transactionManager.on("transactionFailed", (event) => {
       logger.error(`💥 Transaction failed: ${event.transactionId}`);
-      this.emit('systemError', event);
+      this.emit("systemError", event);
     });
   }
 
@@ -205,7 +205,7 @@ export class SystemService extends EventEmitter {
     if (this.isInitialized) return;
 
     try {
-      logger.info(' Initializing SystemService...');
+      logger.info(" Initializing SystemService...");
 
       // Initialize all components in parallel
       await Promise.all([
@@ -213,14 +213,13 @@ export class SystemService extends EventEmitter {
         this.taskManager.initialize(),
         this.groupManager.initialize(),
         this.transactionManager.initialize(),
-        this.legacyBridge.initialize()
+        this.legacyBridge.initialize(),
       ]);
 
       this.isInitialized = true;
-      logger.info(' SystemService initialized successfully');
-
+      logger.info(" SystemService initialized successfully");
     } catch (error) {
-      logger.error(' Failed to initialize SystemService:', error);
+      logger.error(" Failed to initialize SystemService:", error);
       throw error;
     }
   }
@@ -236,20 +235,19 @@ export class SystemService extends EventEmitter {
     if (this.isRunning) return;
 
     try {
-      logger.info(' Starting SystemService...');
+      logger.info(" Starting SystemService...");
 
       // Start all components
       await Promise.all([
         this.performanceMonitor.start(),
-        this.taskManager.start()
+        this.taskManager.start(),
       ]);
 
       this.isRunning = true;
-      this.emit('started');
-      logger.info(' SystemService started successfully');
-
+      this.emit("started");
+      logger.info(" SystemService started successfully");
     } catch (error) {
-      logger.error(' Failed to start SystemService:', error);
+      logger.error(" Failed to start SystemService:", error);
       throw error;
     }
   }
@@ -261,20 +259,19 @@ export class SystemService extends EventEmitter {
     if (!this.isRunning) return;
 
     try {
-      logger.info(' Stopping SystemService...');
+      logger.info(" Stopping SystemService...");
 
       // Stop all components
       await Promise.all([
         this.performanceMonitor.stop(),
-        this.taskManager.stop()
+        this.taskManager.stop(),
       ]);
 
       this.isRunning = false;
-      this.emit('stopped');
-      logger.info(' SystemService stopped successfully');
-
+      this.emit("stopped");
+      logger.info(" SystemService stopped successfully");
     } catch (error) {
-      logger.error(' Failed to stop SystemService:', error);
+      logger.error(" Failed to stop SystemService:", error);
       throw error;
     }
   }
@@ -294,16 +291,27 @@ export class SystemService extends EventEmitter {
     return this.performanceMonitor.getStats(timeRange);
   }
 
-  updatePerformanceThresholds(thresholds: Partial<SystemConfig['performance']['thresholds']>): void {
+  updatePerformanceThresholds(
+    thresholds: Partial<SystemConfig["performance"]["thresholds"]>,
+  ): void {
     this.performanceMonitor.updateThresholds(thresholds);
   }
 
-  getMemoryUsage(): { heapUsed: number, heapTotal: number, external: number, rss: number } {
+  getMemoryUsage(): {
+    heapUsed: number;
+    heapTotal: number;
+    external: number;
+    rss: number;
+  } {
     return this.performanceMonitor.getMemoryUsage();
   }
 
   // === Task Management Methods ===
-  async addTask(type: string, data: Record<string, unknown>, options?: TaskOptions): Promise<string> {
+  async addTask(
+    type: string,
+    data: Record<string, unknown>,
+    options?: TaskOptions,
+  ): Promise<string> {
     return this.taskManager.addTask(type, data, options);
   }
 
@@ -338,11 +346,16 @@ export class SystemService extends EventEmitter {
     return this.groupManager.getGroup(groupId);
   }
 
-  async createGroup(groupData: Omit<SystemGroup, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+  async createGroup(
+    groupData: Omit<SystemGroup, "id" | "createdAt" | "updatedAt">,
+  ): Promise<string> {
     return this.groupManager.createGroup(groupData);
   }
 
-  async updateGroup(groupId: string, updates: Partial<SystemGroup>): Promise<boolean> {
+  async updateGroup(
+    groupId: string,
+    updates: Partial<SystemGroup>,
+  ): Promise<boolean> {
     return this.groupManager.updateGroup(groupId, updates);
   }
 
@@ -351,7 +364,10 @@ export class SystemService extends EventEmitter {
   }
 
   // === Transaction Management Methods ===
-  async startTransaction(options?: { timeout?: number, isolation?: string }): Promise<string> {
+  async startTransaction(options?: {
+    timeout?: number;
+    isolation?: string;
+  }): Promise<string> {
     return this.transactionManager.startTransaction(options);
   }
 
@@ -365,13 +381,16 @@ export class SystemService extends EventEmitter {
 
   async executeInTransaction<T>(
     operation: (transactionId: string) => Promise<T>,
-    options?: { timeout?: number }
+    options?: { timeout?: number },
   ): Promise<T> {
     return this.transactionManager.executeInTransaction(operation, options);
   }
 
   // === Legacy Service Bridge Methods ===
-  async handleLegacyAttachment(operation: string, data: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async handleLegacyAttachment(
+    operation: string,
+    data: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
     return this.legacyBridge.handleAttachment(operation, data);
   }
 
@@ -386,19 +405,21 @@ export class SystemService extends EventEmitter {
   // === System Health and Monitoring ===
   async getSystemHealth(): Promise<SystemHealth> {
     try {
-      const [perfHealth, taskHealth, groupHealth, transHealth, legacyHealth] = await Promise.all([
-        this.performanceMonitor.healthCheck(),
-        this.taskManager.healthCheck(),
-        this.groupManager.healthCheck(),
-        this.transactionManager.healthCheck(),
-        this.legacyBridge.healthCheck()
-      ]);
+      const [perfHealth, taskHealth, groupHealth, transHealth, legacyHealth] =
+        await Promise.all([
+          this.performanceMonitor.healthCheck(),
+          this.taskManager.healthCheck(),
+          this.groupManager.healthCheck(),
+          this.transactionManager.healthCheck(),
+          this.legacyBridge.healthCheck(),
+        ]);
 
       const memUsage = this.getMemoryUsage();
       const taskStats = await this.getTaskStats();
 
-      const allHealthy = perfHealth && taskHealth && groupHealth && transHealth && legacyHealth;
-      const status = allHealthy ? 'healthy' : 'degraded';
+      const allHealthy =
+        perfHealth && taskHealth && groupHealth && transHealth && legacyHealth;
+      const status = allHealthy ? "healthy" : "degraded";
 
       return {
         status,
@@ -407,37 +428,37 @@ export class SystemService extends EventEmitter {
           tasks: taskHealth,
           groups: groupHealth,
           transactions: transHealth,
-          legacy: legacyHealth
+          legacy: legacyHealth,
         },
         metrics: {
           uptime: Math.floor(process.uptime()),
           memory_usage_mb: memUsage.heapUsed,
           active_tasks: taskStats.active || 0,
           total_groups: await this.groupManager.getGroupCount(),
-          active_transactions: await this.transactionManager.getActiveTransactionCount()
+          active_transactions:
+            await this.transactionManager.getActiveTransactionCount(),
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
-
     } catch (error) {
-      logger.error(' Failed to get system health:', error);
+      logger.error(" Failed to get system health:", error);
       return {
-        status: 'unhealthy',
+        status: "unhealthy",
         services: {
           performance: false,
           tasks: false,
           groups: false,
           transactions: false,
-          legacy: false
+          legacy: false,
         },
         metrics: {
           uptime: 0,
           memory_usage_mb: 0,
           active_tasks: 0,
           total_groups: 0,
-          active_transactions: 0
+          active_transactions: 0,
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     }
   }
@@ -461,8 +482,8 @@ export class SystemService extends EventEmitter {
         uptime: process.uptime(),
         memory: this.getMemoryUsage(),
         isRunning: this.isRunning,
-        isInitialized: this.isInitialized
-      }
+        isInitialized: this.isInitialized,
+      },
     };
   }
 
@@ -478,12 +499,12 @@ export class SystemService extends EventEmitter {
         this.taskManager.cleanup(),
         this.groupManager.cleanup(),
         this.transactionManager.cleanup(),
-        this.legacyBridge.cleanup()
+        this.legacyBridge.cleanup(),
       ]);
 
-      logger.info('🧹 SystemService cleanup completed');
+      logger.info("🧹 SystemService cleanup completed");
     } catch (error) {
-      logger.error(' SystemService cleanup failed:', error);
+      logger.error(" SystemService cleanup failed:", error);
       throw error;
     }
   }

@@ -3,22 +3,28 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { MongoClient, Db, Collection, CreateIndexesOptions, IndexSpecification } from 'mongodb';
-import { 
-  TicketSchema, 
-  IncidentSchema, 
-  ChangeTaskSchema, 
+import {
+  MongoClient,
+  Db,
+  Collection,
+  CreateIndexesOptions,
+  IndexSpecification,
+} from "mongodb";
+import {
+  TicketSchema,
+  IncidentSchema,
+  ChangeTaskSchema,
   ServiceRequestTaskSchema,
   TicketAuditLog,
   TicketCollections,
-  TicketValidation 
-} from '../schemas/TicketSchemas';
+  TicketValidation,
+} from "../schemas/TicketSchemas";
 
 export class TicketRepository {
   private db: Db;
   private client: MongoClient | null;
-  
-  constructor(db: Db, dbName: string = 'bunsnc_tickets') {
+
+  constructor(db: Db, dbName: string = "bunsnc_tickets") {
     this.client = null; // Not needed when passed Database directly
     this.db = db;
   }
@@ -27,13 +33,15 @@ export class TicketRepository {
    * Initialize collections and indexes
    */
   async initialize(): Promise<void> {
-    console.log(' Initializing TicketRepository with collections and indexes...');
-    
+    console.log(
+      " Initializing TicketRepository with collections and indexes...",
+    );
+
     await this.createCollections();
     await this.createIndexes();
     await this.createValidationRules();
-    
-    console.log(' TicketRepository initialized successfully');
+
+    console.log(" TicketRepository initialized successfully");
   }
 
   /**
@@ -41,9 +49,11 @@ export class TicketRepository {
    */
   private async createCollections(): Promise<void> {
     const collections = Object.values(TicketCollections);
-    
+
     for (const collectionName of collections) {
-      const exists = await this.db.listCollections({ name: collectionName }).hasNext();
+      const exists = await this.db
+        .listCollections({ name: collectionName })
+        .hasNext();
       if (!exists) {
         await this.db.createCollection(collectionName);
         console.log(`📦 Created collection: ${collectionName}`);
@@ -56,14 +66,16 @@ export class TicketRepository {
    */
   private async createIndexes(): Promise<void> {
     const indexSpecs = this.getIndexSpecifications();
-    
+
     for (const [collectionName, indexes] of Object.entries(indexSpecs)) {
       const collection = this.db.collection(collectionName);
-      
+
       for (const index of indexes) {
         try {
           await collection.createIndex(index.spec, index.options);
-          console.log(` Created index on ${collectionName}: ${JSON.stringify(index.spec)}`);
+          console.log(
+            ` Created index on ${collectionName}: ${JSON.stringify(index.spec)}`,
+          );
         } catch (error) {
           console.warn(` Failed to create index on ${collectionName}:`, error);
         }
@@ -74,7 +86,10 @@ export class TicketRepository {
   /**
    * Get index specifications for all collections
    */
-  private getIndexSpecifications(): Record<string, Array<{ spec: IndexSpecification; options?: CreateIndexesOptions }>> {
+  private getIndexSpecifications(): Record<
+    string,
+    Array<{ spec: IndexSpecification; options?: CreateIndexesOptions }>
+  > {
     const commonIndexes = [
       { spec: { sys_id: 1 }, options: { unique: true } },
       { spec: { number: 1 }, options: { unique: true } },
@@ -91,7 +106,13 @@ export class TicketRepository {
       { spec: { state: 1, priority: 1 } },
       { spec: { assignment_group: 1, state: 1, opened_at: -1 } },
       // Text search index
-      { spec: { short_description: 'text', description: 'text', work_notes: 'text' } }
+      {
+        spec: {
+          short_description: "text",
+          description: "text",
+          work_notes: "text",
+        },
+      },
     ];
 
     return {
@@ -99,28 +120,28 @@ export class TicketRepository {
         ...commonIndexes,
         { spec: { caller_id: 1 } },
         { spec: { problem_id: 1 } },
-        { spec: { category: 1, subcategory: 1 } }
+        { spec: { category: 1, subcategory: 1 } },
       ],
       [TicketCollections.CHANGE_TASKS]: [
         ...commonIndexes,
         { spec: { change_request: 1 } },
         { spec: { change_request_number: 1 } },
         { spec: { planned_start_date: 1 } },
-        { spec: { planned_end_date: 1 } }
+        { spec: { planned_end_date: 1 } },
       ],
       [TicketCollections.SERVICE_REQUESTS]: [
         ...commonIndexes,
         { spec: { request: 1 } },
         { spec: { request_number: 1 } },
         { spec: { requested_for: 1 } },
-        { spec: { catalog_item: 1 } }
+        { spec: { catalog_item: 1 } },
       ],
       [TicketCollections.AUDIT_LOG]: [
         { spec: { ticket_sys_id: 1, performed_at: -1 } },
         { spec: { ticket_table: 1, action: 1, performed_at: -1 } },
         { spec: { performed_at: -1 } },
-        { spec: { performed_by: 1, performed_at: -1 } }
-      ]
+        { spec: { performed_by: 1, performed_at: -1 } },
+      ],
     };
   }
 
@@ -132,29 +153,43 @@ export class TicketRepository {
     const validationRules = {
       [TicketCollections.INCIDENTS]: {
         $jsonSchema: {
-          bsonType: 'object',
-          required: ['sys_id', 'number', 'table', 'state', 'short_description', 'priority', 'opened_at', 'caller_id'],
+          bsonType: "object",
+          required: [
+            "sys_id",
+            "number",
+            "table",
+            "state",
+            "short_description",
+            "priority",
+            "opened_at",
+            "caller_id",
+          ],
           properties: {
-            sys_id: { bsonType: 'string', minLength: 1 },
-            number: { bsonType: 'string', minLength: 1 },
-            table: { enum: ['incident'] },
+            sys_id: { bsonType: "string", minLength: 1 },
+            number: { bsonType: "string", minLength: 1 },
+            table: { enum: ["incident"] },
             state: { enum: TicketValidation.states.incident },
             priority: { enum: TicketValidation.priorities },
-            sync_status: { enum: TicketValidation.syncStatuses }
-          }
-        }
-      }
+            sync_status: { enum: TicketValidation.syncStatuses },
+          },
+        },
+      },
     };
 
-    for (const [collectionName, validation] of Object.entries(validationRules)) {
+    for (const [collectionName, validation] of Object.entries(
+      validationRules,
+    )) {
       try {
         await this.db.command({
           collMod: collectionName,
-          validator: validation
+          validator: validation,
         });
         console.log(` Applied validation rules to ${collectionName}`);
       } catch (error) {
-        console.warn(` Failed to apply validation to ${collectionName}:`, error);
+        console.warn(
+          ` Failed to apply validation to ${collectionName}:`,
+          error,
+        );
       }
     }
   }
@@ -164,21 +199,19 @@ export class TicketRepository {
    */
   async saveTicket(ticket: TicketSchema): Promise<void> {
     this.validateTicket(ticket);
-    
+
     const collection = this.getCollectionForTable(ticket.table);
     const now = new Date();
-    
+
     const ticketData = {
       ...ticket,
       last_synced: now,
-      sync_status: 'synced' as const
+      sync_status: "synced" as const,
     };
 
-    await collection.replaceOne(
-      { sys_id: ticket.sys_id },
-      ticketData,
-      { upsert: true }
-    );
+    await collection.replaceOne({ sys_id: ticket.sys_id }, ticketData, {
+      upsert: true,
+    });
 
     console.log(`💾 Saved ${ticket.table}/${ticket.sys_id} to MongoDB`);
   }
@@ -188,7 +221,7 @@ export class TicketRepository {
    */
   async getTicket(sysId: string, table: string): Promise<TicketSchema | null> {
     const collection = this.getCollectionForTable(table);
-    return await collection.findOne({ sys_id: sysId }) as TicketSchema | null;
+    return (await collection.findOne({ sys_id: sysId })) as TicketSchema | null;
   }
 
   /**
@@ -196,32 +229,32 @@ export class TicketRepository {
    */
   async getTickets(
     table: string,
-    filter: any = {}, 
-    options: { skip?: number; limit?: number; sort?: any } = {}
+    filter: any = {},
+    options: { skip?: number; limit?: number; sort?: any } = {},
   ): Promise<TicketSchema[]> {
     const collection = this.getCollectionForTable(table);
-    
+
     const query = collection.find(filter);
-    
+
     if (options.sort) query.sort(options.sort);
     if (options.skip) query.skip(options.skip);
     if (options.limit) query.limit(options.limit);
-    
-    return await query.toArray() as TicketSchema[];
+
+    return (await query.toArray()) as TicketSchema[];
   }
 
   /**
    * Update ticket with audit logging
    */
   async updateTicket(
-    sysId: string, 
-    table: string, 
+    sysId: string,
+    table: string,
     updates: Partial<TicketSchema>,
-    performedBy: string = 'system'
+    performedBy: string = "system",
   ): Promise<void> {
     const collection = this.getCollectionForTable(table);
     const existingTicket = await this.getTicket(sysId, table);
-    
+
     if (!existingTicket) {
       throw new Error(`Ticket ${table}/${sysId} not found`);
     }
@@ -230,24 +263,21 @@ export class TicketRepository {
       ...updates,
       sys_updated_on: new Date(),
       last_synced: new Date(),
-      sync_status: 'synced' as const
+      sync_status: "synced" as const,
     };
 
-    await collection.updateOne(
-      { sys_id: sysId },
-      { $set: updatedData }
-    );
+    await collection.updateOne({ sys_id: sysId }, { $set: updatedData });
 
     // Log changes to audit collection
     await this.logAudit({
       ticket_sys_id: sysId,
       ticket_table: table,
       ticket_number: existingTicket.number,
-      action: 'updated',
+      action: "updated",
       changes: this.getChanges(existingTicket, updatedData),
       performed_by: performedBy,
       performed_at: new Date(),
-      source: 'bunsnc'
+      source: "bunsnc",
     });
 
     console.log(`✏️ Updated ${table}/${sysId} in MongoDB`);
@@ -259,22 +289,27 @@ export class TicketRepository {
   async searchTickets(
     table: string,
     searchText: string,
-    options: { skip?: number; limit?: number } = {}
+    options: { skip?: number; limit?: number } = {},
   ): Promise<TicketSchema[]> {
     const collection = this.getCollectionForTable(table);
-    
-    const query = collection.find({
-      $text: { $search: searchText }
-    }, {
-      score: { $meta: 'textScore' }
-    }).sort({
-      score: { $meta: 'textScore' }
-    });
-    
+
+    const query = collection
+      .find(
+        {
+          $text: { $search: searchText },
+        },
+        {
+          score: { $meta: "textScore" },
+        },
+      )
+      .sort({
+        score: { $meta: "textScore" },
+      });
+
     if (options.skip) query.skip(options.skip);
     if (options.limit) query.limit(options.limit);
-    
-    return await query.toArray() as TicketSchema[];
+
+    return (await query.toArray()) as TicketSchema[];
   }
 
   /**
@@ -282,32 +317,36 @@ export class TicketRepository {
    */
   async getTicketsNeedingSync(table: string): Promise<TicketSchema[]> {
     const collection = this.getCollectionForTable(table);
-    return await collection.find({
-      sync_status: { $in: ['pending', 'error'] }
-    }).toArray() as TicketSchema[];
+    return (await collection
+      .find({
+        sync_status: { $in: ["pending", "error"] },
+      })
+      .toArray()) as TicketSchema[];
   }
 
   /**
    * Mark ticket sync status
    */
-  async markSyncStatus(sysId: string, table: string, status: 'synced' | 'pending' | 'error', error?: string): Promise<void> {
+  async markSyncStatus(
+    sysId: string,
+    table: string,
+    status: "synced" | "pending" | "error",
+    error?: string,
+  ): Promise<void> {
     const collection = this.getCollectionForTable(table);
-    
+
     const update: any = {
       sync_status: status,
-      last_synced: new Date()
+      last_synced: new Date(),
     };
-    
+
     if (error) {
       update.sync_error = error;
     } else {
       update.$unset = { sync_error: 1 };
     }
 
-    await collection.updateOne(
-      { sys_id: sysId },
-      { $set: update }
-    );
+    await collection.updateOne({ sys_id: sysId }, { $set: update });
   }
 
   /**
@@ -323,9 +362,10 @@ export class TicketRepository {
    */
   async getAuditHistory(sysId: string): Promise<TicketAuditLog[]> {
     const auditCollection = this.db.collection(TicketCollections.AUDIT_LOG);
-    return await auditCollection.find(
-      { ticket_sys_id: sysId }
-    ).sort({ performed_at: -1 }).toArray() as TicketAuditLog[];
+    return (await auditCollection
+      .find({ ticket_sys_id: sysId })
+      .sort({ performed_at: -1 })
+      .toArray()) as TicketAuditLog[];
   }
 
   /**
@@ -333,16 +373,16 @@ export class TicketRepository {
    */
   private getCollectionForTable(table: string): Collection<TicketSchema> {
     const collectionMap: Record<string, string> = {
-      'incident': TicketCollections.INCIDENTS,
-      'change_task': TicketCollections.CHANGE_TASKS,
-      'sc_task': TicketCollections.SERVICE_REQUESTS
+      incident: TicketCollections.INCIDENTS,
+      change_task: TicketCollections.CHANGE_TASKS,
+      sc_task: TicketCollections.SERVICE_REQUESTS,
     };
-    
+
     const collectionName = collectionMap[table];
     if (!collectionName) {
       throw new Error(`Unsupported table type: ${table}`);
     }
-    
+
     return this.db.collection(collectionName);
   }
 
@@ -352,40 +392,54 @@ export class TicketRepository {
   private validateTicket(ticket: TicketSchema): void {
     const requiredFields = [
       ...TicketValidation.required.all,
-      ...(TicketValidation.required[ticket.table as keyof typeof TicketValidation.required] || [])
+      ...(TicketValidation.required[
+        ticket.table as keyof typeof TicketValidation.required
+      ] || []),
     ];
 
     for (const field of requiredFields) {
       if (!ticket[field as keyof TicketSchema]) {
-        throw new Error(`Missing required field: ${field} for table ${ticket.table}`);
+        throw new Error(
+          `Missing required field: ${field} for table ${ticket.table}`,
+        );
       }
     }
 
     // Validate state
-    const validStates = TicketValidation.states[ticket.table as keyof typeof TicketValidation.states];
+    const validStates =
+      TicketValidation.states[
+        ticket.table as keyof typeof TicketValidation.states
+      ];
     if (validStates && !validStates.includes(ticket.state)) {
-      throw new Error(`Invalid state '${ticket.state}' for table ${ticket.table}. Valid states: ${validStates.join(', ')}`);
+      throw new Error(
+        `Invalid state '${ticket.state}' for table ${ticket.table}. Valid states: ${validStates.join(", ")}`,
+      );
     }
 
     // Validate priority
     if (!TicketValidation.priorities.includes(ticket.priority)) {
-      throw new Error(`Invalid priority '${ticket.priority}'. Valid priorities: ${TicketValidation.priorities.join(', ')}`);
+      throw new Error(
+        `Invalid priority '${ticket.priority}'. Valid priorities: ${TicketValidation.priorities.join(", ")}`,
+      );
     }
   }
 
   /**
    * Get changes between old and new ticket data
    */
-  private getChanges(oldData: any, newData: any): Record<string, { old_value?: any; new_value: any }> {
+  private getChanges(
+    oldData: any,
+    newData: any,
+  ): Record<string, { old_value?: any; new_value: any }> {
     const changes: Record<string, { old_value?: any; new_value: any }> = {};
-    
+
     for (const [key, newValue] of Object.entries(newData)) {
       const oldValue = oldData[key];
       if (oldValue !== newValue) {
         changes[key] = { old_value: oldValue, new_value: newValue };
       }
     }
-    
+
     return changes;
   }
 
@@ -394,27 +448,31 @@ export class TicketRepository {
    */
   async getStats(): Promise<Record<string, any>> {
     const stats: Record<string, any> = {};
-    
+
     for (const [key, collectionName] of Object.entries(TicketCollections)) {
       const collection = this.db.collection(collectionName);
       const count = await collection.countDocuments();
-      const syncPending = await collection.countDocuments({ sync_status: 'pending' });
-      const syncError = await collection.countDocuments({ sync_status: 'error' });
-      
+      const syncPending = await collection.countDocuments({
+        sync_status: "pending",
+      });
+      const syncError = await collection.countDocuments({
+        sync_status: "error",
+      });
+
       stats[key.toLowerCase()] = {
         total: count,
         sync_pending: syncPending,
         sync_error: syncError,
-        collection: collectionName
+        collection: collectionName,
       };
     }
-    
+
     return stats;
   }
 }
 
 // Export singleton instance (initialized when needed)
-import { mongoClient } from '../config/mongodb';
+import { mongoClient } from "../config/mongodb";
 
 // Create a lazy-loaded repository that connects to MongoDB when first used
 export const ticketRepository = {
@@ -431,5 +489,5 @@ export const ticketRepository = {
       this._instance = new TicketRepository(mongoClient.getDatabase());
     }
     return this._instance;
-  }
+  },
 };

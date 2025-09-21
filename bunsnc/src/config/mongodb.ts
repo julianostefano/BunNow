@@ -56,7 +56,7 @@ export interface AccessLogDocument {
 export interface ErrorLogDocument {
   _id?: string;
   timestamp: Date;
-  level: 'error' | 'warning' | 'info';
+  level: "error" | "warning" | "info";
   message: string;
   stack_trace?: string;
   context?: Record<string, unknown>;
@@ -75,15 +75,22 @@ class MongoDBClient {
   }
 
   private getConnectionString(): string {
-    const { host, port, username, password, database, authSource = 'admin' } = this.config;
+    const {
+      host,
+      port,
+      username,
+      password,
+      database,
+      authSource = "admin",
+    } = this.config;
     return `mongodb://${username}:${encodeURIComponent(password)}@${host}:${port}/${database}?authSource=${authSource}`;
   }
 
   async connect(): Promise<void> {
     try {
       // Dynamic import for MongoDB client (will be installed separately)
-      const { MongoClient } = await import('mongodb');
-      
+      const { MongoClient } = await import("mongodb");
+
       this.client = new MongoClient(this.getConnectionString(), {
         maxPoolSize: 10,
         serverSelectionTimeoutMS: 5000,
@@ -92,23 +99,24 @@ class MongoDBClient {
         // MongoDB 7 specific configurations
         retryWrites: true,
         retryReads: true,
-        w: 'majority',
-        readPreference: 'primary',
-        readConcern: { level: 'majority' },
-        writeConcern: { w: 'majority', j: true },
-        monitorCommands: true
+        w: "majority",
+        readPreference: "primary",
+        readConcern: { level: "majority" },
+        writeConcern: { w: "majority", j: true },
+        monitorCommands: true,
       });
 
       await this.client.connect();
       this.db = this.client.db(this.config.database);
-      
-      console.log(`🍃 MongoDB connected to ${this.config.host}:${this.config.port}/${this.config.database}`);
-      
+
+      console.log(
+        `🍃 MongoDB connected to ${this.config.host}:${this.config.port}/${this.config.database}`,
+      );
+
       // Create indexes for better performance
       await this.createIndexes();
-      
     } catch (error) {
-      console.error(' MongoDB connection failed:', error);
+      console.error(" MongoDB connection failed:", error);
       throw error;
     }
   }
@@ -116,87 +124,99 @@ class MongoDBClient {
   private async createIndexes(): Promise<void> {
     try {
       // Tickets collection indexes
-      await this.db.collection('tickets').createIndex({ sys_id: 1 }, { unique: true });
-      await this.db.collection('tickets').createIndex({ table_name: 1, state: 1 });
-      await this.db.collection('tickets').createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 });
-      
-      // Config collection indexes  
-      await this.db.collection('configs').createIndex({ key: 1 }, { unique: true });
-      
+      await this.db
+        .collection("tickets")
+        .createIndex({ sys_id: 1 }, { unique: true });
+      await this.db
+        .collection("tickets")
+        .createIndex({ table_name: 1, state: 1 });
+      await this.db
+        .collection("tickets")
+        .createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 });
+
+      // Config collection indexes
+      await this.db
+        .collection("configs")
+        .createIndex({ key: 1 }, { unique: true });
+
       // Access logs indexes
-      await this.db.collection('access_logs').createIndex({ timestamp: -1 });
-      await this.db.collection('access_logs').createIndex({ endpoint: 1 });
-      
+      await this.db.collection("access_logs").createIndex({ timestamp: -1 });
+      await this.db.collection("access_logs").createIndex({ endpoint: 1 });
+
       // Error logs indexes
-      await this.db.collection('error_logs').createIndex({ timestamp: -1 });
-      await this.db.collection('error_logs').createIndex({ level: 1 });
-      
-      console.log(' MongoDB indexes created successfully');
+      await this.db.collection("error_logs").createIndex({ timestamp: -1 });
+      await this.db.collection("error_logs").createIndex({ level: 1 });
+
+      console.log(" MongoDB indexes created successfully");
     } catch (error) {
-      console.warn(' MongoDB indexes creation warning:', error);
+      console.warn(" MongoDB indexes creation warning:", error);
     }
   }
 
   async disconnect(): Promise<void> {
     if (this.client) {
       await this.client.close();
-      console.log('🍃 MongoDB disconnected');
+      console.log("🍃 MongoDB disconnected");
     }
   }
 
   // Get database instance
   getDatabase() {
     if (!this.db) {
-      throw new Error('MongoDB not connected. Call connect() first.');
+      throw new Error("MongoDB not connected. Call connect() first.");
     }
     return this.db;
   }
 
   // Ticket operations
   async saveTicket(ticket: TicketDocument): Promise<void> {
-    const collection = this.db.collection('tickets');
-    await collection.replaceOne(
-      { sys_id: ticket.sys_id },
-      ticket,
-      { upsert: true }
-    );
+    const collection = this.db.collection("tickets");
+    await collection.replaceOne({ sys_id: ticket.sys_id }, ticket, {
+      upsert: true,
+    });
   }
 
   async saveTickets(tickets: TicketDocument[]): Promise<void> {
     if (tickets.length === 0) return;
-    
-    const collection = this.db.collection('tickets');
-    const operations = tickets.map(ticket => ({
+
+    const collection = this.db.collection("tickets");
+    const operations = tickets.map((ticket) => ({
       replaceOne: {
         filter: { sys_id: ticket.sys_id },
         replacement: ticket,
-        upsert: true
-      }
+        upsert: true,
+      },
     }));
-    
+
     await collection.bulkWrite(operations);
   }
 
   async getTicket(sys_id: string): Promise<TicketDocument | null> {
-    const collection = this.db.collection('tickets');
+    const collection = this.db.collection("tickets");
     return await collection.findOne({ sys_id });
   }
 
-  async getTickets(filter: Record<string, unknown> = {}): Promise<TicketDocument[]> {
-    const collection = this.db.collection('tickets');
+  async getTickets(
+    filter: Record<string, unknown> = {},
+  ): Promise<TicketDocument[]> {
+    const collection = this.db.collection("tickets");
     return await collection.find(filter).toArray();
   }
 
   async getTicketCounts(table_name: string, state?: string): Promise<number> {
-    const collection = this.db.collection('tickets');
+    const collection = this.db.collection("tickets");
     const filter: Record<string, unknown> = { table_name };
     if (state) filter.state = state;
     return await collection.countDocuments(filter);
   }
 
   // Config operations
-  async setConfig(key: string, value: unknown, description?: string): Promise<void> {
-    const collection = this.db.collection('configs');
+  async setConfig(
+    key: string,
+    value: unknown,
+    description?: string,
+  ): Promise<void> {
+    const collection = this.db.collection("configs");
     await collection.replaceOne(
       { key },
       {
@@ -204,43 +224,57 @@ class MongoDBClient {
         value,
         description,
         created_at: new Date(),
-        updated_at: new Date()
+        updated_at: new Date(),
       },
-      { upsert: true }
+      { upsert: true },
     );
   }
 
   async getConfig(key: string): Promise<unknown> {
-    const collection = this.db.collection('configs');
+    const collection = this.db.collection("configs");
     const doc = await collection.findOne({ key });
     return doc?.value;
   }
 
   async getAllConfigs(): Promise<ConfigDocument[]> {
-    const collection = this.db.collection('configs');
+    const collection = this.db.collection("configs");
     return await collection.find({}).toArray();
   }
 
   // Access log operations
-  async logAccess(log: Omit<AccessLogDocument, '_id'>): Promise<void> {
-    const collection = this.db.collection('access_logs');
+  async logAccess(log: Omit<AccessLogDocument, "_id">): Promise<void> {
+    const collection = this.db.collection("access_logs");
     await collection.insertOne(log);
   }
 
-  async getAccessLogs(filter: Record<string, unknown> = {}, limit: number = 1000): Promise<AccessLogDocument[]> {
-    const collection = this.db.collection('access_logs');
-    return await collection.find(filter).sort({ timestamp: -1 }).limit(limit).toArray();
+  async getAccessLogs(
+    filter: Record<string, unknown> = {},
+    limit: number = 1000,
+  ): Promise<AccessLogDocument[]> {
+    const collection = this.db.collection("access_logs");
+    return await collection
+      .find(filter)
+      .sort({ timestamp: -1 })
+      .limit(limit)
+      .toArray();
   }
 
   // Error log operations
-  async logError(log: Omit<ErrorLogDocument, '_id'>): Promise<void> {
-    const collection = this.db.collection('error_logs');
+  async logError(log: Omit<ErrorLogDocument, "_id">): Promise<void> {
+    const collection = this.db.collection("error_logs");
     await collection.insertOne(log);
   }
 
-  async getErrorLogs(filter: Record<string, unknown> = {}, limit: number = 1000): Promise<ErrorLogDocument[]> {
-    const collection = this.db.collection('error_logs');
-    return await collection.find(filter).sort({ timestamp: -1 }).limit(limit).toArray();
+  async getErrorLogs(
+    filter: Record<string, unknown> = {},
+    limit: number = 1000,
+  ): Promise<ErrorLogDocument[]> {
+    const collection = this.db.collection("error_logs");
+    return await collection
+      .find(filter)
+      .sort({ timestamp: -1 })
+      .limit(limit)
+      .toArray();
   }
 
   // Health check
@@ -256,12 +290,12 @@ class MongoDBClient {
 
 // Default configuration
 export const mongoConfig: MongoDBConfig = {
-  host: '10.219.8.210',
+  host: "10.219.8.210",
   port: 27018,
-  username: 'admin',
-  password: 'Logica2011_',
-  database: 'bunsnc',
-  authSource: 'admin'
+  username: "admin",
+  password: "Logica2011_",
+  database: "bunsnc",
+  authSource: "admin",
 };
 
 export const mongoClient = new MongoDBClient(mongoConfig);

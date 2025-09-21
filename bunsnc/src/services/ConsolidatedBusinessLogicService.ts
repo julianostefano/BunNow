@@ -4,13 +4,20 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { EventEmitter } from 'events';
-import { logger } from '../utils/Logger';
-import { ServiceNowAuthClient } from './ServiceNowAuthClient';
-import { TicketDataCore } from './ticket/TicketDataCore';
-import { TicketQueryService, HybridQueryParams, HybridQueryResult } from './ticket/TicketQueryService';
-import { TicketSyncService, TicketSyncResult } from './ticket/TicketSyncService';
-import type { TicketData } from '../types/TicketTypes';
+import { EventEmitter } from "events";
+import { logger } from "../utils/Logger";
+import { ServiceNowAuthClient } from "./ServiceNowAuthClient";
+import { TicketDataCore } from "./ticket/TicketDataCore";
+import {
+  TicketQueryService,
+  HybridQueryParams,
+  HybridQueryResult,
+} from "./ticket/TicketQueryService";
+import {
+  TicketSyncService,
+  TicketSyncResult,
+} from "./ticket/TicketSyncService";
+import type { TicketData } from "../types/TicketTypes";
 
 // ==================== INTERFACES ====================
 
@@ -29,7 +36,7 @@ export interface SLADocument {
   breach_time?: Date;
   resolution_time_hours?: number;
   remaining_time_hours?: number;
-  status: 'active' | 'resolved' | 'breached';
+  status: "active" | "resolved" | "breached";
   business_hours_elapsed: number;
   calendar_hours_elapsed: number;
 }
@@ -46,7 +53,7 @@ export interface SLAMetrics {
       breached: number;
       resolved: number;
       breach_rate: number;
-    }
+    };
   };
 }
 
@@ -55,7 +62,7 @@ export interface SLAConfig {
     [priority: string]: {
       target_hours: number;
       escalation_hours?: number;
-    }
+    };
   };
   business_hours: {
     start: number;
@@ -86,25 +93,38 @@ export interface BusinessRule {
 
 export interface BusinessCondition {
   field: string;
-  operator: 'equals' | 'not_equals' | 'contains' | 'not_contains' | 'greater_than' | 'less_than' | 'in' | 'not_in';
+  operator:
+    | "equals"
+    | "not_equals"
+    | "contains"
+    | "not_contains"
+    | "greater_than"
+    | "less_than"
+    | "in"
+    | "not_in";
   value: any;
 }
 
 export interface BusinessAction {
-  type: 'set_field' | 'send_notification' | 'create_task' | 'escalate' | 'assign';
+  type:
+    | "set_field"
+    | "send_notification"
+    | "create_task"
+    | "escalate"
+    | "assign";
   parameters: Record<string, any>;
 }
 
 export interface WorkflowStep {
   id: string;
   name: string;
-  type: 'approval' | 'task' | 'notification' | 'condition' | 'automation';
+  type: "approval" | "task" | "notification" | "condition" | "automation";
   conditions?: BusinessCondition[];
   actions?: BusinessAction[];
   nextSteps: string[];
   assignedTo?: string;
   dueDate?: Date;
-  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'skipped';
+  status: "pending" | "in_progress" | "completed" | "failed" | "skipped";
 }
 
 export interface WorkflowInstance {
@@ -113,7 +133,7 @@ export interface WorkflowInstance {
   ticketId: string;
   currentStep: string;
   steps: WorkflowStep[];
-  status: 'active' | 'completed' | 'failed' | 'cancelled';
+  status: "active" | "completed" | "failed" | "cancelled";
   createdAt: Date;
   updatedAt: Date;
   variables: Record<string, any>;
@@ -152,30 +172,39 @@ class SLAManager extends EventEmitter {
   }
 
   async initialize(): Promise<void> {
-    logger.info(' [BusinessLogic] Initializing SLA Manager...');
+    logger.info(" [BusinessLogic] Initializing SLA Manager...");
 
     // Load existing SLA documents
     await this.loadExistingSLAs();
 
-    logger.info(' [BusinessLogic] SLA Manager initialized');
-    logger.info(`   - Priority SLAs: ${Object.entries(this.config.priorities).map(([p, c]) => `P${p}: ${c.target_hours}h`).join(', ')}`);
-    logger.info(`   - Business hours: ${this.config.business_hours.start}:00 - ${this.config.business_hours.end}:00`);
+    logger.info(" [BusinessLogic] SLA Manager initialized");
+    logger.info(
+      `   - Priority SLAs: ${Object.entries(this.config.priorities)
+        .map(([p, c]) => `P${p}: ${c.target_hours}h`)
+        .join(", ")}`,
+    );
+    logger.info(
+      `   - Business hours: ${this.config.business_hours.start}:00 - ${this.config.business_hours.end}:00`,
+    );
     logger.info(`   - Check interval: ${this.config.check_interval} minutes`);
   }
 
   async start(): Promise<void> {
     if (this.isRunning) {
-      logger.warn(' [BusinessLogic] SLA Manager already running');
+      logger.warn(" [BusinessLogic] SLA Manager already running");
       return;
     }
 
     this.isRunning = true;
 
-    this.checkInterval = setInterval(() => {
-      this.performSLACheck();
-    }, this.config.check_interval * 60 * 1000);
+    this.checkInterval = setInterval(
+      () => {
+        this.performSLACheck();
+      },
+      this.config.check_interval * 60 * 1000,
+    );
 
-    logger.info(' [BusinessLogic] SLA Manager started');
+    logger.info(" [BusinessLogic] SLA Manager started");
   }
 
   async stop(): Promise<void> {
@@ -185,7 +214,7 @@ class SLAManager extends EventEmitter {
     }
 
     this.isRunning = false;
-    logger.info(' [BusinessLogic] SLA Manager stopped');
+    logger.info(" [BusinessLogic] SLA Manager stopped");
   }
 
   async createSLAForTicket(ticket: TicketData): Promise<SLADocument> {
@@ -204,20 +233,26 @@ class SLAManager extends EventEmitter {
       created_at: new Date(),
       updated_at: new Date(),
       breached: false,
-      status: 'active',
+      status: "active",
       business_hours_elapsed: 0,
-      calendar_hours_elapsed: 0
+      calendar_hours_elapsed: 0,
     };
 
     this.slaDocuments.set(slaDoc.sys_id, slaDoc);
 
-    logger.info(` [BusinessLogic] SLA created for ticket ${ticket.number}: ${priorityConfig.target_hours}h target`);
-    this.emit('slaCreated', { slaDoc, ticket });
+    logger.info(
+      ` [BusinessLogic] SLA created for ticket ${ticket.number}: ${priorityConfig.target_hours}h target`,
+    );
+    this.emit("slaCreated", { slaDoc, ticket });
 
     return slaDoc;
   }
 
-  async updateSLAStatus(slaId: string, status: 'active' | 'resolved' | 'breached', resolutionTime?: number): Promise<void> {
+  async updateSLAStatus(
+    slaId: string,
+    status: "active" | "resolved" | "breached",
+    resolutionTime?: number,
+  ): Promise<void> {
     const slaDoc = this.slaDocuments.get(slaId);
     if (!slaDoc) {
       logger.warn(` [BusinessLogic] SLA not found: ${slaId}`);
@@ -228,54 +263,64 @@ class SLAManager extends EventEmitter {
     slaDoc.status = status;
     slaDoc.updated_at = new Date();
 
-    if (status === 'resolved' && resolutionTime) {
+    if (status === "resolved" && resolutionTime) {
       slaDoc.resolution_time_hours = resolutionTime;
     }
 
-    if (status === 'breached' && !slaDoc.breached) {
+    if (status === "breached" && !slaDoc.breached) {
       slaDoc.breached = true;
       slaDoc.breach_time = new Date();
-      logger.warn(`🚨 [BusinessLogic] SLA BREACHED: ${slaDoc.ticket_number} (${slaDoc.sla_target_hours}h target)`);
-      this.emit('slaBreach', { slaDoc });
+      logger.warn(
+        `🚨 [BusinessLogic] SLA BREACHED: ${slaDoc.ticket_number} (${slaDoc.sla_target_hours}h target)`,
+      );
+      this.emit("slaBreach", { slaDoc });
     }
 
-    logger.info(` [BusinessLogic] SLA status updated: ${slaDoc.ticket_number} ${previousStatus} → ${status}`);
-    this.emit('slaUpdated', { slaDoc, previousStatus });
+    logger.info(
+      ` [BusinessLogic] SLA status updated: ${slaDoc.ticket_number} ${previousStatus} → ${status}`,
+    );
+    this.emit("slaUpdated", { slaDoc, previousStatus });
   }
 
   private async loadExistingSLAs(): Promise<void> {
     // Placeholder for loading existing SLAs from database
-    logger.debug(' [BusinessLogic] Loading existing SLA documents...');
+    logger.debug(" [BusinessLogic] Loading existing SLA documents...");
   }
 
   private async performSLACheck(): Promise<void> {
     if (!this.isRunning) return;
 
-    logger.debug(' [BusinessLogic] Performing SLA compliance check...');
+    logger.debug(" [BusinessLogic] Performing SLA compliance check...");
 
     const now = new Date();
     let breachCount = 0;
 
     for (const [slaId, slaDoc] of this.slaDocuments) {
-      if (slaDoc.status !== 'active') continue;
+      if (slaDoc.status !== "active") continue;
 
-      const elapsedHours = (now.getTime() - slaDoc.created_at.getTime()) / (1000 * 60 * 60);
+      const elapsedHours =
+        (now.getTime() - slaDoc.created_at.getTime()) / (1000 * 60 * 60);
       const businessHours = this.calculateBusinessHours(slaDoc.created_at, now);
 
       slaDoc.calendar_hours_elapsed = elapsedHours;
       slaDoc.business_hours_elapsed = businessHours;
-      slaDoc.remaining_time_hours = Math.max(0, slaDoc.sla_target_hours - businessHours);
+      slaDoc.remaining_time_hours = Math.max(
+        0,
+        slaDoc.sla_target_hours - businessHours,
+      );
 
       if (businessHours >= slaDoc.sla_target_hours && !slaDoc.breached) {
-        await this.updateSLAStatus(slaId, 'breached');
+        await this.updateSLAStatus(slaId, "breached");
         breachCount++;
       }
     }
 
     if (breachCount > 0) {
-      logger.warn(`🚨 [BusinessLogic] SLA check completed: ${breachCount} new breaches detected`);
+      logger.warn(
+        `🚨 [BusinessLogic] SLA check completed: ${breachCount} new breaches detected`,
+      );
     } else {
-      logger.debug(' [BusinessLogic] SLA check completed: No new breaches');
+      logger.debug(" [BusinessLogic] SLA check completed: No new breaches");
     }
   }
 
@@ -288,9 +333,11 @@ class SLAManager extends EventEmitter {
       const dayOfWeek = current.getDay();
       const hour = current.getHours();
 
-      if (this.config.business_hours.days.includes(dayOfWeek) &&
-          hour >= this.config.business_hours.start &&
-          hour < this.config.business_hours.end) {
+      if (
+        this.config.business_hours.days.includes(dayOfWeek) &&
+        hour >= this.config.business_hours.start &&
+        hour < this.config.business_hours.end
+      ) {
         businessHours += 1;
       }
 
@@ -302,33 +349,45 @@ class SLAManager extends EventEmitter {
 
   async getSLAMetrics(): Promise<SLAMetrics> {
     const allSLAs = Array.from(this.slaDocuments.values());
-    const breachedSLAs = allSLAs.filter(s => s.breached);
-    const resolvedSLAs = allSLAs.filter(s => s.status === 'resolved');
+    const breachedSLAs = allSLAs.filter((s) => s.breached);
+    const resolvedSLAs = allSLAs.filter((s) => s.status === "resolved");
 
-    const priorityMetrics: SLAMetrics['by_priority'] = {};
+    const priorityMetrics: SLAMetrics["by_priority"] = {};
 
     for (const priority of Object.keys(this.config.priorities)) {
-      const prioritySLAs = allSLAs.filter(s => s.priority === priority);
-      const priorityBreached = prioritySLAs.filter(s => s.breached);
-      const priorityResolved = prioritySLAs.filter(s => s.status === 'resolved');
+      const prioritySLAs = allSLAs.filter((s) => s.priority === priority);
+      const priorityBreached = prioritySLAs.filter((s) => s.breached);
+      const priorityResolved = prioritySLAs.filter(
+        (s) => s.status === "resolved",
+      );
 
       priorityMetrics[priority] = {
         total: prioritySLAs.length,
         breached: priorityBreached.length,
         resolved: priorityResolved.length,
-        breach_rate: prioritySLAs.length > 0 ? (priorityBreached.length / prioritySLAs.length) * 100 : 0
+        breach_rate:
+          prioritySLAs.length > 0
+            ? (priorityBreached.length / prioritySLAs.length) * 100
+            : 0,
       };
     }
 
-    const totalResolutionHours = resolvedSLAs.reduce((sum, sla) => sum + (sla.resolution_time_hours || 0), 0);
+    const totalResolutionHours = resolvedSLAs.reduce(
+      (sum, sla) => sum + (sla.resolution_time_hours || 0),
+      0,
+    );
 
     return {
       total_tickets: allSLAs.length,
       breached_tickets: breachedSLAs.length,
-      resolved_within_sla: resolvedSLAs.filter(s => !s.breached).length,
-      average_resolution_hours: resolvedSLAs.length > 0 ? totalResolutionHours / resolvedSLAs.length : 0,
-      breach_percentage: allSLAs.length > 0 ? (breachedSLAs.length / allSLAs.length) * 100 : 0,
-      by_priority: priorityMetrics
+      resolved_within_sla: resolvedSLAs.filter((s) => !s.breached).length,
+      average_resolution_hours:
+        resolvedSLAs.length > 0
+          ? totalResolutionHours / resolvedSLAs.length
+          : 0,
+      breach_percentage:
+        allSLAs.length > 0 ? (breachedSLAs.length / allSLAs.length) * 100 : 0,
+      by_priority: priorityMetrics,
     };
   }
 
@@ -350,38 +409,55 @@ class BusinessRulesEngine extends EventEmitter {
 
   constructor(rules: BusinessRule[] = []) {
     super();
-    rules.forEach(rule => this.rules.set(rule.id, rule));
+    rules.forEach((rule) => this.rules.set(rule.id, rule));
   }
 
-  async evaluateRules(ticket: TicketData, event: 'created' | 'updated' | 'assigned'): Promise<void> {
+  async evaluateRules(
+    ticket: TicketData,
+    event: "created" | "updated" | "assigned",
+  ): Promise<void> {
     if (!this.isEnabled) return;
 
     const applicableRules = Array.from(this.rules.values())
-      .filter(rule => rule.enabled)
+      .filter((rule) => rule.enabled)
       .sort((a, b) => a.priority - b.priority);
 
-    logger.debug(` [BusinessLogic] Evaluating ${applicableRules.length} business rules for ticket ${ticket.number}`);
+    logger.debug(
+      ` [BusinessLogic] Evaluating ${applicableRules.length} business rules for ticket ${ticket.number}`,
+    );
 
     for (const rule of applicableRules) {
       try {
         const matches = await this.evaluateConditions(rule.conditions, ticket);
 
         if (matches) {
-          logger.info(` [BusinessLogic] Rule matched: ${rule.name} for ticket ${ticket.number}`);
+          logger.info(
+            ` [BusinessLogic] Rule matched: ${rule.name} for ticket ${ticket.number}`,
+          );
           await this.executeActions(rule.actions, ticket);
-          this.emit('ruleExecuted', { rule, ticket, event });
+          this.emit("ruleExecuted", { rule, ticket, event });
         }
       } catch (error) {
-        logger.error(` [BusinessLogic] Rule execution failed: ${rule.name}`, error);
-        this.emit('ruleError', { rule, ticket, error });
+        logger.error(
+          ` [BusinessLogic] Rule execution failed: ${rule.name}`,
+          error,
+        );
+        this.emit("ruleError", { rule, ticket, error });
       }
     }
   }
 
-  private async evaluateConditions(conditions: BusinessCondition[], ticket: TicketData): Promise<boolean> {
+  private async evaluateConditions(
+    conditions: BusinessCondition[],
+    ticket: TicketData,
+  ): Promise<boolean> {
     for (const condition of conditions) {
       const fieldValue = this.getFieldValue(ticket, condition.field);
-      const conditionMet = this.evaluateCondition(fieldValue, condition.operator, condition.value);
+      const conditionMet = this.evaluateCondition(
+        fieldValue,
+        condition.operator,
+        condition.value,
+      );
 
       if (!conditionMet) {
         return false;
@@ -390,34 +466,49 @@ class BusinessRulesEngine extends EventEmitter {
     return true;
   }
 
-  private evaluateCondition(fieldValue: any, operator: BusinessCondition['operator'], expectedValue: any): boolean {
+  private evaluateCondition(
+    fieldValue: any,
+    operator: BusinessCondition["operator"],
+    expectedValue: any,
+  ): boolean {
     switch (operator) {
-      case 'equals':
+      case "equals":
         return fieldValue === expectedValue;
-      case 'not_equals':
+      case "not_equals":
         return fieldValue !== expectedValue;
-      case 'contains':
-        return String(fieldValue).toLowerCase().includes(String(expectedValue).toLowerCase());
-      case 'not_contains':
-        return !String(fieldValue).toLowerCase().includes(String(expectedValue).toLowerCase());
-      case 'greater_than':
+      case "contains":
+        return String(fieldValue)
+          .toLowerCase()
+          .includes(String(expectedValue).toLowerCase());
+      case "not_contains":
+        return !String(fieldValue)
+          .toLowerCase()
+          .includes(String(expectedValue).toLowerCase());
+      case "greater_than":
         return Number(fieldValue) > Number(expectedValue);
-      case 'less_than':
+      case "less_than":
         return Number(fieldValue) < Number(expectedValue);
-      case 'in':
-        return Array.isArray(expectedValue) && expectedValue.includes(fieldValue);
-      case 'not_in':
-        return Array.isArray(expectedValue) && !expectedValue.includes(fieldValue);
+      case "in":
+        return (
+          Array.isArray(expectedValue) && expectedValue.includes(fieldValue)
+        );
+      case "not_in":
+        return (
+          Array.isArray(expectedValue) && !expectedValue.includes(fieldValue)
+        );
       default:
         return false;
     }
   }
 
   private getFieldValue(ticket: TicketData, field: string): any {
-    return field.split('.').reduce((obj, key) => obj?.[key], ticket);
+    return field.split(".").reduce((obj, key) => obj?.[key], ticket);
   }
 
-  private async executeActions(actions: BusinessAction[], ticket: TicketData): Promise<void> {
+  private async executeActions(
+    actions: BusinessAction[],
+    ticket: TicketData,
+  ): Promise<void> {
     for (const action of actions) {
       try {
         await this.executeAction(action, ticket);
@@ -427,26 +518,39 @@ class BusinessRulesEngine extends EventEmitter {
     }
   }
 
-  private async executeAction(action: BusinessAction, ticket: TicketData): Promise<void> {
+  private async executeAction(
+    action: BusinessAction,
+    ticket: TicketData,
+  ): Promise<void> {
     switch (action.type) {
-      case 'set_field':
-        logger.info(` [BusinessLogic] Setting field ${action.parameters.field} = ${action.parameters.value} for ticket ${ticket.number}`);
+      case "set_field":
+        logger.info(
+          ` [BusinessLogic] Setting field ${action.parameters.field} = ${action.parameters.value} for ticket ${ticket.number}`,
+        );
         // Would integrate with data service to update ticket
         break;
-      case 'send_notification':
-        logger.info(`📧 [BusinessLogic] Sending notification to ${action.parameters.recipient} for ticket ${ticket.number}`);
+      case "send_notification":
+        logger.info(
+          `📧 [BusinessLogic] Sending notification to ${action.parameters.recipient} for ticket ${ticket.number}`,
+        );
         // Would integrate with notification service
         break;
-      case 'create_task':
-        logger.info(`📋 [BusinessLogic] Creating task for ticket ${ticket.number}`);
+      case "create_task":
+        logger.info(
+          `📋 [BusinessLogic] Creating task for ticket ${ticket.number}`,
+        );
         // Would integrate with task service
         break;
-      case 'escalate':
-        logger.info(`⬆️ [BusinessLogic] Escalating ticket ${ticket.number} to ${action.parameters.level}`);
+      case "escalate":
+        logger.info(
+          `⬆️ [BusinessLogic] Escalating ticket ${ticket.number} to ${action.parameters.level}`,
+        );
         // Would integrate with escalation logic
         break;
-      case 'assign':
-        logger.info(` [BusinessLogic] Assigning ticket ${ticket.number} to ${action.parameters.assignee}`);
+      case "assign":
+        logger.info(
+          ` [BusinessLogic] Assigning ticket ${ticket.number} to ${action.parameters.assignee}`,
+        );
         // Would integrate with assignment service
         break;
     }
@@ -467,12 +571,12 @@ class BusinessRulesEngine extends EventEmitter {
 
   enableRules(): void {
     this.isEnabled = true;
-    logger.info(' [BusinessLogic] Business rules engine enabled');
+    logger.info(" [BusinessLogic] Business rules engine enabled");
   }
 
   disableRules(): void {
     this.isEnabled = false;
-    logger.info(' [BusinessLogic] Business rules engine disabled');
+    logger.info(" [BusinessLogic] Business rules engine disabled");
   }
 }
 
@@ -489,7 +593,10 @@ export class ConsolidatedBusinessLogicService extends EventEmitter {
   private config: BusinessLogicConfig;
   private isInitialized = false;
 
-  private constructor(serviceNowClient: ServiceNowAuthClient, config: BusinessLogicConfig) {
+  private constructor(
+    serviceNowClient: ServiceNowAuthClient,
+    config: BusinessLogicConfig,
+  ) {
     super();
     this.serviceNowClient = serviceNowClient;
     this.config = config;
@@ -504,24 +611,36 @@ export class ConsolidatedBusinessLogicService extends EventEmitter {
     this.setupEventListeners();
   }
 
-  static getInstance(serviceNowClient?: ServiceNowAuthClient, config?: BusinessLogicConfig): ConsolidatedBusinessLogicService {
-    if (!ConsolidatedBusinessLogicService.instance && serviceNowClient && config) {
-      ConsolidatedBusinessLogicService.instance = new ConsolidatedBusinessLogicService(serviceNowClient, config);
+  static getInstance(
+    serviceNowClient?: ServiceNowAuthClient,
+    config?: BusinessLogicConfig,
+  ): ConsolidatedBusinessLogicService {
+    if (
+      !ConsolidatedBusinessLogicService.instance &&
+      serviceNowClient &&
+      config
+    ) {
+      ConsolidatedBusinessLogicService.instance =
+        new ConsolidatedBusinessLogicService(serviceNowClient, config);
     }
     return ConsolidatedBusinessLogicService.instance;
   }
 
   private setupEventListeners(): void {
     // SLA events
-    this.slaManager.on('slaBreach', (event) => {
-      logger.warn(`🚨 [BusinessLogic] SLA breach detected: ${event.slaDoc.ticket_number}`);
-      this.emit('slaBreach', event);
+    this.slaManager.on("slaBreach", (event) => {
+      logger.warn(
+        `🚨 [BusinessLogic] SLA breach detected: ${event.slaDoc.ticket_number}`,
+      );
+      this.emit("slaBreach", event);
     });
 
     // Business rules events
-    this.rulesEngine.on('ruleExecuted', (event) => {
-      logger.info(` [BusinessLogic] Business rule executed: ${event.rule.name}`);
-      this.emit('ruleExecuted', event);
+    this.rulesEngine.on("ruleExecuted", (event) => {
+      logger.info(
+        ` [BusinessLogic] Business rule executed: ${event.rule.name}`,
+      );
+      this.emit("ruleExecuted", event);
     });
   }
 
@@ -529,7 +648,9 @@ export class ConsolidatedBusinessLogicService extends EventEmitter {
     if (this.isInitialized) return;
 
     try {
-      logger.info(' [BusinessLogic] Initializing Consolidated Business Logic Service...');
+      logger.info(
+        " [BusinessLogic] Initializing Consolidated Business Logic Service...",
+      );
 
       // Initialize all components
       await this.dataCore.initialize();
@@ -539,17 +660,22 @@ export class ConsolidatedBusinessLogicService extends EventEmitter {
       await this.slaManager.start();
 
       this.isInitialized = true;
-      logger.info(' [BusinessLogic] Consolidated Business Logic Service initialized');
-      this.emit('initialized');
+      logger.info(
+        " [BusinessLogic] Consolidated Business Logic Service initialized",
+      );
+      this.emit("initialized");
     } catch (error) {
-      logger.error(' [BusinessLogic] Initialization failed:', error);
+      logger.error(" [BusinessLogic] Initialization failed:", error);
       throw error;
     }
   }
 
   // ==================== TICKET OPERATIONS ====================
 
-  async getTicketDetails(sysId: string, table: string): Promise<TicketData | null> {
+  async getTicketDetails(
+    sysId: string,
+    table: string,
+  ): Promise<TicketData | null> {
     return this.queryService.getTicketDetails(sysId, table);
   }
 
@@ -579,15 +705,23 @@ export class ConsolidatedBusinessLogicService extends EventEmitter {
     const slaDoc = await this.slaManager.createSLAForTicket(ticket);
 
     // Apply business rules for new ticket
-    await this.rulesEngine.evaluateRules(ticket, 'created');
+    await this.rulesEngine.evaluateRules(ticket, "created");
 
     return slaDoc;
   }
 
-  async updateTicketSLA(ticketId: string, status: 'active' | 'resolved' | 'breached', resolutionTime?: number): Promise<void> {
+  async updateTicketSLA(
+    ticketId: string,
+    status: "active" | "resolved" | "breached",
+    resolutionTime?: number,
+  ): Promise<void> {
     const slaDoc = this.slaManager.getSLAForTicket(ticketId);
     if (slaDoc) {
-      await this.slaManager.updateSLAStatus(slaDoc.sys_id, status, resolutionTime);
+      await this.slaManager.updateSLAStatus(
+        slaDoc.sys_id,
+        status,
+        resolutionTime,
+      );
     }
   }
 
@@ -601,13 +735,16 @@ export class ConsolidatedBusinessLogicService extends EventEmitter {
 
   // ==================== BUSINESS RULES ====================
 
-  async processTicketEvent(ticket: TicketData, event: 'created' | 'updated' | 'assigned'): Promise<void> {
+  async processTicketEvent(
+    ticket: TicketData,
+    event: "created" | "updated" | "assigned",
+  ): Promise<void> {
     await this.rulesEngine.evaluateRules(ticket, event);
 
     // Update SLA if ticket is updated
-    if (event === 'updated' && ['6', '7'].includes(ticket.state)) {
+    if (event === "updated" && ["6", "7"].includes(ticket.state)) {
       const resolutionTime = this.calculateResolutionTime(ticket);
-      await this.updateTicketSLA(ticket.sys_id, 'resolved', resolutionTime);
+      await this.updateTicketSLA(ticket.sys_id, "resolved", resolutionTime);
     }
   }
 
@@ -640,21 +777,24 @@ export class ConsolidatedBusinessLogicService extends EventEmitter {
     try {
       const [ticketStats, slaMetrics] = await Promise.all([
         this.getStats(),
-        this.getSLAMetrics()
+        this.getSLAMetrics(),
       ]);
 
       return {
         tickets: ticketStats,
         sla: slaMetrics,
         business_logic: {
-          rules_count: this.rulesEngine['rules'].size,
-          rules_enabled: this.rulesEngine['isEnabled'],
-          sla_manager_running: this.slaManager['isRunning']
+          rules_count: this.rulesEngine["rules"].size,
+          rules_enabled: this.rulesEngine["isEnabled"],
+          sla_manager_running: this.slaManager["isRunning"],
         },
-        is_initialized: this.isInitialized
+        is_initialized: this.isInitialized,
       };
     } catch (error) {
-      logger.error(' [BusinessLogic] Failed to get comprehensive stats:', error);
+      logger.error(
+        " [BusinessLogic] Failed to get comprehensive stats:",
+        error,
+      );
       return {};
     }
   }
@@ -664,12 +804,12 @@ export class ConsolidatedBusinessLogicService extends EventEmitter {
       if (!this.isInitialized) return false;
 
       // Check if all components are functioning
-      const slaRunning = this.slaManager['isRunning'];
+      const slaRunning = this.slaManager["isRunning"];
       const dataStatsAvailable = await this.dataCore.getStats();
 
       return slaRunning && !!dataStatsAvailable;
     } catch (error) {
-      logger.error(' [BusinessLogic] Health check failed:', error);
+      logger.error(" [BusinessLogic] Health check failed:", error);
       return false;
     }
   }
@@ -684,18 +824,22 @@ export class ConsolidatedBusinessLogicService extends EventEmitter {
       }
 
       this.isInitialized = false;
-      logger.info('🧹 [BusinessLogic] Cleanup completed');
+      logger.info("🧹 [BusinessLogic] Cleanup completed");
     } catch (error) {
-      logger.error(' [BusinessLogic] Cleanup failed:', error);
+      logger.error(" [BusinessLogic] Cleanup failed:", error);
       throw error;
     }
   }
 }
 
 // Export factory function for dependency injection
-export const createBusinessLogicService = (serviceNowClient: ServiceNowAuthClient, config: BusinessLogicConfig) => {
+export const createBusinessLogicService = (
+  serviceNowClient: ServiceNowAuthClient,
+  config: BusinessLogicConfig,
+) => {
   return ConsolidatedBusinessLogicService.getInstance(serviceNowClient, config);
 };
 
 // Export singleton for global use (will be initialized by main service)
-export const businessLogicService = ConsolidatedBusinessLogicService.getInstance();
+export const businessLogicService =
+  ConsolidatedBusinessLogicService.getInstance();

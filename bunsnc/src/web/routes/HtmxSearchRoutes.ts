@@ -3,21 +3,21 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { Elysia, t } from 'elysia';
-import { html } from '@elysiajs/html';
-import { htmx } from '@gtramontina.com/elysia-htmx';
-import { serviceNowAuthClient } from '../../services/ServiceNowAuthClient';
+import { Elysia, t } from "elysia";
+import { html } from "@elysiajs/html";
+import { htmx } from "@gtramontina.com/elysia-htmx";
+import { serviceNowAuthClient } from "../../services/ServiceNowAuthClient";
 
 export const htmxSearchRoutes = new Elysia()
   .use(html())
   .use(htmx())
-  
+
   /**
    * Search tickets by number or keywords
    */
-  .get('/search', async ({ query }) => {
+  .get("/search", async ({ query }) => {
     const { query: searchQuery, table, state, priority } = query as any;
-    
+
     if (!searchQuery || searchQuery.trim().length < 2) {
       return `
         <div class="text-center text-gray-500 py-8">
@@ -29,69 +29,83 @@ export const htmxSearchRoutes = new Elysia()
     try {
       let results = [];
       const searchTerm = searchQuery.trim();
-      
+
       // Se é um número de ticket específico
       if (/^(INC|CHG|RITM|REQ|STASK|CTASK)\d{7}$/i.test(searchTerm)) {
-        let tableName = 'incident';
-        if (searchTerm.toUpperCase().startsWith('CHG')) {
-          tableName = 'change_request';
-        } else if (searchTerm.toUpperCase().startsWith('RITM')) {
-          tableName = 'sc_req_item';
-        } else if (searchTerm.toUpperCase().startsWith('REQ')) {
-          tableName = 'sc_request';
-        } else if (searchTerm.toUpperCase().startsWith('STASK')) {
-          tableName = 'sc_task';
-        } else if (searchTerm.toUpperCase().startsWith('CTASK')) {
-          tableName = 'change_task';
+        let tableName = "incident";
+        if (searchTerm.toUpperCase().startsWith("CHG")) {
+          tableName = "change_request";
+        } else if (searchTerm.toUpperCase().startsWith("RITM")) {
+          tableName = "sc_req_item";
+        } else if (searchTerm.toUpperCase().startsWith("REQ")) {
+          tableName = "sc_request";
+        } else if (searchTerm.toUpperCase().startsWith("STASK")) {
+          tableName = "sc_task";
+        } else if (searchTerm.toUpperCase().startsWith("CTASK")) {
+          tableName = "change_task";
         }
-        
+
         const response = await serviceNowAuthClient.makeRequest(
           tableName,
           `number=${searchTerm}`,
           1,
           {
-            sysparm_fields: 'sys_id,number,short_description,description,state,priority,assignment_group,assigned_to,sys_created_on,sys_updated_on'
-          }
+            sysparm_fields:
+              "sys_id,number,short_description,description,state,priority,assignment_group,assigned_to,sys_created_on,sys_updated_on",
+          },
         );
 
         if (response.result && response.result.length > 0) {
-          results.push(...response.result.map(ticket => ({
-            ...ticket,
-            table: tableName
-          })));
+          results.push(
+            ...response.result.map((ticket) => ({
+              ...ticket,
+              table: tableName,
+            })),
+          );
         }
       } else {
         // Busca por palavras-chave em múltiplas tabelas
-        const tables = table ? [table] : ['incident', 'change_request', 'sc_req_item', 'sc_task', 'change_task'];
-        
+        const tables = table
+          ? [table]
+          : [
+              "incident",
+              "change_request",
+              "sc_req_item",
+              "sc_task",
+              "change_task",
+            ];
+
         for (const tableName of tables) {
           try {
             const searchFilter = `short_descriptionLIKE${searchTerm}^ORdescriptionLIKE${searchTerm}`;
-            const stateFilter = state ? `^state=${state}` : '';
-            const priorityFilter = priority ? `^priority=${priority}` : '';
+            const stateFilter = state ? `^state=${state}` : "";
+            const priorityFilter = priority ? `^priority=${priority}` : "";
             const combinedFilter = `${searchFilter}${stateFilter}${priorityFilter}`;
-            
+
             const response = await serviceNowAuthClient.makeRequest(
               tableName,
               combinedFilter,
               10,
               {
-                sysparm_fields: 'sys_id,number,short_description,description,state,priority,assignment_group,assigned_to,sys_created_on,sys_updated_on'
-              }
+                sysparm_fields:
+                  "sys_id,number,short_description,description,state,priority,assignment_group,assigned_to,sys_created_on,sys_updated_on",
+              },
             );
 
             if (response.result && response.result.length > 0) {
-              results.push(...response.result.map(ticket => ({
-                ...ticket,
-                table: tableName
-              })));
+              results.push(
+                ...response.result.map((ticket) => ({
+                  ...ticket,
+                  table: tableName,
+                })),
+              );
             }
           } catch (error) {
             console.error(`Error searching ${tableName}:`, error);
           }
         }
       }
-      
+
       if (results.length === 0) {
         return `
           <div class="text-center text-gray-500 py-8">
@@ -99,10 +113,12 @@ export const htmxSearchRoutes = new Elysia()
           </div>
         `;
       }
-      
+
       return `
         <div class="space-y-4">
-          ${results.map(ticket => `
+          ${results
+            .map(
+              (ticket) => `
             <div class="ticket-card rounded-lg p-4 cursor-pointer transition-all duration-300 hover:shadow-lg" 
                  hx-get="/htmx/ticket/${ticket.sys_id}/${ticket.table}" 
                  hx-target="#ticket-modal .modal-content" 
@@ -115,16 +131,18 @@ export const htmxSearchRoutes = new Elysia()
                 </div>
                 <div class="flex space-x-2">
                   <span class="status-badge ${getStatusClass(ticket.state)}">${getStatusLabel(ticket.state)}</span>
-                  <span class="priority-badge ${getPriorityClass(ticket.priority)}">P${ticket.priority || 'N/A'}</span>
+                  <span class="priority-badge ${getPriorityClass(ticket.priority)}">P${ticket.priority || "N/A"}</span>
                 </div>
               </div>
-              <p class="text-sm text-gray-400 mb-2">${ticket.short_description || 'Sem descrição'}</p>
+              <p class="text-sm text-gray-400 mb-2">${ticket.short_description || "Sem descrição"}</p>
               <div class="flex justify-between text-xs text-gray-500">
-                <span>Atribuído: ${ticket.assigned_to || 'Não atribuído'}</span>
-                <span>Criado: ${new Date(ticket.sys_created_on).toLocaleDateString('pt-BR')}</span>
+                <span>Atribuído: ${ticket.assigned_to || "Não atribuído"}</span>
+                <span>Criado: ${new Date(ticket.sys_created_on).toLocaleDateString("pt-BR")}</span>
               </div>
             </div>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </div>
         
         <script>
@@ -169,7 +187,7 @@ export const htmxSearchRoutes = new Elysia()
         </script>
       `;
     } catch (error) {
-      console.error('Search error:', error);
+      console.error("Search error:", error);
       return `
         <div class="text-center text-red-500 py-8">
           <p>Erro ao buscar tickets. Tente novamente.</p>
@@ -181,7 +199,7 @@ export const htmxSearchRoutes = new Elysia()
   /**
    * Search form component
    */
-  .get('/search-form', () => {
+  .get("/search-form", () => {
     return `
       <div class="bg-white rounded-lg shadow-sm border p-6 mb-6" x-data="searchComponent">
         <div class="flex flex-col md:flex-row gap-4">
@@ -354,26 +372,26 @@ export const htmxSearchRoutes = new Elysia()
 // Helper functions
 function getStatusClass(state: string): string {
   const classes: Record<string, string> = {
-    '1': 'status-1',
-    '2': 'status-2', 
-    '3': 'status-3',
-    '6': 'status-6',
-    '7': 'status-7',
-    '8': 'status-8'
+    "1": "status-1",
+    "2": "status-2",
+    "3": "status-3",
+    "6": "status-6",
+    "7": "status-7",
+    "8": "status-8",
   };
-  return classes[state] || 'status-badge';
+  return classes[state] || "status-badge";
 }
 
 function getStatusLabel(state: string): string {
   const states: Record<string, string> = {
-    '1': 'Novo',
-    '2': 'Em Andamento',
-    '3': 'Trabalho em Progresso', 
-    '6': 'Resolvido',
-    '7': 'Fechado',
-    '8': 'Cancelado'
+    "1": "Novo",
+    "2": "Em Andamento",
+    "3": "Trabalho em Progresso",
+    "6": "Resolvido",
+    "7": "Fechado",
+    "8": "Cancelado",
   };
-  return states[state] || 'Desconhecido';
+  return states[state] || "Desconhecido";
 }
 
 function getPriorityClass(priority: string): string {
@@ -382,11 +400,11 @@ function getPriorityClass(priority: string): string {
 
 function getTableLabel(table: string): string {
   const labels: Record<string, string> = {
-    'incident': 'Incidente',
-    'change_request': 'Mudança',
-    'sc_req_item': 'Item Solicitação',
-    'sc_task': 'Tarefa Solicitação',
-    'change_task': 'Tarefa Mudança'
+    incident: "Incidente",
+    change_request: "Mudança",
+    sc_req_item: "Item Solicitação",
+    sc_task: "Tarefa Solicitação",
+    change_task: "Tarefa Mudança",
   };
   return labels[table] || table;
 }

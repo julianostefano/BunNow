@@ -3,9 +3,9 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { ServiceNowClient } from '../client/ServiceNowClient';
-import { ticketService } from '../services';
-import { WebServerConfig } from './WebServerController';
+import { ServiceNowClient } from "../client/ServiceNowClient";
+import { ticketService } from "../services";
+import { WebServerConfig } from "./WebServerController";
 
 // Response interfaces
 interface SyncResponse {
@@ -61,10 +61,7 @@ export class APIController {
   private ticketIntegrationService: typeof ticketService;
   private config: WebServerConfig;
 
-  constructor(
-    serviceNowClient: ServiceNowClient,
-    config: WebServerConfig
-  ) {
+  constructor(serviceNowClient: ServiceNowClient, config: WebServerConfig) {
     this.serviceNowClient = serviceNowClient;
     this.ticketIntegrationService = ticketService;
     this.config = config;
@@ -72,22 +69,22 @@ export class APIController {
 
   public async getIncidents() {
     try {
-      const gr = this.serviceNowClient.getGlideRecord('incident');
-      gr.addQuery('state', '!=', '6');
+      const gr = this.serviceNowClient.getGlideRecord("incident");
+      gr.addQuery("state", "!=", "6");
       gr.query();
-      
+
       const incidents = [];
       while (gr.next()) {
         incidents.push({
-          sys_id: gr.getValue('sys_id'),
-          number: gr.getValue('number'),
-          short_description: gr.getValue('short_description'),
-          priority: gr.getValue('priority'),
-          state: gr.getValue('state'),
-          sys_created_on: gr.getValue('sys_created_on'),
+          sys_id: gr.getValue("sys_id"),
+          number: gr.getValue("number"),
+          short_description: gr.getValue("short_description"),
+          priority: gr.getValue("priority"),
+          state: gr.getValue("state"),
+          sys_created_on: gr.getValue("sys_created_on"),
         });
       }
-      
+
       return { incidents, count: incidents.length };
     } catch (error) {
       throw new Error(`Failed to fetch incidents: ${error.message}`);
@@ -96,22 +93,22 @@ export class APIController {
 
   public async getProblems() {
     try {
-      const gr = this.serviceNowClient.getGlideRecord('problem');
-      gr.addQuery('state', '!=', '6');
+      const gr = this.serviceNowClient.getGlideRecord("problem");
+      gr.addQuery("state", "!=", "6");
       gr.query();
-      
+
       const problems = [];
       while (gr.next()) {
         problems.push({
-          sys_id: gr.getValue('sys_id'),
-          number: gr.getValue('number'),
-          short_description: gr.getValue('short_description'),
-          priority: gr.getValue('priority'),
-          state: gr.getValue('state'),
-          sys_created_on: gr.getValue('sys_created_on'),
+          sys_id: gr.getValue("sys_id"),
+          number: gr.getValue("number"),
+          short_description: gr.getValue("short_description"),
+          priority: gr.getValue("priority"),
+          state: gr.getValue("state"),
+          sys_created_on: gr.getValue("sys_created_on"),
         });
       }
-      
+
       return { problems, count: problems.length };
     } catch (error) {
       throw new Error(`Failed to fetch problems: ${error.message}`);
@@ -120,22 +117,22 @@ export class APIController {
 
   public async getChanges() {
     try {
-      const gr = this.serviceNowClient.getGlideRecord('change_request');
-      gr.addQuery('state', 'IN', '1,2,3');
+      const gr = this.serviceNowClient.getGlideRecord("change_request");
+      gr.addQuery("state", "IN", "1,2,3");
       gr.query();
-      
+
       const changes = [];
       while (gr.next()) {
         changes.push({
-          sys_id: gr.getValue('sys_id'),
-          number: gr.getValue('number'),
-          short_description: gr.getValue('short_description'),
-          priority: gr.getValue('priority'),
-          state: gr.getValue('state'),
-          sys_created_on: gr.getValue('sys_created_on'),
+          sys_id: gr.getValue("sys_id"),
+          number: gr.getValue("number"),
+          short_description: gr.getValue("short_description"),
+          priority: gr.getValue("priority"),
+          state: gr.getValue("state"),
+          sys_created_on: gr.getValue("sys_created_on"),
         });
       }
-      
+
       return { changes, count: changes.length };
     } catch (error) {
       throw new Error(`Failed to fetch changes: ${error.message}`);
@@ -146,16 +143,18 @@ export class APIController {
     try {
       const gr = this.serviceNowClient.getGlideRecord(tableName);
       gr.query();
-      
+
       const outputPath = `${this.config.parquet.outputPath}/${tableName}_${Date.now()}.parquet`;
-      
+
       return {
         success: true,
         message: `Processing ${tableName} to Parquet format - functionality temporarily disabled`,
         outputPath,
       };
     } catch (error) {
-      throw new Error(`Failed to process ${tableName} to Parquet: ${error.message}`);
+      throw new Error(
+        `Failed to process ${tableName} to Parquet: ${error.message}`,
+      );
     }
   }
 
@@ -179,7 +178,7 @@ export class APIController {
         this.getOpenProblemCount(),
         this.getPendingChangeCount(),
       ]);
-      
+
       return `
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div class="text-center">
@@ -223,57 +222,64 @@ export class APIController {
 
   public async syncCurrentMonthTickets(): Promise<SyncResponse> {
     try {
-      console.log(' Starting sync of current month tickets to MongoDB...');
-      const result = await this.ticketIntegrationService.syncCurrentMonthTickets();
-      
+      console.log(" Starting sync of current month tickets to MongoDB...");
+      const result =
+        await this.ticketIntegrationService.syncCurrentMonthTickets();
+
       if (result.success) {
-        console.log(' MongoDB sync completed successfully:', result.stats);
+        console.log(" MongoDB sync completed successfully:", result.stats);
         return {
           success: true,
-          message: 'Current month tickets synced successfully',
+          message: "Current month tickets synced successfully",
           stats: result.stats,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
       } else {
-        console.error(' MongoDB sync failed');
+        console.error(" MongoDB sync failed");
         return {
           success: false,
-          message: 'Failed to sync tickets to MongoDB',
-          timestamp: new Date().toISOString()
+          message: "Failed to sync tickets to MongoDB",
+          timestamp: new Date().toISOString(),
         };
       }
     } catch (error) {
-      console.error(' Error during MongoDB sync:', error);
+      console.error(" Error during MongoDB sync:", error);
       return {
         success: false,
         message: `Error during sync: ${error.message}`,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     }
   }
 
-  public async getTicketsFromMongoDB(ticketType: string, query: TicketQueryOptions = {}): Promise<Record<string, unknown>[]> {
+  public async getTicketsFromMongoDB(
+    ticketType: string,
+    query: TicketQueryOptions = {},
+  ): Promise<Record<string, unknown>[]> {
     try {
-      if (!['incident', 'change_task', 'sc_task'].includes(ticketType)) {
-        throw new Error(`Invalid ticket type: ${ticketType}. Must be incident, change_task, or sc_task`);
+      if (!["incident", "change_task", "sc_task"].includes(ticketType)) {
+        throw new Error(
+          `Invalid ticket type: ${ticketType}. Must be incident, change_task, or sc_task`,
+        );
       }
 
       const filter = {};
       if (query.state) filter.state = query.state;
       if (query.group) filter.assignment_group = query.group;
-      
+
       const limit = parseInt(query.limit) || 50;
-      
+
       const tickets = await this.ticketIntegrationService.getTicketsFromMongoDB(
-        ticketType as 'incident' | 'change_task' | 'sc_task',
+        ticketType as "incident" | "change_task" | "sc_task",
         filter,
-        limit
+        limit,
       );
 
-      const count = await this.ticketIntegrationService.getTicketCountFromMongoDB(
-        ticketType as 'incident' | 'change_task' | 'sc_task',
-        filter
-      );
+      const count =
+        await this.ticketIntegrationService.getTicketCountFromMongoDB(
+          ticketType as "incident" | "change_task" | "sc_task",
+          filter,
+        );
 
       return {
         success: true,
@@ -281,14 +287,14 @@ export class APIController {
         count,
         ticketType,
         filter,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     } catch (error) {
       console.error(` Error getting ${ticketType} from MongoDB:`, error);
       return {
         success: false,
         message: `Error getting ${ticketType}: ${error.message}`,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     }
   }
@@ -299,14 +305,14 @@ export class APIController {
       return {
         success: true,
         stats,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      console.error(' Error getting MongoDB stats:', error);
+      console.error(" Error getting MongoDB stats:", error);
       return {
         success: false,
         message: `Error getting stats: ${error.message}`,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     }
   }
@@ -318,14 +324,14 @@ export class APIController {
         success: true,
         groups,
         count: groups.length,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      console.error(' Error getting target groups:', error);
+      console.error(" Error getting target groups:", error);
       return {
         success: false,
         message: `Error getting groups: ${error.message}`,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     }
   }
@@ -333,27 +339,53 @@ export class APIController {
   public getStatusConfig(ticketType: string, state: string) {
     const statusMappings = {
       incident: {
-        '1': { label: 'Novo', color: 'text-blue-700', bgColor: 'bg-blue-100' },
-        '2': { label: 'Em Andamento', color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
-        '18': { label: 'Designado', color: 'text-indigo-700', bgColor: 'bg-indigo-100' },
-        '3': { label: 'Em Espera', color: 'text-gray-700', bgColor: 'bg-gray-100' },
-        '6': { label: 'Resolvido', color: 'text-green-700', bgColor: 'bg-green-100' },
-        '7': { label: 'Fechado', color: 'text-green-800', bgColor: 'bg-green-200' },
-        '8': { label: 'Cancelado', color: 'text-red-700', bgColor: 'bg-red-100' }
+        "1": { label: "Novo", color: "text-blue-700", bgColor: "bg-blue-100" },
+        "2": {
+          label: "Em Andamento",
+          color: "text-yellow-700",
+          bgColor: "bg-yellow-100",
+        },
+        "18": {
+          label: "Designado",
+          color: "text-indigo-700",
+          bgColor: "bg-indigo-100",
+        },
+        "3": {
+          label: "Em Espera",
+          color: "text-gray-700",
+          bgColor: "bg-gray-100",
+        },
+        "6": {
+          label: "Resolvido",
+          color: "text-green-700",
+          bgColor: "bg-green-100",
+        },
+        "7": {
+          label: "Fechado",
+          color: "text-green-800",
+          bgColor: "bg-green-200",
+        },
+        "8": {
+          label: "Cancelado",
+          color: "text-red-700",
+          bgColor: "bg-red-100",
+        },
+      },
+    };
+
+    return (
+      statusMappings[ticketType]?.[state] || {
+        label: `Status ${state}`,
+        color: "text-gray-600",
+        bgColor: "bg-gray-100",
       }
-    };
-    
-    return statusMappings[ticketType]?.[state] || { 
-      label: `Status ${state}`, 
-      color: 'text-gray-600', 
-      bgColor: 'bg-gray-100' 
-    };
+    );
   }
 
   // Helper methods for counts
   public async getActiveIncidentCount(): Promise<number> {
-    const gr = this.serviceNowClient.getGlideRecord('incident');
-    gr.addQuery('state', '!=', '6');
+    const gr = this.serviceNowClient.getGlideRecord("incident");
+    gr.addQuery("state", "!=", "6");
     gr.query();
     let count = 0;
     while (gr.next()) count++;
@@ -361,8 +393,8 @@ export class APIController {
   }
 
   public async getOpenProblemCount(): Promise<number> {
-    const gr = this.serviceNowClient.getGlideRecord('problem');
-    gr.addQuery('state', '!=', '6');
+    const gr = this.serviceNowClient.getGlideRecord("problem");
+    gr.addQuery("state", "!=", "6");
     gr.query();
     let count = 0;
     while (gr.next()) count++;
@@ -370,8 +402,8 @@ export class APIController {
   }
 
   public async getPendingChangeCount(): Promise<number> {
-    const gr = this.serviceNowClient.getGlideRecord('change_request');
-    gr.addQuery('state', 'IN', '1,2,3');
+    const gr = this.serviceNowClient.getGlideRecord("change_request");
+    gr.addQuery("state", "IN", "1,2,3");
     gr.query();
     let count = 0;
     while (gr.next()) count++;
@@ -379,6 +411,6 @@ export class APIController {
   }
 
   public async getProcessingStatus(): Promise<string> {
-    return 'Idle';
+    return "Idle";
   }
 }

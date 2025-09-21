@@ -8,90 +8,93 @@
 export {
   SystemService,
   createSystemService,
-  systemService
-} from './SystemService';
+  systemService,
+} from "./SystemService";
 
 // === 2. CONSOLIDATED SERVICENOW SERVICE - Complete ServiceNow Operations ===
 export {
   ConsolidatedServiceNowService,
-  consolidatedServiceNowService
-} from './ConsolidatedServiceNowService';
+  consolidatedServiceNowService,
+} from "./ConsolidatedServiceNowService";
 
 // === 3. CONSOLIDATED DATA SERVICE - Unified Data Management ===
 export {
   ConsolidatedDataService,
   createDataService,
-  dataService
-} from './ConsolidatedDataService';
+  dataService,
+} from "./ConsolidatedDataService";
 
 // === 4. CONSOLIDATED BUSINESS LOGIC SERVICE - Business Rules Engine ===
 export {
   ConsolidatedBusinessLogicService,
   createBusinessLogicService,
-  businessLogicService
-} from './ConsolidatedBusinessLogicService';
+  businessLogicService,
+} from "./ConsolidatedBusinessLogicService";
 
 // === 5. UNIFIED STREAMING SERVICE - Real-time Communication ===
 export {
   UnifiedStreamingService,
-  unifiedStreamingService
-} from './UnifiedStreamingService';
+  unifiedStreamingService,
+} from "./UnifiedStreamingService";
 
 // === ADDITIONAL EXPORTS ===
 
 // Auth Client (maintained for backward compatibility)
-export { ServiceNowAuthClient } from './ServiceNowAuthClient';
-export { serviceNowAuthClient } from './ServiceNowAuthClient';
+export { ServiceNowAuthClient } from "./ServiceNowAuthClient";
+export { serviceNowAuthClient } from "./ServiceNowAuthClient";
 
 // Rate Limiter (utility service)
-export { ServiceNowRateLimiter, serviceNowRateLimiter } from './ServiceNowRateLimit';
+export {
+  ServiceNowRateLimiter,
+  serviceNowRateLimiter,
+} from "./ServiceNowRateLimit";
 
 // === TYPE EXPORTS ===
 export type {
   SystemConfig,
   SystemHealthStatus,
-  PerformanceMetric
-} from './SystemService';
+  PerformanceMetric,
+} from "./SystemService";
 
 export type {
   ServiceNowRecord,
   QueryOptions,
   AttachmentUploadRequest,
   AttachmentInfo,
-  BatchOperation
-} from './ConsolidatedServiceNowService';
+  BatchOperation,
+} from "./ConsolidatedServiceNowService";
 
 export type {
   CacheStats,
   DataFreshnessStrategy,
-  DataServiceConfig
-} from './ConsolidatedDataService';
+  DataServiceConfig,
+} from "./ConsolidatedDataService";
 
 export type {
   SLABreachInfo,
   BusinessRule,
-  WorkflowContext
-} from './ConsolidatedBusinessLogicService';
+  WorkflowContext,
+} from "./ConsolidatedBusinessLogicService";
 
 export type {
   StreamConnection,
   UnifiedStreamEvent,
-  StreamingConfig
-} from './UnifiedStreamingService';
+  StreamingConfig,
+} from "./UnifiedStreamingService";
 
 // === LEGACY COMPATIBILITY ===
 // Re-export consolidated services with legacy names for smooth migration
-export { systemService as performanceMonitoringService } from './SystemService';
-export { systemService as taskManager } from './SystemService';
-export { systemService as groupService } from './SystemService';
-export { consolidatedServiceNowService as attachmentService } from './ConsolidatedServiceNowService';
-export { consolidatedServiceNowService as batchService } from './ConsolidatedServiceNowService';
-export { consolidatedServiceNowService as serviceNowService } from './ConsolidatedServiceNowService';
-export { serviceNowAuthClient as authService } from './ServiceNowAuthClient';
-export { dataService as enhancedTicketStorageService } from './ConsolidatedDataService';
-export { dataService as hybridDataService } from './ConsolidatedDataService';
-export { businessLogicService as slaTrackingService } from './ConsolidatedBusinessLogicService';
-export { consolidatedServiceNowService as ticketService } from './ConsolidatedServiceNowService';
+export { systemService as performanceMonitoringService } from "./SystemService";
+export { systemService as taskManager } from "./SystemService";
+export { systemService as groupService } from "./SystemService";
+export { consolidatedServiceNowService as attachmentService } from "./ConsolidatedServiceNowService";
+export { consolidatedServiceNowService as batchService } from "./ConsolidatedServiceNowService";
+export { consolidatedServiceNowService as serviceNowService } from "./ConsolidatedServiceNowService";
+export { serviceNowAuthClient as authService } from "./ServiceNowAuthClient";
+export { dataService as enhancedTicketStorageService } from "./ConsolidatedDataService";
+export { dataService as hybridDataService } from "./ConsolidatedDataService";
+export { businessLogicService as slaTrackingService } from "./ConsolidatedBusinessLogicService";
+export { consolidatedServiceNowService as ticketService } from "./ConsolidatedServiceNowService";
 
 /**
  * CONSOLIDATED ARCHITECTURE SUMMARY

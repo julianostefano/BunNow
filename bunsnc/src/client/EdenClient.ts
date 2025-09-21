@@ -4,7 +4,7 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { treaty } from '@elysiajs/eden';
+import { treaty } from "@elysiajs/eden";
 
 // Client configuration interface
 export interface ClientConfig {
@@ -19,12 +19,14 @@ export interface ClientConfig {
 }
 
 // Default configuration
-const DEFAULT_CONFIG: Required<Omit<ClientConfig, 'auth'>> & { auth?: ClientConfig['auth'] } = {
-  baseUrl: 'http://localhost:3008',
+const DEFAULT_CONFIG: Required<Omit<ClientConfig, "auth">> & {
+  auth?: ClientConfig["auth"];
+} = {
+  baseUrl: "http://localhost:3008",
   timeout: 30000,
   headers: {
-    'Content-Type': 'application/json',
-    'User-Agent': 'BunSNC-Client/1.0.0',
+    "Content-Type": "application/json",
+    "User-Agent": "BunSNC-Client/1.0.0",
   },
 };
 
@@ -33,21 +35,26 @@ const DEFAULT_CONFIG: Required<Omit<ClientConfig, 'auth'>> & { auth?: ClientConf
  */
 export class BunSNCClient {
   private client: ReturnType<typeof treaty>;
-  private config: Required<Omit<ClientConfig, 'auth'>> & { auth?: ClientConfig['auth'] };
+  private config: Required<Omit<ClientConfig, "auth">> & {
+    auth?: ClientConfig["auth"];
+  };
 
   constructor(config: ClientConfig = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
-    
+
     // Initialize Eden Treaty client
     this.client = treaty(this.config.baseUrl, {
       fetch: {
         timeout: this.config.timeout,
         headers: {
           ...this.config.headers,
-          ...(this.config.auth?.token && { Authorization: `Bearer ${this.config.auth.token}` }),
-          ...(this.config.auth?.username && this.config.auth?.password && {
-            Authorization: `Basic ${btoa(`${this.config.auth.username}:${this.config.auth.password}`)}`
+          ...(this.config.auth?.token && {
+            Authorization: `Bearer ${this.config.auth.token}`,
           }),
+          ...(this.config.auth?.username &&
+            this.config.auth?.password && {
+              Authorization: `Basic ${btoa(`${this.config.auth.username}:${this.config.auth.password}`)}`,
+            }),
         },
       },
     });
@@ -58,17 +65,20 @@ export class BunSNCClient {
    */
   updateConfig(newConfig: Partial<ClientConfig>): void {
     this.config = { ...this.config, ...newConfig };
-    
+
     // Reinitialize client with new config
     this.client = treaty(this.config.baseUrl, {
       fetch: {
         timeout: this.config.timeout,
         headers: {
           ...this.config.headers,
-          ...(this.config.auth?.token && { Authorization: `Bearer ${this.config.auth.token}` }),
-          ...(this.config.auth?.username && this.config.auth?.password && {
-            Authorization: `Basic ${btoa(`${this.config.auth.username}:${this.config.auth.password}`)}`
+          ...(this.config.auth?.token && {
+            Authorization: `Bearer ${this.config.auth.token}`,
           }),
+          ...(this.config.auth?.username &&
+            this.config.auth?.password && {
+              Authorization: `Basic ${btoa(`${this.config.auth.username}:${this.config.auth.password}`)}`,
+            }),
         },
       },
     });
@@ -123,7 +133,9 @@ export class BunSNCClient {
    * Get incident hourly trends
    */
   async getIncidentTrends(days?: string) {
-    return await this.client.api.incidents.trends.hourly.get({ query: { days } });
+    return await this.client.api.incidents.trends.hourly.get({
+      query: { days },
+    });
   }
 
   /**
@@ -256,7 +268,9 @@ export class BunSNCClient {
    * Enable or disable a scheduled task
    */
   async setScheduledTaskEnabled(id: string, enabled: boolean) {
-    return await this.client.api.v1.tasks.scheduled({ id }).enable.post({ enabled });
+    return await this.client.api.v1.tasks
+      .scheduled({ id })
+      .enable.post({ enabled });
   }
 
   // ============================================================================
@@ -300,10 +314,7 @@ export class BunSNCClient {
   /**
    * Refresh cache
    */
-  async refreshCache(options?: {
-    keys?: string[];
-    priority?: string;
-  }) {
+  async refreshCache(options?: { keys?: string[]; priority?: string }) {
     return await this.client.api.v1.tasks.cache.refresh.post(options || {});
   }
 
@@ -336,7 +347,9 @@ export class BunSNCClient {
    * Get trend data for specific type
    */
   async getTrendData(type: string, days?: string) {
-    return await this.client.api.v1.analytics.trends({ type }).get({ query: { days } });
+    return await this.client.api.v1.analytics
+      .trends({ type })
+      .get({ query: { days } });
   }
 
   // ============================================================================
@@ -369,7 +382,7 @@ export class BunSNCClient {
       const response = await this.getHealth();
       return response.data?.healthy === true;
     } catch (error) {
-      console.error('Connection test failed:', error);
+      console.error("Connection test failed:", error);
       return false;
     }
   }
@@ -378,38 +391,42 @@ export class BunSNCClient {
    * Wait for task completion
    */
   async waitForTaskCompletion(
-    taskId: string, 
-    options: { 
-      timeout?: number; 
-      pollInterval?: number; 
+    taskId: string,
+    options: {
+      timeout?: number;
+      pollInterval?: number;
       onProgress?: (task: any) => void;
-    } = {}
+    } = {},
   ): Promise<any> {
     const { timeout = 300000, pollInterval = 2000, onProgress } = options;
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeout) {
       const response = await this.getTask(taskId);
-      
+
       if (!response.data?.success) {
-        throw new Error(`Failed to get task ${taskId}: ${response.data?.error}`);
+        throw new Error(
+          `Failed to get task ${taskId}: ${response.data?.error}`,
+        );
       }
 
       const task = response.data.data.task;
-      
+
       if (onProgress) {
         onProgress(task);
       }
 
-      if (task.status === 'completed') {
+      if (task.status === "completed") {
         return task;
       }
 
-      if (task.status === 'failed' || task.status === 'cancelled') {
-        throw new Error(`Task ${taskId} ${task.status}: ${task.error || 'Unknown error'}`);
+      if (task.status === "failed" || task.status === "cancelled") {
+        throw new Error(
+          `Task ${taskId} ${task.status}: ${task.error || "Unknown error"}`,
+        );
       }
 
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
+      await new Promise((resolve) => setTimeout(resolve, pollInterval));
     }
 
     throw new Error(`Task ${taskId} timed out after ${timeout}ms`);
@@ -420,7 +437,7 @@ export class BunSNCClient {
    */
   async getTaskProgress(taskId: string): Promise<number> {
     const response = await this.getTask(taskId);
-    
+
     if (!response.data?.success) {
       throw new Error(`Failed to get task ${taskId}: ${response.data?.error}`);
     }
@@ -433,7 +450,7 @@ export class BunSNCClient {
    */
   async batchOperation<T>(
     operations: (() => Promise<T>)[],
-    options: { concurrency?: number; failFast?: boolean } = {}
+    options: { concurrency?: number; failFast?: boolean } = {},
   ): Promise<T[]> {
     const { concurrency = 5, failFast = true } = options;
     const results: T[] = [];
@@ -441,28 +458,31 @@ export class BunSNCClient {
 
     for (let i = 0; i < operations.length; i += concurrency) {
       const batch = operations.slice(i, i + concurrency);
-      
+
       const promises = batch.map(async (operation, index) => {
         try {
           return await operation();
         } catch (error) {
           const err = error instanceof Error ? error : new Error(String(error));
           errors.push(err);
-          
+
           if (failFast) {
             throw err;
           }
-          
+
           return null;
         }
       });
 
       const batchResults = await Promise.all(promises);
-      results.push(...batchResults.filter(result => result !== null));
+      results.push(...batchResults.filter((result) => result !== null));
     }
 
     if (errors.length > 0 && !failFast) {
-      console.warn(`Batch operation completed with ${errors.length} errors:`, errors);
+      console.warn(
+        `Batch operation completed with ${errors.length} errors:`,
+        errors,
+      );
     }
 
     return results;

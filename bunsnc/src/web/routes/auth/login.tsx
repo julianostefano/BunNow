@@ -15,8 +15,18 @@ const LoginPage = ({ error }: { error?: string }) => (
       <div class="max-w-md w-full space-y-8">
         <div>
           <div class="mx-auto h-12 w-12 flex items-center justify-center bg-blue-600 rounded-lg">
-            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            <svg
+              class="w-8 h-8 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              ></path>
             </svg>
           </div>
           <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
@@ -31,12 +41,22 @@ const LoginPage = ({ error }: { error?: string }) => (
           <div class="bg-red-50 border border-red-200 rounded-md p-4">
             <div class="flex">
               <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                <svg
+                  class="h-5 w-5 text-red-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clip-rule="evenodd"
+                  />
                 </svg>
               </div>
               <div class="ml-3">
-                <h3 class="text-sm font-medium text-red-800">Authentication Error</h3>
+                <h3 class="text-sm font-medium text-red-800">
+                  Authentication Error
+                </h3>
                 <div class="mt-2 text-sm text-red-700">
                   <p>{error}</p>
                 </div>
@@ -45,10 +65,17 @@ const LoginPage = ({ error }: { error?: string }) => (
           </div>
         )}
 
-        <form class="mt-8 space-y-6" hx-post="/auth/login" hx-target="body" hx-indicator="#login-spinner">
+        <form
+          class="mt-8 space-y-6"
+          hx-post="/auth/login"
+          hx-target="body"
+          hx-indicator="#login-spinner"
+        >
           <div class="rounded-md shadow-sm -space-y-px">
             <div>
-              <label for="username" class="sr-only">Username</label>
+              <label for="username" class="sr-only">
+                Username
+              </label>
               <input
                 id="username"
                 name="username"
@@ -59,7 +86,9 @@ const LoginPage = ({ error }: { error?: string }) => (
               />
             </div>
             <div>
-              <label for="password" class="sr-only">Password</label>
+              <label for="password" class="sr-only">
+                Password
+              </label>
               <input
                 id="password"
                 name="password"
@@ -97,8 +126,16 @@ const LoginPage = ({ error }: { error?: string }) => (
               class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             >
               <span class="absolute left-0 inset-y-0 flex items-center pl-3">
-                <svg class="h-5 w-5 text-blue-500 group-hover:text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                <svg
+                  class="h-5 w-5 text-blue-500 group-hover:text-blue-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                    clip-rule="evenodd"
+                  />
                 </svg>
               </span>
               Sign in
@@ -119,7 +156,9 @@ const LoginPage = ({ error }: { error?: string }) => (
               <div class="w-full border-t border-gray-300" />
             </div>
             <div class="relative flex justify-center text-sm">
-              <span class="px-2 bg-gray-50 text-gray-500">Development Mode</span>
+              <span class="px-2 bg-gray-50 text-gray-500">
+                Development Mode
+              </span>
             </div>
           </div>
 
@@ -139,40 +178,43 @@ class AuthService {
   private jwtSecret: string;
 
   constructor() {
-    this.jwtSecret = process.env.JWT_SECRET || 'bunsnc-secret-key-2025';
+    this.jwtSecret = process.env.JWT_SECRET || "bunsnc-secret-key-2025";
   }
 
-  async authenticate(username: string, password: string): Promise<{ success: boolean; error?: string; user?: any }> {
+  async authenticate(
+    username: string,
+    password: string,
+  ): Promise<{ success: boolean; error?: string; user?: any }> {
     // Development mode - accept any credentials
-    if (process.env.NODE_ENV === 'development' || true) {
+    if (process.env.NODE_ENV === "development" || true) {
       if (!username || !password) {
         return {
           success: false,
-          error: "Username and password are required"
+          error: "Username and password are required",
         };
       }
 
       // Simulate user data
       const user = {
-        id: 'user_' + Date.now(),
+        id: "user_" + Date.now(),
         username: username.toLowerCase(),
         name: username.charAt(0).toUpperCase() + username.slice(1),
         email: `${username.toLowerCase()}@company.com`,
-        role: username.toLowerCase().includes('admin') ? 'admin' : 'user',
-        permissions: ['read:incidents', 'read:problems', 'read:changes'],
-        loginAt: new Date().toISOString()
+        role: username.toLowerCase().includes("admin") ? "admin" : "user",
+        permissions: ["read:incidents", "read:problems", "read:changes"],
+        loginAt: new Date().toISOString(),
       };
 
       return {
         success: true,
-        user
+        user,
       };
     }
 
     // Production ServiceNow authentication would go here
     return {
       success: false,
-      error: "Authentication service not configured for production"
+      error: "Authentication service not configured for production",
     };
   }
 
@@ -183,7 +225,7 @@ class AuthService {
       username: user.username,
       role: user.role,
       iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60) // 7 days
+      exp: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60, // 7 days
     };
 
     // Simple base64 encoding for development (use proper JWT in production)
@@ -197,18 +239,18 @@ class AuthService {
       if (payload.exp < Math.floor(Date.now() / 1000)) {
         return {
           valid: false,
-          error: "Token expired"
+          error: "Token expired",
         };
       }
 
       return {
         valid: true,
-        user: payload
+        user: payload,
       };
     } catch (error) {
       return {
         valid: false,
-        error: "Invalid token format"
+        error: "Invalid token format",
       };
     }
   }
@@ -219,18 +261,23 @@ const authService = new AuthService();
 // Elysia route handlers
 export default new Elysia({ prefix: "/auth" })
   .use(html())
-  .use(jwt({
-    name: 'jwt',
-    secret: process.env.JWT_SECRET || 'bunsnc-secret-key-2025'
-  }))
+  .use(
+    jwt({
+      name: "jwt",
+      secret: process.env.JWT_SECRET || "bunsnc-secret-key-2025",
+    }),
+  )
 
   // Login page
   .get("/login", ({ query, cookie }) => {
     // Check if already logged in
-    if (cookie.auth_token && authService.validateToken(cookie.auth_token.value).valid) {
+    if (
+      cookie.auth_token &&
+      authService.validateToken(cookie.auth_token.value).valid
+    ) {
       return new Response(null, {
         status: 302,
-        headers: { Location: "/" }
+        headers: { Location: "/" },
       });
     }
 
@@ -240,7 +287,10 @@ export default new Elysia({ prefix: "/auth" })
 
   // Login handler
   .post("/login", async ({ body, cookie, set }) => {
-    const { username, password } = body as { username: string; password: string };
+    const { username, password } = body as {
+      username: string;
+      password: string;
+    };
 
     const authResult = await authService.authenticate(username, password);
 
@@ -255,18 +305,18 @@ export default new Elysia({ prefix: "/auth" })
     cookie.auth_token.set({
       value: token,
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 // 7 days
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60, // 7 days
     });
 
     // Store user info for session
     cookie.user_info.set({
       value: btoa(JSON.stringify(authResult.user)),
       httpOnly: false, // Allow client-side access for UI
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60,
     });
 
     // Redirect to dashboard
@@ -305,7 +355,7 @@ export default new Elysia({ prefix: "/auth" })
 
     return {
       user: validation.user,
-      authenticated: true
+      authenticated: true,
     };
   })
 

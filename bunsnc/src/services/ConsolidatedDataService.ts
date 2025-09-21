@@ -4,12 +4,19 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { EventEmitter } from 'events';
-import { MongoClient, Db, Collection } from 'mongodb';
-import { logger } from '../utils/Logger';
-import { ServiceNowAuthClient } from './ServiceNowAuthClient';
-import { ServiceNowStreams, ServiceNowChange } from '../config/redis-streams';
-import { IncidentDocument, ChangeTaskDocument, SCTaskDocument, GroupDocument, GroupData, COLLECTION_NAMES } from '../config/mongodb-collections';
+import { EventEmitter } from "events";
+import { MongoClient, Db, Collection } from "mongodb";
+import { logger } from "../utils/Logger";
+import { ServiceNowAuthClient } from "./ServiceNowAuthClient";
+import { ServiceNowStreams, ServiceNowChange } from "../config/redis-streams";
+import {
+  IncidentDocument,
+  ChangeTaskDocument,
+  SCTaskDocument,
+  GroupDocument,
+  GroupData,
+  COLLECTION_NAMES,
+} from "../config/mongodb-collections";
 
 // ==================== INTERFACES ====================
 
@@ -37,7 +44,11 @@ export interface SyncOptions {
   enableRealTimeUpdates?: boolean;
   enableSLMCollection?: boolean;
   enableNotesCollection?: boolean;
-  conflictResolutionStrategy?: 'servicenow_wins' | 'mongodb_wins' | 'merge' | 'manual';
+  conflictResolutionStrategy?:
+    | "servicenow_wins"
+    | "mongodb_wins"
+    | "merge"
+    | "manual";
 }
 
 export interface SyncResult {
@@ -55,7 +66,7 @@ export interface SyncResult {
 export interface DataFreshnessStrategy {
   getTTL(ticket: TicketData): number;
   shouldRefresh(ticket: TicketData): boolean;
-  getRefreshPriority(ticket: TicketData): 'high' | 'medium' | 'low';
+  getRefreshPriority(ticket: TicketData): "high" | "medium" | "low";
 }
 
 export interface HybridDataOptions {
@@ -67,7 +78,7 @@ export interface HybridDataOptions {
 }
 
 export interface CacheWarmupStrategy {
-  priority: 'critical' | 'high' | 'medium' | 'low';
+  priority: "critical" | "high" | "medium" | "low";
   preloadRelated: boolean;
   preloadSLA: boolean;
   preloadNotes: boolean;
@@ -107,7 +118,7 @@ export interface DataServiceConfig {
     enabled: boolean;
     ttl: number;
     maxSize: number;
-    strategy: 'lru' | 'lfu' | 'smart';
+    strategy: "lru" | "lfu" | "smart";
   };
   sync: SyncOptions;
 }
@@ -116,22 +127,22 @@ export interface DataServiceConfig {
 
 export class SmartDataStrategy implements DataFreshnessStrategy {
   getTTL(ticket: TicketData): number {
-    if (['6', '7'].includes(ticket.state)) return 3600000; // 1 hour for closed
-    if (ticket.priority === '1') return 60000; // 1 minute for critical
-    if (ticket.priority === '2') return 120000; // 2 minutes for high
+    if (["6", "7"].includes(ticket.state)) return 3600000; // 1 hour for closed
+    if (ticket.priority === "1") return 60000; // 1 minute for critical
+    if (ticket.priority === "2") return 120000; // 2 minutes for high
     return 300000; // 5 minutes default
   }
 
   shouldRefresh(ticket: TicketData): boolean {
     const lastUpdate = new Date(ticket.sys_updated_on).getTime();
     const ttl = this.getTTL(ticket);
-    return (Date.now() - lastUpdate) > ttl;
+    return Date.now() - lastUpdate > ttl;
   }
 
-  getRefreshPriority(ticket: TicketData): 'high' | 'medium' | 'low' {
-    if (ticket.priority === '1') return 'high';
-    if (ticket.priority === '2') return 'medium';
-    return 'low';
+  getRefreshPriority(ticket: TicketData): "high" | "medium" | "low" {
+    if (ticket.priority === "1") return "high";
+    if (ticket.priority === "2") return "medium";
+    return "low";
   }
 }
 
@@ -151,26 +162,27 @@ class MongoDBManager extends EventEmitter {
     if (this.isInitialized) return;
 
     try {
-      logger.info(' [DataService] Initializing MongoDB connection...');
+      logger.info(" [DataService] Initializing MongoDB connection...");
 
       this.client = new MongoClient(this.config.connectionString, {
         maxPoolSize: this.config.options?.maxPoolSize || 10,
-        serverSelectionTimeoutMS: this.config.options?.serverSelectionTimeoutMS || 5000,
+        serverSelectionTimeoutMS:
+          this.config.options?.serverSelectionTimeoutMS || 5000,
         socketTimeoutMS: this.config.options?.socketTimeoutMS || 45000,
       });
 
       await this.client.connect();
-      this.db = this.client.db(this.config.databaseName || 'bunsnc');
+      this.db = this.client.db(this.config.databaseName || "bunsnc");
 
       // Initialize collections
       await this.setupCollections();
       await this.createIndexes();
 
       this.isInitialized = true;
-      logger.info(' [DataService] MongoDB initialized successfully');
-      this.emit('initialized');
+      logger.info(" [DataService] MongoDB initialized successfully");
+      this.emit("initialized");
     } catch (error) {
-      logger.error(' [DataService] MongoDB initialization failed:', error);
+      logger.error(" [DataService] MongoDB initialization failed:", error);
       throw error;
     }
   }
@@ -183,46 +195,58 @@ class MongoDBManager extends EventEmitter {
       this.collections.set(name, collection);
     }
 
-    logger.debug(' [DataService] Collections initialized');
+    logger.debug(" [DataService] Collections initialized");
   }
 
   private async createIndexes(): Promise<void> {
     try {
       const indexOperations = [
         // Incidents
-        { collection: COLLECTION_NAMES.INCIDENTS, indexes: [
-          { key: { sys_id: 1 }, name: 'sys_id_1', unique: true },
-          { key: { number: 1 }, name: 'number_1', unique: true },
-          { key: { state: 1 }, name: 'state_1' },
-          { key: { priority: 1 }, name: 'priority_1' },
-          { key: { 'data.assignment_group': 1 }, name: 'assignment_group_1' },
-          { key: { updated_at: -1 }, name: 'updated_at_-1' },
-          { key: { sys_updated_on: -1 }, name: 'sys_updated_on_-1' }
-        ]},
+        {
+          collection: COLLECTION_NAMES.INCIDENTS,
+          indexes: [
+            { key: { sys_id: 1 }, name: "sys_id_1", unique: true },
+            { key: { number: 1 }, name: "number_1", unique: true },
+            { key: { state: 1 }, name: "state_1" },
+            { key: { priority: 1 }, name: "priority_1" },
+            { key: { "data.assignment_group": 1 }, name: "assignment_group_1" },
+            { key: { updated_at: -1 }, name: "updated_at_-1" },
+            { key: { sys_updated_on: -1 }, name: "sys_updated_on_-1" },
+          ],
+        },
         // Change Tasks
-        { collection: COLLECTION_NAMES.CHANGE_TASKS, indexes: [
-          { key: { sys_id: 1 }, name: 'sys_id_1', unique: true },
-          { key: { number: 1 }, name: 'number_1', unique: true },
-          { key: { state: 1 }, name: 'state_1' },
-          { key: { 'data.change_request': 1 }, name: 'change_request_1' },
-          { key: { updated_at: -1 }, name: 'updated_at_-1' }
-        ]},
+        {
+          collection: COLLECTION_NAMES.CHANGE_TASKS,
+          indexes: [
+            { key: { sys_id: 1 }, name: "sys_id_1", unique: true },
+            { key: { number: 1 }, name: "number_1", unique: true },
+            { key: { state: 1 }, name: "state_1" },
+            { key: { "data.change_request": 1 }, name: "change_request_1" },
+            { key: { updated_at: -1 }, name: "updated_at_-1" },
+          ],
+        },
         // Service Catalog Tasks
-        { collection: COLLECTION_NAMES.SC_TASKS, indexes: [
-          { key: { sys_id: 1 }, name: 'sys_id_1', unique: true },
-          { key: { number: 1 }, name: 'number_1', unique: true },
-          { key: { state: 1 }, name: 'state_1' },
-          { key: { 'data.request': 1 }, name: 'request_1' },
-          { key: { updated_at: -1 }, name: 'updated_at_-1' }
-        ]},
+        {
+          collection: COLLECTION_NAMES.SC_TASKS,
+          indexes: [
+            { key: { sys_id: 1 }, name: "sys_id_1", unique: true },
+            { key: { number: 1 }, name: "number_1", unique: true },
+            { key: { state: 1 }, name: "state_1" },
+            { key: { "data.request": 1 }, name: "request_1" },
+            { key: { updated_at: -1 }, name: "updated_at_-1" },
+          ],
+        },
         // Groups
-        { collection: COLLECTION_NAMES.GROUPS, indexes: [
-          { key: { id: 1 }, name: 'id_1', unique: true },
-          { key: { 'data.nome': 1 }, name: 'data_nome_1' },
-          { key: { 'data.tags': 1 }, name: 'data_tags_1' },
-          { key: { 'data.responsavel': 1 }, name: 'data_responsavel_1' },
-          { key: { 'data.temperatura': 1 }, name: 'data_temperatura_1' }
-        ]}
+        {
+          collection: COLLECTION_NAMES.GROUPS,
+          indexes: [
+            { key: { id: 1 }, name: "id_1", unique: true },
+            { key: { "data.nome": 1 }, name: "data_nome_1" },
+            { key: { "data.tags": 1 }, name: "data_tags_1" },
+            { key: { "data.responsavel": 1 }, name: "data_responsavel_1" },
+            { key: { "data.temperatura": 1 }, name: "data_temperatura_1" },
+          ],
+        },
       ];
 
       for (const { collection, indexes } of indexOperations) {
@@ -233,19 +257,23 @@ class MongoDBManager extends EventEmitter {
           try {
             await coll.createIndex(index.key, {
               name: index.name,
-              unique: index.unique || false
+              unique: index.unique || false,
             });
           } catch (error: any) {
-            if (error.code !== 85) { // Index already exists
-              logger.warn(` [DataService] Failed to create index ${index.name}:`, error.message);
+            if (error.code !== 85) {
+              // Index already exists
+              logger.warn(
+                ` [DataService] Failed to create index ${index.name}:`,
+                error.message,
+              );
             }
           }
         }
       }
 
-      logger.info(' [DataService] Database indexes created');
+      logger.info(" [DataService] Database indexes created");
     } catch (error) {
-      logger.error(' [DataService] Failed to create indexes:', error);
+      logger.error(" [DataService] Failed to create indexes:", error);
     }
   }
 
@@ -259,14 +287,14 @@ class MongoDBManager extends EventEmitter {
 
   getDb(): Db {
     if (!this.db) {
-      throw new Error('Database not initialized');
+      throw new Error("Database not initialized");
     }
     return this.db;
   }
 
   getClient(): MongoClient {
     if (!this.client) {
-      throw new Error('MongoDB client not initialized');
+      throw new Error("MongoDB client not initialized");
     }
     return this.client;
   }
@@ -279,14 +307,15 @@ class MongoDBManager extends EventEmitter {
       this.collections.clear();
     }
     this.isInitialized = false;
-    logger.info('🧹 [DataService] MongoDB cleanup completed');
+    logger.info("🧹 [DataService] MongoDB cleanup completed");
   }
 }
 
 // ==================== CACHE MANAGER ====================
 
 class CacheManager extends EventEmitter {
-  private cache: Map<string, { data: any; timestamp: number; ttl: number }> = new Map();
+  private cache: Map<string, { data: any; timestamp: number; ttl: number }> =
+    new Map();
   private stats: CacheStats = {
     hitRatio: 0,
     missRatio: 0,
@@ -295,45 +324,48 @@ class CacheManager extends EventEmitter {
     totalMisses: 0,
     averageResponseTime: 0,
     warmupProgress: 0,
-    preloadedTickets: 0
+    preloadedTickets: 0,
   };
 
   private warmupStrategies: Record<string, CacheWarmupStrategy> = {
     critical: {
-      priority: 'critical',
+      priority: "critical",
       preloadRelated: true,
       preloadSLA: true,
       preloadNotes: true,
       batchSize: 10,
-      concurrency: 3
+      concurrency: 3,
     },
     high: {
-      priority: 'high',
+      priority: "high",
       preloadRelated: true,
       preloadSLA: false,
       preloadNotes: false,
       batchSize: 20,
-      concurrency: 2
+      concurrency: 2,
     },
     medium: {
-      priority: 'medium',
+      priority: "medium",
       preloadRelated: false,
       preloadSLA: false,
       preloadNotes: false,
       batchSize: 50,
-      concurrency: 1
+      concurrency: 1,
     },
     low: {
-      priority: 'low',
+      priority: "low",
       preloadRelated: false,
       preloadSLA: false,
       preloadNotes: false,
       batchSize: 100,
-      concurrency: 1
-    }
+      concurrency: 1,
+    },
   };
 
-  constructor(private maxSize: number = 1000, private defaultTTL: number = 300000) {
+  constructor(
+    private maxSize: number = 1000,
+    private defaultTTL: number = 300000,
+  ) {
     super();
     this.startCleanupInterval();
   }
@@ -344,7 +376,7 @@ class CacheManager extends EventEmitter {
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
-      ttl: actualTTL
+      ttl: actualTTL,
     });
 
     // Cleanup if cache is too large
@@ -352,7 +384,7 @@ class CacheManager extends EventEmitter {
       this.evictLRU();
     }
 
-    this.emit('cacheSet', { key, size: this.cache.size });
+    this.emit("cacheSet", { key, size: this.cache.size });
   }
 
   get(key: string): any | null {
@@ -363,7 +395,7 @@ class CacheManager extends EventEmitter {
     if (!entry) {
       this.stats.totalMisses++;
       this.updateRatios();
-      this.emit('cacheMiss', { key });
+      this.emit("cacheMiss", { key });
       return null;
     }
 
@@ -372,20 +404,20 @@ class CacheManager extends EventEmitter {
       this.cache.delete(key);
       this.stats.totalMisses++;
       this.updateRatios();
-      this.emit('cacheExpired', { key });
+      this.emit("cacheExpired", { key });
       return null;
     }
 
     this.stats.totalHits++;
     this.updateRatios();
-    this.emit('cacheHit', { key });
+    this.emit("cacheHit", { key });
     return entry.data;
   }
 
   delete(key: string): boolean {
     const deleted = this.cache.delete(key);
     if (deleted) {
-      this.emit('cacheDeleted', { key, size: this.cache.size });
+      this.emit("cacheDeleted", { key, size: this.cache.size });
     }
     return deleted;
   }
@@ -393,26 +425,28 @@ class CacheManager extends EventEmitter {
   clear(): void {
     const previousSize = this.cache.size;
     this.cache.clear();
-    this.emit('cacheCleared', { previousSize });
+    this.emit("cacheCleared", { previousSize });
   }
 
   private evictLRU(): void {
     // Simple LRU eviction - remove oldest entries
     const entries = Array.from(this.cache.entries());
-    entries.sort(([,a], [,b]) => a.timestamp - b.timestamp);
+    entries.sort(([, a], [, b]) => a.timestamp - b.timestamp);
 
     const toRemove = Math.ceil(this.cache.size * 0.1); // Remove 10%
     for (let i = 0; i < toRemove; i++) {
       const [key] = entries[i];
       this.cache.delete(key);
-      this.emit('cacheEvicted', { key, reason: 'lru' });
+      this.emit("cacheEvicted", { key, reason: "lru" });
     }
   }
 
   private updateRatios(): void {
     if (this.stats.totalRequests > 0) {
-      this.stats.hitRatio = (this.stats.totalHits / this.stats.totalRequests) * 100;
-      this.stats.missRatio = (this.stats.totalMisses / this.stats.totalRequests) * 100;
+      this.stats.hitRatio =
+        (this.stats.totalHits / this.stats.totalRequests) * 100;
+      this.stats.missRatio =
+        (this.stats.totalMisses / this.stats.totalRequests) * 100;
     }
   }
 
@@ -434,11 +468,13 @@ class CacheManager extends EventEmitter {
 
     for (const key of expired) {
       this.cache.delete(key);
-      this.emit('cacheExpired', { key });
+      this.emit("cacheExpired", { key });
     }
 
     if (expired.length > 0) {
-      logger.debug(`🧹 [DataService] Cleaned up ${expired.length} expired cache entries`);
+      logger.debug(
+        `🧹 [DataService] Cleaned up ${expired.length} expired cache entries`,
+      );
     }
   }
 
@@ -468,7 +504,10 @@ export class ConsolidatedDataService extends EventEmitter {
     super();
     this.config = config;
     this.mongoManager = new MongoDBManager(config.mongodb);
-    this.cacheManager = new CacheManager(config.cache.maxSize, config.cache.ttl);
+    this.cacheManager = new CacheManager(
+      config.cache.maxSize,
+      config.cache.ttl,
+    );
     this.dataStrategy = new SmartDataStrategy();
     this.setupEventListeners();
   }
@@ -482,16 +521,16 @@ export class ConsolidatedDataService extends EventEmitter {
 
   private setupEventListeners(): void {
     // MongoDB events
-    this.mongoManager.on('initialized', () => {
-      logger.info(' [DataService] MongoDB manager initialized');
+    this.mongoManager.on("initialized", () => {
+      logger.info(" [DataService] MongoDB manager initialized");
     });
 
     // Cache events
-    this.cacheManager.on('cacheHit', (event) => {
+    this.cacheManager.on("cacheHit", (event) => {
       logger.debug(` [DataService] Cache hit: ${event.key}`);
     });
 
-    this.cacheManager.on('cacheMiss', (event) => {
+    this.cacheManager.on("cacheMiss", (event) => {
       logger.debug(` [DataService] Cache miss: ${event.key}`);
     });
   }
@@ -500,7 +539,7 @@ export class ConsolidatedDataService extends EventEmitter {
     if (this.isInitialized) return;
 
     try {
-      logger.info(' [DataService] Initializing Consolidated Data Service...');
+      logger.info(" [DataService] Initializing Consolidated Data Service...");
 
       // Initialize MongoDB
       await this.mongoManager.initialize();
@@ -512,7 +551,7 @@ export class ConsolidatedDataService extends EventEmitter {
       this.serviceNowStreams = new ServiceNowStreams({
         host: this.config.redis.host,
         port: this.config.redis.port,
-        password: this.config.redis.password
+        password: this.config.redis.password,
       });
       await this.serviceNowStreams.initialize();
 
@@ -522,17 +561,20 @@ export class ConsolidatedDataService extends EventEmitter {
       }
 
       this.isInitialized = true;
-      logger.info(' [DataService] Consolidated Data Service initialized');
-      this.emit('initialized');
+      logger.info(" [DataService] Consolidated Data Service initialized");
+      this.emit("initialized");
     } catch (error) {
-      logger.error(' [DataService] Initialization failed:', error);
+      logger.error(" [DataService] Initialization failed:", error);
       throw error;
     }
   }
 
   // ==================== HYBRID DATA ACCESS ====================
 
-  async getTicket(sysId: string, options: HybridDataOptions = {}): Promise<TicketData | null> {
+  async getTicket(
+    sysId: string,
+    options: HybridDataOptions = {},
+  ): Promise<TicketData | null> {
     try {
       const cacheKey = `ticket:${sysId}`;
 
@@ -557,7 +599,10 @@ export class ConsolidatedDataService extends EventEmitter {
         ticket = await this.getTicketFromMongo(sysId, options);
 
         if (!ticket || this.dataStrategy.shouldRefresh(ticket)) {
-          const freshTicket = await this.getTicketFromServiceNow(sysId, options);
+          const freshTicket = await this.getTicketFromServiceNow(
+            sysId,
+            options,
+          );
           if (freshTicket) {
             ticket = freshTicket;
             // Update MongoDB with fresh data
@@ -579,8 +624,11 @@ export class ConsolidatedDataService extends EventEmitter {
     }
   }
 
-  private async getTicketFromMongo(sysId: string, options: HybridDataOptions): Promise<TicketData | null> {
-    const tables = ['incident', 'change_task', 'sc_task'];
+  private async getTicketFromMongo(
+    sysId: string,
+    options: HybridDataOptions,
+  ): Promise<TicketData | null> {
+    const tables = ["incident", "change_task", "sc_task"];
 
     for (const table of tables) {
       const collection = this.getCollectionForTable(table);
@@ -595,9 +643,11 @@ export class ConsolidatedDataService extends EventEmitter {
           priority: doc.data?.priority || doc.priority,
           short_description: doc.data?.short_description,
           assignment_group: doc.data?.assignment_group,
-          sys_created_on: doc.data?.sys_created_on || doc.created_at?.toISOString(),
-          sys_updated_on: doc.data?.sys_updated_on || doc.updated_at?.toISOString(),
-          ...doc.data
+          sys_created_on:
+            doc.data?.sys_created_on || doc.created_at?.toISOString(),
+          sys_updated_on:
+            doc.data?.sys_updated_on || doc.updated_at?.toISOString(),
+          ...doc.data,
         };
 
         if (options.includeSLMs) {
@@ -615,7 +665,10 @@ export class ConsolidatedDataService extends EventEmitter {
     return null;
   }
 
-  private async getTicketFromServiceNow(sysId: string, options: HybridDataOptions): Promise<TicketData | null> {
+  private async getTicketFromServiceNow(
+    sysId: string,
+    options: HybridDataOptions,
+  ): Promise<TicketData | null> {
     // This would integrate with the ConsolidatedServiceNowService
     // For now, return null as placeholder
     logger.debug(` [DataService] Fetching ticket from ServiceNow: ${sysId}`);
@@ -632,23 +685,23 @@ export class ConsolidatedDataService extends EventEmitter {
       priority: ticket.priority,
       data: ticket,
       created_at: new Date(ticket.sys_created_on),
-      updated_at: new Date(ticket.sys_updated_on)
+      updated_at: new Date(ticket.sys_updated_on),
     };
 
     await collection.updateOne(
       { sys_id: ticket.sys_id },
       { $set: document },
-      { upsert: true }
+      { upsert: true },
     );
   }
 
   private getCollectionForTable(table: string): Collection {
     switch (table) {
-      case 'incident':
+      case "incident":
         return this.mongoManager.getCollection(COLLECTION_NAMES.INCIDENTS);
-      case 'change_task':
+      case "change_task":
         return this.mongoManager.getCollection(COLLECTION_NAMES.CHANGE_TASKS);
-      case 'sc_task':
+      case "sc_task":
         return this.mongoManager.getCollection(COLLECTION_NAMES.SC_TASKS);
       default:
         throw new Error(`Unsupported table: ${table}`);
@@ -671,9 +724,11 @@ export class ConsolidatedDataService extends EventEmitter {
     const syncOpts = { ...this.config.sync, ...options };
     const results: SyncResult[] = [];
 
-    const tables = syncOpts.tables || ['incident', 'change_task', 'sc_task'];
+    const tables = syncOpts.tables || ["incident", "change_task", "sc_task"];
 
-    logger.info(` [DataService] Starting data sync for ${tables.length} tables`);
+    logger.info(
+      ` [DataService] Starting data sync for ${tables.length} tables`,
+    );
 
     for (const table of tables) {
       const startTime = Date.now();
@@ -682,7 +737,9 @@ export class ConsolidatedDataService extends EventEmitter {
         const result = await this.syncTable(table, syncOpts);
         results.push(result);
 
-        logger.info(` [DataService] Sync completed for ${table}: ${result.processed} processed, ${result.saved} saved`);
+        logger.info(
+          ` [DataService] Sync completed for ${table}: ${result.processed} processed, ${result.saved} saved`,
+        );
       } catch (error) {
         logger.error(` [DataService] Sync failed for ${table}:`, error);
 
@@ -695,18 +752,23 @@ export class ConsolidatedDataService extends EventEmitter {
           conflicts: 0,
           duration: Date.now() - startTime,
           lastSyncTime: new Date().toISOString(),
-          errorDetails: [{ sys_id: 'unknown', error: String(error) }]
+          errorDetails: [{ sys_id: "unknown", error: String(error) }],
         });
       }
     }
 
-    logger.info(`🎯 [DataService] Sync completed: ${results.length} tables processed`);
-    this.emit('syncCompleted', results);
+    logger.info(
+      `🎯 [DataService] Sync completed: ${results.length} tables processed`,
+    );
+    this.emit("syncCompleted", results);
 
     return results;
   }
 
-  private async syncTable(table: string, options: SyncOptions): Promise<SyncResult> {
+  private async syncTable(
+    table: string,
+    options: SyncOptions,
+  ): Promise<SyncResult> {
     const startTime = Date.now();
 
     // Placeholder implementation
@@ -719,7 +781,7 @@ export class ConsolidatedDataService extends EventEmitter {
       conflicts: 0,
       duration: Date.now() - startTime,
       lastSyncTime: new Date().toISOString(),
-      errorDetails: []
+      errorDetails: [],
     };
 
     return result;
@@ -734,11 +796,13 @@ export class ConsolidatedDataService extends EventEmitter {
       try {
         await this.syncData();
       } catch (error) {
-        logger.error(' [DataService] Scheduled sync failed:', error);
+        logger.error(" [DataService] Scheduled sync failed:", error);
       }
     }, this.config.sync.syncInterval);
 
-    logger.info(`⏰ [DataService] Sync interval started: ${this.config.sync.syncInterval}ms`);
+    logger.info(
+      `⏰ [DataService] Sync interval started: ${this.config.sync.syncInterval}ms`,
+    );
   }
 
   // ==================== CACHE OPERATIONS ====================
@@ -746,18 +810,20 @@ export class ConsolidatedDataService extends EventEmitter {
   invalidateCache(pattern?: string): void {
     if (!pattern) {
       this.cacheManager.clear();
-      logger.info('🧹 [DataService] All cache cleared');
+      logger.info("🧹 [DataService] All cache cleared");
     } else {
       // Clear cache entries matching pattern
-      const keys = Array.from(this.cacheManager['cache'].keys()).filter(key =>
-        key.includes(pattern)
+      const keys = Array.from(this.cacheManager["cache"].keys()).filter((key) =>
+        key.includes(pattern),
       );
 
       for (const key of keys) {
         this.cacheManager.delete(key);
       }
 
-      logger.info(`🧹 [DataService] Cache cleared for pattern: ${pattern} (${keys.length} entries)`);
+      logger.info(
+        `🧹 [DataService] Cache cleared for pattern: ${pattern} (${keys.length} entries)`,
+      );
     }
   }
 
@@ -777,17 +843,17 @@ export class ConsolidatedDataService extends EventEmitter {
           collections: mongoStats.collections,
           documents: mongoStats.objects,
           dataSize: mongoStats.dataSize,
-          indexSize: mongoStats.indexSize
+          indexSize: mongoStats.indexSize,
         },
         cache: cacheStats,
         sync: {
           interval: this.config.sync.syncInterval,
-          last_sync: null // Would be implemented with actual sync tracking
+          last_sync: null, // Would be implemented with actual sync tracking
         },
-        is_initialized: this.isInitialized
+        is_initialized: this.isInitialized,
       };
     } catch (error) {
-      logger.error(' [DataService] Failed to get stats:', error);
+      logger.error(" [DataService] Failed to get stats:", error);
       return {};
     }
   }
@@ -800,14 +866,14 @@ export class ConsolidatedDataService extends EventEmitter {
       await this.mongoManager.getDb().admin().ping();
 
       // Check cache functionality
-      const testKey = 'health_check_' + Date.now();
+      const testKey = "health_check_" + Date.now();
       this.cacheManager.set(testKey, true, 1000);
       const cached = this.cacheManager.get(testKey);
       this.cacheManager.delete(testKey);
 
       return cached === true;
     } catch (error) {
-      logger.error(' [DataService] Health check failed:', error);
+      logger.error(" [DataService] Health check failed:", error);
       return false;
     }
   }
@@ -819,11 +885,14 @@ export class ConsolidatedDataService extends EventEmitter {
       // Stop any existing sync interval
       this.stopAutoSync();
 
-      const syncInterval = options.syncInterval || this.config.sync.syncInterval || 300000; // Default 5 minutes
+      const syncInterval =
+        options.syncInterval || this.config.sync.syncInterval || 300000; // Default 5 minutes
       const batchSize = options.batchSize || 50;
-      const tables = options.tables || ['incident', 'change_task', 'sc_task'];
+      const tables = options.tables || ["incident", "change_task", "sc_task"];
 
-      logger.info(`🔄 [DataService] Starting auto-sync with interval: ${syncInterval}ms`);
+      logger.info(
+        `🔄 [DataService] Starting auto-sync with interval: ${syncInterval}ms`,
+      );
       logger.info(`📊 [DataService] Auto-sync configuration:`, {
         syncInterval,
         batchSize,
@@ -831,13 +900,13 @@ export class ConsolidatedDataService extends EventEmitter {
         enableDeltaSync: options.enableDeltaSync,
         enableRealTimeUpdates: options.enableRealTimeUpdates,
         enableSLMCollection: options.enableSLMCollection,
-        enableNotesCollection: options.enableNotesCollection
+        enableNotesCollection: options.enableNotesCollection,
       });
 
       // Set up the interval for automatic synchronization
       this.syncInterval = setInterval(async () => {
         try {
-          logger.info('🔄 [DataService] Executing scheduled auto-sync...');
+          logger.info("🔄 [DataService] Executing scheduled auto-sync...");
 
           for (const table of tables) {
             try {
@@ -847,24 +916,29 @@ export class ConsolidatedDataService extends EventEmitter {
                 enableDeltaSync: options.enableDeltaSync,
                 enableRealTimeUpdates: options.enableRealTimeUpdates,
                 enableSLMCollection: options.enableSLMCollection,
-                enableNotesCollection: options.enableNotesCollection
+                enableNotesCollection: options.enableNotesCollection,
               });
 
-              logger.info(`✅ [DataService] Auto-sync completed for table: ${table}`);
+              logger.info(
+                `✅ [DataService] Auto-sync completed for table: ${table}`,
+              );
             } catch (tableError) {
-              logger.error(`❌ [DataService] Auto-sync failed for table ${table}:`, tableError);
+              logger.error(
+                `❌ [DataService] Auto-sync failed for table ${table}:`,
+                tableError,
+              );
             }
           }
 
-          logger.info('🎉 [DataService] Auto-sync cycle completed');
+          logger.info("🎉 [DataService] Auto-sync cycle completed");
         } catch (syncError) {
-          logger.error('❌ [DataService] Auto-sync cycle failed:', syncError);
+          logger.error("❌ [DataService] Auto-sync cycle failed:", syncError);
         }
       }, syncInterval);
 
-      logger.info('✅ [DataService] Auto-sync enabled successfully');
+      logger.info("✅ [DataService] Auto-sync enabled successfully");
     } catch (error) {
-      logger.error('❌ [DataService] Failed to start auto-sync:', error);
+      logger.error("❌ [DataService] Failed to start auto-sync:", error);
       throw error;
     }
   }
@@ -874,17 +948,20 @@ export class ConsolidatedDataService extends EventEmitter {
       if (this.syncInterval) {
         clearInterval(this.syncInterval);
         this.syncInterval = undefined;
-        logger.info('🛑 [DataService] Auto-sync stopped');
+        logger.info("🛑 [DataService] Auto-sync stopped");
       } else {
-        logger.info('ℹ️ [DataService] Auto-sync was not running');
+        logger.info("ℹ️ [DataService] Auto-sync was not running");
       }
     } catch (error) {
-      logger.error('❌ [DataService] Failed to stop auto-sync:', error);
+      logger.error("❌ [DataService] Failed to stop auto-sync:", error);
       throw error;
     }
   }
 
-  private async syncTableData(table: string, options: Partial<SyncOptions>): Promise<void> {
+  private async syncTableData(
+    table: string,
+    options: Partial<SyncOptions>,
+  ): Promise<void> {
     try {
       // This is a placeholder for the actual sync implementation
       // In a real implementation, this would:
@@ -895,15 +972,19 @@ export class ConsolidatedDataService extends EventEmitter {
       // 5. Collect SLM data if enabled
       // 6. Collect notes if enabled
 
-      logger.info(`🔄 [DataService] Syncing table: ${table} with options:`, options);
+      logger.info(
+        `🔄 [DataService] Syncing table: ${table} with options:`,
+        options,
+      );
 
       // For now, just log the sync attempt
       const batchSize = options.batchSize || 50;
-      logger.info(`📦 [DataService] Processing ${table} with batch size: ${batchSize}`);
+      logger.info(
+        `📦 [DataService] Processing ${table} with batch size: ${batchSize}`,
+      );
 
       // Simulate sync completion
-      await new Promise(resolve => setTimeout(resolve, 100));
-
+      await new Promise((resolve) => setTimeout(resolve, 100));
     } catch (error) {
       logger.error(`❌ [DataService] Sync failed for table ${table}:`, error);
       throw error;
@@ -932,9 +1013,9 @@ export class ConsolidatedDataService extends EventEmitter {
       await this.mongoManager.cleanup();
 
       this.isInitialized = false;
-      logger.info('🧹 [DataService] Cleanup completed');
+      logger.info("🧹 [DataService] Cleanup completed");
     } catch (error) {
-      logger.error(' [DataService] Cleanup failed:', error);
+      logger.error(" [DataService] Cleanup failed:", error);
       throw error;
     }
   }
@@ -948,27 +1029,27 @@ export const createDataService = (config: DataServiceConfig) => {
 // Export singleton for global use with default config
 const defaultDataServiceConfig: DataServiceConfig = {
   mongodb: {
-    connectionString: `mongodb://${process.env.MONGODB_USERNAME || 'admin'}:${encodeURIComponent(process.env.MONGODB_PASSWORD || 'Logica2011_')}@${process.env.MONGODB_HOST || '10.219.8.210'}:${process.env.MONGODB_PORT || '27018'}/${process.env.MONGODB_DATABASE || 'bunsnc'}?authSource=admin`,
-    databaseName: process.env.MONGODB_DATABASE || 'bunsnc'
+    connectionString: `mongodb://${process.env.MONGODB_USERNAME || "admin"}:${encodeURIComponent(process.env.MONGODB_PASSWORD || "Logica2011_")}@${process.env.MONGODB_HOST || "10.219.8.210"}:${process.env.MONGODB_PORT || "27018"}/${process.env.MONGODB_DATABASE || "bunsnc"}?authSource=admin`,
+    databaseName: process.env.MONGODB_DATABASE || "bunsnc",
   },
   redis: {
-    host: process.env.REDIS_HOST || '10.219.8.210',
-    port: parseInt(process.env.REDIS_PORT || '6380'),
-    password: process.env.REDIS_PASSWORD
+    host: process.env.REDIS_HOST || "10.219.8.210",
+    port: parseInt(process.env.REDIS_PORT || "6380"),
+    password: process.env.REDIS_PASSWORD,
   },
   cache: {
     enabled: true,
     ttl: 300000,
     maxSize: 1000,
-    strategy: 'smart'
+    strategy: "smart",
   },
   sync: {
     batchSize: 100,
     maxRetries: 3,
     syncInterval: 30000,
     enableDeltaSync: true,
-    enableRealTimeUpdates: true
-  }
+    enableRealTimeUpdates: true,
+  },
 };
 
 export const dataService = createDataService(defaultDataServiceConfig);

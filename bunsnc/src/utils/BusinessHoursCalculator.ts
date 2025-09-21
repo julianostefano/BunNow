@@ -3,8 +3,11 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { BusinessHoursConfig, DEFAULT_BUSINESS_HOURS } from '../types/ContractualSLA';
-import { logger } from './Logger';
+import {
+  BusinessHoursConfig,
+  DEFAULT_BUSINESS_HOURS,
+} from "../types/ContractualSLA";
+import { logger } from "./Logger";
 
 export class BusinessHoursCalculator {
   private config: BusinessHoursConfig;
@@ -33,7 +36,10 @@ export class BusinessHoursCalculator {
 
       // Calculate hours for this day
       const dayEnd = nextDay > finalDate ? finalDate : nextDay;
-      const hoursThisDay = this.calculateBusinessHoursForDay(currentDate, dayEnd);
+      const hoursThisDay = this.calculateBusinessHoursForDay(
+        currentDate,
+        dayEnd,
+      );
 
       totalBusinessHours += hoursThisDay;
 
@@ -62,8 +68,8 @@ export class BusinessHoursCalculator {
     }
 
     // Parse business hours
-    const [startHour, startMinute] = businessHours.start.split(':').map(Number);
-    const [endHour, endMinute] = businessHours.end.split(':').map(Number);
+    const [startHour, startMinute] = businessHours.start.split(":").map(Number);
+    const [endHour, endMinute] = businessHours.end.split(":").map(Number);
 
     // Create business day boundaries
     const businessStart = new Date(startDate);
@@ -73,7 +79,8 @@ export class BusinessHoursCalculator {
     businessEnd.setHours(endHour, endMinute, 0, 0);
 
     // Calculate intersection of requested time period with business hours
-    const effectiveStart = startDate > businessStart ? startDate : businessStart;
+    const effectiveStart =
+      startDate > businessStart ? startDate : businessStart;
     const effectiveEnd = endDate < businessEnd ? endDate : businessEnd;
 
     // No overlap with business hours
@@ -89,16 +96,26 @@ export class BusinessHoursCalculator {
   /**
    * Get business hours configuration for a day of the week
    */
-  private getBusinessHoursForDay(dayOfWeek: number): { start: string; end: string } | null {
+  private getBusinessHoursForDay(
+    dayOfWeek: number,
+  ): { start: string; end: string } | null {
     switch (dayOfWeek) {
-      case 1: return this.config.monday;
-      case 2: return this.config.tuesday;
-      case 3: return this.config.wednesday;
-      case 4: return this.config.thursday;
-      case 5: return this.config.friday;
-      case 6: return this.config.saturday || null;
-      case 0: return this.config.sunday || null;
-      default: return null;
+      case 1:
+        return this.config.monday;
+      case 2:
+        return this.config.tuesday;
+      case 3:
+        return this.config.wednesday;
+      case 4:
+        return this.config.thursday;
+      case 5:
+        return this.config.friday;
+      case 6:
+        return this.config.saturday || null;
+      case 0:
+        return this.config.sunday || null;
+      default:
+        return null;
     }
   }
 
@@ -106,7 +123,7 @@ export class BusinessHoursCalculator {
    * Check if a date is a holiday
    */
   private isHoliday(date: Date): boolean {
-    const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+    const dateString = date.toISOString().split("T")[0]; // YYYY-MM-DD format
     return this.config.holidays.includes(dateString);
   }
 
@@ -133,8 +150,10 @@ export class BusinessHoursCalculator {
       }
 
       // Parse business hours
-      const [startHour, startMinute] = businessHours.start.split(':').map(Number);
-      const [endHour, endMinute] = businessHours.end.split(':').map(Number);
+      const [startHour, startMinute] = businessHours.start
+        .split(":")
+        .map(Number);
+      const [endHour, endMinute] = businessHours.end.split(":").map(Number);
 
       // Calculate available hours for this day
       const businessStart = new Date(currentDate);
@@ -156,11 +175,14 @@ export class BusinessHoursCalculator {
       }
 
       // Calculate hours available in this business day
-      const availableHours = (businessEnd.getTime() - currentDate.getTime()) / (1000 * 60 * 60);
+      const availableHours =
+        (businessEnd.getTime() - currentDate.getTime()) / (1000 * 60 * 60);
 
       if (remainingHours <= availableHours) {
         // Can finish within this business day
-        currentDate.setTime(currentDate.getTime() + (remainingHours * 60 * 60 * 1000));
+        currentDate.setTime(
+          currentDate.getTime() + remainingHours * 60 * 60 * 1000,
+        );
         remainingHours = 0;
       } else {
         // Need to continue to next business day
@@ -184,8 +206,8 @@ export class BusinessHoursCalculator {
       return false;
     }
 
-    const [startHour, startMinute] = businessHours.start.split(':').map(Number);
-    const [endHour, endMinute] = businessHours.end.split(':').map(Number);
+    const [startHour, startMinute] = businessHours.start.split(":").map(Number);
+    const [endHour, endMinute] = businessHours.end.split(":").map(Number);
 
     const currentHour = date.getHours();
     const currentMinute = date.getMinutes();
@@ -212,7 +234,9 @@ export class BusinessHoursCalculator {
 
       if (businessHours && !this.isHoliday(nextDay)) {
         // Set to start of business hours
-        const [startHour, startMinute] = businessHours.start.split(':').map(Number);
+        const [startHour, startMinute] = businessHours.start
+          .split(":")
+          .map(Number);
         nextDay.setHours(startHour, startMinute, 0, 0);
         return nextDay;
       }
@@ -224,11 +248,15 @@ export class BusinessHoursCalculator {
   /**
    * Calculate SLA deadline considering business hours
    */
-  calculateSLADeadline(startDate: Date, slaHours: number, businessHoursOnly: boolean = false): Date {
+  calculateSLADeadline(
+    startDate: Date,
+    slaHours: number,
+    businessHoursOnly: boolean = false,
+  ): Date {
     if (!businessHoursOnly) {
       // Standard 24/7 calculation
       const deadline = new Date(startDate);
-      deadline.setTime(deadline.getTime() + (slaHours * 60 * 60 * 1000));
+      deadline.setTime(deadline.getTime() + slaHours * 60 * 60 * 1000);
       return deadline;
     }
 
@@ -241,7 +269,7 @@ export class BusinessHoursCalculator {
    */
   updateConfig(newConfig: Partial<BusinessHoursConfig>): void {
     this.config = { ...this.config, ...newConfig };
-    logger.info('🕒 [BusinessHours] Configuration updated');
+    logger.info("🕒 [BusinessHours] Configuration updated");
   }
 
   /**

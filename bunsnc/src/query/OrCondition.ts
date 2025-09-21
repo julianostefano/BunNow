@@ -2,7 +2,7 @@
  * OR condition for ServiceNow queries
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
-import { BaseCondition } from './BaseCondition';
+import { BaseCondition } from "./BaseCondition";
 
 export class OrCondition extends BaseCondition {
   constructor(name: string, operator: string, value?: any) {

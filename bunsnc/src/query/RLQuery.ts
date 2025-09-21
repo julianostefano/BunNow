@@ -2,7 +2,7 @@
  * Related List Query implementation for ServiceNow
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
-import { Query } from './Query';
+import { Query } from "./Query";
 
 export class RLQuery extends Query {
   private _relatedTable: string;
@@ -15,7 +15,7 @@ export class RLQuery extends Query {
     relatedTable: string,
     relatedField: string,
     operatorCondition: string,
-    stopAtRelationship: boolean = false
+    stopAtRelationship: boolean = false,
   ) {
     super(table);
     this._relatedTable = relatedTable;
@@ -30,9 +30,9 @@ export class RLQuery extends Query {
   generateQuery(encodedQuery?: string, orderBy?: string): string {
     const query = super.generateQuery(encodedQuery, orderBy);
     const identifier = `${this._relatedTable}.${this._relatedField}`;
-    const stopCondition = this.stopAtRelationship ? ',m2m' : '';
-    const queryCondition = query ? `^${query}` : '';
-    
+    const stopCondition = this.stopAtRelationship ? ",m2m" : "";
+    const queryCondition = query ? `^${query}` : "";
+
     return `RLQUERY${identifier},${this.operatorCondition}${stopCondition}${queryCondition}^ENDRLQUERY`;
   }
 }

@@ -3,13 +3,13 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { Client } from '@opensearch-project/opensearch';
-import { EventEmitter } from 'events';
-import { logger } from '../../utils/Logger';
-import { performanceMonitor } from '../../utils/PerformanceMonitor';
+import { Client } from "@opensearch-project/opensearch";
+import { EventEmitter } from "events";
+import { logger } from "../../utils/Logger";
+import { performanceMonitor } from "../../utils/PerformanceMonitor";
 
 export interface OpenSearchConfig {
-  node: string | string[];           // OpenSearch node(s)
+  node: string | string[]; // OpenSearch node(s)
   auth?: {
     username: string;
     password: string;
@@ -20,11 +20,11 @@ export interface OpenSearchConfig {
     key?: string;
     rejectUnauthorized?: boolean;
   };
-  requestTimeout?: number;           // Default: 30000
-  maxRetries?: number;               // Default: 3
-  enableCompression?: boolean;       // Default: true
-  maxConnections?: number;           // Default: 10
-  keepAlive?: boolean;              // Default: true
+  requestTimeout?: number; // Default: 30000
+  maxRetries?: number; // Default: 3
+  enableCompression?: boolean; // Default: true
+  maxConnections?: number; // Default: 10
+  keepAlive?: boolean; // Default: true
 }
 
 export interface IndexConfig {
@@ -57,7 +57,7 @@ export interface SearchQuery {
 }
 
 export interface BulkOperation {
-  operation: 'index' | 'create' | 'update' | 'delete';
+  operation: "index" | "create" | "update" | "delete";
   index: string;
   id?: string;
   document?: any;
@@ -88,13 +88,13 @@ export class OpenSearchClient extends EventEmitter {
     averageLatency: 0,
     bulkOperations: 0,
     indexingThroughput: 0,
-    lastOperation: 0
+    lastOperation: 0,
   };
   private isConnected: boolean = false;
 
   constructor(config: OpenSearchConfig) {
     super();
-    
+
     this.config = {
       node: config.node,
       auth: config.auth,
@@ -103,7 +103,7 @@ export class OpenSearchClient extends EventEmitter {
       maxRetries: config.maxRetries || 3,
       enableCompression: config.enableCompression ?? true,
       maxConnections: config.maxConnections || 10,
-      keepAlive: config.keepAlive ?? true
+      keepAlive: config.keepAlive ?? true,
     };
 
     this.client = new Client({
@@ -114,36 +114,38 @@ export class OpenSearchClient extends EventEmitter {
       maxRetries: this.config.maxRetries,
       compression: this.config.enableCompression,
       maxConnections: this.config.maxConnections,
-      keepAlive: this.config.keepAlive
+      keepAlive: this.config.keepAlive,
     });
 
     this.setupEventHandlers();
-    
-    logger.info('OpenSearchClient initialized');
+
+    logger.info("OpenSearchClient initialized");
   }
 
   /**
    * Test connection to OpenSearch cluster
    */
   async connect(): Promise<boolean> {
-    const timer = performanceMonitor.startTimer('opensearch_connect');
-    
+    const timer = performanceMonitor.startTimer("opensearch_connect");
+
     try {
       const response = await this.client.cluster.health();
-      
+
       if (response.statusCode === 200) {
         this.isConnected = true;
-        this.emit('connected', response.body);
-        logger.info('Connected to OpenSearch cluster:', response.body.cluster_name);
+        this.emit("connected", response.body);
+        logger.info(
+          "Connected to OpenSearch cluster:",
+          response.body.cluster_name,
+        );
         return true;
       }
-      
-      return false;
 
+      return false;
     } catch (error) {
       this.isConnected = false;
-      logger.error('Failed to connect to OpenSearch:', error);
-      this.emit('connection:error', error);
+      logger.error("Failed to connect to OpenSearch:", error);
+      this.emit("connection:error", error);
       return false;
     } finally {
       performanceMonitor.endTimer(timer);
@@ -154,14 +156,14 @@ export class OpenSearchClient extends EventEmitter {
    * Create index with optimized settings for ServiceNow data
    */
   async createIndex(config: IndexConfig): Promise<boolean> {
-    const timer = performanceMonitor.startTimer('opensearch_create_index');
-    
+    const timer = performanceMonitor.startTimer("opensearch_create_index");
+
     try {
       this.stats.totalOperations++;
 
       // Check if index already exists
       const exists = await this.client.indices.exists({
-        index: config.name
+        index: config.name,
       });
 
       if (exists.statusCode === 200) {
@@ -176,33 +178,38 @@ export class OpenSearchClient extends EventEmitter {
           settings: {
             number_of_shards: config.settings?.numberOfShards || 1,
             number_of_replicas: config.settings?.numberOfReplicas || 1,
-            refresh_interval: config.settings?.refreshInterval || '1s',
-            'index.max_result_window': config.settings?.maxResultWindow || 10000,
-            analysis: config.settings?.analysis || this.getDefaultAnalysisSettings()
+            refresh_interval: config.settings?.refreshInterval || "1s",
+            "index.max_result_window":
+              config.settings?.maxResultWindow || 10000,
+            analysis:
+              config.settings?.analysis || this.getDefaultAnalysisSettings(),
           },
           mappings: config.mappings || this.getDefaultMappings(),
-          aliases: config.aliases ? 
-            Object.fromEntries(config.aliases.map(alias => [alias, {}])) : 
-            undefined
-        }
+          aliases: config.aliases
+            ? Object.fromEntries(config.aliases.map((alias) => [alias, {}]))
+            : undefined,
+        },
       });
 
       const success = response.statusCode === 200;
-      
+
       if (success) {
         this.stats.successfulOperations++;
         logger.info(`Successfully created index: ${config.name}`);
-        this.emit('index:created', { indexName: config.name });
+        this.emit("index:created", { indexName: config.name });
       } else {
         this.stats.failedOperations++;
       }
 
       return success;
-
     } catch (error) {
       this.stats.failedOperations++;
       logger.error(`Error creating index ${config.name}:`, error);
-      this.emit('operation:error', { operation: 'create_index', index: config.name, error });
+      this.emit("operation:error", {
+        operation: "create_index",
+        index: config.name,
+        error,
+      });
       return false;
     } finally {
       performanceMonitor.endTimer(timer);
@@ -220,10 +227,10 @@ export class OpenSearchClient extends EventEmitter {
       routing?: string;
       refresh?: boolean;
       timeout?: string;
-    } = {}
+    } = {},
   ): Promise<boolean> {
-    const timer = performanceMonitor.startTimer('opensearch_index_document');
-    
+    const timer = performanceMonitor.startTimer("opensearch_index_document");
+
     try {
       this.stats.totalOperations++;
 
@@ -233,31 +240,31 @@ export class OpenSearchClient extends EventEmitter {
         body: this.preprocessDocument(document),
         routing: options.routing,
         refresh: options.refresh,
-        timeout: options.timeout
+        timeout: options.timeout,
       });
 
-      const success = response.statusCode === 200 || response.statusCode === 201;
-      
+      const success =
+        response.statusCode === 200 || response.statusCode === 201;
+
       if (success) {
         this.stats.successfulOperations++;
         this.stats.documentsIndexed++;
         this.stats.lastOperation = Date.now();
-        
-        this.emit('document:indexed', { 
-          index, 
-          id: response.body._id, 
-          version: response.body._version 
+
+        this.emit("document:indexed", {
+          index,
+          id: response.body._id,
+          version: response.body._version,
         });
       } else {
         this.stats.failedOperations++;
       }
 
       return success;
-
     } catch (error) {
       this.stats.failedOperations++;
       logger.error(`Error indexing document in ${index}:`, error);
-      this.emit('operation:error', { operation: 'index', index, error });
+      this.emit("operation:error", { operation: "index", index, error });
       return false;
     } finally {
       performanceMonitor.endTimer(timer);
@@ -273,35 +280,40 @@ export class OpenSearchClient extends EventEmitter {
       refresh?: boolean;
       timeout?: string;
       routing?: string;
-    } = {}
+    } = {},
   ): Promise<{
     success: boolean;
     indexed: number;
     errors: any[];
   }> {
-    const timer = performanceMonitor.startTimer('opensearch_bulk_index');
-    
+    const timer = performanceMonitor.startTimer("opensearch_bulk_index");
+
     try {
       this.stats.totalOperations++;
       this.stats.bulkOperations++;
 
       // Build bulk request body
       const body = [];
-      
+
       for (const op of operations) {
         // Action header
         const action: any = {
           [op.operation]: {
             _index: op.index,
             _id: op.id,
-            routing: op.routing || options.routing
-          }
+            routing: op.routing || options.routing,
+          },
         };
-        
+
         body.push(action);
-        
+
         // Document body (for index, create, update operations)
-        if (op.document && (op.operation === 'index' || op.operation === 'create' || op.operation === 'update')) {
+        if (
+          op.document &&
+          (op.operation === "index" ||
+            op.operation === "create" ||
+            op.operation === "update")
+        ) {
           body.push(this.preprocessDocument(op.document));
         }
       }
@@ -309,25 +321,25 @@ export class OpenSearchClient extends EventEmitter {
       const response = await this.client.bulk({
         body,
         refresh: options.refresh,
-        timeout: options.timeout
+        timeout: options.timeout,
       });
 
       const result = {
         success: !response.body.errors,
         indexed: 0,
-        errors: [] as any[]
+        errors: [] as any[],
       };
 
       // Process response items
       for (const item of response.body.items) {
         const operation = Object.keys(item)[0];
         const operationResult = item[operation];
-        
+
         if (operationResult.error) {
           result.errors.push({
             index: operationResult._index,
             id: operationResult._id,
-            error: operationResult.error
+            error: operationResult.error,
           });
         } else {
           result.indexed++;
@@ -338,15 +350,15 @@ export class OpenSearchClient extends EventEmitter {
         this.stats.successfulOperations++;
         this.stats.documentsIndexed += result.indexed;
         this.stats.lastOperation = Date.now();
-        
+
         // Calculate indexing throughput
         this.updateIndexingThroughput(result.indexed);
-        
+
         logger.info(`Bulk indexed ${result.indexed} documents`);
-        this.emit('bulk:indexed', { 
-          total: operations.length, 
-          indexed: result.indexed, 
-          errors: result.errors.length 
+        this.emit("bulk:indexed", {
+          total: operations.length,
+          indexed: result.indexed,
+          errors: result.errors.length,
         });
       } else {
         this.stats.failedOperations++;
@@ -354,11 +366,10 @@ export class OpenSearchClient extends EventEmitter {
       }
 
       return result;
-
     } catch (error) {
       this.stats.failedOperations++;
-      logger.error('Error during bulk indexing:', error);
-      this.emit('operation:error', { operation: 'bulk_index', error });
+      logger.error("Error during bulk indexing:", error);
+      this.emit("operation:error", { operation: "bulk_index", error });
       return { success: false, indexed: 0, errors: [error] };
     } finally {
       performanceMonitor.endTimer(timer);
@@ -375,45 +386,50 @@ export class OpenSearchClient extends EventEmitter {
     aggregations?: any;
     took: number;
   }> {
-    const timer = performanceMonitor.startTimer('opensearch_search');
-    
+    const timer = performanceMonitor.startTimer("opensearch_search");
+
     try {
       this.stats.totalOperations++;
 
       const response = await this.client.search(query);
-      
+
       const result = {
         hits: response.body.hits.hits.map((hit: any) => ({
           ...hit._source,
           _id: hit._id,
           _score: hit._score,
           _index: hit._index,
-          highlight: hit.highlight
+          highlight: hit.highlight,
         })),
-        total: typeof response.body.hits.total === 'object' ? 
-          response.body.hits.total.value : response.body.hits.total,
+        total:
+          typeof response.body.hits.total === "object"
+            ? response.body.hits.total.value
+            : response.body.hits.total,
         maxScore: response.body.hits.max_score,
         aggregations: response.body.aggregations,
-        took: response.body.took
+        took: response.body.took,
       };
 
       this.stats.successfulOperations++;
       this.stats.documentsSearched += result.hits.length;
       this.stats.lastOperation = Date.now();
 
-      this.emit('search:completed', { 
-        index: query.index, 
-        hits: result.hits.length, 
+      this.emit("search:completed", {
+        index: query.index,
+        hits: result.hits.length,
         total: result.total,
-        took: result.took 
+        took: result.took,
       });
 
       return result;
-
     } catch (error) {
       this.stats.failedOperations++;
       logger.error(`Error searching index ${query.index}:`, error);
-      this.emit('operation:error', { operation: 'search', index: query.index, error });
+      this.emit("operation:error", {
+        operation: "search",
+        index: query.index,
+        error,
+      });
       return { hits: [], total: 0, maxScore: 0, took: 0 };
     } finally {
       performanceMonitor.endTimer(timer);
@@ -427,7 +443,7 @@ export class OpenSearchClient extends EventEmitter {
     index: string,
     aggregations: any,
     query?: any,
-    size: number = 0
+    size: number = 0,
   ): Promise<{
     aggregations: any;
     took: number;
@@ -437,15 +453,15 @@ export class OpenSearchClient extends EventEmitter {
       body: {
         size,
         query: query || { match_all: {} },
-        aggs: aggregations
-      }
+        aggs: aggregations,
+      },
     };
 
     const result = await this.search(searchQuery);
-    
+
     return {
       aggregations: result.aggregations || {},
-      took: result.took
+      took: result.took,
     };
   }
 
@@ -458,10 +474,10 @@ export class OpenSearchClient extends EventEmitter {
     options: {
       routing?: string;
       _source?: string[] | boolean;
-    } = {}
+    } = {},
   ): Promise<any | null> {
-    const timer = performanceMonitor.startTimer('opensearch_get_document');
-    
+    const timer = performanceMonitor.startTimer("opensearch_get_document");
+
     try {
       this.stats.totalOperations++;
 
@@ -469,7 +485,7 @@ export class OpenSearchClient extends EventEmitter {
         index,
         id,
         routing: options.routing,
-        _source: options._source
+        _source: options._source,
       });
 
       if (response.statusCode === 200) {
@@ -477,17 +493,16 @@ export class OpenSearchClient extends EventEmitter {
         return {
           ...response.body._source,
           _id: response.body._id,
-          _version: response.body._version
+          _version: response.body._version,
         };
       }
 
       return null;
-
     } catch (error) {
       if (error.statusCode === 404) {
         return null; // Document not found
       }
-      
+
       this.stats.failedOperations++;
       logger.error(`Error getting document ${id} from ${index}:`, error);
       return null;
@@ -507,10 +522,10 @@ export class OpenSearchClient extends EventEmitter {
       routing?: string;
       refresh?: boolean;
       retryOnConflict?: number;
-    } = {}
+    } = {},
   ): Promise<boolean> {
-    const timer = performanceMonitor.startTimer('opensearch_update_document');
-    
+    const timer = performanceMonitor.startTimer("opensearch_update_document");
+
     try {
       this.stats.totalOperations++;
 
@@ -519,28 +534,27 @@ export class OpenSearchClient extends EventEmitter {
         id,
         body: {
           doc: this.preprocessDocument(document),
-          doc_as_upsert: true
+          doc_as_upsert: true,
         },
         routing: options.routing,
         refresh: options.refresh,
-        retry_on_conflict: options.retryOnConflict || 3
+        retry_on_conflict: options.retryOnConflict || 3,
       });
 
       const success = response.statusCode === 200;
-      
+
       if (success) {
         this.stats.successfulOperations++;
-        this.emit('document:updated', { 
-          index, 
-          id, 
-          version: response.body._version 
+        this.emit("document:updated", {
+          index,
+          id,
+          version: response.body._version,
         });
       } else {
         this.stats.failedOperations++;
       }
 
       return success;
-
     } catch (error) {
       this.stats.failedOperations++;
       logger.error(`Error updating document ${id} in ${index}:`, error);
@@ -559,10 +573,10 @@ export class OpenSearchClient extends EventEmitter {
     options: {
       routing?: string;
       refresh?: boolean;
-    } = {}
+    } = {},
   ): Promise<boolean> {
-    const timer = performanceMonitor.startTimer('opensearch_delete_document');
-    
+    const timer = performanceMonitor.startTimer("opensearch_delete_document");
+
     try {
       this.stats.totalOperations++;
 
@@ -570,25 +584,24 @@ export class OpenSearchClient extends EventEmitter {
         index,
         id,
         routing: options.routing,
-        refresh: options.refresh
+        refresh: options.refresh,
       });
 
       const success = response.statusCode === 200;
-      
+
       if (success) {
         this.stats.successfulOperations++;
-        this.emit('document:deleted', { index, id });
+        this.emit("document:deleted", { index, id });
       } else {
         this.stats.failedOperations++;
       }
 
       return success;
-
     } catch (error) {
       if (error.statusCode === 404) {
         return true; // Already deleted
       }
-      
+
       this.stats.failedOperations++;
       logger.error(`Error deleting document ${id} from ${index}:`, error);
       return false;
@@ -606,15 +619,15 @@ export class OpenSearchClient extends EventEmitter {
     options: {
       routing?: string;
       refresh?: boolean;
-      conflicts?: 'abort' | 'proceed';
-    } = {}
+      conflicts?: "abort" | "proceed";
+    } = {},
   ): Promise<{
     deleted: number;
     versionConflicts: number;
     batches: number;
   }> {
-    const timer = performanceMonitor.startTimer('opensearch_delete_by_query');
-    
+    const timer = performanceMonitor.startTimer("opensearch_delete_by_query");
+
     try {
       this.stats.totalOperations++;
 
@@ -623,29 +636,28 @@ export class OpenSearchClient extends EventEmitter {
         body: { query },
         routing: options.routing,
         refresh: options.refresh,
-        conflicts: options.conflicts || 'abort'
+        conflicts: options.conflicts || "abort",
       });
 
       if (response.statusCode === 200) {
         this.stats.successfulOperations++;
-        
+
         const result = {
           deleted: response.body.deleted,
           versionConflicts: response.body.version_conflicts,
-          batches: response.body.batches
+          batches: response.body.batches,
         };
-        
-        this.emit('documents:deleted', { 
-          index, 
+
+        this.emit("documents:deleted", {
+          index,
           deleted: result.deleted,
-          conflicts: result.versionConflicts 
+          conflicts: result.versionConflicts,
         });
-        
+
         return result;
       }
 
       return { deleted: 0, versionConflicts: 0, batches: 0 };
-
     } catch (error) {
       this.stats.failedOperations++;
       logger.error(`Error deleting by query in ${index}:`, error);
@@ -666,22 +678,21 @@ export class OpenSearchClient extends EventEmitter {
   } | null> {
     try {
       const response = await this.client.indices.stats({
-        index
+        index,
       });
 
       if (response.statusCode === 200) {
         const stats = response.body.indices[index];
-        
+
         return {
           documentCount: stats.total.docs.count,
           indexSize: stats.total.store.size_in_bytes,
           searchRate: stats.total.search.query_total,
-          indexingRate: stats.total.indexing.index_total
+          indexingRate: stats.total.indexing.index_total,
         };
       }
 
       return null;
-
     } catch (error) {
       logger.error(`Error getting stats for index ${index}:`, error);
       return null;
@@ -692,7 +703,7 @@ export class OpenSearchClient extends EventEmitter {
    * Get cluster health and statistics
    */
   async getClusterHealth(): Promise<{
-    status: 'green' | 'yellow' | 'red';
+    status: "green" | "yellow" | "red";
     clusterName: string;
     numberOfNodes: number;
     numberOfDataNodes: number;
@@ -703,10 +714,10 @@ export class OpenSearchClient extends EventEmitter {
   } | null> {
     try {
       const response = await this.client.cluster.health();
-      
+
       if (response.statusCode === 200) {
         const health = response.body;
-        
+
         return {
           status: health.status,
           clusterName: health.cluster_name,
@@ -715,14 +726,13 @@ export class OpenSearchClient extends EventEmitter {
           activeShards: health.active_shards,
           relocatingShards: health.relocating_shards,
           initializingShards: health.initializing_shards,
-          unassignedShards: health.unassigned_shards
+          unassignedShards: health.unassigned_shards,
         };
       }
 
       return null;
-
     } catch (error) {
-      logger.error('Error getting cluster health:', error);
+      logger.error("Error getting cluster health:", error);
       return null;
     }
   }
@@ -733,8 +743,9 @@ export class OpenSearchClient extends EventEmitter {
   getStats(): OpenSearchStats {
     // Update average latency
     if (this.stats.totalOperations > 0) {
-      this.stats.averageLatency = 
-        (this.stats.successfulOperations + this.stats.failedOperations) / this.stats.totalOperations;
+      this.stats.averageLatency =
+        (this.stats.successfulOperations + this.stats.failedOperations) /
+        this.stats.totalOperations;
     }
 
     return { ...this.stats };
@@ -753,10 +764,10 @@ export class OpenSearchClient extends EventEmitter {
       averageLatency: 0,
       bulkOperations: 0,
       indexingThroughput: 0,
-      lastOperation: 0
+      lastOperation: 0,
     };
-    
-    this.emit('stats:reset');
+
+    this.emit("stats:reset");
   }
 
   /**
@@ -767,31 +778,37 @@ export class OpenSearchClient extends EventEmitter {
       await this.client.close();
       this.isConnected = false;
       this.removeAllListeners();
-      
-      logger.info('OpenSearchClient disconnected');
+
+      logger.info("OpenSearchClient disconnected");
     } catch (error) {
-      logger.error('Error disconnecting OpenSearchClient:', error);
+      logger.error("Error disconnecting OpenSearchClient:", error);
     }
   }
 
   private setupEventHandlers(): void {
-    this.client.on('response', (err, result) => {
+    this.client.on("response", (err, result) => {
       if (err) {
-        this.emit('error', err);
+        this.emit("error", err);
       }
     });
   }
 
   private preprocessDocument(document: any): any {
     // Add timestamp if not present
-    if (!document['@timestamp']) {
-      document['@timestamp'] = new Date().toISOString();
+    if (!document["@timestamp"]) {
+      document["@timestamp"] = new Date().toISOString();
     }
-    
+
     // Convert ServiceNow date fields to ISO format
-    const dateFields = ['sys_created_on', 'sys_updated_on', 'opened_at', 'closed_at', 'resolved_at'];
+    const dateFields = [
+      "sys_created_on",
+      "sys_updated_on",
+      "opened_at",
+      "closed_at",
+      "resolved_at",
+    ];
     for (const field of dateFields) {
-      if (document[field] && typeof document[field] === 'string') {
+      if (document[field] && typeof document[field] === "string") {
         try {
           document[field] = new Date(document[field]).toISOString();
         } catch (error) {
@@ -800,12 +817,12 @@ export class OpenSearchClient extends EventEmitter {
         }
       }
     }
-    
+
     // Ensure sys_id is present for ServiceNow documents
     if (!document.sys_id && !document._id) {
       document.sys_id = `generated_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     }
-    
+
     return document;
   }
 
@@ -813,66 +830,67 @@ export class OpenSearchClient extends EventEmitter {
     return {
       analyzer: {
         servicenow_text: {
-          type: 'custom',
-          tokenizer: 'standard',
-          filter: ['lowercase', 'stop', 'snowball']
+          type: "custom",
+          tokenizer: "standard",
+          filter: ["lowercase", "stop", "snowball"],
         },
         servicenow_search: {
-          type: 'custom',
-          tokenizer: 'keyword',
-          filter: ['lowercase']
-        }
-      }
+          type: "custom",
+          tokenizer: "keyword",
+          filter: ["lowercase"],
+        },
+      },
     };
   }
 
   private getDefaultMappings(): any {
     return {
       properties: {
-        '@timestamp': { type: 'date' },
-        sys_id: { type: 'keyword' },
-        sys_created_on: { type: 'date' },
-        sys_updated_on: { type: 'date' },
-        sys_created_by: { type: 'keyword' },
-        sys_updated_by: { type: 'keyword' },
-        number: { type: 'keyword' },
+        "@timestamp": { type: "date" },
+        sys_id: { type: "keyword" },
+        sys_created_on: { type: "date" },
+        sys_updated_on: { type: "date" },
+        sys_created_by: { type: "keyword" },
+        sys_updated_by: { type: "keyword" },
+        number: { type: "keyword" },
         short_description: {
-          type: 'text',
-          analyzer: 'servicenow_text',
+          type: "text",
+          analyzer: "servicenow_text",
           fields: {
-            keyword: { type: 'keyword' },
-            search: { type: 'text', analyzer: 'servicenow_search' }
-          }
+            keyword: { type: "keyword" },
+            search: { type: "text", analyzer: "servicenow_search" },
+          },
         },
         description: {
-          type: 'text',
-          analyzer: 'servicenow_text'
+          type: "text",
+          analyzer: "servicenow_text",
         },
-        state: { type: 'keyword' },
-        priority: { type: 'keyword' },
-        category: { type: 'keyword' },
-        subcategory: { type: 'keyword' },
-        assignment_group: { type: 'keyword' },
-        assigned_to: { type: 'keyword' },
-        caller_id: { type: 'keyword' },
-        opened_at: { type: 'date' },
-        closed_at: { type: 'date' },
-        resolved_at: { type: 'date' }
-      }
+        state: { type: "keyword" },
+        priority: { type: "keyword" },
+        category: { type: "keyword" },
+        subcategory: { type: "keyword" },
+        assignment_group: { type: "keyword" },
+        assigned_to: { type: "keyword" },
+        caller_id: { type: "keyword" },
+        opened_at: { type: "date" },
+        closed_at: { type: "date" },
+        resolved_at: { type: "date" },
+      },
     };
   }
 
   private updateIndexingThroughput(documentsIndexed: number): void {
     const currentTime = Date.now();
     const timeDelta = currentTime - this.stats.lastOperation;
-    
+
     if (timeDelta > 0) {
       const throughput = (documentsIndexed / timeDelta) * 1000; // per second
-      
+
       // Exponential moving average for smoothing
-      this.stats.indexingThroughput = this.stats.indexingThroughput === 0 ? 
-        throughput : 
-        (this.stats.indexingThroughput * 0.7) + (throughput * 0.3);
+      this.stats.indexingThroughput =
+        this.stats.indexingThroughput === 0
+          ? throughput
+          : this.stats.indexingThroughput * 0.7 + throughput * 0.3;
     }
   }
 }
