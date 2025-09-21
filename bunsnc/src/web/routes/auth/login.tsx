@@ -40,9 +40,9 @@ const LoginPage = ({ error }: { error?: string }) => (
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-md p-4">
             <div className="flex">
-              <div class="flex-shrink-0">
+              <div className="flex-shrink-0">
                 <svg
-                  class="h-5 w-5 text-red-400"
+                  className="h-5 w-5 text-red-400"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
@@ -53,11 +53,11 @@ const LoginPage = ({ error }: { error?: string }) => (
                   />
                 </svg>
               </div>
-              <div class="ml-3">
-                <h3 class="text-sm font-medium text-red-800">
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">
                   Authentication Error
                 </h3>
-                <div class="mt-2 text-sm text-red-700">
+                <div className="mt-2 text-sm text-red-700">
                   <p>{error}</p>
                 </div>
               </div>
@@ -66,14 +66,14 @@ const LoginPage = ({ error }: { error?: string }) => (
         )}
 
         <form
-          class="mt-8 space-y-6"
+          className="mt-8 space-y-6"
           hx-post="/auth/login"
           hx-target="body"
           hx-indicator="#login-spinner"
         >
-          <div class="rounded-md shadow-sm -space-y-px">
+          <div className="rounded-md shadow-sm -space-y-px">
             <div>
-              <label for="username" class="sr-only">
+              <label for="username" className="sr-only">
                 Username
               </label>
               <input
@@ -81,12 +81,12 @@ const LoginPage = ({ error }: { error?: string }) => (
                 name="username"
                 type="text"
                 required
-                class="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                 placeholder="ServiceNow Username"
               />
             </div>
             <div>
-              <label for="password" class="sr-only">
+              <label for="password" className="sr-only">
                 Password
               </label>
               <input
@@ -94,27 +94,33 @@ const LoginPage = ({ error }: { error?: string }) => (
                 name="password"
                 type="password"
                 required
-                class="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                 placeholder="Password"
               />
             </div>
           </div>
 
-          <div class="flex items-center justify-between">
-            <div class="flex items-center">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
               <input
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
-                class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
-              <label for="remember-me" class="ml-2 block text-sm text-gray-900">
+              <label
+                for="remember-me"
+                className="ml-2 block text-sm text-gray-900"
+              >
                 Remember me
               </label>
             </div>
 
-            <div class="text-sm">
-              <a href="#" class="font-medium text-blue-600 hover:text-blue-500">
+            <div className="text-sm">
+              <a
+                href="#"
+                className="font-medium text-blue-600 hover:text-blue-500"
+              >
                 Forgot your password?
               </a>
             </div>
@@ -123,11 +129,11 @@ const LoginPage = ({ error }: { error?: string }) => (
           <div>
             <button
               type="submit"
-              class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             >
-              <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+              <span className="absolute left-0 inset-y-0 flex items-center pl-3">
                 <svg
-                  class="h-5 w-5 text-blue-500 group-hover:text-blue-400"
+                  className="h-5 w-5 text-blue-500 group-hover:text-blue-400"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
@@ -142,28 +148,30 @@ const LoginPage = ({ error }: { error?: string }) => (
             </button>
           </div>
 
-          <div id="login-spinner" class="htmx-indicator">
-            <div class="flex items-center justify-center">
-              <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-              <span class="ml-2 text-sm text-gray-600">Authenticating...</span>
+          <div id="login-spinner" className="htmx-indicator">
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              <span className="ml-2 text-sm text-gray-600">
+                Authenticating...
+              </span>
             </div>
           </div>
         </form>
 
-        <div class="mt-6">
-          <div class="relative">
-            <div class="absolute inset-0 flex items-center">
-              <div class="w-full border-t border-gray-300" />
+        <div className="mt-6">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
             </div>
-            <div class="relative flex justify-center text-sm">
-              <span class="px-2 bg-gray-50 text-gray-500">
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-gray-50 text-gray-500">
                 Development Mode
               </span>
             </div>
           </div>
 
-          <div class="mt-6 text-center">
-            <p class="text-xs text-gray-500">
+          <div className="mt-6 text-center">
+            <p className="text-xs text-gray-500">
               Use any username/password combination for development
             </p>
           </div>
