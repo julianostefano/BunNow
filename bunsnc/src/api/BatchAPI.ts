@@ -88,7 +88,10 @@ export class BatchAPI implements IBatchAPI {
   /**
    * Add a request to the batch
    */
-  addRequest(request: BatchRequest, callback?: Function): void {
+  addRequest(
+    request: BatchRequest,
+    callback?: (result: any, error?: Error) => void,
+  ): void {
     if (callback) {
       request.callback = callback;
     }
@@ -165,7 +168,7 @@ export class BatchAPI implements IBatchAPI {
                 logger.warn("Batch callback error", "BatchAPI", {
                   batchId: this.batchId,
                   requestId: request.id,
-                  error: callbackError.message,
+                  error: (callbackError as Error).message,
                 });
               }
             }
@@ -190,7 +193,7 @@ export class BatchAPI implements IBatchAPI {
                 logger.warn("Batch callback error", "BatchAPI", {
                   batchId: this.batchId,
                   requestId: request.id,
-                  error: callbackError.message,
+                  error: (callbackError as Error).message,
                 });
               }
             }
@@ -228,7 +231,7 @@ export class BatchAPI implements IBatchAPI {
           "BatchAPI",
           {
             batchId: this.batchId,
-            error: error.message,
+            error: (error as Error).message,
             nextAttempt: attempt + 2,
           },
         );
@@ -237,12 +240,12 @@ export class BatchAPI implements IBatchAPI {
         return this.execute(attempt + 1);
       } else {
         // Max retries exceeded
-        operation.error("Batch execution failed after max retries", error);
+        operation.error("Batch execution failed after max retries", error as Error);
 
         const errorResult: BatchResult = {
           id: "batch_error",
           success: false,
-          error: `Batch execution failed after ${this.maxRetries} attempts: ${error.message}`,
+          error: `Batch execution failed after ${this.maxRetries} attempts: ${(error as Error).message}`,
           retryCount: attempt,
         };
 
@@ -556,7 +559,7 @@ export class BatchAPI implements IBatchAPI {
 
       // Add request context to error
       const enrichedError = new Error(
-        `Batch request ${request.id} failed: ${error.message}`,
+        `Batch request ${request.id} failed: ${(error as Error).message}`,
       );
       (enrichedError as any).requestId = request.id;
       (enrichedError as any).originalError = error;
@@ -704,7 +707,7 @@ export class BatchAPI implements IBatchAPI {
 
       return results;
     } catch (error) {
-      operation.error("Parallel batch execution failed", error);
+      operation.error("Parallel batch execution failed", error as Error);
       throw error;
     }
   }
@@ -761,7 +764,7 @@ export class BatchAPI implements IBatchAPI {
 
       return mergedResults;
     } catch (error) {
-      operation.error("Retry failed requests failed", error);
+      operation.error("Retry failed requests failed", error as Error);
       return results; // Return original results if retry fails
     }
   }

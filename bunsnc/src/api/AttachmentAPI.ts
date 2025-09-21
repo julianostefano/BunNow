@@ -55,7 +55,7 @@ export interface IAttachmentAPI {
 export class AttachmentAPI implements IAttachmentAPI {
   private baseUrl: string;
   private attachmentUrl: string;
-  private headers: HeadersInit;
+  private headers: Record<string, string>;
   private apiId: string;
   private cachingEnabled: boolean = true;
   private stats = {
@@ -205,15 +205,20 @@ export class AttachmentAPI implements IAttachmentAPI {
         cache.set(cacheKey, attachments, 180000); // 3 minutes
       }
 
+      // Handle both array and ServiceNow response format
+      const attachmentArray = Array.isArray(attachments)
+        ? attachments
+        : (attachments as { result?: ServiceNowRecord[] }).result || [];
+
       operation.success("Attachment list retrieved", {
-        count: attachments.length,
-        totalSize: attachments.reduce(
+        count: attachmentArray.length,
+        totalSize: attachmentArray.reduce(
           (sum: number, att: any) => sum + (parseInt(att.size_bytes) || 0),
           0,
         ),
       });
 
-      return attachments;
+      return attachmentArray;
     } catch (error) {
       operation.error("List attachments failed", error as Error);
       handleServiceNowError(error as Error, "list attachments");
@@ -351,7 +356,9 @@ export class AttachmentAPI implements IAttachmentAPI {
       // Fallback: try to get sys_id from response body
       if (!attachmentId) {
         try {
-          const result = await response.json() as { result?: { sys_id?: string } };
+          const result = (await response.json()) as {
+            result?: { sys_id?: string };
+          };
           if (result.result && result.result.sys_id) {
             attachmentId = result.result.sys_id;
           }
@@ -437,7 +444,7 @@ export class AttachmentAPI implements IAttachmentAPI {
         clonedResponse
           .blob()
           .then((blob) => {
-            cache.cacheAttachment(sysId, blob, 600000); // 10 minutes
+            cache.cacheAttachment(sysId, blob as any, 600000); // 10 minutes
           })
           .catch((err) => {
             logger.warn("Failed to cache attachment file", "AttachmentAPI", {
@@ -476,10 +483,10 @@ export class AttachmentAPI implements IAttachmentAPI {
   /**
    * Get attachment file as Blob
    */
-  async getFileAsBlob(sysId: string): Promise<Blob> {
+  async getFileAsBlob(sysId: string): Promise<any> {
     try {
       const response = await this.getFile(sysId);
-      return await response.blob();
+      return (await response.blob()) as any;
     } catch (error) {
       handleServiceNowError(error as Error, "get attachment as blob");
     }

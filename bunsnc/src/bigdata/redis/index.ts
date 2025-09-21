@@ -28,6 +28,41 @@ import { RedisCache } from "./RedisCache";
 import { RedisPubSub } from "./RedisPubSub";
 
 /**
+ * ServiceNow Redis Integration - Main service class
+ */
+export class ServiceNowRedisIntegration {
+  private factory: ServiceNowRedisFactory;
+
+  constructor(redisConfig: any = {}) {
+    this.factory = new ServiceNowRedisFactory(redisConfig);
+  }
+
+  getStreamManager() {
+    return this.factory.createStreamManager();
+  }
+
+  getCache() {
+    return this.factory.createCache();
+  }
+
+  getPubSub() {
+    return this.factory.createPubSub();
+  }
+
+  getDataPipeline() {
+    return this.factory.createDataPipeline();
+  }
+
+  async getHealth() {
+    return this.factory.getHealth();
+  }
+
+  async disconnect() {
+    return this.factory.disconnect();
+  }
+}
+
+/**
  * Factory class for creating integrated Redis services for ServiceNow data
  */
 export class ServiceNowRedisFactory {

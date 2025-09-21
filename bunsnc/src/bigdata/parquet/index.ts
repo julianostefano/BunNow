@@ -49,6 +49,35 @@ export function createServiceNowParquetReader(
   });
 }
 
+/**
+ * ServiceNow Parquet Integration - Main service class
+ */
+export class ServiceNowParquetIntegration {
+  private writer: any;
+  private reader: any;
+
+  constructor(options: any = {}) {
+    this.writer = createServiceNowParquetWriter(options.writer || {});
+    this.reader = createServiceNowParquetReader(options.reader || {});
+  }
+
+  getWriter() {
+    return this.writer;
+  }
+
+  getReader() {
+    return this.reader;
+  }
+
+  async writeServiceNowData(data: any[], outputPath: string): Promise<void> {
+    return this.writer.writeToFile(data, outputPath);
+  }
+
+  async readServiceNowData(inputPath: string): Promise<any[]> {
+    return this.reader.readFromFile(inputPath);
+  }
+}
+
 // Constants for ServiceNow-specific Parquet operations
 export const SERVICENOW_PARQUET_DEFAULTS = {
   BATCH_SIZE: 10000,
