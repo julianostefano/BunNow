@@ -132,8 +132,11 @@ export class AttachmentAPI implements IAttachmentAPI {
         throw createExceptionFromResponse(response.status, errorText, response);
       }
 
-      const result = await response.json();
-      const attachmentData = result.result || result;
+      const result = (await response.json()) as
+        | { result?: ServiceNowRecord }
+        | ServiceNowRecord;
+      const attachmentData =
+        ("result" in result ? result.result : result) || result;
 
       // Cache the metadata
       if (this.cachingEnabled && attachmentData) {
@@ -148,8 +151,8 @@ export class AttachmentAPI implements IAttachmentAPI {
 
       return attachmentData;
     } catch (error) {
-      operation.error("Get attachment metadata failed", error);
-      handleServiceNowError(error, "get attachment");
+      operation.error("Get attachment metadata failed", error as Error);
+      handleServiceNowError(error as Error, "get attachment");
     }
   }
 
@@ -165,7 +168,7 @@ export class AttachmentAPI implements IAttachmentAPI {
       // Check cache first
       const cacheKey = `attachments_list:${table}:${tableSysId}`;
       if (this.cachingEnabled) {
-        const cached = cache.get(cacheKey);
+        const cached = cache.get(cacheKey) as ServiceNowRecord[];
         if (cached) {
           this.stats.cacheHits++;
           operation.success("Attachment list retrieved from cache", {
@@ -192,8 +195,10 @@ export class AttachmentAPI implements IAttachmentAPI {
         throw createExceptionFromResponse(response.status, errorText, response);
       }
 
-      const result = await response.json();
-      const attachments = result.result || [];
+      const result = (await response.json()) as
+        | { result?: ServiceNowRecord[] }
+        | ServiceNowRecord[];
+      const attachments = ("result" in result ? result.result : result) || [];
 
       // Cache the list
       if (this.cachingEnabled) {
@@ -210,8 +215,8 @@ export class AttachmentAPI implements IAttachmentAPI {
 
       return attachments;
     } catch (error) {
-      operation.error("List attachments failed", error);
-      handleServiceNowError(error, "list attachments");
+      operation.error("List attachments failed", error as Error);
+      handleServiceNowError(error as Error, "list attachments");
     }
   }
 

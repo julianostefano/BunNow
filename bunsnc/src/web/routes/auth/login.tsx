@@ -11,12 +11,12 @@ import { Layout } from "../../components/Layout";
 // Login page component
 const LoginPage = ({ error }: { error?: string }) => (
   <Layout title="Login - ServiceNow Analytics" showNavigation={false}>
-    <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div class="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
         <div>
-          <div class="mx-auto h-12 w-12 flex items-center justify-center bg-blue-600 rounded-lg">
+          <div className="mx-auto h-12 w-12 flex items-center justify-center bg-blue-600 rounded-lg">
             <svg
-              class="w-8 h-8 text-white"
+              className="w-8 h-8 text-white"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -29,17 +29,17 @@ const LoginPage = ({ error }: { error?: string }) => (
               ></path>
             </svg>
           </div>
-          <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Sign in to ServiceNow Analytics
           </h2>
-          <p class="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-gray-600">
             Monitor and analyze your ServiceNow data in real-time
           </p>
         </div>
 
         {error && (
-          <div class="bg-red-50 border border-red-200 rounded-md p-4">
-            <div class="flex">
+          <div className="bg-red-50 border border-red-200 rounded-md p-4">
+            <div className="flex">
               <div class="flex-shrink-0">
                 <svg
                   class="h-5 w-5 text-red-400"

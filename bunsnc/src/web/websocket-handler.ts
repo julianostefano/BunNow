@@ -51,16 +51,16 @@ export class WebSocketManager {
   private startHealthCheck(): void {
     setInterval(async () => {
       const metrics = await serviceNowRepository.getServiceNowMetrics();
-      const rateLimitStats = // Rate limiting now handled internally: getMetrics();
-        await this.broadcastUpdate({
-          type: "metrics_updated",
-          data: {
-            metrics,
-            rateLimitStats,
-            clientCount: this.clients.size,
-          },
-          timestamp: new Date().toISOString(),
-        });
+      const rateLimitStats = {}; // Rate limiting now handled internally: getMetrics();
+      await this.broadcastUpdate({
+        type: "metrics_updated",
+        data: {
+          metrics,
+          rateLimitStats,
+          clientCount: this.clients.size,
+        },
+        timestamp: new Date().toISOString(),
+      });
 
       // Cleanup inactive clients
       this.cleanupInactiveClients();
