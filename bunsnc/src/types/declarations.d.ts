@@ -8,6 +8,11 @@ declare module "redis" {
   export interface RedisClientType {
     get(key: string): Promise<string | null>;
     set(key: string, value: string): Promise<string | "OK">;
+    set(
+      key: string,
+      value: string,
+      ...args: any[]
+    ): Promise<string | "OK" | null>;
     del(key: string | string[]): Promise<number>;
     exists(key: string): Promise<number>;
     expire(key: string, seconds: number): Promise<boolean>;
@@ -15,21 +20,29 @@ declare module "redis" {
     rpop(key: string): Promise<string | null>;
     llen(key: string): Promise<number>;
     zadd(key: string, score: number, member: string): Promise<number>;
+    zadd(
+      key: string,
+      scoreValue: { score: number; value: string },
+    ): Promise<number>;
     zrange(key: string, start: number, stop: number): Promise<string[]>;
     zrem(key: string, member: string): Promise<number>;
+    zCard(key: string): Promise<number>;
+    zRemRangeByScore(key: string, min: number, max: number): Promise<number>;
+    zPopMax(key: string): Promise<{ member: string; score: number } | null>;
     publish(channel: string, message: string): Promise<number>;
     subscribe(
       channel: string,
       callback?: (message: string) => void,
     ): Promise<void>;
     hGetAll(key: string): Promise<Record<string, string>>;
+    hGet(key: string, field: string): Promise<string | null>;
     hSet(key: string, field: string, value: string): Promise<number>;
     hDel(key: string, field: string): Promise<number>;
     on(event: string, callback: (...args: any[]) => void): void;
     quit(): Promise<void>;
     connect(): Promise<void>;
     disconnect(): Promise<void>;
-    duplicate(): Promise<RedisClientType>;
+    duplicate(): RedisClientType;
     isOpen: boolean;
     isReady: boolean;
   }
@@ -182,4 +195,21 @@ declare module "uuid/v4" {
 declare module "crypto-js" {
   export const AES: any;
   export const enc: any;
+}
+
+// OpenSearch enhanced type declarations
+declare module "@opensearch-project/opensearch" {
+  export interface IndicesClient {
+    create(params: any): Promise<any>;
+    exists(params: any): Promise<boolean>;
+    delete(params: any): Promise<any>;
+    putMapping(params: any): Promise<any>;
+    putSettings(params: any): Promise<any>;
+    putTemplate(params: any): Promise<any>;
+    refresh(params: { index: string }): Promise<any>;
+    getTemplate(params: any): Promise<any>;
+    deleteTemplate(params: any): Promise<any>;
+    getMapping(params: any): Promise<any>;
+    getSettings(params: any): Promise<any>;
+  }
 }

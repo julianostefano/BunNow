@@ -44,7 +44,7 @@ export interface ScheduleOptions {
 }
 
 export class TaskScheduler extends EventEmitter {
-  private redis: RedisClientType;
+  private redis!: RedisClientType;
   private taskQueue: TaskQueue;
   private isRunning: boolean = false;
   private schedulerInterval?: Timer;
@@ -363,7 +363,9 @@ export class TaskScheduler extends EventEmitter {
       const lockAcquired = await this.redis.set(
         this.SCHEDULE_LOCK_KEY,
         "locked",
-        { EX: 30, NX: true }, // 30 second expiration, only if not exists
+        "EX",
+        30,
+        "NX",
       );
 
       if (!lockAcquired) {

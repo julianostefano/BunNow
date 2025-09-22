@@ -83,8 +83,8 @@ export interface TaskQueueOptions {
 }
 
 export class TaskQueue extends EventEmitter {
-  private redis: RedisClientType;
-  private subscriber: RedisClientType;
+  private redis!: RedisClientType;
+  private subscriber!: RedisClientType;
   private options: TaskQueueOptions;
   private workers: Map<string, TaskWorker> = new Map();
   private isRunning: boolean = false;
@@ -165,7 +165,7 @@ export class TaskQueue extends EventEmitter {
 
       // Add to pending queue with priority
       const priority = task.priority || TaskPriority.NORMAL;
-      await this.redis.zAdd(this.PENDING_QUEUE, {
+      await this.redis.zadd(this.PENDING_QUEUE, {
         score: priority * 1000 + Date.now(),
         value: taskId,
       });
@@ -310,7 +310,7 @@ export class TaskQueue extends EventEmitter {
           ];
 
           for (const queue of allQueues) {
-            const taskIds = await this.redis.zRange(queue, 0, -1);
+            const taskIds = await this.redis.zrange(queue, 0, -1);
             for (const taskId of taskIds) {
               const task = await this.getTask(taskId);
               if (task) allTasks.push(task);
@@ -330,7 +330,7 @@ export class TaskQueue extends EventEmitter {
 
       // Get tasks from specific queue
       const total = await this.redis.zCard(queueName);
-      const taskIds = await this.redis.zRange(
+      const taskIds = await this.redis.zrange(
         queueName,
         offset,
         offset + limit - 1,
@@ -374,7 +374,7 @@ export class TaskQueue extends EventEmitter {
       const totalProcessed = completed + failed;
 
       // Calculate average processing time from recent completed tasks
-      const recentCompleted = await this.redis.zRange(
+      const recentCompleted = await this.redis.zrange(
         this.COMPLETED_QUEUE,
         -100,
         -1,
@@ -496,8 +496,8 @@ export class TaskQueue extends EventEmitter {
 
     if (oldQueue !== newQueue) {
       await Promise.all([
-        this.redis.zRem(oldQueue, taskId),
-        this.redis.zAdd(newQueue, { score: Date.now(), value: taskId }),
+        this.redis.zrem(oldQueue, taskId),
+        this.redis.zadd(newQueue, { score: Date.now(), value: taskId }),
       ]);
     }
   }
@@ -536,15 +536,15 @@ export class TaskQueue extends EventEmitter {
   async getNextTask(): Promise<Task | null> {
     try {
       // Get highest priority pending task
-      const taskIds = await this.redis.zPopMax(this.PENDING_QUEUE);
-      if (taskIds.length === 0) return null;
+      const taskData = await this.redis.zPopMax(this.PENDING_QUEUE);
+      if (!taskData) return null;
 
-      const taskId = taskIds[0].value;
+      const taskId = taskData.member;
       const task = await this.getTask(taskId);
 
       if (task) {
         // Move to running queue
-        await this.redis.zAdd(this.RUNNING_QUEUE, {
+        await this.redis.zadd(this.RUNNING_QUEUE, {
           score: Date.now(),
           value: taskId,
         });

@@ -944,7 +944,10 @@ export class DataPartitioner extends EventEmitter {
       }
       // Add other format handling as needed
     } catch (error) {
-      logger.debug("Error parsing date range:", error);
+      logger.debug(
+        "Error parsing date range:",
+        (error as Error).message || "Unknown error",
+      );
     }
 
     return undefined;

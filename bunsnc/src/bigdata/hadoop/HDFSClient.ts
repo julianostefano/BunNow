@@ -76,7 +76,7 @@ export class HDFSClient extends EventEmitter {
 
     this.config = {
       namenode: config.namenode,
-      datanode: config.datanode,
+      datanode: config.datanode || "",
       user: config.user,
       timeout: config.timeout || 30000,
       replicationFactor: config.replicationFactor || 3,
@@ -552,9 +552,17 @@ export class HDFSClient extends EventEmitter {
       // Implementation depends on specific Hadoop version and available APIs
 
       const summaryUrl = `${this.config.namenode}/jmx?qry=Hadoop:service=NameNode,name=FSNamesystemState`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(
+        () => controller.abort(),
+        this.config.timeout,
+      );
+
       const response = await fetch(summaryUrl, {
-        timeout: this.config.timeout,
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(

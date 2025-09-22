@@ -152,11 +152,13 @@ export class IndexManager extends EventEmitter {
         version: 1,
       };
 
-      const response = await this.client["client"].indices.putTemplate({
-        name: template.name,
-        body: template.template,
-        include_type_name: false,
-      });
+      const response = await (this.client["client"].indices as any).putTemplate(
+        {
+          name: template.name,
+          body: template.template,
+          include_type_name: false,
+        },
+      );
 
       const success = response.statusCode === 200;
 
@@ -176,7 +178,10 @@ export class IndexManager extends EventEmitter {
 
       return success;
     } catch (error) {
-      logger.error(`Error creating template for table ${table}:`, error);
+      logger.error(
+        `Error creating template for table ${table}:`,
+        error as Error,
+      );
       return false;
     } finally {
       performanceMonitor.endTimer(timer);
@@ -320,7 +325,7 @@ export class IndexManager extends EventEmitter {
 
       return success;
     } catch (error) {
-      logger.error(`Error optimizing index ${indexName}:`, error);
+      logger.error(`Error optimizing index ${indexName}:`, error as Error);
       return false;
     } finally {
       performanceMonitor.endTimer(timer);
@@ -448,7 +453,7 @@ export class IndexManager extends EventEmitter {
           indicesCount: this.indexMetrics.size,
         });
       } catch (error) {
-        logger.error("Error during index monitoring:", error);
+        logger.error("Error during index monitoring:", error as Error);
       }
     }, intervalMs);
 
@@ -514,7 +519,10 @@ export class IndexManager extends EventEmitter {
       this.indexMetrics.set(indexName, metrics);
       return metrics;
     } catch (error) {
-      logger.error(`Error getting metrics for index ${indexName}:`, error);
+      logger.error(
+        `Error getting metrics for index ${indexName}:`,
+        error as Error,
+      );
       return null;
     }
   }
@@ -537,7 +545,7 @@ export class IndexManager extends EventEmitter {
         const suggestions = await this.analyzeIndexPerformance(indexName);
         allSuggestions.push(...suggestions);
       } catch (error) {
-        logger.error(`Error analyzing ${indexName}:`, error);
+        logger.error(`Error analyzing ${indexName}:`, error as Error);
       }
     }
 
@@ -670,7 +678,10 @@ export class IndexManager extends EventEmitter {
 
       return response.statusCode === 200;
     } catch (error) {
-      logger.error(`Error creating initial index for table ${table}:`, error);
+      logger.error(
+        `Error creating initial index for table ${table}:`,
+        error as Error,
+      );
       return false;
     }
   }
@@ -697,7 +708,7 @@ export class IndexManager extends EventEmitter {
 
       return response.statusCode === 200;
     } catch (error) {
-      logger.error(`Error force merging index ${indexName}:`, error);
+      logger.error(`Error force merging index ${indexName}:`, error as Error);
       return false;
     }
   }
@@ -710,7 +721,7 @@ export class IndexManager extends EventEmitter {
 
       return response.statusCode === 200;
     } catch (error) {
-      logger.error(`Error refreshing index ${indexName}:`, error);
+      logger.error(`Error refreshing index ${indexName}:`, error as Error);
       return false;
     }
   }
@@ -727,7 +738,10 @@ export class IndexManager extends EventEmitter {
 
       return null;
     } catch (error) {
-      logger.error(`Error getting settings for index ${indexName}:`, error);
+      logger.error(
+        `Error getting settings for index ${indexName}:`,
+        error as Error,
+      );
       return null;
     }
   }
@@ -745,7 +759,10 @@ export class IndexManager extends EventEmitter {
 
       return response.statusCode === 200;
     } catch (error) {
-      logger.error(`Error enabling compression for index ${indexName}:`, error);
+      logger.error(
+        `Error enabling compression for index ${indexName}:`,
+        error as Error,
+      );
       return false;
     }
   }
@@ -768,7 +785,7 @@ export class IndexManager extends EventEmitter {
         await Promise.all(promises);
       }
     } catch (error) {
-      logger.error("Error updating all index metrics:", error);
+      logger.error("Error updating all index metrics:", error as Error);
     }
   }
 
