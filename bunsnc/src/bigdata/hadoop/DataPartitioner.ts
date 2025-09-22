@@ -64,7 +64,10 @@ export class DataPartitioner extends EventEmitter {
   private partitionMetadata: Map<string, PartitionMetadata> = new Map();
   private defaultConfig: Required<PartitionConfig>;
 
-  constructor(hdfs: HDFSClient, defaultConfig: PartitionConfig = {}) {
+  constructor(
+    hdfs: HDFSClient,
+    defaultConfig: PartitionConfig = { strategy: "hybrid" },
+  ) {
     super();
 
     this.hdfs = hdfs;
@@ -414,7 +417,7 @@ export class DataPartitioner extends EventEmitter {
         } catch (error) {
           logger.error(
             `Failed to delete partition ${partition.partitionId}:`,
-            error,
+            error as Error,
           );
         }
       }
@@ -796,7 +799,7 @@ export class DataPartitioner extends EventEmitter {
 
       return compactedMetadata;
     } catch (error) {
-      logger.error("Error during partition compaction:", error);
+      logger.error("Error during partition compaction:", error as Error);
       return null;
     }
   }

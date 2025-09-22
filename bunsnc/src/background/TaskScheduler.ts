@@ -5,7 +5,7 @@
  */
 
 import { EventEmitter } from "events";
-import Redis from "redis";
+import { createClient, RedisClientType } from "redis";
 import { TaskQueue, Task, TaskType, TaskPriority } from "./TaskQueue";
 
 export interface ScheduledTask {
@@ -44,7 +44,7 @@ export interface ScheduleOptions {
 }
 
 export class TaskScheduler extends EventEmitter {
-  private redis: Redis.RedisClientType;
+  private redis: RedisClientType;
   private taskQueue: TaskQueue;
   private isRunning: boolean = false;
   private schedulerInterval?: Timer;
@@ -75,12 +75,14 @@ export class TaskScheduler extends EventEmitter {
     db?: number;
   }): Promise<void> {
     try {
-      this.redis = Redis.createClient({
-        host: options.host,
-        port: options.port,
+      this.redis = createClient({
+        socket: {
+          host: options.host,
+          port: options.port,
+        },
         password: options.password,
         database: options.db || 1, // Use different DB for scheduler
-      }) as Redis.RedisClientType;
+      });
 
       await this.redis.connect();
 
@@ -331,7 +333,7 @@ export class TaskScheduler extends EventEmitter {
 
       for (const [taskId, taskDataStr] of Object.entries(tasksData)) {
         try {
-          const task: ScheduledTask = JSON.parse(taskDataStr);
+          const task: ScheduledTask = JSON.parse(taskDataStr as string);
           // Convert date strings back to Date objects
           task.createdAt = new Date(task.createdAt);
           task.updatedAt = new Date(task.updatedAt);

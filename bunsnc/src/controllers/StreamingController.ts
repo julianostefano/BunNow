@@ -5,19 +5,25 @@
 
 import { APIController } from "./APIController";
 
-// Context interface for SSE handling
+// Context interface for SSE handling (compatible with Elysia context)
 interface SSEContext {
   set: {
-    headers: Record<string, string>;
+    headers: Record<string, string | number>;
+    status?: number;
   };
+  query?: Record<string, string>;
+  params?: Record<string, string>;
 }
 
-// WebSocket interface
+// WebSocket interface (compatible with ElysiaWS)
 interface WebSocket {
   send(data: string): void;
   close(): void;
-  readyState: number;
+  readyState?: number;
   id?: string;
+  publish?: (topic: string, data: string) => void;
+  subscribe?: (topic: string) => void;
+  unsubscribe?: (topic: string) => void;
 }
 
 // WebSocket message interface

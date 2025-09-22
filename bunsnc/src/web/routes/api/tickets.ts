@@ -475,7 +475,8 @@ const app = new Elysia({ prefix: "/api/tickets" })
               enhanced_metrics_service: true, // No specific health check
               contractual_violation_service: violationHealthy,
             },
-            mongodb_connected: mongoClient.topology?.isConnected() || false,
+            mongodb_connected:
+              (mongoClient as any).topology?.isConnected() || false,
             cache_stats: {
               sla_cache: contractualSLAService.getCacheStats(),
               violation_cache: contractualViolationService.getCacheStats(),

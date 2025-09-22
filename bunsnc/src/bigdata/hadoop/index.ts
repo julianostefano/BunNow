@@ -11,15 +11,19 @@ export type {
   HDFSFileInfo,
   HDFSOperationOptions,
   HDFSStats,
+} from "./HDFSClient";
+
+export type {
   PartitionConfig,
   PartitionMetadata,
   PartitionStatistics,
   PartitionPlan,
-} from "./HDFSClient";
+} from "./DataPartitioner";
 
 import { HDFSClient, ServiceNowHDFSUtils } from "./HDFSClient";
 import { DataPartitioner } from "./DataPartitioner";
-import type { HDFSConfig, PartitionConfig } from "./HDFSClient";
+import type { HDFSConfig } from "./HDFSClient";
+import type { PartitionConfig } from "./DataPartitioner";
 
 /**
  * Factory class for creating integrated Hadoop services for ServiceNow data
@@ -290,8 +294,8 @@ export class ServiceNowHadoopFactory {
           readable: canRead,
         },
         cluster: {
-          healthy: clusterSummary?.totalCapacity > 0,
-          capacity: clusterSummary?.totalCapacity || 0,
+          healthy: (clusterSummary?.totalCapacity ?? 0) > 0,
+          capacity: clusterSummary?.totalCapacity ?? 0,
           used: clusterSummary?.usedCapacity || 0,
           available: clusterSummary?.availableCapacity || 0,
         },

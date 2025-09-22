@@ -443,6 +443,7 @@ export class SystemTaskManager extends EventEmitter {
     logger.debug(` [SystemTasks] Performing data sync with data:`, data);
     await new Promise((resolve) => setTimeout(resolve, 2000));
     return {
+      success: true,
       synced: true,
       recordsProcessed: Math.floor(Math.random() * 100) + 10,
     };
@@ -452,7 +453,7 @@ export class SystemTaskManager extends EventEmitter {
     logger.debug(` [SystemTasks] Performing cache refresh`);
     await new Promise((resolve) => setTimeout(resolve, 1000));
     const keys = Array.isArray(data.keys) ? data.keys.map(String) : ["default"];
-    return { refreshed: true, cacheKeys: keys };
+    return { success: true, refreshed: true, cacheKeys: keys };
   }
 
   private async performReportGeneration(data: TaskData): Promise<TaskResult> {
@@ -461,6 +462,7 @@ export class SystemTaskManager extends EventEmitter {
     logger.debug(` [SystemTasks] Generating report:`, reportType);
     await new Promise((resolve) => setTimeout(resolve, 3000));
     return {
+      success: true,
       reportGenerated: true,
       reportPath: `/tmp/reports/${reportType}_${Date.now()}.pdf`,
     };
@@ -469,13 +471,18 @@ export class SystemTaskManager extends EventEmitter {
   private async performCleanup(data: TaskData): Promise<TaskResult> {
     logger.debug(` [SystemTasks] Performing cleanup`);
     await new Promise((resolve) => setTimeout(resolve, 1500));
-    return { cleaned: true, itemsRemoved: Math.floor(Math.random() * 50) };
+    return {
+      success: true,
+      cleaned: true,
+      itemsRemoved: Math.floor(Math.random() * 50),
+    };
   }
 
   private async performBackup(data: TaskData): Promise<TaskResult> {
     logger.debug(` [SystemTasks] Performing backup`);
     await new Promise((resolve) => setTimeout(resolve, 5000));
     return {
+      success: true,
       backedUp: true,
       backupSize: Math.floor(Math.random() * 1000) + 100,
     };

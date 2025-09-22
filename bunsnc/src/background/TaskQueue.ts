@@ -5,7 +5,7 @@
  */
 
 import { EventEmitter } from "events";
-import Redis from "redis";
+import { createClient, RedisClientType } from "redis";
 
 export interface Task {
   id: string;
@@ -83,8 +83,8 @@ export interface TaskQueueOptions {
 }
 
 export class TaskQueue extends EventEmitter {
-  private redis: Redis.RedisClientType;
-  private subscriber: Redis.RedisClientType;
+  private redis: RedisClientType;
+  private subscriber: RedisClientType;
   private options: TaskQueueOptions;
   private workers: Map<string, TaskWorker> = new Map();
   private isRunning: boolean = false;
@@ -107,12 +107,14 @@ export class TaskQueue extends EventEmitter {
   private async initializeRedis(): Promise<void> {
     try {
       // Main Redis client
-      this.redis = Redis.createClient({
-        host: this.options.redis.host,
-        port: this.options.redis.port,
+      this.redis = createClient({
+        socket: {
+          host: this.options.redis.host,
+          port: this.options.redis.port,
+        },
         password: this.options.redis.password,
         database: this.options.redis.db || 0,
-      }) as Redis.RedisClientType;
+      });
 
       // Subscriber client for real-time updates
       this.subscriber = this.redis.duplicate();

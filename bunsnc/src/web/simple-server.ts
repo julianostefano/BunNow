@@ -190,7 +190,7 @@ const app = new Elysia()
     console.error(`Error ${code}:`, error);
     return {
       error: "Server Error",
-      message: error.message,
+      message: (error as Error).message || "Unknown error",
       code,
       timestamp: new Date().toISOString(),
     };

@@ -61,12 +61,12 @@ export interface WebServerConfig {
 }
 
 export class WebServerController {
-  private app: Elysia;
+  private app!: Elysia;
   private config: WebServerConfig;
-  private serviceNowClient: ServiceNowClient;
-  private redisStreamManager: RedisStreamManager;
-  private consolidatedTicketService: typeof consolidatedServiceNowService;
-  private serviceNowAuthClient: typeof serviceNowAuthClient;
+  private serviceNowClient!: ServiceNowClient;
+  private redisStreamManager!: RedisStreamManager;
+  private consolidatedTicketService!: typeof consolidatedServiceNowService;
+  private serviceNowAuthClient!: typeof serviceNowAuthClient;
   private enhancedTicketStorageService: typeof dataService | undefined;
   private redisStreams: ServiceNowStreams | undefined;
   private hybridDataService: typeof dataService | undefined;

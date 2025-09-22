@@ -64,8 +64,8 @@ export interface TaskExecutionResult {
 
 export class TaskManager extends EventEmitter {
   private config: TaskManagerConfig;
-  private queue: TaskQueue;
-  private scheduler: TaskScheduler;
+  private queue!: TaskQueue;
+  private scheduler!: TaskScheduler;
   private isRunning: boolean = false;
   private metrics: {
     tasksCreated: number;

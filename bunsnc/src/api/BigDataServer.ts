@@ -960,7 +960,7 @@ export class BigDataServer {
 
       // Global error handling
       .onError(({ error, code, set }) => {
-        logger.error("API Error:", error);
+        logger.error("API Error:", error as Error);
 
         if (code === "VALIDATION") {
           set.status = 400;
@@ -998,7 +998,7 @@ export class BigDataServer {
         });
       });
 
-    return app;
+    return app as any;
   }
 
   async start(port: number = 3008): Promise<void> {

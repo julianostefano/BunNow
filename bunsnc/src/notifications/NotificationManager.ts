@@ -59,11 +59,11 @@ export interface NotificationManagerConfig {
 
 export class NotificationManager extends EventEmitter {
   private config: NotificationManagerConfig;
-  private queue: NotificationQueue;
-  private webSocketServer: WebSocketServer;
-  private sseManager: SSEManager;
+  private queue!: NotificationQueue;
+  private webSocketServer!: WebSocketServer;
+  private sseManager!: SSEManager;
   private isRunning: boolean = false;
-  private stats: NotificationStats;
+  private stats!: NotificationStats;
 
   // Performance tracking
   private startTime: Date;
@@ -275,8 +275,10 @@ export class NotificationManager extends EventEmitter {
 
     // Update statistics
     this.totalNotifications++;
-    this.stats.byType[notification.type] =
-      (this.stats.byType[notification.type] || 0) + 1;
+    if (!this.stats.byType[notification.type]) {
+      this.stats.byType[notification.type] = { count: 0, avgFrequency: 0 };
+    }
+    this.stats.byType[notification.type].count++;
     this.stats.byPriority[notification.priority]++;
 
     // Determine channels if not specified
@@ -604,7 +606,15 @@ export class NotificationManager extends EventEmitter {
 
   // Mapping methods for notification types
 
-  private mapTaskStatusToNotificationType(status: string): NotificationType {
+  private mapTaskStatusToNotificationType(
+    status: string,
+  ):
+    | NotificationType.TASK_CREATED
+    | NotificationType.TASK_STARTED
+    | NotificationType.TASK_PROGRESS
+    | NotificationType.TASK_COMPLETED
+    | NotificationType.TASK_FAILED
+    | NotificationType.TASK_CANCELLED {
     switch (status.toLowerCase()) {
       case "created":
         return NotificationType.TASK_CREATED;
@@ -626,7 +636,13 @@ export class NotificationManager extends EventEmitter {
     }
   }
 
-  private mapHealthStatusToNotificationType(status?: string): NotificationType {
+  private mapHealthStatusToNotificationType(
+    status?: string,
+  ):
+    | NotificationType.SYSTEM_HEALTH
+    | NotificationType.SYSTEM_ERROR
+    | NotificationType.SYSTEM_WARNING
+    | NotificationType.SYSTEM_INFO {
     switch (status) {
       case "unhealthy":
         return NotificationType.SYSTEM_ERROR;
@@ -639,7 +655,13 @@ export class NotificationManager extends EventEmitter {
     }
   }
 
-  private mapTableNameToNotificationType(tableName: string): NotificationType {
+  private mapTableNameToNotificationType(
+    tableName: string,
+  ):
+    | NotificationType.SERVICENOW_INCIDENT
+    | NotificationType.SERVICENOW_PROBLEM
+    | NotificationType.SERVICENOW_CHANGE
+    | NotificationType.SERVICENOW_CONNECTION {
     switch (tableName.toLowerCase()) {
       case "incident":
         return NotificationType.SERVICENOW_INCIDENT;
@@ -1042,7 +1064,7 @@ export class NotificationManager extends EventEmitter {
       // Insert into database table 'notifications'
       try {
         const mongodb = await import("../config/mongodb");
-        const client = await mongodb.getMongoClient();
+        const client = await mongodb.mongoClient;
         const db = client.db();
 
         const result = await db.collection("notifications").insertOne(dbRecord);
@@ -1242,7 +1264,7 @@ export class NotificationManager extends EventEmitter {
   ): Promise<any[]> {
     try {
       const mongodb = await import("../config/mongodb");
-      const client = await mongodb.getMongoClient();
+      const client = await mongodb.mongoClient;
       const db = client.db();
 
       // Query subscriptions based on notification priority and type
@@ -1275,7 +1297,7 @@ export class NotificationManager extends EventEmitter {
   private async removePushSubscription(endpoint: string): Promise<void> {
     try {
       const mongodb = await import("../config/mongodb");
-      const client = await mongodb.getMongoClient();
+      const client = await mongodb.mongoClient;
       const db = client.db();
 
       await db

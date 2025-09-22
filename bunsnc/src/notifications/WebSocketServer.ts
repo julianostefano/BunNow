@@ -24,6 +24,7 @@ export interface WebSocketServerOptions {
   rateLimits: {
     messagesPerMinute: number;
     subscriptionsPerClient: number;
+    connectionsPerIP: number;
   };
 }
 

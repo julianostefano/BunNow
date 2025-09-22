@@ -167,7 +167,10 @@ export class HDFSClient extends EventEmitter {
       return true;
     } catch (error) {
       this.stats.failedOperations++;
-      logger.error(`Error uploading file ${localPath} to HDFS:`, error);
+      logger.error(
+        `Error uploading file ${localPath} to HDFS:`,
+        error as Error,
+      );
       this.emit("operation:error", {
         operation: "upload",
         localPath,
@@ -240,7 +243,10 @@ export class HDFSClient extends EventEmitter {
       return true;
     } catch (error) {
       this.stats.failedOperations++;
-      logger.error(`Error downloading file ${hdfsPath} from HDFS:`, error);
+      logger.error(
+        `Error downloading file ${hdfsPath} from HDFS:`,
+        error as Error,
+      );
       this.emit("operation:error", {
         operation: "download",
         hdfsPath,
@@ -290,7 +296,7 @@ export class HDFSClient extends EventEmitter {
       return success;
     } catch (error) {
       this.stats.failedOperations++;
-      logger.error(`Error creating directory ${hdfsPath}:`, error);
+      logger.error(`Error creating directory ${hdfsPath}:`, error as Error);
       this.emit("operation:error", { operation: "mkdir", hdfsPath, error });
       return false;
     } finally {
@@ -334,7 +340,7 @@ export class HDFSClient extends EventEmitter {
       return success;
     } catch (error) {
       this.stats.failedOperations++;
-      logger.error(`Error deleting ${hdfsPath}:`, error);
+      logger.error(`Error deleting ${hdfsPath}:`, error as Error);
       this.emit("operation:error", { operation: "delete", hdfsPath, error });
       return false;
     } finally {
@@ -382,7 +388,7 @@ export class HDFSClient extends EventEmitter {
       };
     } catch (error) {
       this.stats.failedOperations++;
-      logger.error(`Error getting status for ${hdfsPath}:`, error);
+      logger.error(`Error getting status for ${hdfsPath}:`, error as Error);
       return null;
     } finally {
       performanceMonitor.endTimer(timer);
@@ -426,7 +432,7 @@ export class HDFSClient extends EventEmitter {
       }));
     } catch (error) {
       this.stats.failedOperations++;
-      logger.error(`Error listing directory ${hdfsPath}:`, error);
+      logger.error(`Error listing directory ${hdfsPath}:`, error as Error);
       return [];
     } finally {
       performanceMonitor.endTimer(timer);
@@ -467,7 +473,7 @@ export class HDFSClient extends EventEmitter {
       return success;
     } catch (error) {
       this.stats.failedOperations++;
-      logger.error(`Error renaming ${oldPath} to ${newPath}:`, error);
+      logger.error(`Error renaming ${oldPath} to ${newPath}:`, error as Error);
       this.emit("operation:error", {
         operation: "rename",
         oldPath,
@@ -519,7 +525,10 @@ export class HDFSClient extends EventEmitter {
       return success;
     } catch (error) {
       this.stats.failedOperations++;
-      logger.error(`Error setting replication for ${hdfsPath}:`, error);
+      logger.error(
+        `Error setting replication for ${hdfsPath}:`,
+        error as Error,
+      );
       return false;
     } finally {
       performanceMonitor.endTimer(timer);
@@ -566,7 +575,7 @@ export class HDFSClient extends EventEmitter {
         missingBlocks: beans.MissingBlocks || 0,
       };
     } catch (error) {
-      logger.error("Error getting cluster summary:", error);
+      logger.error("Error getting cluster summary:", error as Error);
       return null;
     }
   }
@@ -834,7 +843,7 @@ export class ServiceNowHDFSUtils {
       summary.attachmentSize = attachmentStats.size;
       summary.totalSize += attachmentStats.size;
     } catch (error) {
-      logger.error("Error calculating storage summary:", error);
+      logger.error("Error calculating storage summary:", error as Error);
     }
 
     return summary;

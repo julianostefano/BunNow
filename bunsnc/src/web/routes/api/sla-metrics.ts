@@ -497,7 +497,8 @@ const app = new Elysia({ prefix: "/api/sla-metrics" })
         data: {
           service_healthy: isHealthy,
           cache_stats: cacheStats,
-          mongodb_connected: mongoClient.topology?.isConnected() || false,
+          mongodb_connected:
+            (mongoClient as any).topology?.isConnected() || false,
         },
         timestamp: new Date().toISOString(),
       };
