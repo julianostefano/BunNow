@@ -6,6 +6,8 @@
 import { serviceNowSAMLAuth } from "./auth/ServiceNowSAMLAuth";
 import { samlConfigManager } from "./auth/SAMLConfigManager";
 import { SAMLAuthenticationData, SAML_NO_PROXY_DOMAINS } from "../types/saml";
+import { serviceNowRateLimiter } from "./ServiceNowRateLimit";
+import { serviceNowCircuitBreaker } from "./CircuitBreaker";
 
 export interface ServiceNowRecord {
   sys_id: string;
@@ -400,52 +402,15 @@ export class ServiceNowFetchClient {
   }
 
   /**
-   * Execute request with rate limiting
+   * Execute request with rate limiting and circuit breaker
    */
   private async executeWithRateLimit<T>(
     requestFn: () => Promise<T>,
   ): Promise<T> {
-    let retryCount = 0;
-    let lastError: Error;
-
-    while (retryCount <= this.rateLimitConfig.maxRetries) {
-      try {
-        // Wait for rate limit availability
-        await this.waitForRateLimit();
-
-        // Wait for concurrent request slot
-        await this.waitForConcurrentSlot();
-
-        this.concurrentRequests++;
-        this.metrics.totalRequests++;
-
-        try {
-          const result = await requestFn();
-          return result;
-        } finally {
-          this.concurrentRequests--;
-        }
-      } catch (error: any) {
-        lastError = error;
-
-        if (
-          this.isRetryableError(error) &&
-          retryCount < this.rateLimitConfig.maxRetries
-        ) {
-          const backoffDelay = Math.pow(2, retryCount) * 1000; // Exponential backoff
-          console.log(
-            `🔄 Retrying request in ${backoffDelay}ms (${retryCount + 1}/${this.rateLimitConfig.maxRetries})`,
-          );
-          await this.sleep(backoffDelay);
-          retryCount++;
-          continue;
-        }
-
-        throw error;
-      }
-    }
-
-    throw lastError!;
+    // Use the improved rate limiter and circuit breaker
+    return serviceNowCircuitBreaker.execute(async () => {
+      return serviceNowRateLimiter.executeRequest(requestFn, "normal");
+    });
   }
 
   /**

@@ -273,36 +273,120 @@ export class NeuralSearchService {
         return [];
       }
 
-      if (mode === "semantic") {
-        // Generate embedding for semantic search
-        const embedding =
-          await this.embeddingClient.generateSingleEmbedding(query);
+      logger.info("🔍 [NeuralSearchService] Using OpenSearch basic search");
 
-        // Perform neural search in OpenSearch
-        // Note: This requires properly configured neural search plugin and index
-        const searchBody = {
-          query: {
-            neural: {
-              content_vector: {
-                vector: embedding,
-                k: maxResults,
+      // Use basic text search since neural plugin has issues
+      const searchBody = {
+        size: maxResults,
+        query: {
+          bool: {
+            should: [
+              {
+                match: {
+                  title: {
+                    query: query,
+                    boost: 2.0,
+                  },
+                },
               },
-            },
+              {
+                match: {
+                  content: {
+                    query: query,
+                    boost: 1.0,
+                  },
+                },
+              },
+              {
+                match: {
+                  description: {
+                    query: query,
+                    boost: 1.5,
+                  },
+                },
+              },
+            ],
+            minimum_should_match: 1,
           },
-          size: maxResults,
-        };
+        },
+        highlight: {
+          fields: {
+            title: {},
+            content: {},
+            description: {},
+          },
+        },
+      };
 
-        // Execute search (this would need proper OpenSearch neural plugin setup)
-        logger.info(
-          "🔍 [NeuralSearchService] Attempting OpenSearch neural search",
-        );
-        // const response = await this.openSearchClient.search("knowledge_base", searchBody);
+      // Apply filters if provided
+      if (filters.table || filters.status || filters.priority) {
+        searchBody.query.bool.filter = [];
 
-        // For now, return empty to trigger fallback
+        if (filters.table) {
+          searchBody.query.bool.filter.push({
+            term: { category: filters.table },
+          });
+        }
+
+        if (filters.status) {
+          searchBody.query.bool.filter.push({
+            term: { support_group: filters.status },
+          });
+        }
+
+        if (filters.priority) {
+          searchBody.query.bool.filter.push({
+            term: { document_type: filters.priority },
+          });
+        }
+      }
+
+      // Try to search in existing indices
+      const indices = ["knowledge_base", "_all"];
+      let searchResults = null;
+
+      for (const index of indices) {
+        try {
+          const response = await fetch(
+            `http://${process.env.OPENSEARCH_HOST || "10.219.8.210"}:${process.env.OPENSEARCH_PORT || "9200"}/${index}/_search`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(searchBody),
+            },
+          );
+
+          if (response.ok) {
+            searchResults = await response.json();
+            break;
+          }
+        } catch (error: unknown) {
+          // Try next index
+          continue;
+        }
+      }
+
+      if (!searchResults || !searchResults.hits) {
         return [];
       }
 
-      return [];
+      // Transform OpenSearch results to NeuralSearchResult format
+      return searchResults.hits.hits.map((hit: any, index: number) => ({
+        id: hit._id,
+        title: hit._source.title || `Document ${hit._id}`,
+        content: hit._source.content || hit._source.description || "",
+        score: hit._score / 10, // Normalize score to 0-1 range
+        source: "opensearch" as const,
+        metadata: {
+          table: hit._source.category || "unknown",
+          ticket_number: hit._source.number || hit._source.id,
+          priority: hit._source.document_type || "",
+          status: hit._source.support_group || "",
+          created_date: hit._source.created_at || hit._source.created_on,
+        },
+      }));
     } catch (error: unknown) {
       ErrorHandler.logUnknownError(
         "NeuralSearchService.searchOpenSearch",

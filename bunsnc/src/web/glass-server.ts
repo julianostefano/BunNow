@@ -17,6 +17,8 @@ import { neuralSearchRoutes } from "./routes/HtmxNeuralSearchRoutes";
 import { intelligenceDashboardRoutes } from "./routes/HtmxIntelligenceDashboardRoutes";
 import { knowledgeVisualizationRoutes } from "./routes/HtmxKnowledgeVisualizationRoutes";
 import { synonymsApiRoutes } from "./routes/api/synonyms";
+import { streamingApiRoutes } from "./routes/api/streaming";
+import { systemHealthApiRoutes } from "./routes/api/system-health";
 
 // Type definitions for better type safety
 interface ServiceNowRecord {
@@ -544,6 +546,8 @@ export class GlassDesignServer {
         .use(intelligenceDashboardRoutes)
         .use(knowledgeVisualizationRoutes)
         .use(synonymsApiRoutes)
+        .use(streamingApiRoutes)
+        .use(systemHealthApiRoutes)
 
         // Favicon
         .get("/favicon.ico", () => new Response(null, { status: 204 }))

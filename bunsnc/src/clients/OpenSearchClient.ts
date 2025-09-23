@@ -376,6 +376,28 @@ export class OpenSearchClient {
   getConfig(): OpenSearchConfig {
     return { ...this.config };
   }
+
+  async testConnection(): Promise<{ success: boolean; latency?: number }> {
+    const startTime = Date.now();
+    try {
+      const response = await fetch(`${this.baseUrl}/`, {
+        method: "GET",
+        headers: this.getHeaders(),
+        signal: AbortSignal.timeout(5000),
+      });
+
+      const latency = Date.now() - startTime;
+
+      if (!response.ok) {
+        return { success: false };
+      }
+
+      return { success: true, latency };
+    } catch (error: unknown) {
+      logger.error(" [OpenSearchClient] Connection test failed:", error);
+      return { success: false };
+    }
+  }
 }
 
 export default OpenSearchClient;

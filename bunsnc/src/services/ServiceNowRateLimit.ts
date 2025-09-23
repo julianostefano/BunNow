@@ -37,12 +37,12 @@ export class ServiceNowRateLimiter {
 
   constructor(config?: Partial<RateLimitConfig>) {
     this.config = {
-      maxRequestsPerSecond: parseInt(process.env.SERVICENOW_RATE_LIMIT || "35"),
+      maxRequestsPerSecond: parseInt(process.env.SERVICENOW_RATE_LIMIT || "15"),
       maxConcurrentRequests: parseInt(
-        process.env.SERVICENOW_MAX_CONCURRENT || "35",
+        process.env.SERVICENOW_MAX_CONCURRENT || "10",
       ),
       exponentialBackoffBase: 2,
-      maxRetries: 3,
+      maxRetries: 5,
       jitterEnabled: true,
       ...config,
     };
@@ -255,16 +255,19 @@ export class ServiceNowRateLimiter {
    * Calculate exponential backoff delay with jitter
    */
   private calculateBackoffDelay(retryCount: number): number {
-    const baseDelay =
-      Math.pow(this.config.exponentialBackoffBase, retryCount) * 1000;
+    // More aggressive backoff for 502 errors
+    const baseDelay = Math.min(
+      Math.pow(this.config.exponentialBackoffBase, retryCount) * 2000,
+      30000 // Cap at 30 seconds
+    );
 
     if (this.config.jitterEnabled) {
-      // Add jitter: ±25% of base delay
-      const jitter = (Math.random() - 0.5) * 0.5 * baseDelay;
-      return Math.max(1000, baseDelay + jitter);
+      // Add jitter: ±50% of base delay for better distribution
+      const jitter = (Math.random() - 0.5) * baseDelay;
+      return Math.max(2000, baseDelay + jitter);
     }
 
-    return baseDelay;
+    return Math.max(2000, baseDelay);
   }
 
   /**
@@ -292,12 +295,31 @@ export class ServiceNowRateLimiter {
     if (!error) return false;
 
     const statusCode = error.response?.status || error.status;
+    const message = error.message?.toLowerCase() || "";
+    const code = error.code?.toLowerCase() || "";
 
     // Retryable HTTP status codes
     const retryableStatuses = [408, 429, 500, 502, 503, 504];
 
+    // Additional retryable conditions
+    const retryableMessages = [
+      "timeout",
+      "connection reset",
+      "network error",
+      "bad gateway",
+      "service unavailable",
+      "gateway timeout",
+      "err_bad_response",
+      "econnreset",
+      "econnrefused",
+      "etimedout"
+    ];
+
     return (
-      retryableStatuses.includes(statusCode) || this.isRateLimitError(error)
+      retryableStatuses.includes(statusCode) ||
+      this.isRateLimitError(error) ||
+      retryableMessages.some(msg => message.includes(msg)) ||
+      retryableMessages.some(msg => code.includes(msg))
     );
   }
 
@@ -399,8 +421,9 @@ export class ServiceNowRateLimiter {
 
 // Export singleton instance
 export const serviceNowRateLimiter = new ServiceNowRateLimiter({
-  maxRequestsPerSecond: 35,
-  maxConcurrentRequests: 35,
+  maxRequestsPerSecond: 15,
+  maxConcurrentRequests: 10,
+  maxRetries: 5,
 });
 
 // Export convenience function
