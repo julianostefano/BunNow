@@ -123,9 +123,9 @@ export const SAML_CONNECTION_STRATEGIES: SAMLConnectionStrategy[] = [
 ];
 
 export const SAML_TIMEOUTS = {
-  DEFAULT: 60000, // 60 seconds
-  FORM_SUBMIT: 60000, // 60 seconds
-  VALIDATION: 30000, // 30 seconds
+  DEFAULT: 900000, // 15 minutes (as specified by user)
+  FORM_SUBMIT: 900000, // 15 minutes (as specified by user)
+  VALIDATION: 900000, // 15 minutes (as specified by user)
 } as const;
 
 export const SAML_HTTP_HEADERS = {

@@ -3,7 +3,7 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
+// Removed Axios - Using native Bun fetch
 import { serviceNowRateLimiter } from "../ServiceNowRateLimit";
 import Redis from "ioredis";
 import { RedisCache } from "../../bigdata/redis/RedisCache";
@@ -46,7 +46,6 @@ export interface ServiceNowQueryResult {
 }
 
 export class ServiceNowAuthCore {
-  protected axiosClient: AxiosInstance;
   protected authData: AuthServiceResponse | null = null;
   protected samlAuthData: SAMLAuthenticationData | null = null;
   protected isAuthenticated = false;
@@ -55,6 +54,8 @@ export class ServiceNowAuthCore {
   protected redisCache: RedisCache;
   protected redisStreamManager: RedisStreamManager;
   protected authType: "external" | "saml" = "external";
+  protected requestHeaders: Record<string, string> = {};
+  protected proxyUrl: string;
 
   protected readonly AUTH_SERVICE_URL = "http://10.219.8.210:8000/auth";
   protected readonly SERVICENOW_INSTANCE = "iberdrola";
@@ -71,7 +72,7 @@ export class ServiceNowAuthCore {
 
   constructor() {
     this.setupEnvironment();
-    this.initializeAxios();
+    this.initializeFetchClient();
     this.initializeRedis();
     this.setupLogging();
 
@@ -90,98 +91,37 @@ export class ServiceNowAuthCore {
       "10.219.8.210,localhost,127.0.0.1,ibfs.iberdrola.com,10.219.0.41";
   }
 
-  private initializeAxios(): void {
-    const https = require("https");
-    const http = require("http");
-    const { URL } = require("url");
-
+  private initializeFetchClient(): void {
     // ServiceNow MUST use proxy - corporate rule
-    const proxyUrl =
+    this.proxyUrl =
       process.env.SERVICENOW_PROXY ||
       "http://AMER%5CE966380:Neoenergia%402026@10.219.77.12:8080";
+
     console.log(
-      `🔐 ServiceNow API will use proxy: ${proxyUrl.replace(/\/\/.*@/, "//***:***@")}`,
+      `🌐 ServiceNow API will use proxy: ${this.proxyUrl.replace(/\/\/.*@/, "//***:***@")}`,
     );
+    console.log(`📋 Proxy format details:`);
+    console.log(`  - Full URL: ${this.proxyUrl}`);
+    console.log(`  - Username: AMER\\E966380 (encoded as AMER%5CE966380)`);
+    console.log(`  - Password: Neoenergia@2026 (encoded as Neoenergia%402026)`);
+    console.log(`  - Host: 10.219.77.12`);
+    console.log(`  - Port: 8080`);
 
-    // Parse proxy URL
-    const proxyUrlParsed = new URL(proxyUrl);
+    // Set proxy environment variables for Bun fetch to use automatically
+    process.env.HTTP_PROXY = this.proxyUrl;
+    process.env.HTTPS_PROXY = this.proxyUrl;
 
-    this.axiosClient = axios.create({
-      baseURL: this.SERVICENOW_BASE_URL,
-      timeout: 120000, // 120 seconds for corporate proxy environment
-      httpsAgent: new https.Agent({
-        rejectUnauthorized: false,
-        keepAlive: true,
-        keepAliveMsecs: 30000,
-        maxSockets: 5, // Reduced for proxy stability
-        maxFreeSockets: 2,
-        timeout: 120000,
-        scheduling: "fifo",
-      }),
-      httpAgent: new http.Agent({
-        keepAlive: true,
-        keepAliveMsecs: 30000,
-        maxSockets: 5,
-        maxFreeSockets: 2,
-        timeout: 120000,
-        scheduling: "fifo",
-      }),
-      headers: {
-        "User-Agent": "BunSNC-ServiceNow-Client/1.0",
-        Connection: "keep-alive",
-        "Keep-Alive": "timeout=30, max=100",
-      },
-      maxRedirects: 3,
-      validateStatus: (status) => status >= 200 && status < 300,
-      // Use proxy string format for Bun compatibility
-      proxy: false, // Disable axios proxy, use environment variables instead
-    });
+    console.log("🔧 Proxy environment variables set for Bun fetch");
 
-    // Set proxy environment variables for Node.js/Bun compatibility
-    if (proxyUrl) {
-      process.env.HTTP_PROXY = proxyUrl;
-      process.env.HTTPS_PROXY = proxyUrl;
-    }
+    // Initialize default headers for all requests
+    this.requestHeaders = {
+      "User-Agent": "BunSNC-ServiceNow-Client/1.0",
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      Connection: "keep-alive",
+    };
 
-    // Add request interceptor for better error logging
-    this.axiosClient.interceptors.request.use(
-      (config) => {
-        config.metadata = { startTime: Date.now() };
-        return config;
-      },
-      (error) => {
-        console.error("❌ Request interceptor error:", error);
-        return Promise.reject(error);
-      },
-    );
-
-    // Add response interceptor for better error logging and metrics
-    this.axiosClient.interceptors.response.use(
-      (response) => {
-        const duration = Date.now() - response.config.metadata?.startTime;
-        if (duration > 10000) {
-          // Log slow requests (>10s)
-          console.warn(
-            `⚠️ Slow ServiceNow request: ${response.config.url} took ${duration}ms`,
-          );
-        }
-        return response;
-      },
-      (error) => {
-        const duration = error.config?.metadata?.startTime
-          ? Date.now() - error.config.metadata.startTime
-          : 0;
-        console.error(`❌ ServiceNow request failed after ${duration}ms:`, {
-          url: error.config?.url,
-          method: error.config?.method,
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          code: error.code,
-          message: error.message?.substring(0, 200),
-        });
-        return Promise.reject(error);
-      },
-    );
+    console.log("✅ Native Bun fetch client initialized");
   }
 
   private initializeRedis(): void {
@@ -233,41 +173,86 @@ export class ServiceNowAuthCore {
   }
 
   /**
-   * Authenticate with ServiceNow using external auth service (legacy)
+   * Authenticate with ServiceNow using external auth service (legacy) with proxy retry
    */
   private async authenticateWithExternalService(): Promise<void> {
-    try {
-      console.log("🔐 Authenticating with ServiceNow external auth service...");
+    const maxRetries = 3;
+    let lastError: Error | null = null;
 
-      const authResponse = await axios.get(this.AUTH_SERVICE_URL, {
-        timeout: 15000,
-        httpsAgent: new (require("https").Agent)({
-          rejectUnauthorized: false,
-        }),
-      });
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(
+          `🔐 Authenticating with ServiceNow external auth service (attempt ${attempt}/${maxRetries})...`,
+        );
+        console.log(`Auth URL: ${this.AUTH_SERVICE_URL}`);
+        console.log(`Proxy: ${this.proxyUrl.replace(/\/\/.*@/, "//***:***@")}`);
 
-      this.authData = authResponse.data as AuthServiceResponse;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 900000); // 15 minutes timeout
 
-      if (!this.authData.cookies || !Array.isArray(this.authData.cookies)) {
-        throw new Error("Invalid auth response: missing cookies");
+        try {
+          const authConfig: RequestInit = {
+            method: "GET",
+            headers: this.requestHeaders,
+            signal: controller.signal,
+          };
+
+          // Configure proxy and SSL for auth request
+          const bunAuthConfig = authConfig as any;
+          bunAuthConfig.verbose = true;
+          bunAuthConfig.tls = {
+            rejectUnauthorized: false,
+            checkServerIdentity: () => undefined,
+          };
+          bunAuthConfig.proxy = this.proxyUrl;
+
+          console.log(`Proxy format being used: ${this.proxyUrl}`);
+
+          const authResponse = await fetch(this.AUTH_SERVICE_URL, authConfig, {
+            verbose: true,
+          });
+
+          if (!authResponse.ok) {
+            throw new Error(
+              `Auth service returned status ${authResponse.status}: ${authResponse.statusText}`,
+            );
+          }
+
+          this.authData = (await authResponse.json()) as AuthServiceResponse;
+
+          if (!this.authData.cookies || !Array.isArray(this.authData.cookies)) {
+            throw new Error("Invalid auth response: missing cookies");
+          }
+
+          this.configureFetchWithAuth();
+
+          this.isAuthenticated = true;
+          this.lastAuthTime = Date.now();
+
+          console.log(
+            `✅ External ServiceNow authentication successful on attempt ${attempt} (${this.authData.cookies.length} cookies)`,
+          );
+          return; // Success, exit retry loop
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      } catch (error: any) {
+        lastError = error;
+        console.error(`❌ Auth attempt ${attempt} failed:`, error.message);
+
+        if (attempt < maxRetries) {
+          const delayMs = attempt * 2000; // Progressive delay: 2s, 4s
+          console.log(`Retrying in ${delayMs}ms...`);
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
       }
-
-      this.configureAxiosWithAuth();
-
-      this.isAuthenticated = true;
-      this.lastAuthTime = Date.now();
-
-      console.log(
-        `✅ External ServiceNow authentication successful (${this.authData.cookies.length} cookies)`,
-      );
-    } catch (error: any) {
-      console.error(
-        "❌ External ServiceNow authentication failed:",
-        error.message,
-      );
-      this.isAuthenticated = false;
-      throw new Error(`ServiceNow authentication failed: ${error.message}`);
     }
+
+    // All retries failed
+    this.isAuthenticated = false;
+    throw new Error(
+      `ServiceNow authentication failed after ${maxRetries} attempts: ${lastError?.message}`,
+    );
   }
 
   /**
@@ -304,7 +289,7 @@ export class ServiceNowAuthCore {
         headers: this.samlAuthData.headers,
       };
 
-      this.configureAxiosWithAuth();
+      this.configureFetchWithAuth();
 
       this.isAuthenticated = true;
       this.lastAuthTime = Date.now();
@@ -326,58 +311,151 @@ export class ServiceNowAuthCore {
   }
 
   /**
-   * Configure axios client with cookies and headers from auth service
+   * Configure fetch client with cookies and headers from auth service
    */
-  private configureAxiosWithAuth(): void {
+  private configureFetchWithAuth(): void {
     if (!this.authData) return;
 
     const cookieString = this.authData.cookies
       .map((cookie) => `${cookie.name}=${cookie.value}`)
       .join("; ");
 
-    this.axiosClient.defaults.headers.common["Cookie"] = cookieString;
+    this.requestHeaders["Cookie"] = cookieString;
 
     Object.entries(this.authData.headers).forEach(([key, value]) => {
-      this.axiosClient.defaults.headers.common[key] = value;
+      this.requestHeaders[key] = value;
     });
 
     // Add SAML-specific headers if available
     if (this.authType === "saml" && this.samlAuthData?.userToken) {
-      this.axiosClient.defaults.headers.common["X-UserToken"] =
-        this.samlAuthData.userToken;
+      this.requestHeaders["X-UserToken"] = this.samlAuthData.userToken;
     }
 
     console.log(
-      `⚙️ Axios configured with ${this.authType} ServiceNow auth data`,
+      `⚙️ Fetch configured with ${this.authType} ServiceNow auth data`,
     );
   }
 
   /**
-   * Make basic authenticated request to ServiceNow
+   * Make basic authenticated request to ServiceNow using native fetch
    */
-  protected async makeBasicRequest(config: AxiosRequestConfig): Promise<any> {
+  protected async makeBasicRequest(config: {
+    url: string;
+    method?: string;
+    data?: any;
+    params?: Record<string, string>;
+  }): Promise<any> {
     await this.authenticate();
 
     return serviceNowRateLimiter.executeRequest(async () => {
-      try {
-        const response = await this.axiosClient(config);
+      const startTime = Date.now();
 
-        if (response.status === 200 && response.data?.result) {
-          return response.data;
+      try {
+        // Build URL with query parameters
+        const url = new URL(config.url, this.SERVICENOW_BASE_URL);
+        if (config.params) {
+          Object.entries(config.params).forEach(([key, value]) => {
+            url.searchParams.append(key, value);
+          });
+        }
+
+        // Build headers
+        const headers = { ...this.requestHeaders };
+
+        // Build fetch config with proxy support and SSL bypass
+        const fetchConfig: RequestInit = {
+          method: config.method || "GET",
+          headers,
+          // Use 15-minute timeout for ServiceNow response time (as specified by user)
+          signal: AbortSignal.timeout(900000),
+        };
+
+        // Configure SSL/TLS and proxy for Bun fetch
+        const bunConfig = fetchConfig as any;
+        bunConfig.verbose = true; // Verbose logging
+        bunConfig.tls = {
+          rejectUnauthorized: false, // Accept invalid certificates
+          checkServerIdentity: () => undefined, // Bypass server identity check
+        };
+
+        // Explicit proxy configuration for Bun
+        if (this.proxyUrl) {
+          bunConfig.proxy = this.proxyUrl;
+          console.log(
+            `Proxy configured: ${this.proxyUrl.replace(/\/\/.*@/, "//***:***@")}`,
+          );
+        }
+
+        // Add body for POST/PUT requests
+        if (
+          config.data &&
+          (config.method === "POST" || config.method === "PUT")
+        ) {
+          fetchConfig.body = JSON.stringify(config.data);
+        }
+
+        // Proxy already configured above in bunConfig
+
+        console.log(
+          `🚀 ServiceNow request: ${config.method || "GET"} ${url.toString()}`,
+        );
+        console.log(`⏱️ Timeout configured: 600 seconds (10 minutes)`);
+
+        const response = await fetch(url.toString(), fetchConfig, {
+          verbose: true,
+        });
+        const duration = Date.now() - startTime;
+
+        console.log(`✅ ServiceNow request completed in ${duration}ms`);
+
+        if (duration > 60000) {
+          console.warn(
+            `⚠️ Long ServiceNow request: ${url.toString()} took ${Math.round(duration / 1000)}s`,
+          );
+        }
+
+        if (!response.ok) {
+          console.error(`❌ ServiceNow request failed after ${duration}ms:`, {
+            url: url.toString(),
+            method: config.method || "GET",
+            status: response.status,
+            statusText: response.statusText,
+          });
+
+          if (response.status === 401) {
+            this.isAuthenticated = false;
+            throw new Error("ServiceNow authentication expired");
+          }
+
+          throw new Error(
+            `ServiceNow API returned status ${response.status}: ${response.statusText}`,
+          );
+        }
+
+        const data = await response.json();
+
+        if (data?.result) {
+          return data;
         }
 
         throw new Error(`ServiceNow API returned status ${response.status}`);
       } catch (error: any) {
-        console.error("ServiceNow API error:", error.message);
+        const duration = Date.now() - startTime;
+        console.error(
+          `❌ ServiceNow API error after ${duration}ms:`,
+          error.message,
+        );
 
-        if (error.response?.status === 401) {
-          this.isAuthenticated = false;
-          throw new Error("ServiceNow authentication expired");
+        if (
+          error.name === "TimeoutError" ||
+          error.message?.includes("timeout")
+        ) {
+          throw new Error(`ServiceNow request timeout after ${duration}ms`);
         }
 
         throw error;
       }
-    });
+    }, "normal");
   }
 
   /**
