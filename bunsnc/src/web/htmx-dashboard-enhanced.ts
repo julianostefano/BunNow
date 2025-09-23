@@ -36,7 +36,7 @@ async function initializeServices() {
     await hybridService.initialize();
 
     return { mongoService, hybridService, notesService, error: null };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Services initialization error:", error);
     return {
       mongoService: null,
@@ -115,7 +115,7 @@ const htmxDashboardEnhanced = new Elysia({ prefix: "/enhanced" })
                   hour: '2-digit',
                   minute: '2-digit'
                 });
-              } catch (error) {
+              } catch (error: unknown) {
                 console.warn('Date formatting error:', error, 'for value:', dateValue);
                 return 'Data não disponível';
               }
@@ -320,7 +320,7 @@ const htmxDashboardEnhanced = new Elysia({ prefix: "/enhanced" })
                               } else {
                                   throw new Error(data.error || 'Failed to load groups');
                               }
-                          } catch (error) {
+                          } catch (error: unknown) {
                               console.error(' Error loading groups:', error);
                               // Fallback to static groups if dynamic loading fails
                               this.loadFallbackGroups();
@@ -678,7 +678,7 @@ const htmxDashboardEnhanced = new Elysia({ prefix: "/enhanced" })
       return new Response(htmlContent, {
         headers: { "Content-Type": "text/html; charset=utf-8" },
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Enhanced Dashboard Error:", error);
 
       // Fallback page when services are not available
@@ -843,7 +843,7 @@ const htmxDashboardEnhanced = new Elysia({ prefix: "/enhanced" })
       }
 
       return ticketsHtml + paginationHtml;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Enhanced tickets-lazy error:", error);
       return `<div class="glass-effect rounded-2xl p-8 text-center border-red-500/30 bg-red-500/10">
         <i data-lucide="alert-triangle" class="w-12 h-12 mx-auto text-red-400 mb-4"></i>
@@ -1065,7 +1065,7 @@ const htmxDashboardEnhanced = new Elysia({ prefix: "/enhanced" })
           }
         </div>
       `;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Ticket details error:", error);
       return `<div class="text-red-400">Erro ao carregar detalhes: ${error.message}</div>`;
     }
@@ -1160,7 +1160,7 @@ const htmxDashboardEnhanced = new Elysia({ prefix: "/enhanced" })
           ${notesHtml}
         </div>
       `;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Ticket notes error:", error);
       return `<div class="text-red-400">Erro ao carregar anotações: ${error.message}</div>`;
     }
@@ -1206,7 +1206,7 @@ const htmxDashboardEnhanced = new Elysia({ prefix: "/enhanced" })
           </p>
         </div>
       `;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Ticket action error:", error);
       return `
         <div class="bg-red-500/20 border border-red-500/30 rounded-xl p-4 mb-4">
@@ -1238,7 +1238,7 @@ const htmxDashboardEnhanced = new Elysia({ prefix: "/enhanced" })
         success: true,
         data: groups,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" [GROUPS] Error fetching groups:", error);
       set.status = 500;
       return {

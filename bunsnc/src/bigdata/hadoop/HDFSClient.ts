@@ -165,7 +165,7 @@ export class HDFSClient extends EventEmitter {
       this.emit("file:uploaded", { localPath, hdfsPath, size: fileSize });
 
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       this.stats.failedOperations++;
       logger.error(
         `Error uploading file ${localPath} to HDFS:`,
@@ -241,7 +241,7 @@ export class HDFSClient extends EventEmitter {
       });
 
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       this.stats.failedOperations++;
       logger.error(
         `Error downloading file ${hdfsPath} from HDFS:`,
@@ -294,7 +294,7 @@ export class HDFSClient extends EventEmitter {
       }
 
       return success;
-    } catch (error) {
+    } catch (error: unknown) {
       this.stats.failedOperations++;
       logger.error(`Error creating directory ${hdfsPath}:`, error as Error);
       this.emit("operation:error", { operation: "mkdir", hdfsPath, error });
@@ -338,7 +338,7 @@ export class HDFSClient extends EventEmitter {
       }
 
       return success;
-    } catch (error) {
+    } catch (error: unknown) {
       this.stats.failedOperations++;
       logger.error(`Error deleting ${hdfsPath}:`, error as Error);
       this.emit("operation:error", { operation: "delete", hdfsPath, error });
@@ -386,7 +386,7 @@ export class HDFSClient extends EventEmitter {
         permission: status.permission,
         childrenNum: status.childrenNum,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       this.stats.failedOperations++;
       logger.error(`Error getting status for ${hdfsPath}:`, error as Error);
       return null;
@@ -430,7 +430,7 @@ export class HDFSClient extends EventEmitter {
         permission: status.permission,
         childrenNum: status.childrenNum,
       }));
-    } catch (error) {
+    } catch (error: unknown) {
       this.stats.failedOperations++;
       logger.error(`Error listing directory ${hdfsPath}:`, error as Error);
       return [];
@@ -471,7 +471,7 @@ export class HDFSClient extends EventEmitter {
       }
 
       return success;
-    } catch (error) {
+    } catch (error: unknown) {
       this.stats.failedOperations++;
       logger.error(`Error renaming ${oldPath} to ${newPath}:`, error as Error);
       this.emit("operation:error", {
@@ -523,7 +523,7 @@ export class HDFSClient extends EventEmitter {
       }
 
       return success;
-    } catch (error) {
+    } catch (error: unknown) {
       this.stats.failedOperations++;
       logger.error(
         `Error setting replication for ${hdfsPath}:`,
@@ -582,7 +582,7 @@ export class HDFSClient extends EventEmitter {
         totalBlocks: beans.BlocksTotal || 0,
         missingBlocks: beans.MissingBlocks || 0,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Error getting cluster summary:", error as Error);
       return null;
     }
@@ -613,7 +613,7 @@ export class HDFSClient extends EventEmitter {
         latency,
         lastSuccessfulOperation: this.stats.lastOperation,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         healthy: false,
         namenode: false,
@@ -800,7 +800,7 @@ export class ServiceNowHDFSUtils {
           (file) => file.type === "FILE" && file.path.endsWith(".parquet"),
         );
         files.push(...parquetFiles);
-      } catch (error) {
+      } catch (error: unknown) {
         // Directory might not exist for this date - skip
         logger.debug(
           `No data found for ${table} on ${currentDate.toISOString().split("T")[0]}`,
@@ -850,7 +850,7 @@ export class ServiceNowHDFSUtils {
       const attachmentStats = await this.calculateDirectorySize(attachmentDir);
       summary.attachmentSize = attachmentStats.size;
       summary.totalSize += attachmentStats.size;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Error calculating storage summary:", error as Error);
     }
 
@@ -876,7 +876,7 @@ export class ServiceNowHDFSUtils {
           totalFiles += subDirStats.files;
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       // Directory might not be accessible
       logger.debug(`Could not access directory ${path}:`, error);
     }

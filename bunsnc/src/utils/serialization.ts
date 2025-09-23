@@ -64,7 +64,7 @@ export function safeStringify(
       },
       space,
     );
-  } catch (error) {
+  } catch (error: unknown) {
     // Fallback for non-serializable objects
     return `[Non-serializable ${typeof value}]`;
   }
@@ -150,7 +150,7 @@ export function safeFormatDate(dateValue: any): string {
       hour: "2-digit",
       minute: "2-digit",
     });
-  } catch (error) {
+  } catch (error: unknown) {
     return "Data não disponível";
   }
 }

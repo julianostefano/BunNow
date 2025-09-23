@@ -221,7 +221,7 @@ export class BatchAPI implements IBatchAPI {
       // Clear requests after successful execution
       this.clear();
       return results;
-    } catch (error) {
+    } catch (error: unknown) {
       // Retry logic
       if (attempt < this.maxRetries) {
         this.stats.retriedRequests++;
@@ -557,7 +557,7 @@ export class BatchAPI implements IBatchAPI {
       });
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       const requestDuration = performance.now() - requestStartTime;
 
       // Add request context to error
@@ -709,7 +709,7 @@ export class BatchAPI implements IBatchAPI {
       });
 
       return results;
-    } catch (error) {
+    } catch (error: unknown) {
       operation.error("Parallel batch execution failed", error as Error);
       throw error;
     }
@@ -766,7 +766,7 @@ export class BatchAPI implements IBatchAPI {
       });
 
       return mergedResults;
-    } catch (error) {
+    } catch (error: unknown) {
       operation.error("Retry failed requests failed", error as Error);
       return results; // Return original results if retry fails
     }

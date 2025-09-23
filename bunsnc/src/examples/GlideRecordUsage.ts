@@ -41,7 +41,7 @@ export class GlideRecordExamples {
     try {
       const sysId = await gr.insert();
       console.log("Created incident with sys_id:", sysId?.getValue());
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to create incident:", error);
     }
 
@@ -61,7 +61,7 @@ export class GlideRecordExamples {
       try {
         await readGr.update();
         console.log("Updated incident successfully");
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Failed to update incident:", error);
       }
     }
@@ -123,7 +123,7 @@ export class GlideRecordExamples {
         console.log(`  Created: ${gr.getValue("sys_created_on")}`);
         console.log(`  Link: ${gr.getLink()}`);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Query failed:", error);
     }
   }
@@ -149,7 +149,7 @@ export class GlideRecordExamples {
       await gr.query();
       console.log("JOIN query executed successfully");
       console.log("Generated query:", gr.getEncodedQuery());
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("JOIN query failed:", error);
     }
   }
@@ -174,7 +174,7 @@ export class GlideRecordExamples {
       await gr.query();
       console.log("Related list query executed");
       console.log("Query:", gr.getEncodedQuery());
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("RL query failed:", error);
     }
   }
@@ -264,7 +264,7 @@ export class GlideRecordExamples {
         console.log("After next - Location:", gr.location);
         console.log("Record:", gr.getValue("number"));
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Iteration failed:", error);
     }
   }
@@ -295,7 +295,7 @@ export class GlideRecordExamples {
 
       // Export to JSON file (pseudo-code)
       // await this.exportToFile('incidents.json', allRecords);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Serialization failed:", error);
     }
   }
@@ -314,7 +314,7 @@ export class GlideRecordExamples {
       if (!found) {
         console.log("Record not found - handled gracefully");
       }
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof ServiceNowException) {
         console.error("ServiceNow error:", error.message);
         console.error("Status code:", error.statusCode);
@@ -326,13 +326,13 @@ export class GlideRecordExamples {
     // Try operations on empty record set
     try {
       await gr.update(); // Should fail - no current record
-    } catch (error) {
+    } catch (error: unknown) {
       console.log("Expected error:", error.message);
     }
 
     try {
       await gr.delete(); // Should fail - no current record
-    } catch (error) {
+    } catch (error: unknown) {
       console.log("Expected error:", error.message);
     }
   }
@@ -418,7 +418,7 @@ export class GlideRecordExamples {
       }
 
       console.log(`Processed ${processed} records total`);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Batch processing failed:", error);
     }
   }
@@ -443,7 +443,7 @@ async function runExamples() {
     await examples.errorHandlingExamples();
     await examples.advancedFieldOperations();
     await examples.batchOperationsExample();
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Examples failed:', error);
   }
 }

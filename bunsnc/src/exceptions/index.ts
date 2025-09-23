@@ -334,7 +334,7 @@ export function handleErrors(
       if (enableRecovery) {
         try {
           return await originalMethod.apply(this, args);
-        } catch (error) {
+        } catch (error: unknown) {
           // Use advanced error handling with retry and recovery
           return await handleServiceNowErrorWithRecovery(
             error,
@@ -347,7 +347,7 @@ export function handleErrors(
         // Use simple error handling for backwards compatibility
         try {
           return await originalMethod.apply(this, args);
-        } catch (error) {
+        } catch (error: unknown) {
           handleServiceNowError(error, operationName, context);
         }
       }
@@ -382,7 +382,7 @@ export function handleErrorsWithRecovery(
 
       try {
         return await originalMethod.apply(this, args);
-      } catch (error) {
+      } catch (error: unknown) {
         return await handleServiceNowErrorWithRecovery(
           error,
           operationName,

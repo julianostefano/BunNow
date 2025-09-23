@@ -168,7 +168,7 @@ export class MemoryQueue extends EventEmitter {
       ]) {
         await this.processQueueBatch(priority);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error processing memory notification queue:", error);
       this.emit("error", error);
     }
@@ -197,7 +197,7 @@ export class MemoryQueue extends EventEmitter {
         if (processingIndex >= 0) {
           this.processing.splice(processingIndex, 1);
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error processing notification item:", error);
       }
     }
@@ -225,7 +225,7 @@ export class MemoryQueue extends EventEmitter {
           notification: queueItem.notification,
           channel,
         });
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(
           `Failed to deliver notification ${queueItem.id} to ${channel}:`,
           error,
@@ -379,7 +379,7 @@ export class MemoryQueue extends EventEmitter {
 
         console.log("📦 Memory queue cleanup completed");
         resolve();
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error during memory queue cleanup:", error);
         resolve();
       }

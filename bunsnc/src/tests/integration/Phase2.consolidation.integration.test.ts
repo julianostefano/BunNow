@@ -24,7 +24,9 @@ const INTEGRATION_TEST_CONFIG = {
   skipIfNoEnvironment: true,
   mongodb: {
     enabled: !!process.env.MONGODB_URL,
-    url: process.env.MONGODB_URL || "mongodb://localhost:27017/bunsnc_test",
+    url:
+      process.env.MONGODB_URL ||
+      "mongodb://admin:Logica2011_@10.219.8.210:27018/bunsnc?authSource=admin/bunsnc_test",
   },
   servicenow: {
     enabled: !!(process.env.SNC_INSTANCE_URL && process.env.SNC_AUTH_TOKEN),

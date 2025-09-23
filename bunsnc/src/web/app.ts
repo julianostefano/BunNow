@@ -136,7 +136,7 @@ async function startWebInterface() {
     console.log(`   SSE Stream: http://localhost:${config.port}/events/stream`);
     console.log(`   WebSocket:  ws://localhost:${config.port}/ws/control`);
     console.log("");
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Failed to start ServiceNow Web Interface:", error);
     process.exit(1);
   }
@@ -152,7 +152,7 @@ async function gracefulShutdown(signal: string) {
     // Shutdown persistence service
     await dataService.shutdown();
     console.log("🍃 MongoDB persistence shut down gracefully");
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Error during MongoDB shutdown:", error);
   }
 

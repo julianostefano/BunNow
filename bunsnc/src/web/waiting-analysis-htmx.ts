@@ -38,7 +38,7 @@ interface WaitingTicketSummary {
 async function getRealWaitingData(): Promise<WaitingTicketSummary[]> {
   try {
     return await serviceNowAuthClient.getWaitingTicketsSummary(FALLBACK_GROUPS);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error getting real ServiceNow data:", error);
     // Fallback to empty array if ServiceNow is unavailable
     return FALLBACK_GROUPS.map((grupo) => ({
@@ -55,7 +55,7 @@ async function getRealTicketDetails(group?: string): Promise<any[]> {
   try {
     const groupsToQuery = group ? [group] : FALLBACK_GROUPS;
     return await serviceNowAuthClient.getWaitingTicketsDetails(groupsToQuery);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error getting real ServiceNow ticket details:", error);
     // Return empty array if ServiceNow is unavailable
     return [];
@@ -548,7 +548,7 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: "/waiting-analysis" })
           </div>
         </div>
       `;
-    } catch (error) {
+    } catch (error: unknown) {
       return `
         <div class="bg-red-50 p-4 rounded">
           <p class="text-red-600">Erro ao carregar métricas do cache</p>

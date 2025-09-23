@@ -146,6 +146,102 @@ export class ServiceNowAuthClient {
   async preWarmCache(): Promise<void> {
     return this.queryService.preWarmCache();
   }
+
+  // === Waiting Tickets Analysis Methods ===
+  async getWaitingTicketsSummary(groups: string[]): Promise<any> {
+    const summary = {
+      totalIncidents: 0,
+      totalChangeTasks: 0,
+      totalServiceCatalogTasks: 0,
+      groupBreakdown: {} as Record<string, any>,
+    };
+
+    for (const group of groups) {
+      try {
+        const incidents = await this.getWaitingIncidents(group);
+        const changeTasks = await this.getWaitingChangeTasks(group);
+        const scTasks = await this.getWaitingServiceCatalogTasks(group);
+
+        summary.totalIncidents += incidents.length;
+        summary.totalChangeTasks += changeTasks.length;
+        summary.totalServiceCatalogTasks += scTasks.length;
+
+        summary.groupBreakdown[group] = {
+          incidents: incidents.length,
+          changeTasks: changeTasks.length,
+          serviceCatalogTasks: scTasks.length,
+        };
+      } catch (error) {
+        console.error(
+          `Error getting waiting tickets for ${group}:`,
+          error.message,
+        );
+        summary.groupBreakdown[group] = {
+          incidents: 0,
+          changeTasks: 0,
+          serviceCatalogTasks: 0,
+          error: error.message,
+        };
+      }
+    }
+
+    return summary;
+  }
+
+  async getWaitingTicketsDetails(groups: string[]): Promise<any[]> {
+    const allTickets = [];
+
+    for (const group of groups) {
+      try {
+        const incidents = await this.getWaitingIncidents(group);
+        const changeTasks = await this.getWaitingChangeTasks(group);
+        const scTasks = await this.getWaitingServiceCatalogTasks(group);
+
+        // Add type information to tickets
+        incidents.forEach((ticket) => {
+          allTickets.push({
+            ...ticket,
+            ticketType: "incident",
+            assignmentGroup: group,
+          });
+        });
+
+        changeTasks.forEach((ticket) => {
+          allTickets.push({
+            ...ticket,
+            ticketType: "change_task",
+            assignmentGroup: group,
+          });
+        });
+
+        scTasks.forEach((ticket) => {
+          allTickets.push({
+            ...ticket,
+            ticketType: "sc_task",
+            assignmentGroup: group,
+          });
+        });
+      } catch (error) {
+        console.error(
+          `Error getting waiting ticket details for ${group}:`,
+          error.message,
+        );
+      }
+    }
+
+    return allTickets;
+  }
+
+  getCacheMetrics(): any {
+    const cache = this.getCache();
+    return {
+      cacheHits: 0,
+      cacheMisses: 0,
+      cacheSize: 0,
+      uptime: Date.now(),
+      // Basic cache metrics - can be enhanced later
+    };
+  }
 }
 
 // Create singleton instance for global use

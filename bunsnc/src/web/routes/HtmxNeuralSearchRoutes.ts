@@ -5,11 +5,9 @@
 
 import { Elysia } from "elysia";
 import { html } from "@elysiajs/html";
-import { EmbeddingClient } from "../../clients/EmbeddingClient";
-import { RerankClient } from "../../clients/RerankClient";
-import { OpenSearchClient } from "../../clients/OpenSearchClient";
-import { LLMClient } from "../../clients/LLMClient";
+import { neuralSearchService } from "../../services/NeuralSearchService";
 import { logger } from "../../utils/Logger";
+import { ErrorHandler } from "../../utils/ErrorHandler";
 
 interface SearchResult {
   id: string;
@@ -45,15 +43,8 @@ interface SearchFilters {
 
 const searchSessions = new Map<string, SearchSession>();
 
-const embeddingClient = new EmbeddingClient();
-const rerankClient = new RerankClient();
-const openSearchClient = new OpenSearchClient({
-  host: process.env.OPENSEARCH_HOST || "10.219.8.210",
-  port: parseInt(process.env.OPENSEARCH_PORT || "9200"),
-  ssl: false,
-  timeout: 30000,
-});
-const llmClient = new LLMClient();
+// Neural search service handles all the complex logic
+// No need to initialize individual clients here
 
 export const neuralSearchRoutes = new Elysia({ prefix: "/search" })
   .use(html())
@@ -207,12 +198,17 @@ export const neuralSearchRoutes = new Elysia({ prefix: "/search" })
         ...(documentType && { documentType }),
       };
 
-      const results = await performNeuralSearch(
-        query.trim(),
-        searchMode,
-        filters,
+      const results = await neuralSearchService.search(query.trim(), {
+        mode: searchMode as "semantic" | "hybrid" | "keyword",
         enableRerank,
-      );
+        maxResults: 20,
+        minScore: 0.1,
+        filters: {
+          table: category,
+          status: supportGroup, // Reusing supportGroup as status for now
+          priority: documentType, // Reusing documentType as priority for now
+        },
+      });
       const searchTime = Date.now() - startTime;
 
       // Store search in session
@@ -234,12 +230,12 @@ export const neuralSearchRoutes = new Elysia({ prefix: "/search" })
               <div class="result-item" data-relevance="${result.relevanceScore}">
                 <div class="result-header">
                   <h4 class="result-title">
-                    <a href="${result.url}" target="_blank">${result.title}</a>
+                    <a href="#" onclick="viewTicketDetails('${result.id}')">${result.title}</a>
                   </h4>
                   <div class="result-meta">
-                    <span class="relevance-score">${Math.round(result.relevanceScore * 100)}% match</span>
-                    <span class="document-type">${result.documentType}</span>
-                    <span class="support-group">${result.supportGroup}</span>
+                    <span class="relevance-score">${Math.round(result.score * 100)}% match</span>
+                    <span class="document-type">${result.metadata.table || "ticket"}</span>
+                    <span class="support-group">${result.source}</span>
                   </div>
                 </div>
 
@@ -249,7 +245,9 @@ export const neuralSearchRoutes = new Elysia({ prefix: "/search" })
 
                 <div class="result-footer">
                   <div class="result-tags">
-                    ${result.tags.map((tag) => `<span class="tag">${tag}</span>`).join("")}
+                    ${result.metadata.ticket_number ? `<span class="tag">${result.metadata.ticket_number}</span>` : ""}
+                    ${result.metadata.priority ? `<span class="tag">P${result.metadata.priority}</span>` : ""}
+                    ${result.metadata.status ? `<span class="tag">${result.metadata.status}</span>` : ""}
                   </div>
                   <div class="result-actions">
                     <button class="btn-small"
@@ -292,7 +290,7 @@ export const neuralSearchRoutes = new Elysia({ prefix: "/search" })
           }
         </div>
       `);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("[NeuralSearch] Search execution failed:", error);
       return html(`
         <div class="search-error">
@@ -328,7 +326,7 @@ export const neuralSearchRoutes = new Elysia({ prefix: "/search" })
             .join("")}
         </div>
       `);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("[NeuralSearch] Suggestion generation failed:", error);
       return html("");
     }
@@ -376,7 +374,7 @@ export const neuralSearchRoutes = new Elysia({ prefix: "/search" })
               <div class="result-item similar-result">
                 <div class="result-header">
                   <h4 class="result-title">
-                    <a href="${result.url}" target="_blank">${result.title}</a>
+                    <a href="#" onclick="viewTicketDetails('${result.id}')">${result.title}</a>
                   </h4>
                   <span class="similarity-score">${Math.round(result.relevanceScore * 100)}% similar</span>
                 </div>
@@ -388,7 +386,7 @@ export const neuralSearchRoutes = new Elysia({ prefix: "/search" })
           </div>
         </div>
       `);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("[NeuralSearch] Similar search failed:", error);
       return html(
         `<div class="search-error">Unable to find similar documents</div>`,
@@ -408,7 +406,7 @@ export const neuralSearchRoutes = new Elysia({ prefix: "/search" })
           Thanks for your feedback! This helps improve our search results.
         </span>
       `);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("[NeuralSearch] Feedback recording failed:", error);
       return html("");
     }
@@ -477,93 +475,15 @@ export const neuralSearchRoutes = new Elysia({ prefix: "/search" })
     `);
   });
 
-async function performNeuralSearch(
-  query: string,
-  mode: string,
-  filters: SearchFilters,
-  enableRerank: boolean,
-): Promise<SearchResult[]> {
-  try {
-    let results: SearchResult[] = [];
+// Neural search implementation moved to NeuralSearchService
 
-    switch (mode) {
-      case "semantic":
-        results = await performSemanticSearch(query, filters);
-        break;
-      case "hybrid":
-        results = await performHybridSearch(query, filters);
-        break;
-      case "sparse":
-        results = await performKeywordSearch(query, filters);
-        break;
-      default:
-        results = await performSemanticSearch(query, filters);
-    }
+// Semantic search implementation moved to NeuralSearchService
 
-    // Apply AI reranking if enabled
-    if (enableRerank && results.length > 1) {
-      results = await applyReranking(query, results);
-    }
+// Hybrid search implementation moved to NeuralSearchService
 
-    return results;
-  } catch (error) {
-    logger.error("[NeuralSearch] Search execution failed:", error);
-    return [];
-  }
-}
+// Keyword search implementation moved to NeuralSearchService
 
-async function performSemanticSearch(
-  query: string,
-  filters: SearchFilters,
-): Promise<SearchResult[]> {
-  // Generate embedding for the query
-  const embedding = await embeddingClient.generateSingleEmbedding(query);
-
-  // Mock implementation - replace with actual OpenSearch neural search
-  return generateMockResults(query, "semantic", filters);
-}
-
-async function performHybridSearch(
-  query: string,
-  filters: SearchFilters,
-): Promise<SearchResult[]> {
-  // Combine semantic + keyword search
-  return generateMockResults(query, "hybrid", filters);
-}
-
-async function performKeywordSearch(
-  query: string,
-  filters: SearchFilters,
-): Promise<SearchResult[]> {
-  // Traditional keyword search
-  return generateMockResults(query, "keyword", filters);
-}
-
-async function applyReranking(
-  query: string,
-  results: SearchResult[],
-): Promise<SearchResult[]> {
-  try {
-    const documents = results.map((r) => r.content);
-    const reranked = await rerankClient.rerank(query, documents, {
-      top_k: results.length,
-    });
-
-    // Reorder results based on rerank scores
-    return reranked.results
-      .map((r) => ({
-        ...results[r.index],
-        relevanceScore: r.relevance_score,
-      }))
-      .sort((a, b) => b.relevanceScore - a.relevanceScore);
-  } catch (error) {
-    logger.warn(
-      "[NeuralSearch] Reranking failed, returning original results:",
-      error,
-    );
-    return results;
-  }
-}
+// Reranking implementation moved to NeuralSearchService
 
 async function generateSearchSuggestions(query: string): Promise<string[]> {
   // Common search patterns and suggestions
@@ -581,11 +501,35 @@ async function generateSearchSuggestions(query: string): Promise<string[]> {
 async function findSimilarDocuments(
   documentId: string,
 ): Promise<SearchResult[]> {
-  // Mock implementation - find documents similar to the given one
-  return generateMockResults("similar to " + documentId, "semantic", {}).slice(
-    0,
-    5,
-  );
+  try {
+    const results = await neuralSearchService.search(
+      `similar to ${documentId}`,
+      {
+        mode: "semantic",
+        maxResults: 5,
+        minScore: 0.3,
+      },
+    );
+
+    return results.map((result) => ({
+      id: result.id,
+      title: result.title,
+      content: result.content,
+      category: result.metadata.table || "unknown",
+      relevanceScore: result.score,
+      supportGroup: result.source,
+      lastUpdated: result.metadata.created_date || "Unknown",
+      documentType: "reference" as const,
+      tags: [
+        result.metadata.priority || "",
+        result.metadata.status || "",
+      ].filter(Boolean),
+      url: `/ticket/${result.id}`,
+    }));
+  } catch (error: unknown) {
+    logger.error("[NeuralSearch] Similar documents search failed:", error);
+    return [];
+  }
 }
 
 async function recordSearch(
@@ -630,107 +574,9 @@ async function getRecentSearches() {
   ];
 }
 
-function generateMockResults(
-  query: string,
-  mode: string,
-  filters: SearchFilters,
-): SearchResult[] {
-  // Mock search results based on query and mode
-  const baseResults = [
-    {
-      id: "doc_001",
-      title: "Database Connection Troubleshooting Guide",
-      content:
-        "Complete guide for diagnosing and resolving database connectivity issues including timeout problems, authentication failures, and network-related connection drops.",
-      category: "database",
-      supportGroup: "Database Administration",
-      documentType: "troubleshooting" as const,
-      tags: ["database", "connection", "timeout", "troubleshooting"],
-      lastUpdated: "2025-01-10",
-      url: "/docs/database-connection-troubleshooting",
-    },
-    {
-      id: "doc_002",
-      title: "Apache Web Server Management Procedures",
-      content:
-        "Comprehensive procedures for managing Apache web servers including startup, shutdown, configuration changes, and performance optimization.",
-      category: "application",
-      supportGroup: "Application Support",
-      documentType: "procedure" as const,
-      tags: ["apache", "web server", "management", "procedures"],
-      lastUpdated: "2025-01-09",
-      url: "/docs/apache-management",
-    },
-    {
-      id: "doc_003",
-      title: "Network Connectivity Diagnostic Runbook",
-      content:
-        "Step-by-step runbook for diagnosing network connectivity issues across different network layers and infrastructure components.",
-      category: "network",
-      supportGroup: "Network Support",
-      documentType: "runbook" as const,
-      tags: ["network", "connectivity", "diagnostics", "runbook"],
-      lastUpdated: "2025-01-08",
-      url: "/docs/network-diagnostics",
-    },
-  ];
+// Mock results generation removed - using real NeuralSearchService
 
-  // Apply filters
-  let filteredResults = baseResults.filter((result) => {
-    if (filters.category && result.category !== filters.category) return false;
-    if (filters.supportGroup && result.supportGroup !== filters.supportGroup)
-      return false;
-    if (filters.documentType && result.documentType !== filters.documentType)
-      return false;
-    return true;
-  });
-
-  // Calculate relevance scores based on search mode
-  return filteredResults
-    .map((result) => ({
-      ...result,
-      relevanceScore: calculateRelevanceScore(query, result, mode),
-    }))
-    .sort((a, b) => b.relevanceScore - a.relevanceScore);
-}
-
-function calculateRelevanceScore(
-  query: string,
-  result: SearchResult,
-  mode: string,
-): number {
-  const queryLower = query.toLowerCase();
-  const contentLower = result.content.toLowerCase();
-  const titleLower = result.title.toLowerCase();
-
-  let score = 0;
-
-  // Title matches are weighted higher
-  if (titleLower.includes(queryLower)) score += 0.4;
-  if (contentLower.includes(queryLower)) score += 0.3;
-
-  // Tag matches
-  const matchingTags = result.tags.filter((tag) =>
-    queryLower.includes(tag.toLowerCase()),
-  );
-  score += matchingTags.length * 0.1;
-
-  // Mode-specific adjustments
-  switch (mode) {
-    case "semantic":
-      score += Math.random() * 0.2; // Simulate semantic understanding
-      break;
-    case "hybrid":
-      score += Math.random() * 0.15;
-      break;
-    case "keyword":
-      // Exact matches get higher scores in keyword mode
-      if (titleLower === queryLower) score += 0.3;
-      break;
-  }
-
-  return Math.min(score + Math.random() * 0.1, 1.0);
-}
+// Relevance scoring moved to NeuralSearchService
 
 function truncateContent(content: string, maxLength: number): string {
   if (content.length <= maxLength) return content;

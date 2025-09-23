@@ -150,7 +150,7 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
               }
 
               processor.updateMetrics(batch.length, 0, results.length);
-            } catch (error) {
+            } catch (error: unknown) {
               processor.handleProcessingError(error, batch);
               // Optionally push error records to dead letter queue
               this.emit("error", error);
@@ -158,7 +158,7 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
           }
 
           callback();
-        } catch (error) {
+        } catch (error: unknown) {
           callback(error);
         }
       },
@@ -175,7 +175,7 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
               this.push(result);
             }
             processor.buffer = [];
-          } catch (error) {
+          } catch (error: unknown) {
             this.emit("error", error);
           }
         }
@@ -203,7 +203,7 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
             processor.totalDropped++;
           }
           callback();
-        } catch (error) {
+        } catch (error: unknown) {
           callback(error);
         }
       },
@@ -225,7 +225,7 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
           this.push(result);
           processor.totalProcessed++;
           callback();
-        } catch (error) {
+        } catch (error: unknown) {
           processor.totalErrored++;
           processor.handleProcessingError(error, [chunk]);
           callback(); // Continue processing
@@ -429,7 +429,7 @@ export class StreamProcessor<T = any, R = any> extends EventEmitter {
       this.lastProcessingTime = Date.now();
 
       return results;
-    } catch (error) {
+    } catch (error: unknown) {
       this.consecutiveErrors++;
 
       // Open circuit breaker if too many consecutive errors

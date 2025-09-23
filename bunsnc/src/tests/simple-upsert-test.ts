@@ -33,7 +33,7 @@ async function simpleUpsertTest() {
       [],
     );
     console.log(" Result:", result);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Error:", error.message);
     console.error("Stack:", error.stack);
   }

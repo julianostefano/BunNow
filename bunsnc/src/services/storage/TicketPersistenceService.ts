@@ -77,7 +77,7 @@ export class TicketPersistenceService extends TicketStorageCore {
       );
 
       return result.acknowledged;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(
         ` Error upserting ${ticketType} ticket ${ticketData.sys_id}:`,
         error,
@@ -363,7 +363,7 @@ export class TicketPersistenceService extends TicketStorageCore {
           source: "servicenow_sync",
         });
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Error recording audit trail:", error);
       // Don't throw - audit failure shouldn't break sync
     }
@@ -406,7 +406,7 @@ export class TicketPersistenceService extends TicketStorageCore {
               slmData,
             );
             return result;
-          } catch (error) {
+          } catch (error: unknown) {
             console.error(
               `Bulk upsert failed for ticket ${ticketData.sys_id}:`,
               error,
@@ -435,7 +435,7 @@ export class TicketPersistenceService extends TicketStorageCore {
     try {
       const result = await this.ticketsCollection.deleteOne({ sys_id: sysId });
       return result.deletedCount > 0;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(` Error deleting ticket ${sysId}:`, error);
       return false;
     }
@@ -451,7 +451,7 @@ export class TicketPersistenceService extends TicketStorageCore {
 
     try {
       return await this.ticketsCollection.findOne({ sys_id: sysId });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(` Error getting ticket ${sysId}:`, error);
       return null;
     }

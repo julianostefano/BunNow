@@ -86,7 +86,7 @@ export class SAMLConfigManager {
         message: "Configuration saved successfully",
         instance: config.instance,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("❌ Failed to save SAML configuration:", error);
       throw error;
     }
@@ -131,7 +131,7 @@ export class SAMLConfigManager {
         instance: storageConfig.instance,
         proxy: storageConfig.proxy,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("❌ Failed to get SAML configuration:", error);
       return null;
     }
@@ -174,7 +174,7 @@ export class SAMLConfigManager {
         hasUserToken: !!authData.userToken,
         authKey,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("❌ Failed to save SAML authentication data:", error);
       throw error;
     }
@@ -223,7 +223,7 @@ export class SAMLConfigManager {
         lastValidated: storageAuthData.lastValidated,
         validationStatus: storageAuthData.validationStatus,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("❌ Failed to get SAML authentication data:", error);
       return null;
     }
@@ -264,7 +264,7 @@ export class SAMLConfigManager {
           count: errorData.count,
         },
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("❌ Failed to mark SAML authentication error:", error);
       throw error;
     }
@@ -292,7 +292,7 @@ export class SAMLConfigManager {
       return allConfigs
         .filter((config) => config.key.startsWith(this.configKeyPrefix))
         .map((config) => config.key.replace(this.configKeyPrefix, ""));
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("❌ Failed to list SAML configurations:", error);
       return [];
     }
@@ -316,7 +316,7 @@ export class SAMLConfigManager {
       await mongoClient.setConfig(errorKey, null, "Deleted SAML error data");
 
       console.log("🗑️ SAML instance data removed:", { instance });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("❌ Failed to remove SAML instance data:", error);
       throw error;
     }

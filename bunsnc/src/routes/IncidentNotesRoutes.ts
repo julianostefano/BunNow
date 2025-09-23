@@ -51,7 +51,7 @@ export function createIncidentNotesRoutes(
           if (slaService) {
             try {
               slaData = await slaService.getSLAStatus(sysId);
-            } catch (error) {
+            } catch (error: unknown) {
               console.warn(" Could not fetch SLA data:", error);
             }
           }
@@ -143,7 +143,7 @@ export function createIncidentNotesRoutes(
 
           set.headers["content-type"] = "application/json";
           return result;
-        } catch (error) {
+        } catch (error: unknown) {
           console.error(" [API] Error getting incident details:", error);
           set.status = 500;
           return {
@@ -197,7 +197,7 @@ export function createIncidentNotesRoutes(
 
           set.headers["content-type"] = "application/json";
           return result;
-        } catch (error) {
+        } catch (error: unknown) {
           console.error(" [API] Error getting incident notes:", error);
           set.status = 500;
           return {
@@ -225,7 +225,7 @@ export function createIncidentNotesRoutes(
           if (slaService) {
             try {
               trackingSLA = await slaService.getSLAStatus(sysId);
-            } catch (error) {
+            } catch (error: unknown) {
               console.warn(" Could not fetch tracking SLA data:", error);
             }
           }
@@ -261,7 +261,7 @@ export function createIncidentNotesRoutes(
 
           set.headers["content-type"] = "application/json";
           return result;
-        } catch (error) {
+        } catch (error: unknown) {
           console.error(" [API] Error getting incident SLA:", error);
           set.status = 500;
           return {

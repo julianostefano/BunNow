@@ -222,7 +222,7 @@ export class GlideRecord implements IGlideRecord {
     if (this._autoPaginate && this._hasMorePages && !this._isPaginating) {
       try {
         return await this._fetchNextPageAsync();
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Auto-pagination error:", error);
         return false;
       }
@@ -278,7 +278,7 @@ export class GlideRecord implements IGlideRecord {
         return true;
       }
       return false;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error in get:", error);
       return false;
     }
@@ -296,7 +296,7 @@ export class GlideRecord implements IGlideRecord {
         return sysIdElement;
       }
       return null;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error in insert:", error);
       throw error;
     }
@@ -329,7 +329,7 @@ export class GlideRecord implements IGlideRecord {
         return new GlideElement("sys_id", sysId);
       }
       return null;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error in update:", error);
       throw error;
     }
@@ -359,7 +359,7 @@ export class GlideRecord implements IGlideRecord {
         return true;
       }
       return false;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error in delete:", error);
       return false;
     }
@@ -414,7 +414,7 @@ export class GlideRecord implements IGlideRecord {
       }
 
       return successCount === totalRecords;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error in deleteMultiple:", error);
       return false;
     }
@@ -482,7 +482,7 @@ export class GlideRecord implements IGlideRecord {
       }
 
       return successCount === totalRecords;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error in updateMultiple:", error);
       return false;
     }
@@ -508,7 +508,7 @@ export class GlideRecord implements IGlideRecord {
         // More data might be available
         this._total = this._limit || this._results.length + this._batchSize;
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error in query:", error);
       throw error;
     }
@@ -685,7 +685,7 @@ export class GlideRecord implements IGlideRecord {
             self._isIter = false;
             return { value: undefined as any, done: true };
           }
-        } catch (error) {
+        } catch (error: unknown) {
           // Handle StopIteration from next() method
           if (error instanceof Error && error.message === "StopIteration") {
             return { value: undefined as any, done: true };
@@ -728,7 +728,7 @@ export class GlideRecord implements IGlideRecord {
       // For synchronous next(), we need to use a synchronous approach
       // This is a simplified implementation - in real usage, consider using nextAsync()
       return this._fetchNextPageSync();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error fetching next page:", error);
       return false;
     }
@@ -807,7 +807,7 @@ export class GlideRecord implements IGlideRecord {
         try {
           nextBatch = await this._client.serviceNow.query(options);
           break; // Success, exit retry loop
-        } catch (error) {
+        } catch (error: unknown) {
           retryCount++;
           if (retryCount >= maxRetries) {
             throw error; // Re-throw after max retries
@@ -877,7 +877,7 @@ export class GlideRecord implements IGlideRecord {
         this._isPaginating = false;
         return false;
       }
-    } catch (error) {
+    } catch (error: unknown) {
       this._isPaginating = false;
       operation.error("Page fetch failed", error);
       logger.error("Error in async pagination", error, "GlideRecord", {
@@ -1067,7 +1067,7 @@ export class GlideRecord implements IGlideRecord {
       });
 
       return loadedPages;
-    } catch (error) {
+    } catch (error: unknown) {
       operation.error("Preload pages failed", error);
       return loadedPages;
     }

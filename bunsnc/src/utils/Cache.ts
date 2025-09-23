@@ -90,7 +90,7 @@ export class Cache {
       });
 
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Cache set failed", error, "Cache", { key });
       return false;
     }

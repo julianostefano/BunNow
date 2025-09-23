@@ -255,7 +255,7 @@ export class ServiceNowClient implements IServiceNowClient {
       });
 
       return results;
-    } catch (error) {
+    } catch (error: unknown) {
       operation.error("Query failed", error);
       handleServiceNowError(error, "query records");
     }
@@ -289,7 +289,7 @@ export class ServiceNowClient implements IServiceNowClient {
       });
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       operation.error("Record creation failed", error);
       handleServiceNowError(error, "create record");
     }
@@ -326,7 +326,7 @@ export class ServiceNowClient implements IServiceNowClient {
       });
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       operation.error("Record read failed", error);
       handleServiceNowError(error, "read record");
     }
@@ -362,7 +362,7 @@ export class ServiceNowClient implements IServiceNowClient {
       });
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       operation.error("Record update failed", error);
       handleServiceNowError(error, "update record");
     }
@@ -389,7 +389,7 @@ export class ServiceNowClient implements IServiceNowClient {
       });
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       operation.error("Record delete failed", error);
       handleServiceNowError(error, "delete record");
     }
@@ -445,7 +445,7 @@ export class ServiceNowClient implements IServiceNowClient {
       });
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       operation.error("Attachment upload failed", error);
       handleServiceNowError(error, "upload attachment");
     }
@@ -482,7 +482,7 @@ export class ServiceNowClient implements IServiceNowClient {
       });
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       operation.error("Attachment download failed", error);
       handleServiceNowError(error, "download attachment");
     }
@@ -507,7 +507,7 @@ export class ServiceNowClient implements IServiceNowClient {
       });
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       operation.error("List attachments failed", error);
       handleServiceNowError(error, "list attachments");
     }
@@ -534,7 +534,7 @@ export class ServiceNowClient implements IServiceNowClient {
       });
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       operation.error("Attachment delete failed", error);
       handleServiceNowError(error, "delete attachment");
     }
@@ -559,7 +559,7 @@ export class ServiceNowClient implements IServiceNowClient {
       );
 
       return response.ok;
-    } catch (error) {
+    } catch (error: unknown) {
       return false;
     }
   }
@@ -574,7 +574,7 @@ export class ServiceNowClient implements IServiceNowClient {
   }> {
     try {
       return await this.table.getStats();
-    } catch (error) {
+    } catch (error: unknown) {
       return { status: "error", instance: this.instance };
     }
   }
@@ -598,7 +598,7 @@ export class ServiceNowClient implements IServiceNowClient {
       });
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       operation.error("Get record count failed", error);
       handleServiceNowError(error, "get record count");
     }
@@ -642,7 +642,7 @@ export class ServiceNowClient implements IServiceNowClient {
       });
 
       return results;
-    } catch (error) {
+    } catch (error: unknown) {
       operation.error("Batch execution failed", error);
       handleServiceNowError(error, "execute sequence");
     }
@@ -674,7 +674,7 @@ export class ServiceNowClient implements IServiceNowClient {
       });
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       operation.error("Get attachment as text failed", error);
       handleServiceNowError(error, "get attachment as text");
     }
@@ -702,7 +702,7 @@ export class ServiceNowClient implements IServiceNowClient {
       });
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       operation.error("Get attachment as blob failed", error);
       handleServiceNowError(error, "get attachment as blob");
     }
@@ -733,7 +733,7 @@ export class ServiceNowClient implements IServiceNowClient {
       });
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       operation.error("Get attachment stats failed", error);
       handleServiceNowError(error, "get attachment with stats");
     }
@@ -773,7 +773,7 @@ export class ServiceNowClient implements IServiceNowClient {
       });
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       operation.error("Bulk delete attachments failed", error);
       handleServiceNowError(error, "bulk delete attachments");
     }

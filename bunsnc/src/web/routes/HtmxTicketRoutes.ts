@@ -198,7 +198,7 @@ export const htmxTicketRoutes = new Elysia()
       `;
 
       return ticketsList + pagination;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error loading tickets:", error);
       return `
         <div class="text-center py-12 text-red-600">
@@ -573,7 +573,7 @@ export const htmxTicketRoutes = new Elysia()
           </div>
         </div>
       `;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error loading ticket details:", error);
       return `
         <div class="text-center py-8">
@@ -649,7 +649,7 @@ export const htmxTicketRoutes = new Elysia()
           </div>
         </div>
       `;
-    } catch (error) {
+    } catch (error: unknown) {
       return renderGlassError("Failed to load incident template");
     }
   })
@@ -729,7 +729,7 @@ export const htmxTicketRoutes = new Elysia()
           </div>
         </div>
       `;
-    } catch (error) {
+    } catch (error: unknown) {
       return renderGlassError("Failed to load problem template");
     }
   })
@@ -813,7 +813,7 @@ export const htmxTicketRoutes = new Elysia()
           </div>
         </div>
       `;
-    } catch (error) {
+    } catch (error: unknown) {
       return renderGlassError("Failed to load change request template");
     }
   })
@@ -889,7 +889,7 @@ export const htmxTicketRoutes = new Elysia()
           </div>
         </div>
       `;
-    } catch (error) {
+    } catch (error: unknown) {
       return renderGlassError("Failed to load service request template");
     }
   });

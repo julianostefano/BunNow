@@ -588,7 +588,7 @@ export const htmxAIChatRoutes = new Elysia({ prefix: "/ai/chat" })
           </div>
         </div>
       `);
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error("[HtmxAIChat] Message processing failed:", error);
         return html(`
         <div class="message assistant">
@@ -778,7 +778,7 @@ export const htmxAIChatRoutes = new Elysia({ prefix: "/ai/chat" })
           </div>
         </div>
       `);
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error("[HtmxAIChat] Quick action failed:", error);
         return html(
           '<div style="color: red;">Erro ao processar ação rápida</div>',
@@ -864,7 +864,7 @@ Posso ajudá-lo de outra forma? Tente ser mais específico sobre o problema ou t
       timestamp: new Date().toISOString(),
       confidence: 0.6,
     };
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error("[HtmxAIChat] AI response generation failed:", error);
 
     return {

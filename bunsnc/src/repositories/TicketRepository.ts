@@ -76,7 +76,7 @@ export class TicketRepository {
           console.log(
             ` Created index on ${collectionName}: ${JSON.stringify(index.spec)}`,
           );
-        } catch (error) {
+        } catch (error: unknown) {
           console.warn(` Failed to create index on ${collectionName}:`, error);
         }
       }
@@ -185,7 +185,7 @@ export class TicketRepository {
           validator: validation,
         });
         console.log(` Applied validation rules to ${collectionName}`);
-      } catch (error) {
+      } catch (error: unknown) {
         console.warn(
           ` Failed to apply validation to ${collectionName}:`,
           error,

@@ -16,6 +16,7 @@ import { workflowGuidanceRoutes } from "./routes/HtmxWorkflowGuidanceRoutes";
 import { neuralSearchRoutes } from "./routes/HtmxNeuralSearchRoutes";
 import { intelligenceDashboardRoutes } from "./routes/HtmxIntelligenceDashboardRoutes";
 import { knowledgeVisualizationRoutes } from "./routes/HtmxKnowledgeVisualizationRoutes";
+import { synonymsApiRoutes } from "./routes/api/synonyms";
 
 // Type definitions for better type safety
 interface ServiceNowRecord {
@@ -161,7 +162,7 @@ async function getDashboardData(): Promise<any> {
       avg_resolution_time: 4.2,
       support_groups: groupData,
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error getting dashboard data:", error);
 
     return {
@@ -246,7 +247,7 @@ async function generateRealtimeNotification(): Promise<any | null> {
       id: `notif_${Date.now()}_${notification.record_id.substr(-5)}`,
       timestamp: new Date().toISOString(),
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error generating real-time notification:", error);
     return null;
   }
@@ -414,7 +415,7 @@ export class GlassDesignServer {
               params.sys_id,
             );
             return this.renderTicketDetails(ticket);
-          } catch (error) {
+          } catch (error: unknown) {
             console.error(" [CRUD] Error fetching ticket:", error);
             return this.renderError("Ticket not found");
           }
@@ -429,7 +430,7 @@ export class GlassDesignServer {
               updateData as Record<string, unknown>,
             );
             return this.renderTicketCard(updatedTicket, "incident");
-          } catch (error) {
+          } catch (error: unknown) {
             console.error(" [CRUD] Error updating ticket:", error);
             return this.renderError("Failed to update ticket");
           }
@@ -443,7 +444,7 @@ export class GlassDesignServer {
               ticketData as Record<string, unknown>,
             );
             return this.renderTicketCard(newTicket, params.type);
-          } catch (error) {
+          } catch (error: unknown) {
             console.error(" [CRUD] Error creating ticket:", error);
             return this.renderError("Failed to create ticket");
           }
@@ -458,7 +459,7 @@ export class GlassDesignServer {
             // Advanced filtering with priority, assignment group, date range
             const results = await this.getAdvancedTicketFilter(type, filters);
             return this.renderTicketCards(results, type);
-          } catch (error) {
+          } catch (error: unknown) {
             console.error(" [Filter] Error:", error);
             return this.renderError("Filter operation failed");
           }
@@ -476,7 +477,7 @@ export class GlassDesignServer {
               bulkData.data,
             );
             return this.renderBulkOperationResult(results);
-          } catch (error) {
+          } catch (error: unknown) {
             console.error(" [Bulk] Error:", error);
             return this.renderError("Bulk operation failed");
           }
@@ -542,6 +543,7 @@ export class GlassDesignServer {
         .use(neuralSearchRoutes)
         .use(intelligenceDashboardRoutes)
         .use(knowledgeVisualizationRoutes)
+        .use(synonymsApiRoutes)
 
         // Favicon
         .get("/favicon.ico", () => new Response(null, { status: 204 }))
@@ -1538,7 +1540,7 @@ export class GlassDesignServer {
         results: searchResults,
         processing_time: "0.3s",
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" [Neural Search] Error:", error);
       return {
         success: false,
@@ -1626,7 +1628,7 @@ export class GlassDesignServer {
 
           allResults.push(...enrichedResults);
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.warn(
           `[Neural Search] Search failed for table ${config.table}:`,
           error,
@@ -1886,7 +1888,7 @@ export class GlassDesignServer {
       </div>
       ${resultsHtml}
     `;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error in neural search:", error);
       return `
         <div style="text-align: center; padding: 2rem; color: rgba(255, 255, 255, 0.6);">
@@ -1927,7 +1929,7 @@ export class GlassDesignServer {
       console.log(` [Tickets] Using demo data for ${type} tickets`);
       const demoTickets = this.getDemoTickets(type, stateList);
       return this.renderTicketCards(demoTickets, type);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(` [Tickets] Error loading ${type} tickets:`, error);
       return this.renderTicketCards(
         this.getDemoTickets(type, states.split(",")),
@@ -1979,7 +1981,7 @@ export class GlassDesignServer {
       };
 
       return await this.consolidatedService.query(queryOptions);
-    } catch (error) {
+    } catch (error: unknown) {
       console.warn(` [Tickets] ServiceNow query failed for ${type}:`, error);
       return [];
     }
@@ -2102,7 +2104,7 @@ export class GlassDesignServer {
       if (diffDays < 7) return `${diffDays}d ago`;
 
       return date.toLocaleDateString();
-    } catch (error) {
+    } catch (error: unknown) {
       return "Unknown";
     }
   }
@@ -2369,7 +2371,7 @@ export class GlassDesignServer {
         ${ticketsHtml}
       </div>
     `;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error getting ticket list:", error);
       return `
         <div style="text-align: center; padding: 3rem; color: rgba(255, 255, 255, 0.6);">
@@ -2504,7 +2506,7 @@ export class GlassDesignServer {
       console.log(" Health Check:", `http://localhost:${this.port}/health`);
       console.log(" Features: HTMX, SSE, Glass Design, Real-time Analytics");
       console.log(" Ready for connections!");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Failed to start server:", error);
       process.exit(1);
     }
@@ -2517,7 +2519,7 @@ export class GlassDesignServer {
     try {
       await this.app.stop();
       console.log(" Server stopped");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Failed to stop server:", error);
     }
   }
@@ -2618,7 +2620,7 @@ export class GlassDesignServer {
       return results.length > 0
         ? results
         : this.getDemoTickets(type, filters.states?.split(",") || []);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" [Advanced Filter] Error:", error);
       return this.getDemoTickets(type, filters.states?.split(",") || []);
     }
@@ -2669,13 +2671,13 @@ export class GlassDesignServer {
           }
 
           results.push({ ticketId, success: true, result });
-        } catch (error) {
+        } catch (error: unknown) {
           results.push({ ticketId, success: false, error: error.message });
         }
       }
 
       return results;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" [Bulk Operation] Error:", error);
       return { success: false, error: error.message };
     }
@@ -2768,7 +2770,7 @@ export class GlassDesignServer {
                 ),
               );
             }
-          } catch (error) {
+          } catch (error: unknown) {
             console.error(" [SSE] Dashboard update error:", error);
 
             if (controller.desiredSize !== null) {
@@ -2802,7 +2804,7 @@ export class GlassDesignServer {
                 ),
               );
             }
-          } catch (error) {
+          } catch (error: unknown) {
             console.error(" [SSE] Notification error:", error);
           }
         }, 15000); // Every 15 seconds
@@ -2855,7 +2857,7 @@ export class GlassDesignServer {
                 })}\n\n`,
               ),
             );
-          } catch (error) {
+          } catch (error: unknown) {
             console.error(` [Ticket Stream] Error for ${type}:`, error);
 
             // Send fallback demo data
@@ -2908,7 +2910,7 @@ export class GlassDesignServer {
                 ),
               );
             }
-          } catch (error) {
+          } catch (error: unknown) {
             console.error(` [State Change] Error for ${type}:`, error);
             // Skip sending state change if error occurs
           }
@@ -2992,7 +2994,7 @@ export class GlassDesignServer {
                     })}\n\n`,
                   ),
                 );
-              } catch (error) {
+              } catch (error: unknown) {
                 console.warn(
                   ` [Neural Search Stream] ${table} search failed:`,
                   error,
@@ -3014,7 +3016,7 @@ export class GlassDesignServer {
                 })}\n\n`,
               ),
             );
-          } catch (error) {
+          } catch (error: unknown) {
             console.error(" [Neural Search Stream] Search error:", error);
 
             controller.enqueue(
@@ -3053,7 +3055,7 @@ export class GlassDesignServer {
                 `event: health-update\ndata: ${JSON.stringify(healthData)}\n\n`,
               ),
             );
-          } catch (error) {
+          } catch (error: unknown) {
             console.error(" [System Health Stream] Health check error:", error);
 
             controller.enqueue(
@@ -3119,7 +3121,7 @@ export class GlassDesignServer {
           connections: 1, // Current connection count
         },
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         timestamp: new Date().toISOString(),
         server: {

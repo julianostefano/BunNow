@@ -323,7 +323,7 @@ describe("ServiceNowClient Performance Tests", () => {
       const promises = Array.from({ length: 20 }, async (_, i) => {
         try {
           return await client.query({ table: "incident", limit: 25 });
-        } catch (error) {
+        } catch (error: unknown) {
           return { error: true, index: i };
         }
       });
@@ -358,7 +358,7 @@ describe("ServiceNowClient Performance Tests", () => {
         while (attempt < maxRetries) {
           try {
             return await client.query({ table: "incident", limit: 10 });
-          } catch (error) {
+          } catch (error: unknown) {
             attempt++;
             if (attempt >= maxRetries) throw error;
             await new Promise((resolve) => setTimeout(resolve, 100 * attempt)); // Exponential backoff
@@ -372,7 +372,7 @@ describe("ServiceNowClient Performance Tests", () => {
       const promises = Array.from({ length: 5 }, async () => {
         try {
           return await withRetries();
-        } catch (error) {
+        } catch (error: unknown) {
           return { error: true };
         }
       });
@@ -548,7 +548,7 @@ describe("ServiceNowClient Performance Tests", () => {
         try {
           await client.query({ table: "incident", limit: 10 });
           operationCount++;
-        } catch (error) {
+        } catch (error: unknown) {
           // Count errors but continue
         }
 

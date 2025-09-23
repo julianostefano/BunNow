@@ -579,7 +579,7 @@ describe("Critical Flows - End-to-End Testing", () => {
           );
           expect(validTicket).toBeDefined();
           expect(validTicket.sys_id).toBeDefined();
-        } catch (error) {
+        } catch (error: unknown) {
           // Should not throw for valid data
           throw new Error("Valid ticket creation failed unexpectedly");
         }
@@ -615,7 +615,7 @@ describe("Critical Flows - End-to-End Testing", () => {
             "incident",
           );
           // Should handle error gracefully
-        } catch (error) {
+        } catch (error: unknown) {
           expect(error).toBeInstanceOf(Error);
           expect((error as Error).message).toContain(
             "ServiceNow connection timeout",
@@ -744,7 +744,7 @@ describe("Critical Flows - End-to-End Testing", () => {
           "incident",
         );
         healthChecks.consolidatedTicketService = true;
-      } catch (error) {
+      } catch (error: unknown) {
         console.log("ConsolidatedServiceNowService health check noted:", error);
         healthChecks.consolidatedTicketService = true; // Mock service expected to work
       }
@@ -757,7 +757,7 @@ describe("Critical Flows - End-to-End Testing", () => {
         healthChecks.unifiedStreamingService =
           streamConnection instanceof Response &&
           streamStats.totalConnections >= 0;
-      } catch (error) {
+      } catch (error: unknown) {
         console.log("UnifiedStreamingService health check error:", error);
       }
 
@@ -765,7 +765,7 @@ describe("Critical Flows - End-to-End Testing", () => {
       try {
         healthChecks.hybridDataService =
           hybridDataService instanceof ConsolidatedDataService;
-      } catch (error) {
+      } catch (error: unknown) {
         console.log("ConsolidatedDataService health check error:", error);
       }
 

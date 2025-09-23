@@ -83,7 +83,7 @@ export class TicketQueryService extends TicketStorageCore {
         page: Math.floor(skip / limit) + 1,
         limit,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Error querying tickets:", error);
       throw error;
     }
@@ -162,7 +162,7 @@ export class TicketQueryService extends TicketStorageCore {
           scTaskCount: 0,
         }
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Error getting dashboard stats:", error);
       throw error;
     }
@@ -199,7 +199,7 @@ export class TicketQueryService extends TicketStorageCore {
           unique: idx.unique || false,
         })),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Error getting health metrics:", error);
       throw error;
     }
@@ -254,7 +254,7 @@ export class TicketQueryService extends TicketStorageCore {
         page: Math.floor(skip / limit) + 1,
         limit,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Error getting tickets with SLAs:", error);
       throw error;
     }
@@ -318,7 +318,7 @@ export class TicketQueryService extends TicketStorageCore {
           closed: r.closedCount,
         })),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Error getting ticket trends:", error);
       throw error;
     }
@@ -407,7 +407,7 @@ export class TicketQueryService extends TicketStorageCore {
         },
         lastUpdate: r.lastUpdate,
       }));
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Error getting tickets by assignment group:", error);
       throw error;
     }
@@ -433,7 +433,7 @@ export class TicketQueryService extends TicketStorageCore {
       };
 
       return await this.queryTickets(query);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Error searching tickets:", error);
       throw error;
     }

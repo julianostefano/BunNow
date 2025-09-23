@@ -261,7 +261,7 @@ const app = new Elysia({ prefix: "/api/v1/analytics" })
           }
         </script>
       `;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error generating analytics dashboard:", error);
       return `
         <div class="text-center py-12">
@@ -312,7 +312,7 @@ const app = new Elysia({ prefix: "/api/v1/analytics" })
         },
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error fetching performance metrics:", error);
       return {
         success: false,
@@ -343,7 +343,7 @@ const app = new Elysia({ prefix: "/api/v1/analytics" })
           data: trendData,
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error fetching trend data:", error);
         return {
           success: false,

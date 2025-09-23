@@ -420,7 +420,7 @@ export class ServiceNowStreamingPlatform {
         try {
           await processor.shutdown();
           logger.info(`Processor stopped: ${name}`);
-        } catch (error) {
+        } catch (error: unknown) {
           logger.error(`Error stopping processor ${name}:`, error);
         }
       },
@@ -537,7 +537,7 @@ export class ServiceNowStreamingPlatform {
             }
 
             results.push(record);
-          } catch (error) {
+          } catch (error: unknown) {
             logger.error("Error processing incident record:", error);
             throw error;
           }
@@ -585,7 +585,7 @@ export class ServiceNowStreamingPlatform {
                 count: batch.length,
               });
             }
-          } catch (error) {
+          } catch (error: unknown) {
             logger.error("Error in export processing:", error);
             throw error;
           }
@@ -635,7 +635,7 @@ export class ServiceNowStreamingPlatform {
                 });
               }
             }
-          } catch (error) {
+          } catch (error: unknown) {
             logger.error("Error processing notification:", error);
             results.push({
               record: record.sys_id,

@@ -133,17 +133,15 @@ export class ServiceNowAuthCore {
       },
       maxRedirects: 3,
       validateStatus: (status) => status >= 200 && status < 300,
-      // Explicit proxy configuration for axios
-      proxy: {
-        protocol: proxyUrlParsed.protocol,
-        host: proxyUrlParsed.hostname,
-        port: parseInt(proxyUrlParsed.port) || 8080,
-        auth: {
-          username: decodeURIComponent(proxyUrlParsed.username),
-          password: decodeURIComponent(proxyUrlParsed.password),
-        },
-      },
+      // Use proxy string format for Bun compatibility
+      proxy: false, // Disable axios proxy, use environment variables instead
     });
+
+    // Set proxy environment variables for Node.js/Bun compatibility
+    if (proxyUrl) {
+      process.env.HTTP_PROXY = proxyUrl;
+      process.env.HTTPS_PROXY = proxyUrl;
+    }
 
     // Add request interceptor for better error logging
     this.axiosClient.interceptors.request.use(
@@ -456,7 +454,7 @@ export class ServiceNowAuthCore {
       }
 
       return validationResult.isValid;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("❌ SAML validation error:", error);
       return false;
     }

@@ -69,7 +69,7 @@ export class TicketSyncService extends TicketDataCore {
       logger.info(`[TICKET-SYNC] Sync completed:`, stats);
 
       return { success: true, stats };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`[TICKET-SYNC] Error during ticket sync:`, error);
       return {
         success: false,
@@ -110,13 +110,13 @@ export class TicketSyncService extends TicketDataCore {
             const processedTicket = this.processTicketData(ticket);
             await this.storeTicketInMongoDB(processedTicket, table);
             stats.synced++;
-          } catch (error) {
+          } catch (error: unknown) {
             logger.error(`[TICKET-SYNC] Error syncing ${table} ticket:`, error);
             stats.errors++;
           }
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         `[TICKET-SYNC] Error syncing tickets of type ${table}:`,
         error,
@@ -156,13 +156,13 @@ export class TicketSyncService extends TicketDataCore {
               { upsert: true },
             );
             stats.synced++;
-          } catch (error) {
+          } catch (error: unknown) {
             logger.error(`[TICKET-SYNC] Error syncing group:`, error);
             stats.errors++;
           }
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`[TICKET-SYNC] Error syncing groups:`, error);
       stats.errors++;
     }
@@ -194,7 +194,7 @@ export class TicketSyncService extends TicketDataCore {
 
       logger.info(`[TICKET-SYNC] Successfully synced ticket: ${sysId}`);
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`[TICKET-SYNC] Error syncing ticket ${sysId}:`, error);
       return false;
     }
@@ -234,7 +234,7 @@ export class TicketSyncService extends TicketDataCore {
       logger.info(`[TICKET-SYNC] Date range sync completed:`, stats);
 
       return { success: true, stats };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`[TICKET-SYNC] Error during date range sync:`, error);
       return {
         success: false,
@@ -279,7 +279,7 @@ export class TicketSyncService extends TicketDataCore {
                 const processedTicket = this.processTicketData(ticket);
                 await this.storeTicketInMongoDB(processedTicket, table);
                 syncResult.synced++;
-              } catch (error) {
+              } catch (error: unknown) {
                 logger.error(
                   `[TICKET-SYNC] Error syncing ${table} ticket for group ${groupName}:`,
                   error,
@@ -288,7 +288,7 @@ export class TicketSyncService extends TicketDataCore {
               }
             }
           }
-        } catch (error) {
+        } catch (error: unknown) {
           logger.error(
             `[TICKET-SYNC] Error syncing ${table} tickets for group ${groupName}:`,
             error,
@@ -302,7 +302,7 @@ export class TicketSyncService extends TicketDataCore {
         syncResult,
       );
       return syncResult;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         `[TICKET-SYNC] Error during group sync for ${groupName}:`,
         error,

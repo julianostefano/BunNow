@@ -138,6 +138,25 @@ declare module "@opensearch-project/opensearch" {
       exists(params: any): Promise<boolean>;
       putMapping(params: any): Promise<any>;
       putSettings(params: any): Promise<any>;
+      getSettings(params: any): Promise<any>;
+      getMapping(params: any): Promise<any>;
+      putTemplate(params: any): Promise<any>;
+      getTemplate(params: any): Promise<any>;
+      deleteTemplate(params: any): Promise<any>;
+      stats(params?: any): Promise<any>;
+      forcemerge(params: any): Promise<any>;
+    };
+    cluster: {
+      health(params?: any): Promise<any>;
+      stats(params?: any): Promise<any>;
+      nodes(params?: any): Promise<any>;
+      state(params?: any): Promise<any>;
+    };
+    cat: {
+      indices(params?: any): Promise<any>;
+      nodes(params?: any): Promise<any>;
+      health(params?: any): Promise<any>;
+      shards(params?: any): Promise<any>;
     };
     index(params: any): Promise<any>;
     get(params: any): Promise<any>;
@@ -154,6 +173,70 @@ declare module "@opensearch-project/opensearch" {
     failures?: any[];
     took?: number;
     timed_out?: boolean;
+  }
+
+  export interface ClientOptions {
+    node?: string | string[];
+    nodes?: string | string[];
+    auth?: {
+      username: string;
+      password: string;
+    };
+    ssl?: {
+      ca?: string;
+      cert?: string;
+      key?: string;
+      rejectUnauthorized?: boolean;
+    };
+    requestTimeout?: number;
+    pingTimeout?: number;
+    sniffOnStart?: boolean;
+    sniffInterval?: number | false;
+    sniffOnConnectionFault?: boolean;
+    resurrectStrategy?: string;
+    suggestCompression?: boolean;
+    compression?: string;
+    headers?: Record<string, any>;
+  }
+
+  export class Client {
+    constructor(options: ClientOptions);
+    ping(): Promise<any>;
+    indices: {
+      refresh(params: { index: string }): Promise<any>;
+      create(params: any): Promise<any>;
+      exists(params: any): Promise<boolean>;
+      putMapping(params: any): Promise<any>;
+      putSettings(params: any): Promise<any>;
+      getSettings(params: any): Promise<any>;
+      getMapping(params: any): Promise<any>;
+      putTemplate(params: any): Promise<any>;
+      getTemplate(params: any): Promise<any>;
+      deleteTemplate(params: any): Promise<any>;
+      stats(params?: any): Promise<any>;
+      forcemerge(params: any): Promise<any>;
+    };
+    cluster: {
+      health(params?: any): Promise<any>;
+      stats(params?: any): Promise<any>;
+      nodes(params?: any): Promise<any>;
+      state(params?: any): Promise<any>;
+    };
+    cat: {
+      indices(params?: any): Promise<any>;
+      nodes(params?: any): Promise<any>;
+      health(params?: any): Promise<any>;
+      shards(params?: any): Promise<any>;
+    };
+    index(params: any): Promise<any>;
+    get(params: any): Promise<any>;
+    delete(params: any): Promise<any>;
+    update(params: any): Promise<any>;
+    search(params: any): Promise<any>;
+    deleteByQuery(params: any): Promise<any>;
+    bulk(params: any): Promise<any>;
+    close(): Promise<void>;
+    on(event: string, callback: (err?: any, result?: any) => void): void;
   }
 }
 

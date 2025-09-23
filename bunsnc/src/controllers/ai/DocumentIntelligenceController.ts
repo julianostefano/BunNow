@@ -57,7 +57,7 @@ export class DocumentIntelligenceController {
         ssl: false,
         timeout: 30000,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         `❌ [DocumentIntelligenceController] Failed to initialize: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
@@ -153,7 +153,7 @@ export class DocumentIntelligenceController {
         ` [DocumentIntelligence] Processed ${request.filename} in ${response.processing_result.processing_time_ms}ms`,
       );
       return response;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         " [DocumentIntelligence] Document processing failed:",
         error,
@@ -225,7 +225,7 @@ export class DocumentIntelligenceController {
         ` [DocumentIntelligence] Found ${response.results.length} relevant documents in ${response.metadata.processing_time_ms}ms`,
       );
       return response;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [DocumentIntelligence] Document search failed:", error);
       throw error;
     }
@@ -283,7 +283,7 @@ export class DocumentIntelligenceController {
           });
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn(" [DocumentIntelligence] NER extraction failed:", error);
     }
 
@@ -587,7 +587,7 @@ export class DocumentIntelligenceController {
           : complexityScore > 1
             ? "intermediate"
             : "basic";
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn(
         " [DocumentIntelligence] Knowledge extraction failed:",
         error,
@@ -641,7 +641,7 @@ export class DocumentIntelligenceController {
       logger.info(
         `📚 [DocumentIntelligence] Indexed document ${response.document_id} with ${doc.chunks.length} chunks`,
       );
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [DocumentIntelligence] Document indexing failed:", error);
       throw error;
     }

@@ -82,7 +82,7 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
           data: result,
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(" [AI-API] Ticket analysis failed:", error);
 
         set.status = 500;
@@ -115,7 +115,7 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
           data: config,
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(" [AI-API] Failed to get ticket analysis config:", error);
         throw error;
       }
@@ -141,7 +141,7 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
           message: "Configuration updated successfully",
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(
           " [AI-API] Failed to update ticket analysis config:",
           error,
@@ -192,7 +192,7 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
           data: result,
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(" [AI-API] Document processing failed:", error);
 
         set.status = 500;
@@ -228,7 +228,7 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
           data: result,
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(" [AI-API] Document search failed:", error);
 
         set.status = 500;
@@ -261,7 +261,7 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
           data: config,
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(
           " [AI-API] Failed to get document intelligence config:",
           error,
@@ -290,7 +290,7 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
           message: "Configuration updated successfully",
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(
           " [AI-API] Failed to update document intelligence config:",
           error,
@@ -346,7 +346,7 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
           services,
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(" [AI-API] Health check failed:", error);
 
         set.status = 503;
@@ -456,7 +456,7 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
           total_services: Object.keys(serviceStatus).length,
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(" [AI-API] Service status check failed:", error);
 
         set.status = 503;

@@ -46,9 +46,9 @@ export class ContractualViolationService {
   ) {
     this.db = this.mongoClient.db(this.databaseName);
     this.supportGroupsCollection = this.db.collection("sn_groups");
-    this.incidentsCollection = this.db.collection("sn_incidents_collection");
-    this.ctasksCollection = this.db.collection("sn_ctasks_collection");
-    this.sctasksCollection = this.db.collection("sn_sctasks_collection");
+    this.incidentsCollection = this.db.collection("sn_incidents");
+    this.ctasksCollection = this.db.collection("sn_ctasks");
+    this.sctasksCollection = this.db.collection("sn_sctasks");
     this.violationTrackingCollection = this.db.collection(
       "sn_violation_tracking",
     );
@@ -93,7 +93,7 @@ export class ContractualViolationService {
       logger.info(
         " [ContractualViolationService] Service initialized successfully",
       );
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         " [ContractualViolationService] Failed to initialize:",
         error,
@@ -206,7 +206,7 @@ export class ContractualViolationService {
         ` [ContractualViolationService] Validation completed for ${ticketId}: ${isViolated ? "VIOLATED" : "COMPLIANT"}`,
       );
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [ContractualViolationService] Error validating ${ticketId}:`,
         error,
@@ -245,7 +245,7 @@ export class ContractualViolationService {
         closure_timestamp: ticketData.closed_at,
         closure_state: ticketData.state,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         " [ContractualViolationService] Error validating group closure:",
         error,
@@ -314,7 +314,7 @@ export class ContractualViolationService {
         resolution_time_breach: resolutionTimeBreach,
         breach_details: breachDetails,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         " [ContractualViolationService] Error validating SLA breach:",
         error,
@@ -344,7 +344,7 @@ export class ContractualViolationService {
           ? new Date(ticketData.sys_updated_on)
           : undefined,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         " [ContractualViolationService] Error validating violation marking:",
         error,
@@ -409,7 +409,7 @@ export class ContractualViolationService {
         contractual_violation: ticketData.contractual_violation,
         slms: document.data?.slms || [],
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [ContractualViolationService] Error getting ticket data for ${ticketId}:`,
         error,
@@ -442,7 +442,7 @@ export class ContractualViolationService {
         trackingDoc,
         { upsert: true },
       );
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         " [ContractualViolationService] Error storing violation result:",
         error,
@@ -474,7 +474,7 @@ export class ContractualViolationService {
       logger.info(
         ` [ContractualViolationService] Support groups cache refreshed: ${groups.length} groups loaded`,
       );
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         " [ContractualViolationService] Error refreshing support groups cache:",
         error,
@@ -571,7 +571,7 @@ export class ContractualViolationService {
       }
 
       return stats;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         " [ContractualViolationService] Error generating violation statistics:",
         error,
@@ -588,7 +588,7 @@ export class ContractualViolationService {
       await this.supportGroupsCollection.findOne({});
       await this.violationTrackingCollection.findOne({});
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         " [ContractualViolationService] Health check failed:",
         error,

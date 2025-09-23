@@ -6,6 +6,7 @@
 import { ServiceNowClient } from "../client/ServiceNowClient";
 import { ticketService } from "../services";
 import { WebServerConfig } from "./WebServerController";
+import { ServiceNowFetchClient } from "../services/ServiceNowFetchClient";
 
 // Response interfaces
 interface SyncResponse {
@@ -86,7 +87,7 @@ export class APIController {
       }
 
       return { incidents, count: incidents.length };
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Failed to fetch incidents: ${(error as Error).message}`);
     }
   }
@@ -110,7 +111,7 @@ export class APIController {
       }
 
       return { problems, count: problems.length };
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Failed to fetch problems: ${(error as Error).message}`);
     }
   }
@@ -134,7 +135,7 @@ export class APIController {
       }
 
       return { changes, count: changes.length };
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Failed to fetch changes: ${(error as Error).message}`);
     }
   }
@@ -151,7 +152,7 @@ export class APIController {
         message: `Processing ${tableName} to Parquet format - functionality temporarily disabled`,
         outputPath,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(
         `Failed to process ${tableName} to Parquet: ${(error as Error).message}`,
       );
@@ -166,7 +167,7 @@ export class APIController {
         pipelineId: `pipeline_${pipelineType}_${Date.now()}`,
         executionId: `exec_${Date.now()}`,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(
         `Failed to execute pipeline: ${(error as Error).message}`,
       );
@@ -217,7 +218,7 @@ export class APIController {
           </div>
         </div>
       `;
-    } catch (error) {
+    } catch (error: unknown) {
       return `<div class="text-red-600">Error loading analytics: ${(error as Error).message}</div>`;
     }
   }
@@ -244,7 +245,7 @@ export class APIController {
           timestamp: new Date().toISOString(),
         };
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Error during MongoDB sync:", error);
       return {
         success: false,
@@ -271,28 +272,139 @@ export class APIController {
 
       const limit = parseInt(query.limit) || 50;
 
-      const tickets = await this.ticketIntegrationService.getTicketsFromMongoDB(
-        ticketType as "incident" | "change_task" | "sc_task",
-        filter,
-        limit,
+      // Import MongoDB directly
+      const { MongoClient } = await import("mongodb");
+      const mongoUrl =
+        process.env.MONGODB_URL ||
+        "mongodb://admin:Logica2011_@10.219.8.210:27018/bunsnc?authSource=admin";
+      const mongoClient = new MongoClient(mongoUrl);
+
+      try {
+        await mongoClient.connect();
+        const db = mongoClient.db("bunsnc");
+
+        // Map ticket types to collection names (correct collections with data)
+        const collectionMap = {
+          incident: "incidents_complete",
+          change_task: "change_tasks_complete",
+          sc_task: "sc_tasks_complete",
+        };
+
+        const collectionName = collectionMap[ticketType];
+        if (!collectionName) {
+          throw new Error(`No collection found for ticket type: ${ticketType}`);
+        }
+
+        const collection = db.collection(collectionName);
+
+        // Build MongoDB filter using correct raw_data structure
+        const mongoFilter = {};
+        if (query.state) {
+          // Use raw_data.state.value as documented
+          mongoFilter["raw_data.state.value"] = query.state.toString();
+        }
+        if (query.group) {
+          // Use raw_data.assignment_group.display_value as documented
+          mongoFilter["raw_data.assignment_group.display_value"] = {
+            $regex: query.group,
+            $options: "i",
+          };
+        }
+
+        const tickets = await collection
+          .find(mongoFilter)
+          .limit(limit)
+          .toArray();
+        const count = await collection.countDocuments(mongoFilter);
+
+        console.log(
+          `✅ Retrieved ${tickets.length} ${ticketType} tickets from MongoDB`,
+        );
+
+        return {
+          success: true,
+          tickets: tickets.map((ticket) => ({
+            ...ticket.raw_data, // Use raw_data as documented
+            _id: ticket._id,
+            sys_id: ticket.sys_id,
+            number: ticket.number,
+            collection_type: ticketType,
+            // Include metadata for debugging
+            metadata: ticket.metadata,
+          })),
+          ticketType,
+          filter,
+          timestamp: new Date().toISOString(),
+        };
+      } finally {
+        await mongoClient.close();
+      }
+    } catch (error: unknown) {
+      console.error(` Error getting ${ticketType} from MongoDB:`, error);
+      return {
+        success: false,
+        message: `Error getting ${ticketType}: ${(error as Error).message}`,
+        timestamp: new Date().toISOString(),
+      };
+    }
+  }
+
+  /**
+   * Get tickets directly from ServiceNow using ServiceNowFetchClient
+   */
+  public async getTicketsFromServiceNow(
+    ticketType: string,
+    query: TicketQueryOptions = {},
+  ): Promise<Record<string, unknown>> {
+    try {
+      if (!["incident", "sc_task", "change_task"].includes(ticketType)) {
+        throw new Error(
+          `Invalid ticket type: ${ticketType}. Must be incident, sc_task, or change_task`,
+        );
+      }
+
+      const fetchClient = new ServiceNowFetchClient();
+      await fetchClient.authenticate();
+
+      // Build ServiceNow query
+      let serviceNowQuery = "";
+      const queryParts = [];
+
+      if (query.state) {
+        queryParts.push(`state=${query.state}`);
+      }
+
+      if (query.group) {
+        queryParts.push(`assignment_group.name CONTAINS ${query.group}`);
+      }
+
+      serviceNowQuery = queryParts.join("^");
+
+      const limit = parseInt(query.limit as string) || 50;
+
+      console.log(
+        `🔍 Fetching ${ticketType} from ServiceNow with query: ${serviceNowQuery || "(no filter)"}`,
       );
 
-      const count =
-        await this.ticketIntegrationService.getTicketCountFromMongoDB(
-          ticketType as "incident" | "change_task" | "sc_task",
-          filter,
-        );
+      // Fetch directly from ServiceNow
+      const result = await fetchClient.makeRequestFullFields(
+        ticketType,
+        serviceNowQuery,
+        limit,
+        false, // Use period filter (current month)
+      );
 
       return {
         success: true,
-        tickets,
-        count,
+        tickets: result.result || [],
+        count: result.result?.length || 0,
         ticketType,
-        filter,
+        query: serviceNowQuery,
+        source: "ServiceNow Direct",
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
-      console.error(` Error getting ${ticketType} from MongoDB:`, error);
+    } catch (error: unknown) {
+      console.error(` Error getting ${ticketType} from ServiceNow:`, error);
       return {
         success: false,
         message: `Error getting ${ticketType}: ${(error as Error).message}`,
@@ -303,37 +415,124 @@ export class APIController {
 
   public async getMongoDBStats(): Promise<MongoStatsResponse> {
     try {
-      const stats = await this.ticketIntegrationService.getCollectionStats();
-      return {
-        success: true,
-        stats,
-        timestamp: new Date().toISOString(),
-      };
-    } catch (error) {
+      // Import MongoDB directly
+      const { MongoClient } = await import("mongodb");
+      const mongoUrl =
+        process.env.MONGODB_URL ||
+        "mongodb://admin:Logica2011_@10.219.8.210:27018/bunsnc?authSource=admin";
+      const mongoClient = new MongoClient(mongoUrl);
+
+      try {
+        await mongoClient.connect();
+        const db = mongoClient.db("bunsnc");
+
+        // Get stats for correct collections with data
+        const [incidentsStats, changeTasksStats, scTasksStats] =
+          await Promise.all([
+            db.collection("incidents_complete").stats(),
+            db.collection("change_tasks_complete").stats(),
+            db.collection("sc_tasks_complete").stats(),
+          ]);
+
+        const [incidentsCount, changeTasksCount, scTasksCount] =
+          await Promise.all([
+            db.collection("incidents_complete").countDocuments(),
+            db.collection("change_tasks_complete").countDocuments(),
+            db.collection("sc_tasks_complete").countDocuments(),
+          ]);
+
+        const collections = {
+          incidents_complete: {
+            count: incidentsCount,
+            size: incidentsStats.size || 0,
+            indexes: incidentsStats.nindexes || 0,
+          },
+          change_tasks_complete: {
+            count: changeTasksCount,
+            size: changeTasksStats.size || 0,
+            indexes: changeTasksStats.nindexes || 0,
+          },
+          sc_tasks_complete: {
+            count: scTasksCount,
+            size: scTasksStats.size || 0,
+            indexes: scTasksStats.nindexes || 0,
+          },
+        };
+
+        const totalDocuments = incidentsCount + changeTasksCount + scTasksCount;
+        const databaseSize =
+          (incidentsStats.size || 0) +
+          (changeTasksStats.size || 0) +
+          (scTasksStats.size || 0);
+
+        console.log(
+          `✅ MongoDB stats retrieved: ${totalDocuments} total documents`,
+        );
+
+        return {
+          success: true,
+          collections,
+          total_documents: totalDocuments,
+          database_size: databaseSize,
+        };
+      } finally {
+        await mongoClient.close();
+      }
+    } catch (error: unknown) {
       console.error(" Error getting MongoDB stats:", error);
       return {
         success: false,
-        message: `Error getting stats: ${(error as Error).message}`,
-        timestamp: new Date().toISOString(),
+        collections: {},
+        total_documents: 0,
+        database_size: 0,
+        error: `Error getting stats: ${(error as Error).message}`,
       };
     }
   }
 
   public async getTargetGroups(): Promise<TargetGroupsResponse> {
     try {
-      const groups = await this.ticketIntegrationService.getTargetGroups();
-      return {
-        success: true,
-        groups,
-        count: groups.length,
-        timestamp: new Date().toISOString(),
-      };
-    } catch (error) {
+      // Import MongoDB directly
+      const { MongoClient } = await import("mongodb");
+      const mongoUrl =
+        process.env.MONGODB_URL ||
+        "mongodb://admin:Logica2011_@10.219.8.210:27018/bunsnc?authSource=admin";
+      const mongoClient = new MongoClient(mongoUrl);
+
+      try {
+        await mongoClient.connect();
+        const db = mongoClient.db("bunsnc");
+
+        // Get groups from sn_groups collection (as used in simple-discovery.ts)
+        const groupsData = await db.collection("sn_groups").find({}).toArray();
+
+        const groups = groupsData.map((group: any) => ({
+          sys_id: group.sys_id || group._id,
+          name:
+            group.data?.nome || group.name || group.display_value || "Unknown",
+          description: group.data?.descricao || group.description || "",
+          manager: group.manager || "",
+          email: group.email || "",
+          active: group.active !== false,
+        }));
+
+        console.log(`✅ Retrieved ${groups.length} target groups from MongoDB`);
+
+        return {
+          success: true,
+          groups,
+          count: groups.length,
+        };
+      } finally {
+        await mongoClient.close();
+      }
+    } catch (error: unknown) {
       console.error(" Error getting target groups:", error);
       return {
         success: false,
-        message: `Error getting groups: ${(error as Error).message}`,
-        timestamp: new Date().toISOString(),
+        groups: [],
+        count: 0,
+        error: `Error getting groups: ${(error as Error).message}`,
       };
     }
   }

@@ -5,7 +5,7 @@
 
 import { MongoClient } from 'mongodb';
 
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
+const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27018';
 const DATABASE_NAME = process.env.MONGODB_DATABASE || 'bunsnc';
 
 const contractualSLAData = [

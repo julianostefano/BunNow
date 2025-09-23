@@ -208,7 +208,7 @@ export const workflowGuidanceRoutes = new Elysia({ prefix: "/workflow" })
         if (response.data.result && response.data.result.length > 0) {
           ticketDetails = response.data.result[0];
         }
-      } catch (error) {
+      } catch (error: unknown) {
         logger.warn("Failed to fetch ticket details:", error);
       }
 
@@ -263,7 +263,7 @@ export const workflowGuidanceRoutes = new Elysia({ prefix: "/workflow" })
           </div>
         </div>
       `);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Failed to create workflow session:", error);
       return html(
         `<div class="error">Failed to create workflow: ${error}</div>`,
@@ -529,7 +529,7 @@ async function generateWorkflowSteps(
 
     const steps = JSON.parse(response);
     return Array.isArray(steps) ? steps : getDefaultWorkflowSteps(workflowType);
-  } catch (error) {
+  } catch (error: unknown) {
     logger.warn("Failed to generate AI workflow steps, using defaults:", error);
     return getDefaultWorkflowSteps(workflowType);
   }

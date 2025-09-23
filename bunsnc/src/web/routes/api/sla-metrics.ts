@@ -13,7 +13,7 @@ import { logger } from "../../../utils/Logger";
 
 // Initialize services
 const mongoClient = new MongoClient(
-  process.env.MONGODB_URL || "mongodb://localhost:27017",
+  process.env.MONGODB_URL || "mongodb://localhost:27018",
 );
 const databaseName = process.env.MONGODB_DATABASE || "bunsnc";
 
@@ -82,7 +82,7 @@ const app = new Elysia({ prefix: "/api/sla-metrics" })
         },
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [SLAMetrics] Error getting SLA config:", error);
       return {
         success: false,
@@ -116,7 +116,7 @@ const app = new Elysia({ prefix: "/api/sla-metrics" })
         },
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [SLAMetrics] Error getting SLA config for ${params.ticket_type}:`,
         error,
@@ -164,7 +164,7 @@ const app = new Elysia({ prefix: "/api/sla-metrics" })
           data: slaStatus,
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(
           ` [SLAMetrics] Error calculating SLA for ticket ${params.ticket_id}:`,
           error,
@@ -246,7 +246,7 @@ const app = new Elysia({ prefix: "/api/sla-metrics" })
           },
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(" [SLAMetrics] Error generating metrics:", error);
         return {
           success: false,
@@ -303,7 +303,7 @@ const app = new Elysia({ prefix: "/api/sla-metrics" })
           data: enhancedDashboardData,
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(" [SLAMetrics] Error generating dashboard data:", error);
         return {
           success: false,
@@ -386,7 +386,7 @@ const app = new Elysia({ prefix: "/api/sla-metrics" })
           data: summary,
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(
           " [SLAMetrics] Error generating compliance summary:",
           error,
@@ -469,7 +469,7 @@ const app = new Elysia({ prefix: "/api/sla-metrics" })
           data: penaltyReport,
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(" [SLAMetrics] Error generating penalty report:", error);
         return {
           success: false,
@@ -502,7 +502,7 @@ const app = new Elysia({ prefix: "/api/sla-metrics" })
         },
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [SLAMetrics] Health check failed:", error);
       return {
         success: false,
@@ -522,7 +522,7 @@ const app = new Elysia({ prefix: "/api/sla-metrics" })
         message: "Cache refreshed successfully",
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [SLAMetrics] Cache refresh failed:", error);
       return {
         success: false,
@@ -541,7 +541,7 @@ const app = new Elysia({ prefix: "/api/sla-metrics" })
         message: "Cache cleared successfully",
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [SLAMetrics] Cache clear failed:", error);
       return {
         success: false,

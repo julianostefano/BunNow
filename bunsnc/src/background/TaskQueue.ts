@@ -126,13 +126,13 @@ export class TaskQueue extends EventEmitter {
         try {
           const event = JSON.parse(message);
           this.emit("taskEvent", event);
-        } catch (error) {
+        } catch (error: unknown) {
           console.error("Error parsing task event:", error);
         }
       });
 
       console.log(" Task Queue Redis connection established");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Failed to initialize Redis for TaskQueue:", error);
       throw error;
     }
@@ -175,7 +175,7 @@ export class TaskQueue extends EventEmitter {
 
       console.log(`📋 Task added to queue: ${taskId} (${task.type})`);
       return taskId;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(` Failed to add task ${taskId}:`, error);
       throw error;
     }
@@ -193,7 +193,7 @@ export class TaskQueue extends EventEmitter {
       if (!taskData) return null;
 
       return JSON.parse(taskData);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(` Failed to get task ${taskId}:`, error);
       return null;
     }
@@ -234,7 +234,7 @@ export class TaskQueue extends EventEmitter {
         task: updatedTask,
         changes: updates,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(` Failed to update task ${taskId}:`, error);
       throw error;
     }
@@ -269,7 +269,7 @@ export class TaskQueue extends EventEmitter {
             }
           : undefined,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(` Failed to cancel task ${taskId}:`, error);
       throw error;
     }
@@ -343,7 +343,7 @@ export class TaskQueue extends EventEmitter {
       }
 
       return { tasks, total };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Failed to get tasks:", error);
       throw error;
     }
@@ -405,7 +405,7 @@ export class TaskQueue extends EventEmitter {
         totalProcessed,
         avgProcessingTime: Math.round(avgProcessingTime),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Failed to get queue stats:", error);
       throw error;
     }
@@ -512,7 +512,7 @@ export class TaskQueue extends EventEmitter {
           timestamp: new Date().toISOString(),
         }),
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Failed to publish task event:", error);
     }
   }
@@ -528,7 +528,7 @@ export class TaskQueue extends EventEmitter {
       await this.redis.zRemRangeByScore(this.FAILED_QUEUE, 0, cutoffTime);
 
       console.log("🧹 TaskQueue cleanup completed");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" TaskQueue cleanup failed:", error);
     }
   }
@@ -551,7 +551,7 @@ export class TaskQueue extends EventEmitter {
       }
 
       return task;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Failed to get next task:", error);
       return null;
     }
@@ -626,7 +626,7 @@ export class TaskWorker {
         this.currentTask = task;
         await this.processTask(task);
         this.currentTask = undefined;
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(` Worker ${this.workerId} error:`, error);
         await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait before retrying
       }
@@ -657,7 +657,7 @@ export class TaskWorker {
       });
 
       console.log(` Task ${task.id} completed by worker ${this.workerId}`);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(
         ` Task ${task.id} failed on worker ${this.workerId}:`,
         error,

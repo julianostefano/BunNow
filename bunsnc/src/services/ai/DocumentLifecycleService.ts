@@ -115,7 +115,7 @@ export class DocumentLifecycleService {
               extractedContent.content,
             ),
           });
-        } catch (error) {
+        } catch (error: unknown) {
           console.error("Knowledge graph update failed:", error);
         }
       });
@@ -124,7 +124,7 @@ export class DocumentLifecycleService {
       setImmediate(async () => {
         try {
           await this.notifySupporGroups(classification, metadata.uploaded_by);
-        } catch (error) {
+        } catch (error: unknown) {
           console.error("Support group notification failed:", error);
         }
       });
@@ -560,7 +560,7 @@ export class DocumentLifecycleService {
     try {
       // Implementation would depend on graph database choice
       console.log("Knowledge graph updated:", update.document_id);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Knowledge graph update failed:", error);
     }
   }

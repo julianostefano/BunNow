@@ -82,7 +82,7 @@ export class E2EConsolidatedServiceNowService {
     try {
       const result = await this.serviceNowClient.createRecord(table, data);
       return result.result;
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Failed to create ${table} ticket: ${error}`);
     }
   }
@@ -116,7 +116,7 @@ export class E2EConsolidatedServiceNowService {
         createdOn: result.result[0].sys_created_on,
         updatedOn: result.result[0].sys_updated_on,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Failed to get ticket details: ${error}`);
     }
   }
@@ -132,7 +132,7 @@ export class E2EConsolidatedServiceNowService {
         data,
       );
       return result.result;
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Failed to update ${table} ticket: ${error}`);
     }
   }
@@ -144,7 +144,7 @@ export class E2EConsolidatedServiceNowService {
     try {
       await this.serviceNowClient.deleteRecord(table, sysId);
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Failed to delete ${table} ticket: ${error}`);
     }
   }
@@ -185,7 +185,7 @@ export class E2EConsolidatedServiceNowService {
         source,
         cached: source === "mongodb" || source === "hybrid",
       };
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Hybrid query failed: ${error}`);
     }
   }
@@ -234,7 +234,7 @@ export class E2EConsolidatedServiceNowService {
           result,
         });
         successful++;
-      } catch (error) {
+      } catch (error: unknown) {
         results.push({
           operation: operation.operation,
           table: operation.table,
@@ -296,7 +296,7 @@ export class E2EConsolidatedServiceNowService {
           hasMore: tickets.length === limit,
         },
       };
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Failed to get ticket collection: ${error}`);
     }
   }

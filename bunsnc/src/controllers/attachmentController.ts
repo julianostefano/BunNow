@@ -227,7 +227,7 @@ export class AttachmentController {
         await fs.unlink(tempFilePath).catch(() => {});
         throw serviceNowError;
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Attachment upload failed:", error);
       return {
         success: false,
@@ -284,7 +284,7 @@ export class AttachmentController {
           headers: { "Content-Type": "application/json" },
         });
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Attachment download failed:", error);
       return new Response(
         JSON.stringify({
@@ -335,7 +335,7 @@ export class AttachmentController {
         table_name,
         table_sys_id,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("List attachments failed:", error);
       return {
         success: false,
@@ -395,7 +395,7 @@ export class AttachmentController {
         attachment_id,
         file_name: attachmentRecord.file_name,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Attachment deletion failed:", error);
       return {
         success: false,
@@ -440,7 +440,7 @@ export class AttachmentController {
         success: true,
         data: response,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Get attachment info failed:", error);
       return {
         success: false,
@@ -497,7 +497,7 @@ export class AttachmentController {
           const stats = await fs.stat(filePath);
           totalSize += stats.size;
           fileCount++;
-        } catch (error) {
+        } catch (error: unknown) {
           // Skip files that can't be read
           continue;
         }
@@ -514,7 +514,7 @@ export class AttachmentController {
           allowed_extensions: this.allowedExtensions,
         },
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Get storage stats failed:", error);
       return {
         success: false,

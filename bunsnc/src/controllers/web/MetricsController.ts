@@ -51,7 +51,7 @@ export async function getSystemMetrics(): Promise<SystemMetrics> {
     let serviceNowStatus: "connected" | "disconnected" = "connected";
     try {
       await serviceNowAuthClient.testConnection();
-    } catch (error) {
+    } catch (error: unknown) {
       serviceNowStatus = "disconnected";
       console.warn("ServiceNow connectivity test failed:", error);
     }
@@ -68,7 +68,7 @@ export async function getSystemMetrics(): Promise<SystemMetrics> {
         level,
       },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error getting system metrics:", error);
 
     // Return fallback metrics on error

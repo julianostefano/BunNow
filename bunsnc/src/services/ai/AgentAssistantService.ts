@@ -92,7 +92,7 @@ export class AgentAssistantService extends AIService {
 
       this.initialized = true;
       logger.info(" [AgentAssistant] Service initialized successfully");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [AgentAssistant] Failed to initialize:", error);
       throw error;
     }
@@ -123,7 +123,7 @@ export class AgentAssistantService extends AIService {
       const docHealthy = await this.documentIntelligence.healthCheck();
       const ticketHealthy = await this.ticketIntelligence.healthCheck();
       return docHealthy && ticketHealthy;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [AgentAssistant] Health check failed:", error);
       return false;
     }
@@ -181,7 +181,7 @@ export class AgentAssistantService extends AIService {
         confidence: chatResponse.confidence_score,
         sources: chatResponse.sources?.map((s) => s.id),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [AgentAssistant] Chat query failed:", error);
       return {
         success: false,
@@ -213,7 +213,7 @@ export class AgentAssistantService extends AIService {
         data: guidance,
         confidence: 0.8,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [AgentAssistant] Workflow guidance failed:", error);
       return {
         success: false,
@@ -252,7 +252,7 @@ export class AgentAssistantService extends AIService {
         confidence: analysis.confidence || 0.7,
         sources: analysis.sources,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [AgentAssistant] Context help failed:", error);
       return {
         success: false,
@@ -297,7 +297,7 @@ export class AgentAssistantService extends AIService {
         confidence: searchResponse.confidence || 0.8,
         sources: searchResponse.sources,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [AgentAssistant] Quick search failed:", error);
       return {
         success: false,
@@ -329,7 +329,7 @@ export class AgentAssistantService extends AIService {
         data: { suggestions },
         confidence: 0.9,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [AgentAssistant] Auto complete failed:", error);
       return {
         success: false,

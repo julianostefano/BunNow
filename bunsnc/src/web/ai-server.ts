@@ -189,7 +189,7 @@ export class AIServer {
       logger.info(
         `📚 [AI-Server] API Documentation: http://localhost:${this.port}/docs`,
       );
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [AI-Server] Failed to start server:", error);
       throw error;
     }
@@ -200,7 +200,7 @@ export class AIServer {
       logger.info(" [AI-Server] Stopping AI Services Server...");
       await this.app.stop();
       logger.info(" [AI-Server] Server stopped successfully");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [AI-Server] Error stopping server:", error);
       throw error;
     }
@@ -245,7 +245,7 @@ export class AIServer {
               logger.warn(` [AI-Server] ${name}: Health check failed`);
               return { name, status: "unhealthy" };
             }
-          } catch (error) {
+          } catch (error: unknown) {
             logger.error(` [AI-Server] ${name}: Connection failed -`, error);
             return { name, status: "failed" };
           }
@@ -270,7 +270,7 @@ export class AIServer {
           " [AI-Server] No AI services are connected - some functionality may be limited",
         );
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [AI-Server] Service initialization failed:", error);
       // Don't throw - allow server to start even if some services are unavailable
     }
@@ -298,7 +298,7 @@ if (import.meta.main) {
     try {
       await server.stop();
       process.exit(0);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("[AI-Server] Error during shutdown:", error);
       process.exit(1);
     }

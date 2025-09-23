@@ -111,7 +111,7 @@ export class NotificationQueue extends EventEmitter {
 
       console.log("Notification queue started");
       this.emit("started");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to start notification queue:", error);
       throw error;
     }
@@ -211,7 +211,7 @@ export class NotificationQueue extends EventEmitter {
         const queueKey = this.getQueueKey(priority);
         await this.processQueueBatch(queueKey);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error processing notification queue:", error);
       this.emit("error", error);
     }
@@ -238,7 +238,7 @@ export class NotificationQueue extends EventEmitter {
 
         // Remove from processing queue
         await this.redis.lrem(this.PROCESSING_KEY, 1, itemData);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error processing notification item:", error);
         // Item remains in processing queue for retry
       }
@@ -270,7 +270,7 @@ export class NotificationQueue extends EventEmitter {
           notification: queueItem.notification,
           channel,
         });
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(
           `Failed to deliver notification ${queueItem.id} to ${channel}:`,
           error,
@@ -442,7 +442,7 @@ export class NotificationQueue extends EventEmitter {
             await this.redis.lrem(this.FAILED_KEY, 1, itemData);
             this.emit("expired", queueItem);
           }
-        } catch (error) {
+        } catch (error: unknown) {
           // Remove malformed item
           await this.redis.lrem(this.FAILED_KEY, 1, itemData);
         }
@@ -464,7 +464,7 @@ export class NotificationQueue extends EventEmitter {
       }
 
       console.log("Notification queue cleanup completed");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error during notification queue cleanup:", error);
     }
   }

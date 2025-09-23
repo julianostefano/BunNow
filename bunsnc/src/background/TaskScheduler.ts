@@ -90,7 +90,7 @@ export class TaskScheduler extends EventEmitter {
 
       // Load existing scheduled tasks
       await this.loadScheduledTasks();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Failed to initialize Redis for TaskScheduler:", error);
       throw error;
     }
@@ -141,7 +141,7 @@ export class TaskScheduler extends EventEmitter {
         `📅 Task scheduled: ${options.name} (${taskId}) - Next run: ${scheduledTask.nextRun}`,
       );
       return taskId;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(` Failed to schedule task ${taskId}:`, error);
       throw error;
     }
@@ -166,7 +166,7 @@ export class TaskScheduler extends EventEmitter {
       this.emit("taskUnscheduled", { taskId, task });
 
       console.log(`📅 Task unscheduled: ${task.name} (${taskId})`);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(` Failed to unschedule task ${taskId}:`, error);
       throw error;
     }
@@ -207,7 +207,7 @@ export class TaskScheduler extends EventEmitter {
       this.scheduledTasks.set(taskId, updatedTask);
 
       this.emit("taskUpdated", { taskId, task: updatedTask });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(` Failed to update scheduled task ${taskId}:`, error);
       throw error;
     }
@@ -350,7 +350,7 @@ export class TaskScheduler extends EventEmitter {
       }
 
       console.log(`📅 Loaded ${this.scheduledTasks.size} scheduled tasks`);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Failed to load scheduled tasks:", error);
     }
   }
@@ -390,7 +390,7 @@ export class TaskScheduler extends EventEmitter {
         for (const task of tasksToRun) {
           try {
             await this.executeScheduledTask(task);
-          } catch (error) {
+          } catch (error: unknown) {
             console.error(
               ` Failed to execute scheduled task ${task.id}:`,
               error,
@@ -401,7 +401,7 @@ export class TaskScheduler extends EventEmitter {
 
       // Release lock
       await this.redis.del(this.SCHEDULE_LOCK_KEY);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Scheduler check failed:", error);
       // Make sure to release lock on error
       try {
@@ -465,7 +465,7 @@ export class TaskScheduler extends EventEmitter {
       );
 
       return queueTaskId;
-    } catch (error) {
+    } catch (error: unknown) {
       // Update fail count
       const updatedTask: ScheduledTask = {
         ...scheduledTask,
@@ -539,7 +539,7 @@ export class TaskScheduler extends EventEmitter {
       }
 
       return nextRun;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(
         ` Failed to parse cron expression "${cronExpression}":`,
         error,

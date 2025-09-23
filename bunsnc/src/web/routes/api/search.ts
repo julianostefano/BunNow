@@ -143,7 +143,7 @@ export class IntelligentSearchController {
         ` [IntelligentSearch] Found ${finalResults.length} results in ${response.metadata.processing_time_ms}ms`,
       );
       return response;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [IntelligentSearch] Search failed:", error);
       throw error;
     }
@@ -243,7 +243,7 @@ export class IntelligentSearchController {
           indexed_at: result._source?.indexed_at,
         },
       }));
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn(" [IntelligentSearch] Document search failed:", error);
       return [];
     }
@@ -303,7 +303,7 @@ export class IntelligentSearchController {
           created_on: result._source?.sys_created_on || result.sys_created_on,
         },
       }));
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn(" [IntelligentSearch] Ticket search failed:", error);
       return [];
     }
@@ -328,7 +328,7 @@ export class IntelligentSearchController {
 
       const results = await Promise.all(searchPromises);
       return results.flatMap((result) => result.result || []);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn(
         " [IntelligentSearch] ServiceNow ticket search failed:",
         error,
@@ -365,7 +365,7 @@ export class IntelligentSearchController {
           views: result._source?.views,
         },
       }));
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn(" [IntelligentSearch] Knowledge base search failed:", error);
       return [];
     }
@@ -429,7 +429,7 @@ export class IntelligentSearchController {
           return null;
         })
         .filter((result) => result !== null);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn(
         " [IntelligentSearch] Reranking failed, returning original results:",
         error,
@@ -524,7 +524,7 @@ export const searchRoutes = new Elysia({ prefix: "/api/search" })
           data: result,
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(" [SearchAPI] Intelligent search failed:", error);
 
         set.status = 500;
@@ -586,7 +586,7 @@ export const searchRoutes = new Elysia({ prefix: "/api/search" })
           },
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(" [SearchAPI] Search suggestions failed:", error);
         return {
           success: false,
@@ -659,7 +659,7 @@ export const searchRoutes = new Elysia({ prefix: "/api/search" })
           data: filterOptions,
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(" [SearchAPI] Failed to get filter options:", error);
         throw error;
       }

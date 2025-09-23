@@ -69,7 +69,7 @@ export class TicketQueryService extends TicketDataCore {
       await this.storeTicketInMongoDB(processedTicket, table);
 
       return processedTicket;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`[TICKET-QUERY] Error fetching ticket details:`, error);
       throw new Error(`Failed to load ticket: ${error.message}`);
     }
@@ -113,7 +113,7 @@ export class TicketQueryService extends TicketDataCore {
         totalPages: 0,
         source: "hybrid",
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`[TICKET-QUERY] Error in hybrid query:`, error);
       throw error;
     }
@@ -195,7 +195,7 @@ export class TicketQueryService extends TicketDataCore {
         totalPages: Math.ceil(total / limit),
         source: "mongodb",
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`[TICKET-QUERY] Error querying MongoDB:`, error);
       return null;
     }
@@ -253,7 +253,7 @@ export class TicketQueryService extends TicketDataCore {
         totalPages: Math.ceil(response.result.length / limit),
         source: "servicenow",
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`[TICKET-QUERY] Error querying ServiceNow:`, error);
       return null;
     }
@@ -270,7 +270,7 @@ export class TicketQueryService extends TicketDataCore {
           await this.storeTicketInMongoDB(processedTicket, table);
         }),
       );
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`[TICKET-QUERY] Error caching ServiceNow results:`, error);
     }
   }

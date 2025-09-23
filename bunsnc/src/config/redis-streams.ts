@@ -132,7 +132,7 @@ export class ServiceNowStreams {
       }
 
       console.log(" ServiceNow streams initialized successfully");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Failed to initialize ServiceNow streams:", error);
       throw error;
     }
@@ -169,7 +169,7 @@ export class ServiceNowStreams {
         `📤 ServiceNow change published: ${change.type}:${change.action} (${messageId})`,
       );
       return messageId;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Failed to publish ServiceNow change:", error);
       throw error;
     }
@@ -306,7 +306,7 @@ export class ServiceNowStreams {
       );
 
       console.log(` Processed message: ${changeKey} (${messageId})`);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(` Failed to process message ${messageId}:`, error);
 
       // TODO: Implement dead letter queue for failed messages
@@ -350,7 +350,7 @@ export class ServiceNowStreams {
           }
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Failed to process pending messages:", error);
     }
   }
@@ -384,7 +384,7 @@ export class ServiceNowStreams {
       };
 
       return stats;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Failed to get stream stats:", error);
       return { status: "error", error: error.message };
     }
@@ -423,7 +423,7 @@ export class ServiceNowStreams {
           streamStats: stats,
         },
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         status: "unhealthy",
         details: {

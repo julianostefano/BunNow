@@ -381,7 +381,7 @@ export class BunSNCClient {
     try {
       const response = await this.getHealth();
       return response.data?.healthy === true;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Connection test failed:", error);
       return false;
     }
@@ -462,7 +462,7 @@ export class BunSNCClient {
       const promises = batch.map(async (operation, index) => {
         try {
           return await operation();
-        } catch (error) {
+        } catch (error: unknown) {
           const err = error instanceof Error ? error : new Error(String(error));
           errors.push(err);
 

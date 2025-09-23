@@ -25,7 +25,7 @@ async function initializeModularServices() {
   try {
     // Services initialization will be moved to proper dependency injection
     return { error: null };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Modular Dashboard Services initialization error:", error);
     return { error };
   }

@@ -84,7 +84,7 @@ export class BunPostgreSQL {
       console.log(
         ` Database: ${this.config.database}@${this.config.host}:${this.config.port}`,
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Failed to initialize PostgreSQL pool:", error);
       throw error;
     }
@@ -107,7 +107,7 @@ export class BunPostgreSQL {
       await this.testConnection(connection);
 
       return connection;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to create database connection:", error);
       throw error;
     }
@@ -153,7 +153,7 @@ export class BunPostgreSQL {
       if (!result || result.test !== 1) {
         throw new Error("Connection test failed");
       }
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Connection test failed: ${error}`);
     }
   }
@@ -183,7 +183,7 @@ export class BunPostgreSQL {
           this.connectionPool.push(connection);
           this.busyConnections.add(connection);
           return connection;
-        } catch (error) {
+        } catch (error: unknown) {
           console.error("Failed to create new connection:", error);
         }
       }
@@ -229,7 +229,7 @@ export class BunPostgreSQL {
             command: sql.trim().split(" ")[0].toUpperCase(),
             fields: [], // Would include field metadata in real implementation
           });
-        } catch (error) {
+        } catch (error: unknown) {
           reject(error);
         }
       });
@@ -249,7 +249,7 @@ export class BunPostgreSQL {
       );
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Query execution failed:", error);
       console.error("SQL:", sql);
       console.error("Params:", params);
@@ -294,7 +294,7 @@ export class BunPostgreSQL {
       connection.query("COMMIT").run();
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       try {
         // Rollback transaction
         connection.query("ROLLBACK").run();
@@ -341,7 +341,7 @@ export class BunPostgreSQL {
       this.isInitialized = false;
 
       console.log(" PostgreSQL pool closed successfully");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Error closing PostgreSQL pool:", error);
       throw error;
     }
@@ -372,7 +372,7 @@ export class BunPostgreSQL {
           connectionString: `postgresql://${this.config.username}@${this.config.host}:${this.config.port}/${this.config.database}`,
         },
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         status: "unhealthy",
         details: {

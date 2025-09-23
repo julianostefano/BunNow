@@ -115,7 +115,7 @@ class MongoDBClient {
 
       // Create indexes for better performance
       await this.createIndexes();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" MongoDB connection failed:", error);
       throw error;
     }
@@ -148,7 +148,7 @@ class MongoDBClient {
       await this.db.collection("error_logs").createIndex({ level: 1 });
 
       console.log(" MongoDB indexes created successfully");
-    } catch (error) {
+    } catch (error: unknown) {
       console.warn(" MongoDB indexes creation warning:", error);
     }
   }

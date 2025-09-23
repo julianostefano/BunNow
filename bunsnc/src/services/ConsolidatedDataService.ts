@@ -181,7 +181,7 @@ class MongoDBManager extends EventEmitter {
       this.isInitialized = true;
       logger.info(" [DataService] MongoDB initialized successfully");
       this.emit("initialized");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [DataService] MongoDB initialization failed:", error);
       throw error;
     }
@@ -272,7 +272,7 @@ class MongoDBManager extends EventEmitter {
       }
 
       logger.info(" [DataService] Database indexes created");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [DataService] Failed to create indexes:", error);
     }
   }
@@ -563,7 +563,7 @@ export class ConsolidatedDataService extends EventEmitter {
       this.isInitialized = true;
       logger.info(" [DataService] Consolidated Data Service initialized");
       this.emit("initialized");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [DataService] Initialization failed:", error);
       throw error;
     }
@@ -618,7 +618,7 @@ export class ConsolidatedDataService extends EventEmitter {
       }
 
       return ticket;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(` [DataService] Failed to get ticket ${sysId}:`, error);
       throw error;
     }
@@ -740,7 +740,7 @@ export class ConsolidatedDataService extends EventEmitter {
         logger.info(
           ` [DataService] Sync completed for ${table}: ${result.processed} processed, ${result.saved} saved`,
         );
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(` [DataService] Sync failed for ${table}:`, error);
 
         results.push({
@@ -795,7 +795,7 @@ export class ConsolidatedDataService extends EventEmitter {
     this.syncInterval = setInterval(async () => {
       try {
         await this.syncData();
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(" [DataService] Scheduled sync failed:", error);
       }
     }, this.config.sync.syncInterval);
@@ -852,7 +852,7 @@ export class ConsolidatedDataService extends EventEmitter {
         },
         is_initialized: this.isInitialized,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [DataService] Failed to get stats:", error);
       return {};
     }
@@ -872,7 +872,7 @@ export class ConsolidatedDataService extends EventEmitter {
       this.cacheManager.delete(testKey);
 
       return cached === true;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [DataService] Health check failed:", error);
       return false;
     }
@@ -937,7 +937,7 @@ export class ConsolidatedDataService extends EventEmitter {
       }, syncInterval);
 
       logger.info("✅ [DataService] Auto-sync enabled successfully");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("❌ [DataService] Failed to start auto-sync:", error);
       throw error;
     }
@@ -952,7 +952,7 @@ export class ConsolidatedDataService extends EventEmitter {
       } else {
         logger.info("ℹ️ [DataService] Auto-sync was not running");
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("❌ [DataService] Failed to stop auto-sync:", error);
       throw error;
     }
@@ -985,7 +985,7 @@ export class ConsolidatedDataService extends EventEmitter {
 
       // Simulate sync completion
       await new Promise((resolve) => setTimeout(resolve, 100));
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`❌ [DataService] Sync failed for table ${table}:`, error);
       throw error;
     }
@@ -1014,7 +1014,7 @@ export class ConsolidatedDataService extends EventEmitter {
 
       this.isInitialized = false;
       logger.info("🧹 [DataService] Cleanup completed");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [DataService] Cleanup failed:", error);
       throw error;
     }

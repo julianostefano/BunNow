@@ -38,7 +38,7 @@ export function formatSafeDate(dateValue: any): string {
       month: "2-digit",
       year: "numeric",
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.warn("Date formatting error:", error, "for value:", dateValue);
     return "Data não disponível";
   }
@@ -77,7 +77,7 @@ export function formatSafeDateTime(dateValue: any): string {
       hour: "2-digit",
       minute: "2-digit",
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.warn("DateTime formatting error:", error, "for value:", dateValue);
     return "Data não disponível";
   }
@@ -126,7 +126,7 @@ export function formatRelativeTime(dateValue: any): string {
     } else {
       return formatSafeDate(dateValue);
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.warn(
       "Relative time formatting error:",
       error,
@@ -169,7 +169,7 @@ export function isWithinDays(dateValue: any, days: number): boolean {
     const diffDays = diffMs / (1000 * 60 * 60 * 24);
 
     return diffDays <= days;
-  } catch (error) {
+  } catch (error: unknown) {
     console.warn("Date comparison error:", error, "for value:", dateValue);
     return false;
   }

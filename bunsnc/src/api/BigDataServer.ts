@@ -217,7 +217,7 @@ export class BigDataServer {
         try {
           const payload = await jwt.verify(token);
           return { user: payload };
-        } catch (error) {
+        } catch (error: unknown) {
           set.status = 401;
           throw new Error("Invalid JWT token");
         }
@@ -1017,7 +1017,7 @@ export class BigDataServer {
       logger.info(` ServiceNow Big Data API Server started on port ${port}`);
       logger.info(`📚 API Documentation: http://localhost:${port}/swagger`);
       logger.info(`❤️  Health Check: http://localhost:${port}/health`);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Failed to start server:", error as Error);
       throw error;
     }
@@ -1038,7 +1038,7 @@ export class BigDataServer {
 
       this.isStarted = false;
       logger.info("ServiceNow Big Data API Server stopped gracefully");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Error during server shutdown:", error as Error);
       throw error;
     }
@@ -1083,7 +1083,7 @@ export class BigDataServer {
       const latency = Date.now() - startTime;
 
       return { healthy: true, latency };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         healthy: false,
         latency: Date.now() - startTime,
@@ -1108,7 +1108,7 @@ export class BigDataServer {
           streamCount: stats.streams.totalStreams,
         },
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         healthy: false,
         latency: Date.now() - startTime,
@@ -1135,7 +1135,7 @@ export class BigDataServer {
           readable: health.hdfs.readable,
         },
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         healthy: false,
         latency: Date.now() - startTime,
@@ -1163,7 +1163,7 @@ export class BigDataServer {
           totalDocuments: health.servicenow.totalDocuments,
         },
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         healthy: false,
         latency: Date.now() - startTime,
@@ -1187,7 +1187,7 @@ export class BigDataServer {
           registeredPipelines: pipelines.length,
         },
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         healthy: false,
         latency: Date.now() - startTime,
@@ -1213,7 +1213,7 @@ export class BigDataServer {
           activeProcessors: metrics.global.activeProcessors,
         },
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         healthy: false,
         latency: Date.now() - startTime,

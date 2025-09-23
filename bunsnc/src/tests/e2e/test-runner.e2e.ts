@@ -372,7 +372,7 @@ describe("E2E Test Runner - Comprehensive Test Orchestration", () => {
           console.log(
             `    Streaming stats validated: ${streamingStats.totalConnections} connections`,
           );
-        } catch (error) {
+        } catch (error: unknown) {
           errors.push(error instanceof Error ? error.message : String(error));
         }
 
@@ -519,7 +519,7 @@ describe("E2E Test Runner - Comprehensive Test Orchestration", () => {
           console.log(
             `    Performance validated: ${avgLatency.toFixed(2)}ms average latency`,
           );
-        } catch (error) {
+        } catch (error: unknown) {
           errors.push(error instanceof Error ? error.message : String(error));
         }
 
@@ -681,7 +681,7 @@ describe("E2E Test Runner - Comprehensive Test Orchestration", () => {
               );
               expect(result).toBeDefined();
               operations += 1;
-            } catch (error) {
+            } catch (error: unknown) {
               if (test.shouldPass) {
                 errors.push(`Validation test failed unexpectedly: ${error}`);
               }
@@ -690,7 +690,7 @@ describe("E2E Test Runner - Comprehensive Test Orchestration", () => {
           console.log(
             `    Completed ${validationTests.length} validation tests`,
           );
-        } catch (error) {
+        } catch (error: unknown) {
           errors.push(error instanceof Error ? error.message : String(error));
         }
 

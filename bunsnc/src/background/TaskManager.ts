@@ -175,7 +175,7 @@ export class TaskManager extends EventEmitter {
 
       // Schedule default tasks
       await this.scheduleDefaultTasks();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Failed to start Task Manager:", error);
       throw error;
     }
@@ -196,7 +196,7 @@ export class TaskManager extends EventEmitter {
       this.emit("stopped");
 
       console.log(" Task Manager stopped successfully");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Failed to stop Task Manager:", error);
       throw error;
     }
@@ -542,7 +542,7 @@ export class TaskManager extends EventEmitter {
       // Check queue
       await this.getQueueStats();
       queueHealthy = true;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Queue health check failed:", error);
     }
 
@@ -550,7 +550,7 @@ export class TaskManager extends EventEmitter {
       // Check scheduler
       this.getSchedulerStats();
       schedulerHealthy = true;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Scheduler health check failed:", error);
     }
 
@@ -558,7 +558,7 @@ export class TaskManager extends EventEmitter {
       // Check Redis connectivity (via queue)
       await this.queue.getStats();
       redisHealthy = true;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Redis health check failed:", error);
     }
 
@@ -627,7 +627,7 @@ export class TaskManager extends EventEmitter {
       });
 
       console.log(" Default scheduled tasks created");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Failed to create default scheduled tasks:", error);
     }
   }

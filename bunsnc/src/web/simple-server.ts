@@ -212,7 +212,7 @@ try {
   console.log("Phase 5 - Modern Web Interface");
   console.log("Built with Elysia.js + HTMX + TailwindCSS + Alpine.js");
   console.log("");
-} catch (error) {
+} catch (error: unknown) {
   console.error(" Failed to start server:", error);
   process.exit(1);
 }

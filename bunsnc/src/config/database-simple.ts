@@ -42,7 +42,7 @@ export class SimplePostgreSQL {
         rows: [] as T[],
         rowCount: 0,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Query execution failed:", error);
       throw error;
     }

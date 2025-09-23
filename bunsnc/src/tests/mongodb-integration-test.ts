@@ -58,7 +58,7 @@ async function testMongoDBIntegration() {
         " Incident creation:",
         incidentSuccess ? "Success" : "Failed",
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.log(" Incident creation failed:", error.message);
       console.error("Full error:", error);
     }
@@ -174,7 +174,7 @@ async function testMongoDBIntegration() {
     console.log(
       "🎯 All collections are working correctly with specialized storage.",
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" MongoDB Integration Test failed:", error);
     console.error("Stack trace:", error.stack);
   }

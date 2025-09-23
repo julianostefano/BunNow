@@ -355,7 +355,7 @@ export function validateWithZod<T>(
       success: true,
       data: result,
     };
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return {
         success: false,

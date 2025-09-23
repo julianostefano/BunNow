@@ -97,4 +97,53 @@ export class ErrorHandler {
       },
     };
   }
+
+  /**
+   * Convert unknown error to Error instance - TypeScript best practice
+   * @param error - Unknown error
+   * @returns Error instance
+   */
+  static toError(error: unknown): Error {
+    if (error instanceof Error) {
+      return error;
+    }
+    return new Error(String(error));
+  }
+
+  /**
+   * Extract message from unknown error safely
+   * @param error - Unknown error
+   * @returns Error message string
+   */
+  static getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return String(error);
+  }
+
+  /**
+   * Type-safe error logging for unknown errors
+   * @param operation - Operation that failed
+   * @param error - Unknown error
+   * @param context - Additional context
+   */
+  static logUnknownError(
+    operation: string,
+    error: unknown,
+    context?: any,
+  ): void {
+    const errorMessage = this.getErrorMessage(error);
+    const errorObj = this.toError(error);
+
+    const logData = {
+      operation,
+      message: errorMessage,
+      stack: errorObj.stack,
+      timestamp: new Date().toISOString(),
+      context,
+    };
+
+    console.error(`❌ ${operation}:`, logData);
+  }
 }

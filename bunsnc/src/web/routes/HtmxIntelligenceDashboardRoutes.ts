@@ -268,7 +268,7 @@ export const intelligenceDashboardRoutes = new Elysia({
           <span class="update-indicator">🟢 Real-time</span>
         </div>
       `);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("[IntelligenceDashboard] Failed to load metrics:", error);
       return html(`
         <div class="error-state">
@@ -372,7 +372,7 @@ export const intelligenceDashboardRoutes = new Elysia({
           </div>
         </div>
       `);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         `[IntelligenceDashboard] Failed to load insights for ${params.ticketId}:`,
         error,
@@ -463,7 +463,7 @@ export const intelligenceDashboardRoutes = new Elysia({
           </div>
         </div>
       `);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         "[IntelligenceDashboard] Failed to load knowledge analytics:",
         error,
@@ -499,7 +499,7 @@ export const intelligenceDashboardRoutes = new Elysia({
           <span class="timestamp">${new Date().toLocaleTimeString()}</span>
         </div>
       `);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("[IntelligenceDashboard] Refresh failed:", error);
       return html(`
         <div class="refresh-error">
@@ -536,7 +536,7 @@ function createMetricsStream() {
           });
 
           controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-        } catch (error) {
+        } catch (error: unknown) {
           logger.error("[IntelligenceDashboard] Stream update failed:", error);
           controller.enqueue(
             encoder.encode(

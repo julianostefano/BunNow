@@ -54,7 +54,7 @@ export const createModalRoutes = () => {
 
             set.headers["Content-Type"] = "text/html";
             return modalHtml;
-          } catch (error) {
+          } catch (error: unknown) {
             logger.error(
               ` Error loading modal for ${params.table}/${params.sysId}:`,
               error,
@@ -116,7 +116,7 @@ export const createModalRoutes = () => {
                 lastUpdate: new Date().toISOString(),
               },
             };
-          } catch (error) {
+          } catch (error: unknown) {
             logger.error(
               ` Error loading modal data for ${params.table}/${params.sysId}:`,
               error,
@@ -197,7 +197,7 @@ export const createModalRoutes = () => {
 
             set.headers["Content-Type"] = "text/html";
             return sectionHtml;
-          } catch (error) {
+          } catch (error: unknown) {
             logger.error(
               ` Error refreshing ${params.section} for ${params.table}/${params.sysId}:`,
               error,
@@ -275,7 +275,7 @@ export const createSSERoutes = () => {
                         controller.enqueue(
                           new TextEncoder().encode(updateMessage),
                         );
-                      } catch (error) {
+                      } catch (error: unknown) {
                         logger.error("SSE heartbeat error:", error);
                       }
                     }, 30000); // Heartbeat every 30 seconds
@@ -299,7 +299,7 @@ export const createSSERoutes = () => {
                         );
                       }
                     }, `modal-${params.sysId}`);
-                  } catch (error) {
+                  } catch (error: unknown) {
                     logger.error("Error setting up SSE subscription:", error);
                   }
                 };
@@ -316,7 +316,7 @@ export const createSSERoutes = () => {
             });
 
             return new Response(stream, { headers: set.headers });
-          } catch (error) {
+          } catch (error: unknown) {
             logger.error(` Error setting up SSE for ${params.sysId}:`, error);
             set.status = 500;
             return { error: "Failed to establish SSE connection" };
@@ -363,7 +363,7 @@ export const createSSERoutes = () => {
                   })}\n\n`;
 
                   controller.enqueue(new TextEncoder().encode(message));
-                } catch (error) {
+                } catch (error: unknown) {
                   logger.error("Performance SSE error:", error);
                 }
               }, 5000); // Update every 5 seconds
@@ -385,7 +385,7 @@ export const createSSERoutes = () => {
           });
 
           return new Response(stream, { headers: set.headers });
-        } catch (error) {
+        } catch (error: unknown) {
           logger.error(" Error setting up performance SSE:", error);
           set.status = 500;
           return { error: "Failed to establish performance SSE connection" };

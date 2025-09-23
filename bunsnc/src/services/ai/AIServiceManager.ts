@@ -56,7 +56,7 @@ export abstract class AIService extends EventEmitter {
         ...response,
         processing_time_ms: processingTime,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [AIService:${this.name}] Error processing request:`,
         error,
@@ -106,7 +106,7 @@ export class AIServiceManager extends EventEmitter {
       );
 
       this.emit("initialized");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [AIServiceManager] Failed to initialize:", error);
       throw error;
     }
@@ -156,7 +156,7 @@ export class AIServiceManager extends EventEmitter {
       });
 
       return response;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [AIServiceManager] Error processing request for service '${serviceId}':`,
         error,
@@ -174,7 +174,7 @@ export class AIServiceManager extends EventEmitter {
     for (const [serviceId, service] of this.services.entries()) {
       try {
         healthStatus[serviceId] = await service.healthCheck();
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(
           ` [AIServiceManager] Health check failed for '${serviceId}':`,
           error,
@@ -216,7 +216,7 @@ export class AIServiceManager extends EventEmitter {
         logger.info(
           ` [AIServiceManager] Service '${serviceId}' shutdown complete`,
         );
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(
           ` [AIServiceManager] Error shutting down service '${serviceId}':`,
           error,

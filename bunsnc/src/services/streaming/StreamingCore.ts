@@ -210,7 +210,7 @@ export class StreamingCore {
 
       // Store in history
       this.addToEventHistory(connection.streamType, event);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(` Error sending SSE message to ${connection.id}:`, error);
       connection.isAlive = false;
       this.removeConnection(connection.id);
@@ -382,7 +382,7 @@ export class StreamingCore {
       if (connection.controller) {
         try {
           connection.controller.close();
-        } catch (error) {
+        } catch (error: unknown) {
           console.warn(`Warning closing connection ${connectionId}:`, error);
         }
       }

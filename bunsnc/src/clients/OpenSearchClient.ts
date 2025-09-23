@@ -102,7 +102,7 @@ export class OpenSearchClient {
 
       const data: OpenSearchResponse = await response.json();
       return this.transformSearchResults(data);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [OpenSearchClient] Neural search failed:", error);
       throw error;
     }
@@ -173,7 +173,7 @@ export class OpenSearchClient {
 
       const data: OpenSearchResponse = await response.json();
       return this.transformSearchResults(data);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [OpenSearchClient] Hybrid search failed:", error);
       throw error;
     }
@@ -221,7 +221,7 @@ export class OpenSearchClient {
 
       const data: OpenSearchResponse = await response.json();
       return this.transformSearchResults(data);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [OpenSearchClient] Rerank search failed:", error);
       throw error;
     }
@@ -347,7 +347,7 @@ export class OpenSearchClient {
       }
 
       return false;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [OpenSearchClient] Health check failed:", error);
       return false;
     }
@@ -367,7 +367,7 @@ export class OpenSearchClient {
 
       const indices = await response.json();
       return indices.map((idx: any) => idx.index);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [OpenSearchClient] Failed to get indices:", error);
       throw error;
     }

@@ -82,7 +82,7 @@ export function exampleCreateIncident() {
       "Direct Zod validation:",
       zodValidation.success ? " Success" : " Failed",
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Validation error:", error);
   }
 }
@@ -123,7 +123,7 @@ export function exampleCreateChangeTask() {
     } else {
       console.log(" Change task validation failed:", validationResult.errors);
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Change task validation error:", error);
   }
 }
@@ -172,7 +172,7 @@ export function exampleCreateServiceTask() {
     } else {
       console.log(" Service task validation failed:", validationResult.errors);
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Service task validation error:", error);
   }
 }
@@ -209,7 +209,7 @@ export function exampleSLAValidation() {
     } else {
       console.log(" SLA compliance check failed:", validation.error.errors);
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("SLA validation error:", error);
   }
 }
@@ -267,7 +267,7 @@ export function exampleServiceRequestValidation() {
         validation.error.errors,
       );
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Service request validation error:", error);
   }
 }
@@ -309,7 +309,7 @@ export function exampleIncidentEscalation() {
     } else {
       console.log(" Incident requires escalation:", validation.error.errors);
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Escalation validation error:", error);
   }
 }
@@ -453,7 +453,7 @@ export function runAllExamples() {
     exampleErrorHandling();
 
     console.log("\n All examples completed successfully!");
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("\n Example execution error:", error);
   }
 }

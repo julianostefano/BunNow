@@ -178,7 +178,7 @@ export class WebSocketServer extends EventEmitter {
     for (const client of this.clients.values()) {
       try {
         client.socket.close(1000, "Server shutting down");
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error closing WebSocket connection:", error);
       }
     }
@@ -269,7 +269,7 @@ export class WebSocketServer extends EventEmitter {
 
     try {
       this.processMessage(clientId, message);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Error processing message from client ${clientId}:`, error);
       this.sendToClient(clientId, {
         type: "error",
@@ -539,7 +539,7 @@ export class WebSocketServer extends EventEmitter {
     try {
       client.socket.send(JSON.stringify(message));
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Error sending message to client ${clientId}:`, error);
       this.removeClient(clientId);
       return false;
@@ -590,7 +590,7 @@ export class WebSocketServer extends EventEmitter {
         console.log(`Removing inactive client: ${clientId}`);
         try {
           client.socket.close(1000, "Idle timeout");
-        } catch (error) {
+        } catch (error: unknown) {
           // Client already disconnected
         }
         this.removeClient(clientId);

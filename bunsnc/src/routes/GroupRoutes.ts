@@ -145,7 +145,7 @@ export const createGroupRoutes = () => {
             " [GROUP-API] GroupService initialized for request:",
             `${request.method} ${path}`,
           );
-        } catch (error) {
+        } catch (error: unknown) {
           logger.error(" [GROUP-API] Failed to initialize:", error);
           throw new Error(`Groups API initialization failed: ${error}`);
         }
@@ -234,7 +234,7 @@ export const createGroupRoutes = () => {
               count: groups.length,
               filter: filter,
             };
-          } catch (error) {
+          } catch (error: unknown) {
             logger.error(" [API] Error fetching groups:", error);
             return {
               success: false,
@@ -275,7 +275,7 @@ export const createGroupRoutes = () => {
             data: dropdownOptions,
             count: dropdownOptions.length,
           };
-        } catch (error) {
+        } catch (error: unknown) {
           logger.error(" [API] Error fetching group dropdown:", error);
           return {
             success: false,
@@ -296,7 +296,7 @@ export const createGroupRoutes = () => {
             success: true,
             data: stats,
           };
-        } catch (error) {
+        } catch (error: unknown) {
           logger.error(" [API] Error fetching group stats:", error);
           return {
             success: false,
@@ -336,7 +336,7 @@ export const createGroupRoutes = () => {
               success: true,
               data: group,
             };
-          } catch (error) {
+          } catch (error: unknown) {
             logger.error(` [API] Error fetching group ${params.id}:`, error);
             return {
               success: false,
@@ -380,7 +380,7 @@ export const createGroupRoutes = () => {
               success: true,
               data: group,
             };
-          } catch (error) {
+          } catch (error: unknown) {
             logger.error(
               ` [API] Error fetching group by name ${params.name}:`,
               error,
@@ -417,7 +417,7 @@ export const createGroupRoutes = () => {
               count: groups.length,
               tag: tag,
             };
-          } catch (error) {
+          } catch (error: unknown) {
             logger.error(
               ` [API] Error fetching groups by tag ${params.tag}:`,
               error,
@@ -454,7 +454,7 @@ export const createGroupRoutes = () => {
               count: groups.length,
               responsavel: responsavel,
             };
-          } catch (error) {
+          } catch (error: unknown) {
             logger.error(
               ` [API] Error fetching groups by responsavel ${params.responsavel}:`,
               error,
@@ -493,7 +493,7 @@ export const createGroupRoutes = () => {
               data: createdGroup,
               message: `Group '${groupData.nome}' created successfully`,
             };
-          } catch (error) {
+          } catch (error: unknown) {
             logger.error(" [API] Error creating group:", error);
             return {
               success: false,
@@ -541,7 +541,7 @@ export const createGroupRoutes = () => {
               success: true,
               message: `Group ${groupId} updated successfully`,
             };
-          } catch (error) {
+          } catch (error: unknown) {
             logger.error(` [API] Error updating group ${params.id}:`, error);
             return {
               success: false,
@@ -594,7 +594,7 @@ export const createGroupRoutes = () => {
               success: true,
               message: `Group ${groupId} deleted successfully`,
             };
-          } catch (error) {
+          } catch (error: unknown) {
             logger.error(` [API] Error deleting group ${params.id}:`, error);
             return {
               success: false,

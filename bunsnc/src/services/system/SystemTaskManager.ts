@@ -105,7 +105,7 @@ export class SystemTaskManager extends EventEmitter {
       logger.info("📋 [SystemTasks] Initializing task manager...");
       // Initialize any required resources
       logger.info(" [SystemTasks] Task manager initialized");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [SystemTasks] Failed to initialize:", error);
       throw error;
     }
@@ -275,7 +275,7 @@ export class SystemTaskManager extends EventEmitter {
       });
 
       logger.info(` [SystemTasks] Task completed: ${task.id} in ${duration}ms`);
-    } catch (error) {
+    } catch (error: unknown) {
       await this.handleTaskError(task, error);
     }
   }
@@ -428,7 +428,7 @@ export class SystemTaskManager extends EventEmitter {
       logger.info(
         ` [SystemTasks] Scheduled task executed: ${scheduledTask.name} -> ${taskId}`,
       );
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [SystemTasks] Failed to execute scheduled task: ${scheduledTask.name}`,
         error,
@@ -528,7 +528,7 @@ export class SystemTaskManager extends EventEmitter {
     try {
       const stats = await this.getStats();
       return this.isRunning && stats.running < 100; // Prevent runaway tasks
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [SystemTasks] Health check failed:", error);
       return false;
     }

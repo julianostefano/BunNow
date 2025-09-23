@@ -177,14 +177,13 @@ export class IndexManager extends EventEmitter {
       }
 
       return success;
-    } catch (error) {
-      logger.error(
-        `Error creating template for table ${table}:`,
-        error as Error,
-      );
+    } catch (error: unknown) {
+      const errorObj =
+        error instanceof Error ? error : new Error(String(error));
+      logger.error(`Error creating template for table ${table}:`, errorObj);
       return false;
     } finally {
-      performanceMonitor.endTimer(timer);
+      performanceMonitor.endTimer("index_create_template");
     }
   }
 
@@ -262,14 +261,16 @@ export class IndexManager extends EventEmitter {
       }
 
       return success;
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorObj =
+        error instanceof Error ? error : new Error(String(error));
       logger.error(
         `Error creating lifecycle policy for table ${table}:`,
-        error,
+        errorObj,
       );
       return false;
     } finally {
-      performanceMonitor.endTimer(timer);
+      performanceMonitor.endTimer("index_create_lifecycle");
     }
   }
 
@@ -324,11 +325,13 @@ export class IndexManager extends EventEmitter {
       }
 
       return success;
-    } catch (error) {
-      logger.error(`Error optimizing index ${indexName}:`, error as Error);
+    } catch (error: unknown) {
+      const errorObj =
+        error instanceof Error ? error : new Error(String(error));
+      logger.error(`Error optimizing index ${indexName}:`, errorObj);
       return false;
     } finally {
-      performanceMonitor.endTimer(timer);
+      performanceMonitor.endTimer("index_optimize");
     }
   }
 
@@ -421,14 +424,16 @@ export class IndexManager extends EventEmitter {
       }
 
       return suggestions;
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorObj =
+        error instanceof Error ? error : new Error(String(error));
       logger.error(
         `Error analyzing performance for index ${indexName}:`,
-        error,
+        errorObj,
       );
       return [];
     } finally {
-      performanceMonitor.endTimer(timer);
+      performanceMonitor.endTimer("index_analyze_performance");
     }
   }
 
@@ -452,7 +457,7 @@ export class IndexManager extends EventEmitter {
           timestamp: Date.now(),
           indicesCount: this.indexMetrics.size,
         });
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error("Error during index monitoring:", error as Error);
       }
     }, intervalMs);
@@ -518,7 +523,7 @@ export class IndexManager extends EventEmitter {
 
       this.indexMetrics.set(indexName, metrics);
       return metrics;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         `Error getting metrics for index ${indexName}:`,
         error as Error,
@@ -544,7 +549,7 @@ export class IndexManager extends EventEmitter {
       try {
         const suggestions = await this.analyzeIndexPerformance(indexName);
         allSuggestions.push(...suggestions);
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(`Error analyzing ${indexName}:`, error as Error);
       }
     }
@@ -633,10 +638,10 @@ export class IndexManager extends EventEmitter {
         } else {
           result.errors++;
         }
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(
           `Error executing optimization for ${suggestion.index}:`,
-          error,
+          error as Error,
         );
         result.errors++;
         result.actions.push({
@@ -677,7 +682,7 @@ export class IndexManager extends EventEmitter {
       });
 
       return response.statusCode === 200;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         `Error creating initial index for table ${table}:`,
         error as Error,
@@ -707,7 +712,7 @@ export class IndexManager extends EventEmitter {
       });
 
       return response.statusCode === 200;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error force merging index ${indexName}:`, error as Error);
       return false;
     }
@@ -720,7 +725,7 @@ export class IndexManager extends EventEmitter {
       });
 
       return response.statusCode === 200;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error refreshing index ${indexName}:`, error as Error);
       return false;
     }
@@ -737,7 +742,7 @@ export class IndexManager extends EventEmitter {
       }
 
       return null;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         `Error getting settings for index ${indexName}:`,
         error as Error,
@@ -758,7 +763,7 @@ export class IndexManager extends EventEmitter {
       });
 
       return response.statusCode === 200;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         `Error enabling compression for index ${indexName}:`,
         error as Error,
@@ -784,7 +789,7 @@ export class IndexManager extends EventEmitter {
         );
         await Promise.all(promises);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Error updating all index metrics:", error as Error);
     }
   }

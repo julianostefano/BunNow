@@ -402,7 +402,7 @@ describe("UnifiedStreamingService - Comprehensive Test Suite", () => {
         const subscribeCall = mockRedisStreams.subscribe.mock.calls[0];
         const handler = subscribeCall[1];
         handler(malformedEvent);
-      } catch (error) {
+      } catch (error: unknown) {
         // Expected to not throw, but if it does, service should still work
       }
 

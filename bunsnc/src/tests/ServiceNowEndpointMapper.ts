@@ -308,7 +308,7 @@ export class ServiceNowEndpointMapper {
           console.log(`   Stopping at limit ${limit} due to slow response`);
           break;
         }
-      } catch (error) {
+      } catch (error: unknown) {
         results.push({ limit, time: 0, success: false });
         console.log(`   Limit ${limit}: Failed`);
         break;
@@ -656,7 +656,7 @@ export class ServiceNowEndpointMapper {
       );
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Error analyzing SLA relationships:", error);
       return {
         slaSchema: null,

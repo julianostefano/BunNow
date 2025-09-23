@@ -177,7 +177,7 @@ export class ModernWebServer {
       );
 
       console.log(" File-based routing configured successfully");
-    } catch (error) {
+    } catch (error: unknown) {
       console.warn(" File-based routing not available:", error.message);
       console.log(" Falling back to manual route definitions");
       this.setupFallbackRoutes();
@@ -246,7 +246,7 @@ export class ModernWebServer {
       console.log(
         ` Health Check: http://${this.config.host}:${this.config.port}/health`,
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Failed to start modern web server:", error);
       throw error;
     }
@@ -256,7 +256,7 @@ export class ModernWebServer {
     try {
       await this.app.stop();
       console.log(" Modern web server stopped");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error stopping web server:", error);
       throw error;
     }
@@ -301,7 +301,7 @@ if (import.meta.main) {
 
   try {
     await server.start();
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Development server failed to start:", error);
     process.exit(1);
   }

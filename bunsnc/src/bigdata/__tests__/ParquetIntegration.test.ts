@@ -76,7 +76,7 @@ describe("ParquetWriter", () => {
     // Cleanup test files
     try {
       await fs.rm(testDataPath, { recursive: true, force: true });
-    } catch (error) {
+    } catch (error: unknown) {
       // Ignore cleanup errors
     }
   });
@@ -228,7 +228,7 @@ describe("ParquetReader", () => {
   afterEach(async () => {
     try {
       await fs.rm(testDataPath, { recursive: true, force: true });
-    } catch (error) {
+    } catch (error: unknown) {
       // Ignore cleanup errors
     }
   });
@@ -361,7 +361,7 @@ describe("ServiceNowParquetIntegration", () => {
   afterEach(async () => {
     try {
       await fs.rm(testDataPath, { recursive: true, force: true });
-    } catch (error) {
+    } catch (error: unknown) {
       // Ignore cleanup errors
     }
   });
@@ -505,7 +505,7 @@ describe("Parquet Performance Tests", () => {
   afterEach(async () => {
     try {
       await fs.rm(testDataPath, { recursive: true, force: true });
-    } catch (error) {
+    } catch (error: unknown) {
       // Ignore cleanup errors
     }
   });

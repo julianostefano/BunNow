@@ -93,7 +93,7 @@ export class ServiceNowParquetIntegration {
         filePath,
         recordCount: records.length,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(
         `Failed to export ${table} to Parquet: ${(error as Error).message}`,
       );
@@ -135,7 +135,7 @@ export class ServiceNowParquetIntegration {
           queryTime: new Date().toISOString(),
         },
       };
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(
         `Failed to query ${table} data: ${(error as Error).message}`,
       );
@@ -170,7 +170,7 @@ export class ServiceNowParquetIntegration {
       };
 
       return { analytics, summary };
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(
         `Failed to query incident analytics: ${(error as Error).message}`,
       );

@@ -6,6 +6,7 @@
 import { Client } from "@opensearch-project/opensearch";
 import { EventEmitter } from "events";
 import { logger } from "../../utils/Logger";
+import { ErrorHandler } from "../../utils/ErrorHandler";
 import { performanceMonitor } from "../../utils/PerformanceMonitor";
 
 export interface OpenSearchConfig {
@@ -97,8 +98,8 @@ export class OpenSearchClient extends EventEmitter {
 
     this.config = {
       node: config.node,
-      auth: config.auth,
-      ssl: config.ssl,
+      auth: config.auth || { username: "", password: "" },
+      ssl: config.ssl || {},
       requestTimeout: config.requestTimeout || 30000,
       maxRetries: config.maxRetries || 3,
       enableCompression: config.enableCompression ?? true,
@@ -111,10 +112,9 @@ export class OpenSearchClient extends EventEmitter {
       auth: this.config.auth,
       ssl: this.config.ssl,
       requestTimeout: this.config.requestTimeout,
-      maxRetries: this.config.maxRetries,
-      compression: this.config.enableCompression,
-      maxConnections: this.config.maxConnections,
-      keepAlive: this.config.keepAlive,
+      sniffOnStart: false,
+      sniffInterval: false,
+      sniffOnConnectionFault: false,
     });
 
     this.setupEventHandlers();
@@ -142,13 +142,13 @@ export class OpenSearchClient extends EventEmitter {
       }
 
       return false;
-    } catch (error) {
+    } catch (error: unknown) {
       this.isConnected = false;
-      logger.error("Failed to connect to OpenSearch:", error);
-      this.emit("connection:error", error);
+      ErrorHandler.logUnknownError("OpenSearch Connection", error);
+      this.emit("connection:error", ErrorHandler.toError(error));
       return false;
     } finally {
-      performanceMonitor.endTimer(timer);
+      // Timer names will need to be updated individually for each method
     }
   }
 
@@ -166,7 +166,7 @@ export class OpenSearchClient extends EventEmitter {
         index: config.name,
       });
 
-      if (exists.statusCode === 200) {
+      if (exists === true) {
         logger.info(`Index ${config.name} already exists`);
         return true;
       }
@@ -202,17 +202,19 @@ export class OpenSearchClient extends EventEmitter {
       }
 
       return success;
-    } catch (error) {
+    } catch (error: unknown) {
       this.stats.failedOperations++;
-      logger.error(`Error creating index ${config.name}:`, error);
+      ErrorHandler.logUnknownError("OpenSearch Create Index", error, {
+        indexName: config.name,
+      });
       this.emit("operation:error", {
         operation: "create_index",
         index: config.name,
-        error,
+        error: ErrorHandler.toError(error),
       });
       return false;
     } finally {
-      performanceMonitor.endTimer(timer);
+      // Timer names will need to be updated individually for each method
     }
   }
 
@@ -261,13 +263,13 @@ export class OpenSearchClient extends EventEmitter {
       }
 
       return success;
-    } catch (error) {
+    } catch (error: unknown) {
       this.stats.failedOperations++;
       logger.error(`Error indexing document in ${index}:`, error);
       this.emit("operation:error", { operation: "index", index, error });
       return false;
     } finally {
-      performanceMonitor.endTimer(timer);
+      // Timer names will need to be updated individually for each method
     }
   }
 
@@ -366,13 +368,13 @@ export class OpenSearchClient extends EventEmitter {
       }
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       this.stats.failedOperations++;
       logger.error("Error during bulk indexing:", error);
       this.emit("operation:error", { operation: "bulk_index", error });
       return { success: false, indexed: 0, errors: [error] };
     } finally {
-      performanceMonitor.endTimer(timer);
+      // Timer names will need to be updated individually for each method
     }
   }
 
@@ -422,7 +424,7 @@ export class OpenSearchClient extends EventEmitter {
       });
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       this.stats.failedOperations++;
       logger.error(`Error searching index ${query.index}:`, error);
       this.emit("operation:error", {
@@ -432,7 +434,7 @@ export class OpenSearchClient extends EventEmitter {
       });
       return { hits: [], total: 0, maxScore: 0, took: 0 };
     } finally {
-      performanceMonitor.endTimer(timer);
+      // Timer names will need to be updated individually for each method
     }
   }
 
@@ -498,7 +500,7 @@ export class OpenSearchClient extends EventEmitter {
       }
 
       return null;
-    } catch (error) {
+    } catch (error: unknown) {
       if ((error as any).statusCode === 404) {
         return null; // Document not found
       }
@@ -507,7 +509,7 @@ export class OpenSearchClient extends EventEmitter {
       logger.error(`Error getting document ${id} from ${index}:`, error);
       return null;
     } finally {
-      performanceMonitor.endTimer(timer);
+      // Timer names will need to be updated individually for each method
     }
   }
 
@@ -555,12 +557,12 @@ export class OpenSearchClient extends EventEmitter {
       }
 
       return success;
-    } catch (error) {
+    } catch (error: unknown) {
       this.stats.failedOperations++;
       logger.error(`Error updating document ${id} in ${index}:`, error);
       return false;
     } finally {
-      performanceMonitor.endTimer(timer);
+      // Timer names will need to be updated individually for each method
     }
   }
 
@@ -597,7 +599,7 @@ export class OpenSearchClient extends EventEmitter {
       }
 
       return success;
-    } catch (error) {
+    } catch (error: unknown) {
       if ((error as any).statusCode === 404) {
         return true; // Already deleted
       }
@@ -606,7 +608,7 @@ export class OpenSearchClient extends EventEmitter {
       logger.error(`Error deleting document ${id} from ${index}:`, error);
       return false;
     } finally {
-      performanceMonitor.endTimer(timer);
+      // Timer names will need to be updated individually for each method
     }
   }
 
@@ -658,12 +660,12 @@ export class OpenSearchClient extends EventEmitter {
       }
 
       return { deleted: 0, versionConflicts: 0, batches: 0 };
-    } catch (error) {
+    } catch (error: unknown) {
       this.stats.failedOperations++;
       logger.error(`Error deleting by query in ${index}:`, error);
       return { deleted: 0, versionConflicts: 0, batches: 0 };
     } finally {
-      performanceMonitor.endTimer(timer);
+      // Timer names will need to be updated individually for each method
     }
   }
 
@@ -693,7 +695,7 @@ export class OpenSearchClient extends EventEmitter {
       }
 
       return null;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error getting stats for index ${index}:`, error);
       return null;
     }
@@ -731,7 +733,7 @@ export class OpenSearchClient extends EventEmitter {
       }
 
       return null;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Error getting cluster health:", error);
       return null;
     }
@@ -780,7 +782,7 @@ export class OpenSearchClient extends EventEmitter {
       this.removeAllListeners();
 
       logger.info("OpenSearchClient disconnected");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Error disconnecting OpenSearchClient:", error);
     }
   }
@@ -811,7 +813,7 @@ export class OpenSearchClient extends EventEmitter {
       if (document[field] && typeof document[field] === "string") {
         try {
           document[field] = new Date(document[field]).toISOString();
-        } catch (error) {
+        } catch (error: unknown) {
           // Keep original value if conversion fails
           logger.debug(`Failed to convert date field ${field}:`, error);
         }

@@ -44,7 +44,7 @@ export async function createMainApp(): Promise<Elysia> {
   // Initialize system service (includes performance monitoring and cache optimization)
   try {
     const mongoClient = new MongoClient(
-      process.env.MONGODB_URL || "mongodb://localhost:27017",
+      process.env.MONGODB_URL || "mongodb://localhost:27018",
     );
     const systemConfig: SystemConfig = {
       mongodb: {
@@ -85,7 +85,7 @@ export async function createMainApp(): Promise<Elysia> {
         console.error(" Failed to initialize system service:", error);
         console.warn(" Server will continue without system monitoring");
       });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Failed to create system service:", error);
     console.warn(" Server will continue without system monitoring");
   }
@@ -95,7 +95,7 @@ export async function createMainApp(): Promise<Elysia> {
     const appRoutes = await createApp();
     mainApp.use(appRoutes);
     console.log(" Main application routes added");
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Failed to add main application routes:", error);
     throw error;
   }
@@ -105,7 +105,7 @@ export async function createMainApp(): Promise<Elysia> {
     const notificationRoutes = createNotificationRoutes();
     mainApp.use(notificationRoutes);
     console.log(" Notification routes added");
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Failed to add notification routes:", error);
     console.warn(" Server will continue without notifications");
   }
@@ -115,7 +115,7 @@ export async function createMainApp(): Promise<Elysia> {
     mainApp.use(createSSERoutes());
     mainApp.use(createModalRoutes());
     console.log(" SSE and Modal routes added");
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Failed to add SSE/Modal routes:", error);
     console.warn(" Server will continue without SSE/Modal functionality");
   }
@@ -125,7 +125,7 @@ export async function createMainApp(): Promise<Elysia> {
     const realtimeRoutes = getRealtimeRoutes();
     mainApp.use(realtimeRoutes);
     console.log(" Real-time endpoints added");
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Failed to add real-time endpoints:", error);
     console.warn(" Server will continue without real-time functionality");
   }
@@ -190,21 +190,21 @@ export async function createMainApp(): Promise<Elysia> {
       .get("/performance", async () => {
         try {
           return await systemService.getCurrentMetrics();
-        } catch (error) {
+        } catch (error: unknown) {
           return { error: error.message };
         }
       })
       .get("/performance/detailed", async () => {
         try {
           return await systemService.getDetailedReport();
-        } catch (error) {
+        } catch (error: unknown) {
           return { error: error.message };
         }
       })
       .get("/cache", async () => {
         try {
           return await systemService.getCacheStats();
-        } catch (error) {
+        } catch (error: unknown) {
           return { error: error.message };
         }
       })
@@ -212,7 +212,7 @@ export async function createMainApp(): Promise<Elysia> {
         try {
           await cacheOptimizationService.optimizeCache();
           return { success: true, message: "Cache optimization completed" };
-        } catch (error) {
+        } catch (error: unknown) {
           return { success: false, error: error.message };
         }
       })
@@ -220,7 +220,7 @@ export async function createMainApp(): Promise<Elysia> {
         try {
           await cacheOptimizationService.clearCache();
           return { success: true, message: "Cache cleared successfully" };
-        } catch (error) {
+        } catch (error: unknown) {
           return { success: false, error: error.message };
         }
       }),
@@ -244,7 +244,7 @@ export async function createMainApp(): Promise<Elysia> {
     const groupRoutes = createGroupRoutes();
     mainApp.use(groupRoutes);
     console.log(" Group management routes added");
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Failed to add group routes:", error);
     console.warn(" Server will continue without group management");
   }
@@ -264,7 +264,7 @@ export async function gracefulShutdown(): Promise<void> {
     // Stop notification system
     await shutdownNotificationSystem();
     console.log(" Graceful shutdown completed");
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Error during shutdown:", error);
   }
 }

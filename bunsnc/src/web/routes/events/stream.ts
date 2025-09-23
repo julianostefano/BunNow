@@ -42,7 +42,7 @@ class SSEManager {
     for (const client of this.clients) {
       try {
         this.sendToClient(client, message);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Failed to send to client:", error);
         disconnectedClients.push(client);
       }
@@ -324,7 +324,7 @@ export default new Elysia({ prefix: "/events" })
               }),
             );
         }
-      } catch (error) {
+      } catch (error: unknown) {
         ws.send(
           JSON.stringify({
             type: "error",

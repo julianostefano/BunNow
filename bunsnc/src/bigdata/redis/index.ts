@@ -234,7 +234,7 @@ export class ServiceNowRedisFactory {
         memory: this.parseInfoString(info),
         keyspace: this.parseInfoString(keyspace),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         connected: false,
         latency: -1,

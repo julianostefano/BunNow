@@ -239,7 +239,7 @@ export function parseConnectionString(connectionString: string): ClientConfig {
     }
 
     return config;
-  } catch (error) {
+  } catch (error: unknown) {
     throw new Error(`Invalid connection string: ${connectionString}`);
   }
 }
@@ -265,7 +265,7 @@ export function debounce<T extends (...args: any[]) => any>(
         try {
           const result = await func(...args);
           resolvePromise(result);
-        } catch (error) {
+        } catch (error: unknown) {
           rejectPromise(error);
         }
       }, delay);

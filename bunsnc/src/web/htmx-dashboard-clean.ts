@@ -28,7 +28,7 @@ async function initializeCleanServices() {
     // const mongoService = new ConsolidatedDataService();
     // const hybridService = new HybridTicketService(mongoService, serviceNowAuthClient);
     return { mongoService: null, hybridService: null, error: null };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Clean Dashboard Services initialization error:", error);
     return { mongoService: null, hybridService: null, error };
   }
@@ -237,7 +237,7 @@ function formatSafeDate(dateValue: any): string {
       month: "2-digit",
       year: "numeric",
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.warn("Date formatting error:", error, "for value:", dateValue);
     return "Data não disponível";
   }
@@ -933,7 +933,7 @@ export const htmxDashboardClean = new Elysia({ prefix: "/clean" })
         </html>
       `;
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Clean Dashboard Error:", error);
       set.status = 503;
       return `
@@ -996,7 +996,7 @@ export const htmxDashboardClean = new Elysia({ prefix: "/clean" })
           sysparm_limit: 1,
           sysparm_fields: "sys_id",
         });
-      } catch (error) {
+      } catch (error: unknown) {
         serviceNowStatus = "disconnected";
         console.warn("ServiceNow connectivity test failed:", error);
       }
@@ -1093,7 +1093,7 @@ export const htmxDashboardClean = new Elysia({ prefix: "/clean" })
           </div>
         </div>
       `;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error getting metrics:", error);
       return `
         <div class="glass-effect rounded-xl border border-red-600 p-6 text-center">
@@ -1198,7 +1198,7 @@ export const htmxDashboardClean = new Elysia({ prefix: "/clean" })
                 table_name: table,
               });
             }
-          } catch (error) {
+          } catch (error: unknown) {
             console.warn(`Error searching ${table}:`, error);
           }
         }
@@ -1229,7 +1229,7 @@ export const htmxDashboardClean = new Elysia({ prefix: "/clean" })
                 })),
               );
             }
-          } catch (error) {
+          } catch (error: unknown) {
             console.warn(`Error searching ${table}:`, error);
           }
         }
@@ -1456,7 +1456,7 @@ export const htmxDashboardClean = new Elysia({ prefix: "/clean" })
           
         </script>
       `;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Search error:", error);
       return `
         <div class="text-center py-12">
@@ -1573,7 +1573,7 @@ export const htmxDashboardClean = new Elysia({ prefix: "/clean" })
                 })),
               );
             }
-          } catch (error) {
+          } catch (error: unknown) {
             console.warn(
               `Error fetching ${table} for group ${targetGroup}:`,
               error,
@@ -1908,7 +1908,7 @@ export const htmxDashboardClean = new Elysia({ prefix: "/clean" })
           };
         </script>
       `;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error fetching tickets:", error);
       return `
         <div class="text-center py-8">
@@ -2680,7 +2680,7 @@ export const htmxDashboardClean = new Elysia({ prefix: "/clean" })
           };
         </script>
       `;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error loading ticket details:", error);
       return `
         <div class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" id="ticketModal">
@@ -2745,7 +2745,7 @@ htmxDashboardClean
         } else {
           throw new Error("Falha ao adicionar anotação");
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error adding note:", error);
         return `
         <div class="bg-red-500/20 text-red-300 p-4 rounded-lg">
@@ -2780,7 +2780,7 @@ htmxDashboardClean
         } else {
           throw new Error("Falha ao assumir ticket");
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error assigning ticket:", error);
         return `
         <div class="bg-red-500/20 text-red-300 p-4 rounded-lg">
@@ -2827,7 +2827,7 @@ htmxDashboardClean
         } else {
           throw new Error("Falha ao alterar status");
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error changing status:", error);
         return `
         <div class="bg-red-500/20 text-red-300 p-4 rounded-lg">
@@ -2860,7 +2860,7 @@ htmxDashboardClean
       } else {
         throw new Error("Falha ao encerrar ticket");
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error closing ticket:", error);
       return `
         <div class="bg-red-500/20 text-red-300 p-4 rounded-lg">
@@ -3017,7 +3017,7 @@ htmxDashboardClean
               "Usuário"
             );
           }
-        } catch (error) {
+        } catch (error: unknown) {
           console.warn(`Failed to lookup user ${userId}:`, error);
         }
         return `User (${userId.slice(0, 8)}...)`;
@@ -3074,7 +3074,7 @@ htmxDashboardClean
           } else {
             console.log(` No users result found in response:`, usersResponse);
           }
-        } catch (error) {
+        } catch (error: unknown) {
           console.warn("Failed to batch lookup users:", error);
         }
       }
@@ -3266,7 +3266,7 @@ htmxDashboardClean
         : "";
 
       return ticketCards + loadMoreButton;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(
         "🚨 [LAZY LOAD] Fatal error in lazy loading endpoint:",
         error,
@@ -3361,7 +3361,7 @@ htmxDashboardClean
           const totalHeader =
             headers?.["x-total-count"] || headers?.["X-Total-Count"] || "0";
           counts[ticketType as keyof typeof counts] = parseInt(totalHeader);
-        } catch (error) {
+        } catch (error: unknown) {
           console.log(` Error getting count for ${ticketType}:`, error);
         }
       }
@@ -3373,7 +3373,7 @@ htmxDashboardClean
           document.getElementById('sc_task-count').textContent = '${counts.sc_task}';
         </script>
       `;
-    } catch (error) {
+    } catch (error: unknown) {
       console.log(" Error getting ticket counts:", error);
       return `<script>console.log('Failed to load ticket counts');</script>`;
     }
@@ -3427,7 +3427,7 @@ htmxDashboardClean
           </div>
         `;
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error adding note:", error);
         return `
         <div class="bg-red-500/20 text-red-300 p-3 rounded-lg border border-red-500/30">
@@ -3474,7 +3474,7 @@ htmxDashboardClean
           </div>
         `;
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error assigning ticket:", error);
         return `
         <div class="bg-red-500/20 text-red-300 p-3 rounded-lg border border-red-500/30">
@@ -3530,7 +3530,7 @@ htmxDashboardClean
           </div>
         `;
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error changing status:", error);
         return `
         <div class="bg-red-500/20 text-red-300 p-3 rounded-lg border border-red-500/30">
@@ -3582,7 +3582,7 @@ htmxDashboardClean
           </div>
         `;
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error closing ticket:", error);
         return `
         <div class="bg-red-500/20 text-red-300 p-3 rounded-lg border border-red-500/30">
@@ -3703,7 +3703,7 @@ htmxDashboardClean
 
       set.headers["content-type"] = "text/html; charset=utf-8";
       return htmlContent;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("HTMX Ticket Details Error:", error);
 
       const errorHtml = `
@@ -3846,7 +3846,7 @@ htmxDashboardClean
                 if (!dateStr) return "N/A";
                 try {
                   return new Date(dateStr).toLocaleString("pt-BR");
-                } catch (error) {
+                } catch (error: unknown) {
                   return dateStr;
                 }
               };

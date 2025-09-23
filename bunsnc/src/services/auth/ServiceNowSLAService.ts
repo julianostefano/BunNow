@@ -147,7 +147,7 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
         }
 
         return slaData;
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`ServiceNow SLA data error:`, error);
         throw error;
       }
@@ -186,7 +186,7 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
         });
 
         return response.data;
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`ServiceNow contract SLA error:`, error);
         throw error;
       }
@@ -240,7 +240,7 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
           contract_slas: contractSLAData?.result?.length || 0,
         },
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`ServiceNow ticket SLA breakdown error:`, error);
       throw error;
     }
@@ -358,7 +358,7 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
         });
 
         return metrics;
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`ServiceNow SLA performance metrics error:`, error);
         throw error;
       }

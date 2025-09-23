@@ -390,7 +390,7 @@ async function runBenchmarks() {
     console.log(
       `   Average operation time: ${report.metrics.summary ? "Available" : "N/A"}`,
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Benchmark execution failed:", error);
     process.exit(1);
   }

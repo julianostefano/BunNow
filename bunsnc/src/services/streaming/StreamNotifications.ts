@@ -93,7 +93,7 @@ export class StreamNotifications {
 
       // Store in history
       this.addToEventHistory(connection.streamType, event);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(` Error sending SSE message to ${connection.id}:`, error);
       connection.isAlive = false;
     }
@@ -302,7 +302,7 @@ export class StreamNotifications {
         if (connection.controller) {
           try {
             connection.controller.close();
-          } catch (error) {
+          } catch (error: unknown) {
             console.warn(`Warning closing connection ${connectionId}:`, error);
           }
         }

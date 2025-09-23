@@ -68,7 +68,7 @@ export class TableAPI implements ITableAPI {
 
       const result = (await response.json()) as any;
       return result.result || result;
-    } catch (error) {
+    } catch (error: unknown) {
       handleServiceNowError(error, "get record");
     }
   }
@@ -94,7 +94,7 @@ export class TableAPI implements ITableAPI {
 
       const result = (await response.json()) as any;
       return result.result || result;
-    } catch (error) {
+    } catch (error: unknown) {
       handleServiceNowError(error, "create record");
     }
   }
@@ -121,7 +121,7 @@ export class TableAPI implements ITableAPI {
 
       const result = (await response.json()) as any;
       return result.result || result;
-    } catch (error) {
+    } catch (error: unknown) {
       handleServiceNowError(error, "update record");
     }
   }
@@ -148,7 +148,7 @@ export class TableAPI implements ITableAPI {
 
       const result = (await response.json()) as any;
       return result.result || result;
-    } catch (error) {
+    } catch (error: unknown) {
       handleServiceNowError(error, "patch record");
     }
   }
@@ -173,7 +173,7 @@ export class TableAPI implements ITableAPI {
       }
 
       return response.status === 204;
-    } catch (error) {
+    } catch (error: unknown) {
       handleServiceNowError(error, "delete record");
     }
   }
@@ -234,7 +234,7 @@ export class TableAPI implements ITableAPI {
 
       const result = (await response.json()) as any;
       return result.result || [];
-    } catch (error) {
+    } catch (error: unknown) {
       handleServiceNowError(error, "query records");
     }
   }
@@ -280,7 +280,7 @@ export class TableAPI implements ITableAPI {
 
       const totalCount = response.headers.get("X-Total-Count");
       return totalCount ? parseInt(totalCount, 10) : 0;
-    } catch (error) {
+    } catch (error: unknown) {
       handleServiceNowError(error, "get record count");
     }
   }
@@ -325,7 +325,7 @@ export class TableAPI implements ITableAPI {
         }
 
         results.push(result);
-      } catch (error) {
+      } catch (error: unknown) {
         // Include error in results for batch processing
         results.push({ error: (error as Error).message, operation: op });
       }
@@ -364,7 +364,7 @@ export class TableAPI implements ITableAPI {
         instance: this.instanceUrl,
         version: version || "unknown",
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return { status: "error", instance: this.instanceUrl };
     }
   }

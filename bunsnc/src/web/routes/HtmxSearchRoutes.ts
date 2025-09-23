@@ -6,7 +6,8 @@
 import { Elysia, t } from "elysia";
 import { html } from "@elysiajs/html";
 import { htmx } from "@gtramontina.com/elysia-htmx";
-import { serviceNowAuthClient } from "../../services/ServiceNowAuthClient";
+import { ticketSearchService } from "../../services/TicketSearchService";
+import { ErrorHandler } from "../../utils/ErrorHandler";
 
 export const htmxSearchRoutes = new Elysia()
   .use(html())
@@ -27,84 +28,27 @@ export const htmxSearchRoutes = new Elysia()
     }
 
     try {
-      let results = [];
-      const searchTerm = searchQuery.trim();
+      // Use TicketSearchService to search MongoDB
+      const filters = {
+        table: table,
+        state: state,
+        priority: priority,
+      };
 
-      // Se é um número de ticket específico
-      if (/^(INC|CHG|RITM|REQ|STASK|CTASK)\d{7}$/i.test(searchTerm)) {
-        let tableName = "incident";
-        if (searchTerm.toUpperCase().startsWith("CHG")) {
-          tableName = "change_request";
-        } else if (searchTerm.toUpperCase().startsWith("RITM")) {
-          tableName = "sc_req_item";
-        } else if (searchTerm.toUpperCase().startsWith("REQ")) {
-          tableName = "sc_request";
-        } else if (searchTerm.toUpperCase().startsWith("STASK")) {
-          tableName = "sc_task";
-        } else if (searchTerm.toUpperCase().startsWith("CTASK")) {
-          tableName = "change_task";
+      // Remove undefined values
+      Object.keys(filters).forEach((key) => {
+        if (!filters[key as keyof typeof filters]) {
+          delete filters[key as keyof typeof filters];
         }
+      });
 
-        const response = await serviceNowAuthClient.makeRequest(
-          tableName,
-          `number=${searchTerm}`,
-          1,
-          {
-            sysparm_fields:
-              "sys_id,number,short_description,description,state,priority,assignment_group,assigned_to,sys_created_on,sys_updated_on",
-          },
-        );
-
-        if (response.result && response.result.length > 0) {
-          results.push(
-            ...response.result.map((ticket) => ({
-              ...ticket,
-              table: tableName,
-            })),
-          );
-        }
-      } else {
-        // Busca por palavras-chave em múltiplas tabelas
-        const tables = table
-          ? [table]
-          : [
-              "incident",
-              "change_request",
-              "sc_req_item",
-              "sc_task",
-              "change_task",
-            ];
-
-        for (const tableName of tables) {
-          try {
-            const searchFilter = `short_descriptionLIKE${searchTerm}^ORdescriptionLIKE${searchTerm}`;
-            const stateFilter = state ? `^state=${state}` : "";
-            const priorityFilter = priority ? `^priority=${priority}` : "";
-            const combinedFilter = `${searchFilter}${stateFilter}${priorityFilter}`;
-
-            const response = await serviceNowAuthClient.makeRequest(
-              tableName,
-              combinedFilter,
-              10,
-              {
-                sysparm_fields:
-                  "sys_id,number,short_description,description,state,priority,assignment_group,assigned_to,sys_created_on,sys_updated_on",
-              },
-            );
-
-            if (response.result && response.result.length > 0) {
-              results.push(
-                ...response.result.map((ticket) => ({
-                  ...ticket,
-                  table: tableName,
-                })),
-              );
-            }
-          } catch (error) {
-            console.error(`Error searching ${tableName}:`, error);
-          }
-        }
-      }
+      const results = await ticketSearchService.searchTickets(
+        {
+          query: searchQuery.trim(),
+          limit: 20,
+        },
+        filters,
+      );
 
       if (results.length === 0) {
         return `
@@ -137,7 +81,7 @@ export const htmxSearchRoutes = new Elysia()
               <p class="text-sm text-gray-400 mb-2">${ticket.short_description || "Sem descrição"}</p>
               <div class="flex justify-between text-xs text-gray-500">
                 <span>Atribuído: ${ticket.assigned_to || "Não atribuído"}</span>
-                <span>Criado: ${new Date(ticket.sys_created_on).toLocaleDateString("pt-BR")}</span>
+                <span>Criado: ${new Date(ticket.created_on).toLocaleDateString("pt-BR")}</span>
               </div>
             </div>
           `,
@@ -186,11 +130,12 @@ export const htmxSearchRoutes = new Elysia()
           }
         </script>
       `;
-    } catch (error) {
-      console.error("Search error:", error);
+    } catch (error: unknown) {
+      ErrorHandler.logUnknownError("HtmxSearchRoutes.search", error);
       return `
         <div class="text-center text-red-500 py-8">
           <p>Erro ao buscar tickets. Tente novamente.</p>
+          <p class="text-sm mt-2">${ErrorHandler.getErrorMessage(error)}</p>
         </div>
       `;
     }

@@ -218,7 +218,7 @@ export class SystemService extends EventEmitter {
 
       this.isInitialized = true;
       logger.info(" SystemService initialized successfully");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" Failed to initialize SystemService:", error);
       throw error;
     }
@@ -246,7 +246,7 @@ export class SystemService extends EventEmitter {
       this.isRunning = true;
       this.emit("started");
       logger.info(" SystemService started successfully");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" Failed to start SystemService:", error);
       throw error;
     }
@@ -270,7 +270,7 @@ export class SystemService extends EventEmitter {
       this.isRunning = false;
       this.emit("stopped");
       logger.info(" SystemService stopped successfully");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" Failed to stop SystemService:", error);
       throw error;
     }
@@ -440,7 +440,7 @@ export class SystemService extends EventEmitter {
         },
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" Failed to get system health:", error);
       return {
         status: "unhealthy",
@@ -503,7 +503,7 @@ export class SystemService extends EventEmitter {
       ]);
 
       logger.info("🧹 SystemService cleanup completed");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" SystemService cleanup failed:", error);
       throw error;
     }

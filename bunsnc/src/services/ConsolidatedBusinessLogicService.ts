@@ -437,7 +437,7 @@ class BusinessRulesEngine extends EventEmitter {
           await this.executeActions(rule.actions, ticket);
           this.emit("ruleExecuted", { rule, ticket, event });
         }
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(
           ` [BusinessLogic] Rule execution failed: ${rule.name}`,
           error,
@@ -512,7 +512,7 @@ class BusinessRulesEngine extends EventEmitter {
     for (const action of actions) {
       try {
         await this.executeAction(action, ticket);
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(` [BusinessLogic] Action execution failed:`, error);
       }
     }
@@ -664,7 +664,7 @@ export class ConsolidatedBusinessLogicService extends EventEmitter {
         " [BusinessLogic] Consolidated Business Logic Service initialized",
       );
       this.emit("initialized");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [BusinessLogic] Initialization failed:", error);
       throw error;
     }
@@ -790,7 +790,7 @@ export class ConsolidatedBusinessLogicService extends EventEmitter {
         },
         is_initialized: this.isInitialized,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         " [BusinessLogic] Failed to get comprehensive stats:",
         error,
@@ -808,7 +808,7 @@ export class ConsolidatedBusinessLogicService extends EventEmitter {
       const dataStatsAvailable = await this.dataCore.getStats();
 
       return slaRunning && !!dataStatsAvailable;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [BusinessLogic] Health check failed:", error);
       return false;
     }
@@ -825,7 +825,7 @@ export class ConsolidatedBusinessLogicService extends EventEmitter {
 
       this.isInitialized = false;
       logger.info("🧹 [BusinessLogic] Cleanup completed");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [BusinessLogic] Cleanup failed:", error);
       throw error;
     }

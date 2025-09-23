@@ -108,7 +108,7 @@ export class LegacyServiceBridge extends EventEmitter {
 
       this.isInitialized = true;
       logger.info(" [LegacyBridge] Legacy service bridge initialized");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [LegacyBridge] Failed to initialize:", error);
       throw error;
     }
@@ -217,7 +217,7 @@ export class LegacyServiceBridge extends EventEmitter {
         default:
           throw new Error(`Unsupported attachment operation: ${operation}`);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [LegacyBridge] Attachment operation failed: ${operation}`,
         error,
@@ -248,7 +248,7 @@ export class LegacyServiceBridge extends EventEmitter {
         default:
           throw new Error(`Unsupported batch operation: ${operation}`);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [LegacyBridge] Batch operation failed: ${operation}`,
         error,
@@ -282,7 +282,7 @@ export class LegacyServiceBridge extends EventEmitter {
         default:
           throw new Error(`Unsupported ServiceNow operation: ${operation}`);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [LegacyBridge] ServiceNow operation failed: ${operation}`,
         error,
@@ -526,7 +526,7 @@ export class LegacyServiceBridge extends EventEmitter {
         service_mappings: this.serviceMappings.size,
         bridge_active: this.isInitialized,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [LegacyBridge] Failed to get stats:", error);
       return {};
     }
@@ -539,7 +539,7 @@ export class LegacyServiceBridge extends EventEmitter {
     try {
       // Bridge is healthy if initialized and service mappings are configured
       return this.isInitialized && this.serviceMappings.size > 0;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [LegacyBridge] Health check failed:", error);
       return false;
     }

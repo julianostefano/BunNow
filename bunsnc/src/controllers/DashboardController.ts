@@ -301,7 +301,7 @@ export class DashboardController {
                 document.getElementById('incident-count').textContent = '12';
                 document.getElementById('change-count').textContent = '8';
                 document.getElementById('sctask-count').textContent = '15';
-            } catch (error) {
+            } catch (error: unknown) {
                 console.error('Error loading dashboard data:', error);
             }
         }

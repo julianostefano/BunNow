@@ -82,7 +82,7 @@ class MockOpenSearchClient {
             },
           });
         }
-      } catch (error) {
+      } catch (error: unknown) {
         results.push({
           index: {
             _index,

@@ -491,7 +491,7 @@ export class EnhancedTicketModalView {
                 // Show notification
                 showUpdateNotification(data);
               }
-            } catch (error) {
+            } catch (error: unknown) {
               console.error('Error processing real-time update:', error);
             }
           };

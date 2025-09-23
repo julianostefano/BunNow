@@ -67,7 +67,7 @@ export class SystemPerformanceMonitor extends EventEmitter {
       logger.info(" [SystemPerformance] Initializing performance monitor...");
       // Initialize any required resources
       logger.info(" [SystemPerformance] Performance monitor initialized");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [SystemPerformance] Failed to initialize:", error);
       throw error;
     }
@@ -164,7 +164,7 @@ export class SystemPerformanceMonitor extends EventEmitter {
       logger.debug(
         `🖥️ [SystemPerformance] Memory: ${memoryMB}MB, CPU: ${Math.min(cpuPercent, 100)}%`,
       );
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         " [SystemPerformance] Failed to collect system metrics:",
         error,
@@ -296,7 +296,7 @@ export class SystemPerformanceMonitor extends EventEmitter {
         const db = this.config.mongodb.client.db(this.config.mongodb.database);
         await db.collection("performance_metrics").insertOne(metric);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug(
         " [SystemPerformance] Failed to persist metric (non-critical):",
         error,
@@ -389,7 +389,7 @@ export class SystemPerformanceMonitor extends EventEmitter {
         ),
         monitoring_active: this.isMonitoring,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [SystemPerformance] Failed to get stats:", error);
       return {};
     }
@@ -433,7 +433,7 @@ export class SystemPerformanceMonitor extends EventEmitter {
       return (
         memory.heapUsed < this.thresholds.memory_critical && this.isMonitoring
       );
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [SystemPerformance] Health check failed:", error);
       return false;
     }

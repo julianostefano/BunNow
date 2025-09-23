@@ -326,7 +326,7 @@ export class ParquetWriter {
         fileSize: stats.size,
         schema: table.schema.toJSON(),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         isValid: false,
         recordCount: 0,

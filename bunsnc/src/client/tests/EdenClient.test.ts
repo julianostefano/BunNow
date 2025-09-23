@@ -418,7 +418,7 @@ describe("BunSNC Client SDK", () => {
       try {
         await client.batchOperation(operations, { failFast: true });
         expect.unreachable("Should have thrown error");
-      } catch (error) {
+      } catch (error: unknown) {
         expect(error).toBeInstanceOf(Error);
         expect((error as Error).message).toBe("failure");
       }

@@ -74,7 +74,7 @@ async function getWaitingTicketsDetails(targetGroup?: string): Promise<any[]> {
     const details =
       await serviceNowAuthClient.getWaitingTicketsDetails(groupsToQuery);
     return details;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Erro ao buscar detalhes dos chamados:", error);
     return [];
   }
@@ -182,7 +182,7 @@ export async function waitingTicketsCommand(options: {
       console.log(`   📉 Cache Misses: ${cacheMetrics.misses}`);
       console.log(`   🗃️  Total Keys: ${cacheMetrics.totalKeys}`);
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Erro na consulta:", error);
     process.exit(1);
   } finally {

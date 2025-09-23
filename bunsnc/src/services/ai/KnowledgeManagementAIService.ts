@@ -33,7 +33,7 @@ export class KnowledgeManagementAIService extends AIService {
 
       this.initialized = true;
       console.log("Knowledge Management AI Service: Initialized successfully");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(
         "Knowledge Management AI Service: Initialization failed:",
         error,
@@ -246,7 +246,7 @@ export class KnowledgeManagementAIService extends AIService {
 
       // Check if services are responsive
       return graphResult.success !== undefined; // Just check if we get a response
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(
         "Knowledge Management AI Service: Health check failed:",
         error,
@@ -292,7 +292,7 @@ export class KnowledgeManagementAIService extends AIService {
               [], // Relationships will be extracted by the lifecycle service
             );
           }
-        } catch (error) {
+        } catch (error: unknown) {
           console.error("Failed to add document to knowledge graph:", error);
         }
       });

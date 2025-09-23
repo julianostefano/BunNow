@@ -128,7 +128,7 @@ async function createEnhancedApp() {
       // Test database connection
       try {
         await enhancedTicketStorageService.ping();
-      } catch (error) {
+      } catch (error: unknown) {
         checks.database = "error";
       }
 
@@ -138,7 +138,7 @@ async function createEnhancedApp() {
         if (!healthCheck) {
           checks.servicenow = "error";
         }
-      } catch (error) {
+      } catch (error: unknown) {
         checks.servicenow = "error";
       }
 
@@ -202,7 +202,7 @@ async function createEnhancedApp() {
             execution_time_ms: Date.now() - startTime,
           },
         );
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Create record error:", error);
         return createErrorResponse("CREATE_ERROR", error.message);
       }
@@ -267,7 +267,7 @@ async function createEnhancedApp() {
             execution_time_ms: Date.now() - startTime,
           },
         );
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Get record error:", error);
         return createErrorResponse("GET_ERROR", error.message);
       }
@@ -349,7 +349,7 @@ async function createEnhancedApp() {
             execution_time_ms: Date.now() - startTime,
           },
         );
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Batch operation error:", error);
         return createErrorResponse("BATCH_ERROR", error.message);
       }
@@ -406,7 +406,7 @@ async function createEnhancedApp() {
             execution_time_ms: Date.now() - startTime,
           },
         );
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Upload attachment error:", error);
         return createErrorResponse("UPLOAD_ERROR", error.message);
       }
@@ -480,7 +480,7 @@ async function createEnhancedApp() {
     await enhancedTicketStorageService.initialize();
     mongoService = enhancedTicketStorageService;
     console.log(" Enhanced app: MongoDB service initialized");
-  } catch (error) {
+  } catch (error: unknown) {
     console.warn(
       " Enhanced app: MongoDB service not available:",
       error.message,
@@ -491,7 +491,7 @@ async function createEnhancedApp() {
     redisStreams = new ServiceNowStreams();
     await redisStreams.initialize();
     console.log(" Enhanced app: Redis Streams initialized");
-  } catch (error) {
+  } catch (error: unknown) {
     console.warn(" Enhanced app: Redis Streams not available:", error.message);
   }
 

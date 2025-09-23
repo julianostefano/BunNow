@@ -126,7 +126,7 @@ export class RedisCache extends EventEmitter {
 
       this.emit("cache:hit", { key, value });
       return value;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Cache get error for key ${key}:`, error);
       this.metrics.misses++;
       return null;
@@ -169,7 +169,7 @@ export class RedisCache extends EventEmitter {
       }
 
       return false;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Cache set error for key ${key}:`, error);
       return false;
     } finally {
@@ -210,7 +210,7 @@ export class RedisCache extends EventEmitter {
         hitCount: values.filter((v) => v !== null).length,
       });
       return values;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Cache mget error for keys ${keys.join(", ")}:`, error);
       return keys.map(() => null);
     } finally {
@@ -258,7 +258,7 @@ export class RedisCache extends EventEmitter {
       }
 
       return success;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Cache mset error:", error);
       return false;
     } finally {
@@ -286,7 +286,7 @@ export class RedisCache extends EventEmitter {
       }
 
       return false;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Cache delete error for key ${key}:`, error);
       return false;
     } finally {
@@ -310,7 +310,7 @@ export class RedisCache extends EventEmitter {
 
       this.emit("cache:mdelete", { keys, deletedCount: result });
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Cache mdelete error for keys ${keys.join(", ")}:`, error);
       return 0;
     } finally {
@@ -327,7 +327,7 @@ export class RedisCache extends EventEmitter {
     try {
       const result = await this.redis.exists(fullKey);
       return result === 1;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Cache exists error for key ${key}:`, error);
       return false;
     }
@@ -341,7 +341,7 @@ export class RedisCache extends EventEmitter {
 
     try {
       return await this.redis.ttl(fullKey);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Cache TTL error for key ${key}:`, error);
       return -1;
     }
@@ -356,7 +356,7 @@ export class RedisCache extends EventEmitter {
     try {
       const result = await this.redis.expire(fullKey, ttl);
       return result === 1;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Cache expire error for key ${key}:`, error);
       return false;
     }
@@ -376,7 +376,7 @@ export class RedisCache extends EventEmitter {
 
       this.emit("cache:increment", { key, by, newValue: result });
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Cache increment error for key ${key}:`, error);
       return 0;
     }
@@ -439,7 +439,7 @@ export class RedisCache extends EventEmitter {
 
       logger.info(`Invalidated ${deleted} keys matching pattern: ${pattern}`);
       return deleted;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         `Cache pattern invalidation error for pattern ${pattern}:`,
         error,
@@ -461,7 +461,7 @@ export class RedisCache extends EventEmitter {
 
       // Remove prefix from returned keys
       return keys.map((key) => key.replace(this.options.keyPrefix, ""));
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Cache keys error for pattern ${pattern}:`, error);
       return [];
     }
@@ -480,7 +480,7 @@ export class RedisCache extends EventEmitter {
           await this.set(pattern.pattern, value, pattern.ttl);
 
           this.emit("cache:pattern_refreshed", { pattern: pattern.pattern });
-        } catch (error) {
+        } catch (error: unknown) {
           logger.error(`Pattern refresh error for ${pattern.pattern}:`, error);
         }
       }, pattern.refreshInterval);
@@ -530,7 +530,7 @@ export class RedisCache extends EventEmitter {
               await this.set(pattern.pattern, value, pattern.ttl);
 
               logger.debug(`Warmed up pattern: ${pattern.pattern}`);
-            } catch (error) {
+            } catch (error: unknown) {
               logger.error(
                 `Warmup error for pattern ${pattern.pattern}:`,
                 error,
@@ -604,7 +604,7 @@ export class RedisCache extends EventEmitter {
         hitRate: this.metrics.hitRate,
         avgResponseTime: this.metrics.avgAccessTime,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         connected: false,
         totalKeys: 0,
@@ -652,7 +652,7 @@ export class RedisCache extends EventEmitter {
         default:
           return JSON.stringify(value);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Serialization error:", error);
       throw error;
     }
@@ -672,7 +672,7 @@ export class RedisCache extends EventEmitter {
         default:
           return JSON.parse(data);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Deserialization error:", error);
       throw error;
     }
@@ -691,7 +691,7 @@ export class RedisCache extends EventEmitter {
 
       // Set TTL for metrics key (longer than data TTL)
       await this.redis.expire(metricsKey, this.options.defaultTtl * 2);
-    } catch (error) {
+    } catch (error: unknown) {
       // Don't fail main operation for metrics errors
       logger.debug("Access metrics update error:", error);
     }

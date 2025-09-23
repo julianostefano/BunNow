@@ -30,7 +30,7 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
         });
 
         return response.data;
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`ServiceNow ${method} ${table} error:`, error);
         throw error;
       }
@@ -163,12 +163,12 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
           }
 
           return result;
-        } catch (error) {
+        } catch (error: unknown) {
           console.error(`ServiceNow paginated ${table} error:`, error);
           throw error;
         }
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Error in makeRequestPaginated:`, error);
       // Return empty result on error
       return {
@@ -428,7 +428,7 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
           await new Promise((resolve) => setTimeout(resolve, 3000)); // 3s delay before next group
 
           console.log(`✅ Cache warmed successfully for: ${group}`);
-        } catch (error) {
+        } catch (error: unknown) {
           console.warn(`⚠️ Cache warmup failed for ${group}:`, error);
           // Continue with next group even if this one fails
           await new Promise((resolve) => setTimeout(resolve, 5000)); // Longer delay after error
@@ -437,7 +437,7 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
 
       ServiceNowQueryService.cacheWarmingCompleted = true;
       console.log("🔥 Cache pre-warming completed successfully");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("❌ Cache pre-warming failed completely:", error);
     } finally {
       ServiceNowQueryService.cacheWarmingInProgress = false;
@@ -478,7 +478,7 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
             ...record,
             table_name: table,
           }));
-        } catch (error) {
+        } catch (error: unknown) {
           console.warn(`Search failed for table ${table}:`, error);
           return [];
         }

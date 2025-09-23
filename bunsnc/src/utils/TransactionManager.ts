@@ -189,7 +189,7 @@ export class Transaction {
         try {
           await this.executeOperation(op);
           op.executed = true;
-        } catch (error) {
+        } catch (error: unknown) {
           const errorMessage =
             error instanceof Error ? error.message : String(error);
           errors.push({
@@ -261,7 +261,7 @@ export class Transaction {
       }
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       operation.error("Transaction execution failed", error);
 
       // Attempt rollback
@@ -318,7 +318,7 @@ export class Transaction {
       for (const op of executedOperations) {
         try {
           await this.rollbackOperation(op);
-        } catch (error) {
+        } catch (error: unknown) {
           rollbackSuccess = false;
           logger.error(
             `Rollback failed for operation: ${op.id}`,
@@ -354,7 +354,7 @@ export class Transaction {
       });
 
       return rollbackSuccess;
-    } catch (error) {
+    } catch (error: unknown) {
       operation.error("Rollback failed", error);
       return false;
     }
@@ -622,7 +622,7 @@ export class TransactionManager {
       try {
         await tx.rollback();
         rolledBack++;
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error("Force rollback failed", error, "TransactionManager", {
           transactionId: tx.id,
         });

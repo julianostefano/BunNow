@@ -70,7 +70,7 @@ export class ServiceNowRateLimiter {
         try {
           const result = await this.processRequest(requestFn);
           resolve(result);
-        } catch (error) {
+        } catch (error: unknown) {
           reject(error);
         }
       };

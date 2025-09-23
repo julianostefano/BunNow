@@ -153,7 +153,7 @@ export class RedisStreamManager extends EventEmitter {
       this.emit("message:added", { streamKey, messageId: result, data });
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error adding message to stream ${streamKey}:`, error);
       throw error;
     } finally {
@@ -239,7 +239,7 @@ export class RedisStreamManager extends EventEmitter {
       logger.info(
         `Created consumer group ${groupName} for stream ${streamKey}`,
       );
-    } catch (error) {
+    } catch (error: unknown) {
       // Group might already exist
       if (!(error as Error).message.includes("BUSYGROUP")) {
         logger.error(`Error creating consumer group ${groupName}:`, error);
@@ -515,7 +515,7 @@ export class RedisStreamManager extends EventEmitter {
         memory: this.parseInfoString(info),
         keyspace: this.parseInfoString(keyspace),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         connected: false,
         latency: -1,
@@ -586,7 +586,7 @@ export class RedisStreamManager extends EventEmitter {
       for (const streamKey of this.stats.keys()) {
         try {
           await this.getStreamInfo(streamKey);
-        } catch (error) {
+        } catch (error: unknown) {
           logger.debug(
             `Failed to update metrics for stream ${streamKey}:`,
             error,
@@ -747,7 +747,7 @@ export class RedisConsumer extends EventEmitter {
 
         // Check for pending messages from idle consumers
         await this.claimIdleMessages();
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(`Consumer ${this.options.consumerName} error:`, error);
         this.emit("error", error);
 
@@ -777,7 +777,7 @@ export class RedisConsumer extends EventEmitter {
 
         this.emit("message:processed", message);
         return;
-      } catch (error) {
+      } catch (error: unknown) {
         retryCount++;
 
         if (this.errorHandler) {
@@ -852,7 +852,7 @@ export class RedisConsumer extends EventEmitter {
           }
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug("Error claiming idle messages:", error);
     }
   }

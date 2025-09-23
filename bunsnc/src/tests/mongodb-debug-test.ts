@@ -89,7 +89,7 @@ async function debugMongoDBConnection() {
     console.log(" Test data cleaned up");
 
     console.log("\n MongoDB Debug Test completed successfully!");
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" MongoDB Debug Test failed:", error);
     console.error("Stack trace:", error.stack);
   } finally {

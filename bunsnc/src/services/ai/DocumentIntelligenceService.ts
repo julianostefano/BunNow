@@ -78,7 +78,7 @@ export class DocumentIntelligenceService extends AIService {
 
       this.initialized = true;
       logger.info(" [DocumentIntelligence] Service initialized successfully");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [DocumentIntelligence] Failed to initialize:", error);
       throw error;
     }
@@ -107,7 +107,7 @@ export class DocumentIntelligenceService extends AIService {
       const tikaHealthy = await this.tikaClient.healthCheck();
       const openSearchHealthy = await this.openSearchClient.healthCheck();
       return tikaHealthy && openSearchHealthy;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [DocumentIntelligence] Health check failed:", error);
       return false;
     }
@@ -161,7 +161,7 @@ export class DocumentIntelligenceService extends AIService {
         data: processedDoc,
         confidence: processedDoc.classification.confidence_score,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         " [DocumentIntelligence] Document processing failed:",
         error,
@@ -220,7 +220,7 @@ export class DocumentIntelligenceService extends AIService {
         data: classification,
         confidence: classification.confidence_score,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         " [DocumentIntelligence] Document classification failed:",
         error,
@@ -290,7 +290,7 @@ export class DocumentIntelligenceService extends AIService {
         sources: results.map((r) => r.file_path),
         confidence: results.length > 0 ? results[0].score : 0,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [DocumentIntelligence] Document search failed:", error);
       return {
         success: false,
@@ -332,7 +332,7 @@ export class DocumentIntelligenceService extends AIService {
         data: chunks,
         confidence: 1.0,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [DocumentIntelligence] Chunk extraction failed:", error);
       return {
         success: false,

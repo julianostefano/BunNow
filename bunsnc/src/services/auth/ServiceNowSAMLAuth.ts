@@ -49,7 +49,7 @@ export class ServiceNowSAMLAuth {
       console.log(
         "✅ SAML authentication storage initialized (using existing MongoDB)",
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("❌ Failed to initialize SAML storage:", error);
     }
   }
@@ -80,7 +80,7 @@ export class ServiceNowSAMLAuth {
             return undefined;
           }
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error parsing URL for NO_PROXY check:", error);
       }
     }
@@ -98,7 +98,7 @@ export class ServiceNowSAMLAuth {
 
       console.log(`Domain should use proxy: ${url} (${proxy})`);
       return proxy;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error parsing URL for proxy decision:", error);
       return undefined;
     }
@@ -185,7 +185,7 @@ export class ServiceNowSAMLAuth {
     // Save configuration to MongoDB
     try {
       await samlConfigManager.saveConfig(config);
-    } catch (error) {
+    } catch (error: unknown) {
       console.warn("Failed to save SAML config to MongoDB:", error);
     }
 
@@ -280,7 +280,7 @@ export class ServiceNowSAMLAuth {
         } else {
           throw new Error(`Unexpected redirect target: ${currentResponse.url}`);
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(
           `SAML authentication failed with ${strategy.name}:`,
           error,
@@ -303,7 +303,7 @@ export class ServiceNowSAMLAuth {
       // Mark error in MongoDB
       try {
         await samlConfigManager.markError(config.instance, lastError.message);
-      } catch (error) {
+      } catch (error: unknown) {
         console.warn("Failed to mark SAML error in MongoDB:", error);
       }
 
@@ -602,7 +602,7 @@ export class ServiceNowSAMLAuth {
     try {
       await samlConfigManager.saveAuthData(config.instance, authData);
       console.log("✅ SAML authentication data saved to MongoDB");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("❌ Failed to save SAML auth data to MongoDB:", error);
     }
 
@@ -671,7 +671,7 @@ export class ServiceNowSAMLAuth {
         statusCode: response.status,
         responseUrl: response.url,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Authentication validation failed:", error);
 
       // Mark validation error in MongoDB

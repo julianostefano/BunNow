@@ -44,7 +44,7 @@ export class SecurityService {
         32, // 256 bits
         "sha256",
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to create encryption key:", error);
       throw error;
     }
@@ -63,7 +63,7 @@ export class SecurityService {
       // Combine IV and encrypted data
       const combined = Buffer.concat([iv, Buffer.from(encrypted, "base64")]);
       return combined.toString("base64");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Encryption failed:", error);
       throw error;
     }
@@ -82,7 +82,7 @@ export class SecurityService {
       let decrypted = decipher.update(encrypted, undefined, "utf8");
       decrypted += decipher.final("utf8");
       return decrypted;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Decryption failed:", error);
       throw error;
     }
@@ -136,7 +136,7 @@ export class SecurityService {
       ) {
         try {
           decryptedData[key] = this.decrypt(value);
-        } catch (error) {
+        } catch (error: unknown) {
           console.warn(`Failed to decrypt field: ${key}`, error);
           decryptedData[key] = value;
         }
@@ -200,7 +200,7 @@ export class SecurityService {
       const decrypted = this.decrypt(encrypted);
 
       return testData === decrypted;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Encryption test failed:", error);
       return false;
     }

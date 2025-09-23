@@ -57,7 +57,7 @@ export class EnhancedTicketController {
         history: [],
         isRealTime: true,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(
         ` Error generating enhanced modal for ${table}/${sysId}:`,
         error,

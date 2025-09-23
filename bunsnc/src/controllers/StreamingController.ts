@@ -76,7 +76,7 @@ export class StreamingController {
             controller.enqueue(
               `event: processing-status\ndata: ${processingStatus}\n\n`,
             );
-          } catch (error) {
+          } catch (error: unknown) {
             console.error("SSE stream error:", error);
           }
         }, 5000);
@@ -108,7 +108,7 @@ export class StreamingController {
         default:
           console.log("Unknown WebSocket message type:", data.type);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("WebSocket message error:", error);
     }
   }

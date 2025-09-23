@@ -364,7 +364,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
       this.emit("ticketResolved", response);
 
       return response;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [ServiceNow] Failed to resolve ticket:", error);
       throw error;
     }
@@ -416,7 +416,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
       this.emit("ticketClosed", response);
 
       return response;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [ServiceNow] Failed to close ticket:", error);
       throw error;
     }
@@ -467,7 +467,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
       this.emit("ticketReopened", response);
 
       return response;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [ServiceNow] Failed to reopen ticket:", error);
       throw error;
     }
@@ -516,7 +516,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
       this.emit("ticketAssigned", response);
 
       return response;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [ServiceNow] Failed to assign ticket:", error);
       throw error;
     }
@@ -558,7 +558,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         ` [ServiceNow] Retrieved ${notes.length} notes for ${table}/${sysId}`,
       );
       return notes;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [ServiceNow] Failed to fetch notes for ${table}/${sysId}:`,
         error,
@@ -595,7 +595,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
       });
 
       return response.sys_id;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [ServiceNow] Failed to add note to ${request.table}/${request.sysId}:`,
         error,
@@ -704,7 +704,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         size_bytes: parseInt(att.size_bytes) || 0,
         download_link: `${this.attachmentUrl}/${att.sys_id}/file`,
       }));
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [ServiceNow] Failed to list attachments for ${table}/${sysId}:`,
         error,
@@ -786,7 +786,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
       });
 
       return results;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [ServiceNow] Batch execution failed:", error);
       throw error;
     }
@@ -830,7 +830,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         totalCount: slmRecords.length,
         hasMore: false,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [ServiceNow] Error getting SLAs for task ${options.taskNumber}:`,
         error,
@@ -885,7 +885,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         worst_sla: worstSla,
         all_slas: slaBreachInfos,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [ServiceNow] Error getting SLA summary for task ${taskNumber}:`,
         error,
@@ -903,7 +903,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
           try {
             const result = await this.executeWithRetry(operation);
             resolve(result);
-          } catch (error) {
+          } catch (error: unknown) {
             reject(error);
           }
         });
@@ -930,7 +930,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         return await operation();
-      } catch (error) {
+      } catch (error: unknown) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
         if (attempt === maxRetries) {
@@ -1038,7 +1038,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         base_url: this.baseUrl,
         instance_url: this.config.instanceUrl,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [ServiceNow] Failed to get stats:", error);
       return {};
     }
@@ -1053,7 +1053,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
       });
 
       return response.ok;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [ServiceNow] Health check failed:", error);
       return false;
     }

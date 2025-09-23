@@ -65,7 +65,7 @@ export class ServiceNowRepository {
           data->'incident'->>'sys_id' as sys_id,
           created_at,
           updated_at
-      FROM sn_incidents_collection 
+      FROM sn_incidents 
       WHERE data->'incident'->>'state' IN ('6', '7', '8')
 
       UNION ALL
@@ -85,7 +85,7 @@ export class ServiceNowRepository {
           data->'ctask'->>'sys_id' as sys_id,
           created_at,
           updated_at
-      FROM sn_ctasks_collection 
+      FROM sn_ctasks 
       WHERE data->'ctask'->>'state' IN ('4', '7', '8')
 
       UNION ALL
@@ -104,7 +104,7 @@ export class ServiceNowRepository {
           data->'sctask'->>'sys_id' as sys_id,
           created_at,
           updated_at
-      FROM sn_sctasks_collection 
+      FROM sn_sctasks 
       WHERE data->'sctask'->>'state' IN ('4', '7')
 
       ORDER BY data_fechamento DESC NULLS LAST
@@ -141,7 +141,7 @@ export class ServiceNowRepository {
           data->'incident'->>'sys_id' as sys_id,
           created_at,
           updated_at
-      FROM sn_incidents_collection 
+      FROM sn_incidents 
       WHERE data->'incident'->>'state' NOT IN ('6', '7', '8')
 
       UNION ALL
@@ -162,7 +162,7 @@ export class ServiceNowRepository {
           data->'ctask'->>'sys_id' as sys_id,
           created_at,
           updated_at
-      FROM sn_ctasks_collection 
+      FROM sn_ctasks 
       WHERE data->'ctask'->>'state' NOT IN ('4', '7', '8')
 
       UNION ALL
@@ -183,7 +183,7 @@ export class ServiceNowRepository {
           data->'sctask'->>'sys_id' as sys_id,
           created_at,
           updated_at
-      FROM sn_sctasks_collection 
+      FROM sn_sctasks 
       WHERE data->'sctask'->>'state' NOT IN ('4', '7')
 
       ORDER BY updated_at DESC NULLS LAST
@@ -219,7 +219,7 @@ export class ServiceNowRepository {
                      WHEN data->'incident'->>'state' = '8' THEN 'Cancelado'
                      ELSE 'Outros'
                  END as status_portugues
-          FROM sn_incidents_collection
+          FROM sn_incidents
           
           UNION ALL
           
@@ -234,7 +234,7 @@ export class ServiceNowRepository {
                      WHEN data->'ctask'->>'state' = '8' THEN 'Fechado Incompleto'
                      ELSE 'Outros'
                  END as status_portugues
-          FROM sn_ctasks_collection
+          FROM sn_ctasks
           
           UNION ALL
           
@@ -248,7 +248,7 @@ export class ServiceNowRepository {
                      WHEN data->'sctask'->>'state' = '7' THEN 'Fechado Pulado'
                      ELSE 'Outros'
                  END as status_portugues
-          FROM sn_sctasks_collection
+          FROM sn_sctasks
       ) chamados
       GROUP BY tipo_chamado, estado_numero, status_portugues
       ORDER BY tipo_chamado, total_chamados DESC
@@ -266,36 +266,36 @@ export class ServiceNowRepository {
       // Total tickets count
       query(`
         SELECT 
-          (SELECT COUNT(*) FROM sn_incidents_collection) +
-          (SELECT COUNT(*) FROM sn_ctasks_collection) +
-          (SELECT COUNT(*) FROM sn_sctasks_collection) as total
+          (SELECT COUNT(*) FROM sn_incidents) +
+          (SELECT COUNT(*) FROM sn_ctasks) +
+          (SELECT COUNT(*) FROM sn_sctasks) as total
       `),
 
       // Resolved tickets count
       query(`
         SELECT 
-          (SELECT COUNT(*) FROM sn_incidents_collection WHERE data->'incident'->>'state' IN ('6', '7', '8')) +
-          (SELECT COUNT(*) FROM sn_ctasks_collection WHERE data->'ctask'->>'state' IN ('4', '7', '8')) +
-          (SELECT COUNT(*) FROM sn_sctasks_collection WHERE data->'sctask'->>'state' IN ('4', '7')) as resolved
+          (SELECT COUNT(*) FROM sn_incidents WHERE data->'incident'->>'state' IN ('6', '7', '8')) +
+          (SELECT COUNT(*) FROM sn_ctasks WHERE data->'ctask'->>'state' IN ('4', '7', '8')) +
+          (SELECT COUNT(*) FROM sn_sctasks WHERE data->'sctask'->>'state' IN ('4', '7')) as resolved
       `),
 
       // Tickets by type
       query(`
         SELECT 
-          (SELECT COUNT(*) FROM sn_incidents_collection) as incidents,
-          (SELECT COUNT(*) FROM sn_ctasks_collection) as change_tasks,
-          (SELECT COUNT(*) FROM sn_sctasks_collection) as service_catalog_tasks
+          (SELECT COUNT(*) FROM sn_incidents) as incidents,
+          (SELECT COUNT(*) FROM sn_ctasks) as change_tasks,
+          (SELECT COUNT(*) FROM sn_sctasks) as service_catalog_tasks
       `),
 
       // Average response time (using update timestamps)
       query(`
         SELECT AVG(EXTRACT(EPOCH FROM (updated_at - created_at))/3600) as avg_hours
         FROM (
-          SELECT created_at, updated_at FROM sn_incidents_collection
+          SELECT created_at, updated_at FROM sn_incidents
           UNION ALL
-          SELECT created_at, updated_at FROM sn_ctasks_collection
+          SELECT created_at, updated_at FROM sn_ctasks
           UNION ALL
-          SELECT created_at, updated_at FROM sn_sctasks_collection
+          SELECT created_at, updated_at FROM sn_sctasks
         ) all_tickets
         WHERE updated_at IS NOT NULL AND created_at IS NOT NULL
       `),
@@ -409,7 +409,7 @@ export class ServiceNowRepository {
             data->'incident'->>'sys_id' as sys_id,
             created_at,
             updated_at
-        FROM sn_incidents_collection 
+        FROM sn_incidents 
         WHERE 1=1 ${whereClause} ${incidentStatusFilter}
       `);
     }
@@ -443,7 +443,7 @@ export class ServiceNowRepository {
             data->'ctask'->>'sys_id' as sys_id,
             created_at,
             updated_at
-        FROM sn_ctasks_collection 
+        FROM sn_ctasks 
         WHERE 1=1 ${whereClause} ${ctaskStatusFilter}
       `);
     }
@@ -476,7 +476,7 @@ export class ServiceNowRepository {
             data->'sctask'->>'sys_id' as sys_id,
             created_at,
             updated_at
-        FROM sn_sctasks_collection 
+        FROM sn_sctasks 
         WHERE 1=1 ${whereClause} ${sctaskStatusFilter}
       `);
     }
@@ -501,15 +501,15 @@ export class ServiceNowRepository {
 
     switch (ticketType) {
       case "incident":
-        tableName = "sn_incidents_collection";
+        tableName = "sn_incidents";
         sql = `SELECT data->'incident' as ticket_data, created_at, updated_at FROM ${tableName} WHERE data->'incident'->>'sys_id' = $1`;
         break;
       case "change_task":
-        tableName = "sn_ctasks_collection";
+        tableName = "sn_ctasks";
         sql = `SELECT data->'ctask' as ticket_data, created_at, updated_at FROM ${tableName} WHERE data->'ctask'->>'sys_id' = $1`;
         break;
       case "sc_task":
-        tableName = "sn_sctasks_collection";
+        tableName = "sn_sctasks";
         sql = `SELECT data->'sctask' as ticket_data, created_at, updated_at FROM ${tableName} WHERE data->'sctask'->>'sys_id' = $1`;
         break;
       default:
@@ -525,9 +525,9 @@ export class ServiceNowRepository {
    */
   async getHealthStats(): Promise<any> {
     const healthQueries = await Promise.all([
-      query(`SELECT COUNT(*) as total FROM sn_incidents_collection`),
-      query(`SELECT COUNT(*) as total FROM sn_ctasks_collection`),
-      query(`SELECT COUNT(*) as total FROM sn_sctasks_collection`),
+      query(`SELECT COUNT(*) as total FROM sn_incidents`),
+      query(`SELECT COUNT(*) as total FROM sn_ctasks`),
+      query(`SELECT COUNT(*) as total FROM sn_sctasks`),
       query(`
         SELECT 
           schemaname,

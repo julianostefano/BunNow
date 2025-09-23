@@ -65,7 +65,7 @@ export class TikaClient {
       const text = await response.text();
       logger.debug(` [TikaClient] Extracted ${text.length} characters`);
       return text;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [TikaClient] Text extraction failed:", error);
       throw error;
     }
@@ -102,7 +102,7 @@ export class TikaClient {
         ` [TikaClient] Extracted metadata with ${Object.keys(metadata).length} fields`,
       );
       return metadata;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [TikaClient] Metadata extraction failed:", error);
       throw error;
     }
@@ -147,7 +147,7 @@ export class TikaClient {
       }
 
       throw new Error("No results returned from Tika");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [TikaClient] Full extraction failed:", error);
       throw error;
     }
@@ -169,7 +169,7 @@ export class TikaClient {
       }
 
       return isHealthy;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [TikaClient] Health check failed:", error);
       return false;
     }

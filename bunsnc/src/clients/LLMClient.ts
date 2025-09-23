@@ -129,7 +129,7 @@ export class LLMClient {
       );
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [LLMClient] Response generation failed:", error);
       throw error;
     }
@@ -211,7 +211,7 @@ export class LLMClient {
       } finally {
         reader.releaseLock();
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [LLMClient] Stream generation failed:", error);
       throw error;
     }
@@ -379,7 +379,7 @@ Extract keywords:`;
         ` [LLMClient] Health check returned status: ${response.status}`,
       );
       return false;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [LLMClient] Health check failed:", error);
       return false;
     }
@@ -407,7 +407,7 @@ Extract keywords:`;
           this.config.default_model,
         ]
       );
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [LLMClient] Failed to get models:", error);
       return [this.config.default_model];
     }
@@ -434,7 +434,7 @@ Extract keywords:`;
 
       logger.info(` [LLMClient] Model pulled successfully: ${modelName}`);
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(` [LLMClient] Failed to pull model ${modelName}:`, error);
       return false;
     }
@@ -462,7 +462,7 @@ Extract keywords:`;
       const info = await response.json();
       logger.debug(` [LLMClient] Model info for ${model}:`, info);
       return info;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [LLMClient] Failed to get model info for ${modelName}:`,
         error,
@@ -501,7 +501,7 @@ Extract keywords:`;
           error: "Health check failed",
         };
       }
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         success: false,
         latency: Date.now() - startTime,
@@ -524,7 +524,7 @@ Extract keywords:`;
 
       logger.info(" [LLMClient] Service warmup completed");
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [LLMClient] Service warmup failed:", error);
       return false;
     }

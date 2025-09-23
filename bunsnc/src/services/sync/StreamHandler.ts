@@ -53,7 +53,7 @@ export class StreamHandler {
           ` Real-time sync completed for ${change.type}/${change.sys_id}`,
         );
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(` Error handling stream change:`, error);
     }
   }

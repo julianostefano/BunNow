@@ -13,7 +13,7 @@ import { logger } from "../../../utils/Logger";
 
 // Initialize services
 const mongoClient = new MongoClient(
-  process.env.MONGODB_URL || "mongodb://localhost:27017",
+  process.env.MONGODB_URL || "mongodb://localhost:27018",
 );
 const databaseName = process.env.MONGODB_DATABASE || "bunsnc";
 
@@ -207,7 +207,7 @@ const app = new Elysia({ prefix: "/api/tickets" })
           },
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(
           " [TicketsAPI] Error generating unified statistics:",
           error,
@@ -267,17 +267,17 @@ const app = new Elysia({ prefix: "/api/tickets" })
         const ticketTypes = [
           {
             type: TicketType.INCIDENT,
-            collection: "sn_incidents_collection",
+            collection: "sn_incidents",
             path: "data.incident",
           },
           {
             type: TicketType.CTASK,
-            collection: "sn_ctasks_collection",
+            collection: "sn_ctasks",
             path: "data.change_task",
           },
           {
             type: TicketType.SCTASK,
-            collection: "sn_sctasks_collection",
+            collection: "sn_sctasks",
             path: "data.sc_task",
           },
         ];
@@ -333,7 +333,7 @@ const app = new Elysia({ prefix: "/api/tickets" })
           },
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(" [TicketsAPI] Error generating group statistics:", error);
         return {
           success: false,
@@ -384,7 +384,7 @@ const app = new Elysia({ prefix: "/api/tickets" })
           data: validationResult,
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(
           ` [TicketsAPI] Error validating ticket ${params.ticket_id}:`,
           error,
@@ -434,7 +434,7 @@ const app = new Elysia({ prefix: "/api/tickets" })
           },
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(" [TicketsAPI] Error generating violation report:", error);
         return {
           success: false,
@@ -484,7 +484,7 @@ const app = new Elysia({ prefix: "/api/tickets" })
           },
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(" [TicketsAPI] Health check failed:", error);
         return {
           success: false,

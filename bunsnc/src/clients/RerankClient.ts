@@ -129,7 +129,7 @@ export class RerankClient {
       );
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [RerankClient] Reranking failed:", error);
       throw error;
     }
@@ -187,7 +187,7 @@ export class RerankClient {
       try {
         const result = await this.rerank(query, documents, options);
         results.push(result);
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(
           ` [RerankClient] Batch reranking failed for query: "${query}"`,
           error,
@@ -228,7 +228,7 @@ export class RerankClient {
         ` [RerankClient] Health check returned status: ${response.status}`,
       );
       return false;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [RerankClient] Health check failed:", error);
       return false;
     }
@@ -252,7 +252,7 @@ export class RerankClient {
 
       const data = await response.json();
       return data.models || [this.config.default_model];
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [RerankClient] Failed to get models:", error);
       return [this.config.default_model];
     }
@@ -281,7 +281,7 @@ export class RerankClient {
       const info = await response.json();
       logger.debug(` [RerankClient] Model info for ${model}:`, info);
       return info;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [RerankClient] Failed to get model info for ${modelName}:`,
         error,
@@ -307,7 +307,7 @@ export class RerankClient {
       }
 
       return null;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [RerankClient] Failed to get service info:", error);
       return null;
     }
@@ -363,7 +363,7 @@ export class RerankClient {
           error: "Health check failed",
         };
       }
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         success: false,
         latency: Date.now() - startTime,
@@ -388,7 +388,7 @@ export class RerankClient {
 
       logger.info(" [RerankClient] Service warmup completed");
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [RerankClient] Service warmup failed:", error);
       return false;
     }
@@ -430,7 +430,7 @@ export class RerankClient {
         const latency = Date.now() - startTime;
         latencies.push(latency);
         successCount++;
-      } catch (error) {
+      } catch (error: unknown) {
         logger.warn(
           ` [RerankClient] Benchmark iteration ${i + 1} failed:`,
           error,

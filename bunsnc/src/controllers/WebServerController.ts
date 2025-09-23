@@ -119,7 +119,7 @@ export class WebServerController {
       console.log(" SLA Tracking Service initialized");
 
       this.startBackgroundServices();
-    } catch (error) {
+    } catch (error: unknown) {
       console.warn(
         " MongoDB service not available, enhanced features will be limited:",
         error,
@@ -130,7 +130,7 @@ export class WebServerController {
       this.redisStreams = new ServiceNowStreams();
       await this.redisStreams.initialize();
       console.log(" Redis Streams initialized for real-time features");
-    } catch (error) {
+    } catch (error: unknown) {
       console.warn(
         " Redis Streams not available, real-time features will be limited:",
         error,
@@ -158,7 +158,7 @@ export class WebServerController {
             "⚠️ startAutoSync method not available, enhanced sync features disabled",
           );
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.warn("⚠️ Failed to start auto-sync:", error);
       }
 
@@ -171,7 +171,7 @@ export class WebServerController {
             "⚠️ SLA tracking start method not available, SLA features disabled",
           );
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.warn("⚠️ Failed to start SLA tracking service:", error);
       }
 
@@ -331,7 +331,7 @@ export class WebServerController {
       );
       console.log(` Dashboard: http://localhost:${this.config.port}`);
       console.log(` API Docs: http://localhost:${this.config.port}/swagger`);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to start web server:", error);
       throw error;
     }
@@ -351,7 +351,7 @@ export class WebServerController {
           } else {
             console.warn("⚠️ SLA tracking stop method not available");
           }
-        } catch (error) {
+        } catch (error: unknown) {
           console.warn("⚠️ Failed to stop SLA tracking service:", error);
         }
       }
@@ -360,7 +360,7 @@ export class WebServerController {
 
       await this.app.stop();
       console.log(" ServiceNow Web Interface stopped");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error stopping web server:", error);
       throw error;
     }

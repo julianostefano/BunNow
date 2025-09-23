@@ -130,7 +130,7 @@ export class AIServicesBootstrap {
       logger.info(
         " [AIServicesBootstrap] AI services initialization completed successfully",
       );
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         " [AIServicesBootstrap] Failed to initialize AI services:",
         error,
@@ -152,7 +152,7 @@ export class AIServicesBootstrap {
       await this.aiManager.shutdown();
       this.initialized = false;
       logger.info(" [AIServicesBootstrap] AI services shutdown completed");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [AIServicesBootstrap] Error during shutdown:", error);
       throw error;
     }
@@ -183,7 +183,7 @@ export class AIServicesBootstrap {
         metrics: serviceMetrics,
         initialized_at: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [AIServicesBootstrap] Health check failed:", error);
       return {
         status: "error",
@@ -331,7 +331,7 @@ export class AIServicesBootstrap {
       const result = await this.processAIRequest(serviceId, testRequest);
       logger.info(` [AIServicesBootstrap] Service test passed: ${serviceId}`);
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [AIServicesBootstrap] Service test failed: ${serviceId}`,
         error,

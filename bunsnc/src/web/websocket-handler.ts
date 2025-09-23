@@ -158,7 +158,7 @@ export class WebSocketManager {
             timestamp: new Date().toISOString(),
           });
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(` WebSocket message error for ${client.id}:`, error);
       this.sendToClient(ws, {
         type: "error",
@@ -254,7 +254,7 @@ export class WebSocketManager {
         },
         timestamp: new Date().toISOString(),
       });
-    } catch (error) {
+    } catch (error: unknown) {
       this.sendToClient(ws, {
         type: "error",
         data: { message: "Failed to get metrics" },
@@ -296,7 +296,7 @@ export class WebSocketManager {
         },
         timestamp: new Date().toISOString(),
       });
-    } catch (error) {
+    } catch (error: unknown) {
       this.sendToClient(ws, {
         type: "error",
         data: { message: "Failed to get tickets" },
@@ -326,7 +326,7 @@ export class WebSocketManager {
         },
         timestamp: new Date().toISOString(),
       });
-    } catch (error) {
+    } catch (error: unknown) {
       this.sendToClient(ws, {
         type: "error",
         data: { message: "Failed to refresh dashboard" },
@@ -341,7 +341,7 @@ export class WebSocketManager {
   private sendToClient(ws: any, data: any): void {
     try {
       ws.send(JSON.stringify(data));
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Failed to send WebSocket message:", error);
     }
   }
@@ -367,7 +367,7 @@ export class WebSocketManager {
           ws.send(message);
           sentCount++;
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(` Failed to send to client ${client.id}:`, error);
         this.clients.delete(ws);
       }
@@ -390,7 +390,7 @@ export class WebSocketManager {
         console.log(`🧹 Cleaning up inactive client: ${client.id}`);
         try {
           ws.close();
-        } catch (error) {
+        } catch (error: unknown) {
           // Ignore close errors
         }
         this.clients.delete(ws);

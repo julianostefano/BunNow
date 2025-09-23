@@ -73,15 +73,10 @@ export class EnhancedMetricsService {
     );
 
     const db = this.mongoClient.db(this.databaseName);
-    this.incidentCollection = db.collection<MongoTicketDocument>(
-      "sn_incidents_collection",
-    );
-    this.ctaskCollection = db.collection<MongoTicketDocument>(
-      "sn_ctasks_collection",
-    );
-    this.sctaskCollection = db.collection<MongoTicketDocument>(
-      "sn_sctasks_collection",
-    );
+    this.incidentCollection =
+      db.collection<MongoTicketDocument>("sn_incidents");
+    this.ctaskCollection = db.collection<MongoTicketDocument>("sn_ctasks");
+    this.sctaskCollection = db.collection<MongoTicketDocument>("sn_sctasks");
   }
 
   static getInstance(
@@ -190,7 +185,7 @@ export class EnhancedMetricsService {
         overall_compliance: overallCompliance,
         total_penalty_percentage: totalPenalty,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [EnhancedMetrics] Error calculating SLA for ticket ${ticketId}:`,
         error,
@@ -238,7 +233,7 @@ export class EnhancedMetricsService {
       }
 
       return metricsResults;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(` [EnhancedMetrics] Error generating SLA metrics:`, error);
       return [];
     }
@@ -294,7 +289,7 @@ export class EnhancedMetricsService {
         },
         alerts: alerts,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [EnhancedMetrics] Error generating dashboard data:`,
         error,
@@ -337,7 +332,7 @@ export class EnhancedMetricsService {
       return breaches
         .sort((a, b) => b.created_at.getTime() - a.created_at.getTime())
         .slice(0, limit);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [EnhancedMetrics] Error getting recent breaches:", error);
       return [];
     }
@@ -383,7 +378,7 @@ export class EnhancedMetricsService {
           });
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [EnhancedMetrics] Error generating alerts:", error);
     }
 

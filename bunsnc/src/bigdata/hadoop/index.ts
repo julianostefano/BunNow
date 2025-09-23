@@ -136,7 +136,7 @@ export class ServiceNowHadoopFactory {
       result.success = result.uploadedFiles.length === localFiles.length;
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error uploading ServiceNow data to Hadoop:", error);
       return result;
     }
@@ -172,7 +172,7 @@ export class ServiceNowHadoopFactory {
       result.totalSizeAfter = stats.totalSize;
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error during data maintenance:", error);
       return result;
     }
@@ -212,7 +212,7 @@ export class ServiceNowHadoopFactory {
         partitions,
         recommendations,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error getting storage analytics:", error);
       return {
         cluster: null,
@@ -305,7 +305,7 @@ export class ServiceNowHadoopFactory {
           healthyPartitions: healthyPartitions.length,
         },
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error during Hadoop health check:", error);
       return {
         hdfs: {

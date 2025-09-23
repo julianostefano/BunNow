@@ -86,7 +86,7 @@ export class TicketIntelligenceService extends AIService {
 
       this.initialized = true;
       logger.info(" [TicketIntelligence] Service initialized successfully");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [TicketIntelligence] Failed to initialize:", error);
       throw error;
     }
@@ -118,7 +118,7 @@ export class TicketIntelligenceService extends AIService {
       const documentIntelligenceHealthy =
         await this.documentIntelligence.healthCheck();
       return serviceNowHealthy && documentIntelligenceHealthy;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [TicketIntelligence] Health check failed:", error);
       return false;
     }
@@ -147,7 +147,7 @@ export class TicketIntelligenceService extends AIService {
               error: `Failed to retrieve ticket ${ticket_id}: No records found`,
             };
           }
-        } catch (error) {
+        } catch (error: unknown) {
           return {
             success: false,
             error: `Failed to retrieve ticket ${ticket_id}: ${error instanceof Error ? error.message : String(error)}`,
@@ -193,7 +193,7 @@ export class TicketIntelligenceService extends AIService {
         confidence: classification.confidence,
         sources: resolutionSuggestions.map((s) => s.source_id),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [TicketIntelligence] Ticket analysis failed:", error);
       return {
         success: false,
@@ -221,7 +221,7 @@ export class TicketIntelligenceService extends AIService {
           if (response && response.records && response.records.length > 0) {
             ticketInfo = response.records[0];
           }
-        } catch (error) {
+        } catch (error: unknown) {
           logger.warn(
             ` [TicketIntelligence] Failed to retrieve ticket ${ticket_id}:`,
             error,
@@ -257,7 +257,7 @@ export class TicketIntelligenceService extends AIService {
         confidence:
           similarTickets.length > 0 ? similarTickets[0].similarity_score : 0,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         " [TicketIntelligence] Similar tickets search failed:",
         error,
@@ -298,7 +298,7 @@ export class TicketIntelligenceService extends AIService {
         confidence: suggestions.length > 0 ? suggestions[0].confidence : 0,
         sources: suggestions.map((s) => s.source_id),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         " [TicketIntelligence] Resolution suggestion failed:",
         error,
@@ -336,7 +336,7 @@ export class TicketIntelligenceService extends AIService {
         data: { estimated_minutes: estimatedTime },
         confidence: 0.8,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [TicketIntelligence] Time estimation failed:", error);
       return {
         success: false,
@@ -372,7 +372,7 @@ export class TicketIntelligenceService extends AIService {
         },
         confidence: 0.75,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         " [TicketIntelligence] Escalation risk assessment failed:",
         error,

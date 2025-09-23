@@ -56,7 +56,7 @@ export class ContractualSLAService {
       await this.loadAllSLAs();
 
       logger.info(" [ContractualSLA] Service initialized successfully");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [ContractualSLA] Failed to initialize:", error);
       throw error;
     }
@@ -92,7 +92,7 @@ export class ContractualSLAService {
       }
 
       return sla;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [ContractualSLA] Error getting SLA for ${ticketType}-${priority}-${metricType}:`,
         error,
@@ -125,7 +125,7 @@ export class ContractualSLAService {
       this.setCacheSLA(cacheKey, slas);
 
       return slas;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [ContractualSLA] Error getting SLAs for ticket type ${ticketType}:`,
         error,
@@ -158,7 +158,7 @@ export class ContractualSLAService {
       this.setCacheSLA(cacheKey, slas);
 
       return slas;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [ContractualSLA] Error getting SLAs for metric type ${metricType}:`,
         error,
@@ -210,7 +210,7 @@ export class ContractualSLAService {
 
       // Cache all SLAs
       this.setCacheSLA("all", allSLAs);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [ContractualSLA] Error loading all SLAs:", error);
       throw error;
     }
@@ -273,7 +273,7 @@ export class ContractualSLAService {
         business_hours_only: sla.business_hours_only,
         calculated_at: new Date(),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [ContractualSLA] Error calculating compliance for ticket ${ticketId}:`,
         error,
@@ -362,7 +362,7 @@ export class ContractualSLAService {
         resolutionCount > 0 ? totalResolutionHours / resolutionCount : 0;
 
       return stats;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [ContractualSLA] Error getting statistics:", error);
       throw error;
     }
@@ -382,7 +382,7 @@ export class ContractualSLAService {
       this.setCacheSLA("all", slas);
 
       return slas;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [ContractualSLA] Error getting all SLAs:", error);
       return [];
     }
@@ -431,7 +431,7 @@ export class ContractualSLAService {
     try {
       const count = await this.collection.countDocuments();
       return count > 0;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [ContractualSLA] Health check failed:", error);
       return false;
     }

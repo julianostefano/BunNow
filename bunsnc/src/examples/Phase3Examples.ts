@@ -37,7 +37,7 @@ export async function clientCreationExamples() {
   try {
     const client3 = ServiceNowClient.fromEnv({ validateConnection: false });
     console.log(" Client created from environment variables");
-  } catch (error) {
+  } catch (error: unknown) {
     console.log(" Environment variables not set:", error.message);
   }
 
@@ -113,7 +113,7 @@ export async function basicCrudExamples(client: ServiceNowClient) {
     console.log("Deleting test incident...");
     const deleted = await client.delete("incident", incidentId);
     console.log(" Incident deleted:", deleted);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" CRUD operation failed:", error.message);
   }
 
@@ -171,7 +171,7 @@ export async function glideRecordPaginationExamples(client: ServiceNowClient) {
       );
       asyncCount++;
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Pagination example failed:", error.message);
   }
 
@@ -263,7 +263,7 @@ export async function attachmentExamples(client: ServiceNowClient) {
     // Clean up test incident
     await client.delete("incident", incidentId);
     console.log(" Cleaned up test incident");
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Attachment operation failed:", error.message);
   }
 
@@ -453,7 +453,7 @@ export async function batchProcessingExamples(client: ServiceNowClient) {
     console.log(
       ` Cleanup completed: ${cleanupResults.filter((r) => r.success).length} incidents deleted`,
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Batch processing failed:", error.message);
   }
 
@@ -547,7 +547,7 @@ export async function advancedQueryExamples(client: ServiceNowClient) {
         Object.keys(directResults[0]).slice(0, 5).join(", "),
       );
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Advanced query failed:", error.message);
   }
 
@@ -628,7 +628,7 @@ export async function performanceExamples(client: ServiceNowClient) {
     console.log(
       `   Performance improvement: ${(((individualTime - batchTime) / individualTime) * 100).toFixed(1)}% faster`,
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Performance testing failed:", error.message);
   }
 
@@ -655,7 +655,7 @@ export async function runPhase3Examples() {
     console.log(" All Phase 3 examples completed successfully!");
     console.log("\n==========================================");
     console.log("🎉 BunSNC Phase 3 - Ready for Production!");
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(" Examples failed:", error);
     console.log("\n  Check your ServiceNow connection and credentials");
   }

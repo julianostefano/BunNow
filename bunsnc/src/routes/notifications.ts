@@ -83,7 +83,7 @@ async function getNotificationManager(): Promise<NotificationManager> {
     try {
       await notificationManager.start();
       console.log(" Notification system initialized");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(" Failed to initialize notification system:", error);
       throw error;
     }
@@ -117,7 +117,7 @@ export function createNotificationRoutes(): Elysia {
           queueId,
           message: "Notification queued successfully",
         };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Failed to send notification:", error);
         return Response.json(
           {
@@ -156,7 +156,7 @@ export function createNotificationRoutes(): Elysia {
           queueId,
           message: "Task notification sent",
         };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Failed to send task notification:", error);
         return Response.json(
           {
@@ -192,7 +192,7 @@ export function createNotificationRoutes(): Elysia {
           queueId,
           message: "System notification sent",
         };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Failed to send system notification:", error);
         return Response.json(
           {
@@ -231,7 +231,7 @@ export function createNotificationRoutes(): Elysia {
           queueId,
           message: "ServiceNow notification sent",
         };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Failed to send ServiceNow notification:", error);
         return Response.json(
           {
@@ -278,7 +278,7 @@ export function createNotificationRoutes(): Elysia {
           queueId,
           message: "Performance notification sent",
         };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Failed to send performance notification:", error);
         return Response.json(
           {
@@ -324,7 +324,7 @@ export function createNotificationRoutes(): Elysia {
           queueId,
           message: "Security notification sent",
         };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Failed to send security notification:", error);
         return Response.json(
           {
@@ -361,7 +361,7 @@ export function createNotificationRoutes(): Elysia {
     try {
       const stats = await notificationManager.getStats();
       return stats;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to get notification stats:", error);
       return Response.json(
         {
@@ -377,7 +377,7 @@ export function createNotificationRoutes(): Elysia {
     try {
       const health = notificationManager.getHealthStatus();
       return health;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to get health status:", error);
       return Response.json(
         {

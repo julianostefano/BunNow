@@ -24,7 +24,7 @@ export const createTicketActionsRoutes = () => {
               data: result,
               timestamp: new Date().toISOString(),
             };
-          } catch (error) {
+          } catch (error: unknown) {
             return {
               success: false,
               error: error.message,
@@ -58,7 +58,7 @@ export const createTicketActionsRoutes = () => {
               data: result,
               timestamp: new Date().toISOString(),
             };
-          } catch (error) {
+          } catch (error: unknown) {
             return {
               success: false,
               error: error.message,
@@ -91,7 +91,7 @@ export const createTicketActionsRoutes = () => {
               data: result,
               timestamp: new Date().toISOString(),
             };
-          } catch (error) {
+          } catch (error: unknown) {
             return {
               success: false,
               error: error.message,
@@ -124,7 +124,7 @@ export const createTicketActionsRoutes = () => {
               data: result,
               timestamp: new Date().toISOString(),
             };
-          } catch (error) {
+          } catch (error: unknown) {
             return {
               success: false,
               error: error.message,
@@ -158,7 +158,7 @@ export const createTicketActionsRoutes = () => {
               data: result,
               timestamp: new Date().toISOString(),
             };
-          } catch (error) {
+          } catch (error: unknown) {
             return {
               success: false,
               error: error.message,
@@ -197,7 +197,7 @@ export const createTicketActionsRoutes = () => {
               data: result,
               timestamp: new Date().toISOString(),
             };
-          } catch (error) {
+          } catch (error: unknown) {
             return {
               success: false,
               error: error.message,
@@ -239,7 +239,7 @@ export const createTicketActionsRoutes = () => {
               data: result,
               timestamp: new Date().toISOString(),
             };
-          } catch (error) {
+          } catch (error: unknown) {
             return {
               success: false,
               error: error.message,
@@ -275,7 +275,7 @@ export const createTicketActionsRoutes = () => {
               data: result,
               timestamp: new Date().toISOString(),
             };
-          } catch (error) {
+          } catch (error: unknown) {
             return {
               success: false,
               error: error.message,

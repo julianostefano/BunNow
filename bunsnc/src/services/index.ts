@@ -49,6 +49,15 @@ export {
   serviceNowRateLimiter,
 } from "./ServiceNowRateLimit";
 
+// Ticket Search Service (independent search without circular dependencies)
+export {
+  TicketSearchService,
+  ticketSearchService,
+} from "./TicketSearchService";
+
+// Synonym Service (query expansion and terminology mapping)
+export { SynonymService, synonymService } from "./SynonymService";
+
 // === TYPE EXPORTS ===
 export type {
   SystemConfig,

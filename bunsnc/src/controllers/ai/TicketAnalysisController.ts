@@ -65,7 +65,7 @@ export class TicketAnalysisController {
       this.rerank = new RerankClient();
       this.llm = new LLMClient();
       this.tika = new TikaClient();
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         `❌ [TicketAnalysisController] Failed to initialize: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
@@ -145,7 +145,7 @@ export class TicketAnalysisController {
         ` [TicketAnalysis] Completed analysis in ${response.analysis.processing_time_ms}ms`,
       );
       return response;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [TicketAnalysis] Analysis failed:", error);
       throw error;
     }
@@ -183,7 +183,7 @@ export class TicketAnalysisController {
             );
             attachmentTexts.push(`[${attachment.file_name}]: ${extractedText}`);
           }
-        } catch (error) {
+        } catch (error: unknown) {
           logger.warn(
             ` [TicketAnalysis] Failed to extract text from ${attachment.file_name}:`,
             error,
@@ -265,7 +265,7 @@ export class TicketAnalysisController {
       }
 
       return similarTickets;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [TicketAnalysis] Similar ticket search failed:", error);
       return [];
     }
@@ -321,7 +321,7 @@ export class TicketAnalysisController {
         );
         predictions.push(assignmentPrediction);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [TicketAnalysis] Prediction generation failed:", error);
     }
 
@@ -469,7 +469,7 @@ export class TicketAnalysisController {
           `Recomendação de atribuição: ${highConfidencePredictions.find((p) => p.property === "assignment_group")?.predicted_value || "Service Desk"}`,
         );
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn(" [TicketAnalysis] Recommendation generation failed:", error);
       recommendations.push(
         "Consultar tickets similares para estratégias de resolução",

@@ -227,7 +227,7 @@ export class NotificationManager extends EventEmitter {
 
       console.log(" Notification manager started successfully");
       this.emit("started");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to start notification manager:", error);
       await this.stop();
       throw error;
@@ -253,7 +253,7 @@ export class NotificationManager extends EventEmitter {
       this.isRunning = false;
       console.log("✓ Notification manager stopped");
       this.emit("stopped");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error stopping notification manager:", error);
       throw error;
     }
@@ -297,7 +297,7 @@ export class NotificationManager extends EventEmitter {
       });
 
       return queueId;
-    } catch (error) {
+    } catch (error: unknown) {
       this.failedDeliveries++;
       this.emit("notification_error", {
         notification,
@@ -862,7 +862,7 @@ export class NotificationManager extends EventEmitter {
                   console.log(
                     `✓ Push notification sent successfully to subscription ${subscription.endpoint.substr(-20)}...`,
                   );
-                } catch (error) {
+                } catch (error: unknown) {
                   console.error(
                     ` Push notification failed for subscription ${subscription.endpoint.substr(-20)}...:`,
                     error,
@@ -896,7 +896,7 @@ export class NotificationManager extends EventEmitter {
           `  VAPID keys not configured, push notification ${notification.id} logged only`,
         );
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Push notification delivery failed:", error);
       throw error;
     }
@@ -948,7 +948,7 @@ export class NotificationManager extends EventEmitter {
           `  Email SMTP configuration not provided, notification ${notification.id} logged only`,
         );
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Email notification delivery failed:", error);
       throw error;
     }
@@ -1008,7 +1008,7 @@ export class NotificationManager extends EventEmitter {
                 `HTTP ${response.status}: ${response.statusText}`,
               );
             }
-          } catch (error) {
+          } catch (error: unknown) {
             retryCount++;
             if (retryCount > maxRetries) {
               console.error(
@@ -1030,7 +1030,7 @@ export class NotificationManager extends EventEmitter {
           }
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Webhook notification delivery failed:", error);
       throw error;
     }
@@ -1080,7 +1080,7 @@ export class NotificationManager extends EventEmitter {
           `  Database notification ${notification.id} logged only - MongoDB connection required`,
         );
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Database notification storage failed:", error);
       throw error;
     }
@@ -1285,7 +1285,7 @@ export class NotificationManager extends EventEmitter {
         endpoint: sub.endpoint,
         keys: sub.keys,
       }));
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to get push subscriptions:", error);
       return [];
     }
@@ -1310,7 +1310,7 @@ export class NotificationManager extends EventEmitter {
       console.log(
         `✓ Removed invalid push subscription: ${endpoint.substr(-20)}...`,
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to remove push subscription:", error);
     }
   }

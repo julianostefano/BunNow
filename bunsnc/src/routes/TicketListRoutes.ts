@@ -38,7 +38,7 @@ export function createTicketListRoutes(serviceNowClient: ServiceNowAuthClient) {
 
             set.headers["content-type"] = "text/html; charset=utf-8";
             return htmlContent;
-          } catch (error) {
+          } catch (error: unknown) {
             ErrorHandler.logError("Lazy Load Tickets", error, {
               type: params.type,
               state: params.state,
@@ -82,7 +82,7 @@ export function createTicketListRoutes(serviceNowClient: ServiceNowAuthClient) {
 
             set.headers["content-type"] = "text/html; charset=utf-8";
             return htmlContent;
-          } catch (error) {
+          } catch (error: unknown) {
             ErrorHandler.logError("Ticket Counts", error, {
               type: params.type,
               state: params.state,

@@ -136,7 +136,7 @@ export class AIServicesTestSuite {
             "This is a test sentence for embedding generation.",
           );
           return Array.isArray(embedding) && embedding.length > 0;
-        } catch (error) {
+        } catch (error: unknown) {
           // Service might not be available, not a critical failure
           return false;
         }
@@ -155,7 +155,7 @@ export class AIServicesTestSuite {
           ];
           const response = await client.generateEmbeddings(texts);
           return response.embeddings.length === texts.length;
-        } catch (error) {
+        } catch (error: unknown) {
           return false;
         }
       },
@@ -202,7 +202,7 @@ export class AIServicesTestSuite {
 
         const response = await client.rerank(query, documents, { top_k: 2 });
         return response.results.length <= 2 && response.results.length > 0;
-      } catch (error) {
+      } catch (error: unknown) {
         return false;
       }
     });
@@ -219,7 +219,7 @@ export class AIServicesTestSuite {
 
         const topDocs = await client.rerankTopK(query, documents, 2);
         return topDocs.length === 2;
-      } catch (error) {
+      } catch (error: unknown) {
         return false;
       }
     });
@@ -260,7 +260,7 @@ export class AIServicesTestSuite {
           max_tokens: 50,
         });
         return typeof response === "string" && response.length > 0;
-      } catch (error) {
+      } catch (error: unknown) {
         return false;
       }
     });
@@ -278,7 +278,7 @@ export class AIServicesTestSuite {
           temperature: 0.3,
         });
         return typeof analysis === "string" && analysis.length > 0;
-      } catch (error) {
+      } catch (error: unknown) {
         return false;
       }
     });
@@ -290,7 +290,7 @@ export class AIServicesTestSuite {
           "Oracle database on production server",
         );
         return Array.isArray(steps) && steps.length > 0;
-      } catch (error) {
+      } catch (error: unknown) {
         return false;
       }
     });
@@ -305,7 +305,7 @@ export class AIServicesTestSuite {
 
         const summary = await client.summarizeDocument(longText, 100);
         return typeof summary === "string" && summary.length <= 120;
-      } catch (error) {
+      } catch (error: unknown) {
         return false;
       }
     });
@@ -318,7 +318,7 @@ export class AIServicesTestSuite {
 
         const keywords = await client.extractKeywords(text, 5);
         return Array.isArray(keywords) && keywords.length <= 5;
-      } catch (error) {
+      } catch (error: unknown) {
         return false;
       }
     });
@@ -346,7 +346,7 @@ export class AIServicesTestSuite {
       try {
         await bootstrap.initialize();
         return bootstrap.isInitialized();
-      } catch (error) {
+      } catch (error: unknown) {
         logger.warn(
           " [AIServicesTest] Bootstrap initialization failed (expected if services unavailable):",
           error,
@@ -393,7 +393,7 @@ export class AIServicesTestSuite {
 
       const status = success ? "" : "";
       logger.info(`${status} [${service}] ${testName} - ${latency}ms`);
-    } catch (error) {
+    } catch (error: unknown) {
       const latency = Date.now() - startTime;
 
       this.results.push({

@@ -169,7 +169,7 @@ export class Logger {
             await Promise.all(promises);
           }),
         );
-      } catch (error) {
+      } catch (error: unknown) {
         // Fallback to synchronous console error to avoid log loops
         console.error("[Logger] Async processing failed:", error);
       } finally {
@@ -189,7 +189,7 @@ export class Logger {
         try {
           this.writeToConsole(entry);
           resolve();
-        } catch (error) {
+        } catch (error: unknown) {
           console.error("[Logger] Console write failed:", error);
           resolve();
         }
@@ -203,7 +203,7 @@ export class Logger {
         try {
           await this.writeToFile(entry);
           resolve();
-        } catch (error) {
+        } catch (error: unknown) {
           console.error("[Logger] File write failed:", error);
           resolve();
         }
@@ -277,7 +277,7 @@ export class Logger {
             createPath: true,
           });
         }
-      } catch (error) {
+      } catch (error: unknown) {
         // Fallback to console if file write fails
         console.error("[Logger] File write error:", error);
       }

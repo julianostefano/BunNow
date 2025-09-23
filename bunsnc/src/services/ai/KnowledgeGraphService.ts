@@ -83,7 +83,7 @@ export class KnowledgeGraphService {
       await this.createIndexes();
 
       console.log("Knowledge Graph Service initialized with MongoDB");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Knowledge Graph Service initialization failed:", error);
       throw error;
     }
@@ -113,7 +113,7 @@ export class KnowledgeGraphService {
           support_group: 1,
         }),
       ]);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Index creation failed:", error);
     }
   }
@@ -170,7 +170,7 @@ export class KnowledgeGraphService {
         try {
           await this.processRelationships(documentId, relationships);
           await this.updateClusterAnalysis();
-        } catch (error) {
+        } catch (error: unknown) {
           console.error("Relationship processing failed:", error);
         }
       });

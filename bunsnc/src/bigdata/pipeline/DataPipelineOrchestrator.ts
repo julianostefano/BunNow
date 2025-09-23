@@ -226,7 +226,7 @@ export class DataPipelineOrchestrator extends EventEmitter {
       if (config.schedule) {
         this.schedulePipeline(config.id, config.schedule);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error registering pipeline ${config.id}:`, error);
       throw error;
     }
@@ -307,7 +307,7 @@ export class DataPipelineOrchestrator extends EventEmitter {
         pipelineId,
         metrics: execution.metrics,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       execution.status = "failed";
       execution.endTime = Date.now();
       execution.errors.push({
@@ -784,7 +784,7 @@ export class DataPipelineOrchestrator extends EventEmitter {
       this.emit("pipeline:cancelled", { executionId });
 
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error cancelling execution ${executionId}:`, error);
       return false;
     }
@@ -831,7 +831,7 @@ export class DataPipelineOrchestrator extends EventEmitter {
         try {
           await worker.terminate();
           logger.info(`Terminated worker: ${id}`);
-        } catch (error) {
+        } catch (error: unknown) {
           logger.error(`Error terminating worker ${id}:`, error);
         }
       },
@@ -972,7 +972,7 @@ export class DataPipelineOrchestrator extends EventEmitter {
         stageExecution.endTime = Date.now();
 
         return; // Success
-      } catch (error) {
+      } catch (error: unknown) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
         if (attempt < maxRetries) {
@@ -1229,7 +1229,7 @@ export class DataPipelineOrchestrator extends EventEmitter {
       try {
         logger.info(`Executing scheduled pipeline: ${pipelineId}`);
         await this.executePipeline(pipelineId, { forceRun: true });
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(`Error in scheduled pipeline ${pipelineId}:`, error);
       }
     }, intervalMs);
@@ -1261,7 +1261,7 @@ export class DataPipelineOrchestrator extends EventEmitter {
           totalPipelines: this.pipelines.size,
           memoryUsage: process.memoryUsage(),
         });
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error("Error in global monitoring:", error);
       }
     }, 30000); // Every 30 seconds

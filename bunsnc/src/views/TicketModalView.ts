@@ -309,7 +309,23 @@ export class TicketModalView {
    * @returns Not found modal HTML string
    */
   static generateNotFoundModal(): string {
-    return this.generateErrorModal("Ticket não encontrado");
+    return `
+      <div id="ticketModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-900 rounded-xl border border-gray-600 p-8 max-w-md w-full">
+          <div class="text-center">
+            <h3 class="text-lg font-medium text-red-400 mb-2">Erro</h3>
+            <p class="text-gray-300 mb-4">Ticket não encontrado</p>
+            <button onclick="closeModal()" class="mt-4 px-4 py-2 bg-gray-600 text-white rounded-lg">Fechar</button>
+          </div>
+        </div>
+        <script>
+          window.closeModal = function() {
+            const modal = document.getElementById('ticketModal');
+            if (modal) modal.remove();
+          };
+        </script>
+      </div>
+    `;
   }
 
   /**

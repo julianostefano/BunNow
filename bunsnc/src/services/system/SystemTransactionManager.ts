@@ -65,7 +65,7 @@ export class SystemTransactionManager extends EventEmitter {
 
       this.isInitialized = true;
       logger.info(" [SystemTransactions] Transaction manager initialized");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [SystemTransactions] Failed to initialize:", error);
       throw error;
     }
@@ -109,7 +109,7 @@ export class SystemTransactionManager extends EventEmitter {
       this.emit("transactionStarted", { transactionId, transaction });
 
       return transactionId;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [SystemTransactions] Failed to start transaction:", error);
       throw error;
     }
@@ -155,7 +155,7 @@ export class SystemTransactionManager extends EventEmitter {
         transaction,
         duration,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       await this.rollbackTransaction(transactionId);
       logger.error(
         " [SystemTransactions] Failed to commit transaction:",
@@ -195,7 +195,7 @@ export class SystemTransactionManager extends EventEmitter {
         transaction,
         duration,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         " [SystemTransactions] Failed to rollback transaction:",
         error,
@@ -227,7 +227,7 @@ export class SystemTransactionManager extends EventEmitter {
 
         await this.commitTransaction(transactionId);
         return result;
-      } catch (error) {
+      } catch (error: unknown) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
         if (transactionId) {
@@ -338,7 +338,7 @@ export class SystemTransactionManager extends EventEmitter {
         logger.warn(
           `⏰ [SystemTransactions] Rolled back expired transaction: ${transactionId}`,
         );
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(
           ` [SystemTransactions] Failed to cleanup expired transaction ${transactionId}:`,
           error,
@@ -410,7 +410,7 @@ export class SystemTransactionManager extends EventEmitter {
         avg_duration_ms: Math.round(avgDuration),
         active_sessions: this.sessions.size,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [SystemTransactions] Failed to get stats:", error);
       return {};
     }
@@ -434,7 +434,7 @@ export class SystemTransactionManager extends EventEmitter {
       }
 
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [SystemTransactions] Health check failed:", error);
       return false;
     }
@@ -467,7 +467,7 @@ export class SystemTransactionManager extends EventEmitter {
       for (const [transactionId, session] of this.sessions) {
         try {
           await session.endSession();
-        } catch (error) {
+        } catch (error: unknown) {
           logger.warn(`Failed to end session ${transactionId}:`, error);
         }
       }
@@ -476,7 +476,7 @@ export class SystemTransactionManager extends EventEmitter {
       this.sessions.clear();
 
       logger.info("🧹 [SystemTransactions] Cleanup completed");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [SystemTransactions] Cleanup failed:", error);
       throw error;
     }

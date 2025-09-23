@@ -108,7 +108,7 @@ export class EmbeddingClient {
       );
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [EmbeddingClient] Embedding generation failed:", error);
       throw error;
     }
@@ -167,7 +167,7 @@ export class EmbeddingClient {
         ` [EmbeddingClient] Health check returned status: ${response.status}`,
       );
       return false;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [EmbeddingClient] Health check failed:", error);
       return false;
     }
@@ -191,7 +191,7 @@ export class EmbeddingClient {
 
       const data = await response.json();
       return data.models || [this.config.default_model];
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [EmbeddingClient] Failed to get models:", error);
       return [this.config.default_model];
     }
@@ -217,7 +217,7 @@ export class EmbeddingClient {
       const info = await response.json();
       logger.debug(` [EmbeddingClient] Model info for ${model}:`, info);
       return info;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [EmbeddingClient] Failed to get model info for ${modelName}:`,
         error,
@@ -250,7 +250,7 @@ export class EmbeddingClient {
 
       const result = (await response.json()) as any;
       return result.similarity || this.cosineSimilarity(embedding1, embedding2);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn(
         " [EmbeddingClient] Using local similarity calculation due to API error:",
         error,
@@ -300,7 +300,7 @@ export class EmbeddingClient {
       }
 
       return null;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [EmbeddingClient] Failed to get service info:", error);
       return null;
     }
@@ -336,7 +336,7 @@ export class EmbeddingClient {
           error: "Health check failed",
         };
       }
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         success: false,
         latency: Date.now() - startTime,
@@ -354,7 +354,7 @@ export class EmbeddingClient {
 
       logger.info(" [EmbeddingClient] Service warmup completed");
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [EmbeddingClient] Service warmup failed:", error);
       return false;
     }

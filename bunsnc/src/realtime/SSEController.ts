@@ -268,7 +268,7 @@ export class SSEController extends EventEmitter {
       try {
         await this.pollForEvents(subscription);
         subscription.retryCount = 0; // Reset on success
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(
           `SSE polling error for subscription ${subscriptionId}:`,
           error,
@@ -434,7 +434,7 @@ export class SSEController extends EventEmitter {
       logger.debug(
         `Processed SSE event ${event.id} for subscription ${subscription.id}`,
       );
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error processing SSE event ${event.id}:`, error);
 
       if (subscription.errorHandler) {

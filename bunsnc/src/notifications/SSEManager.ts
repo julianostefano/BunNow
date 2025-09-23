@@ -117,7 +117,7 @@ export class SSEManager extends EventEmitter {
     for (const streamInfo of this.streams.values()) {
       try {
         streamInfo.stream.controller.close();
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error closing SSE stream:", error);
       }
     }
@@ -399,7 +399,7 @@ export class SSEManager extends EventEmitter {
       streamInfo.stream.lastMessageTime = new Date();
 
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Error sending event to stream ${streamId}:`, error);
       this.removeStream(streamId);
       return false;
@@ -498,7 +498,7 @@ export class SSEManager extends EventEmitter {
     // Close controller if still open
     try {
       streamInfo.stream.controller.close();
-    } catch (error) {
+    } catch (error: unknown) {
       // Already closed
     }
 

@@ -99,7 +99,7 @@ export class PredictiveAnalyticsService {
 
       this.setCachedPrediction(cacheKey, prediction);
       return prediction;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("[PredictiveAnalytics] Volume prediction failed:", error);
       return this.getDefaultVolumePrediction();
     }
@@ -135,7 +135,7 @@ export class PredictiveAnalyticsService {
 
       this.setCachedPrediction(cacheKey, prediction, 30 * 60 * 1000); // 30 min cache
       return prediction;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         `[PredictiveAnalytics] Resolution prediction failed for ${ticketId}:`,
         error,
@@ -179,7 +179,7 @@ export class PredictiveAnalyticsService {
 
       this.setCachedPrediction(cacheKey, assessment, 20 * 60 * 1000); // 20 min cache
       return assessment;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         `[PredictiveAnalytics] Risk assessment failed for ${ticketId}:`,
         error,
@@ -209,7 +209,7 @@ export class PredictiveAnalyticsService {
 
       this.setCachedPrediction(cacheKey, forecasts);
       return forecasts;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("[PredictiveAnalytics] Resource forecasting failed:", error);
       return this.getDefaultResourceForecast();
     }
@@ -235,7 +235,7 @@ export class PredictiveAnalyticsService {
 
       this.setCachedPrediction(cacheKey, insights);
       return insights;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("[PredictiveAnalytics] Pattern discovery failed:", error);
       return this.getDefaultPatterns();
     }
@@ -361,7 +361,7 @@ export class PredictiveAnalyticsService {
       });
 
       return JSON.parse(response);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn("[PredictiveAnalytics] Complexity analysis failed:", error);
       return {
         technical_complexity: 5,

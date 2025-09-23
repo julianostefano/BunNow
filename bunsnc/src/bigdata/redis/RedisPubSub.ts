@@ -145,7 +145,7 @@ export class RedisPubSub extends EventEmitter {
       this.emit("message:published", { channel, message, subscriberCount });
 
       return subscriberCount > 0;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error publishing to channel ${channel}:`, error);
       this.updateChannelMetrics(channel, "error");
       return false;
@@ -205,7 +205,7 @@ export class RedisPubSub extends EventEmitter {
       this.emit("message:published:multiple", { channels, data, results });
 
       return results;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Error publishing to multiple channels:", error);
       channels.forEach((channel) =>
         this.updateChannelMetrics(channel, "error"),
@@ -236,7 +236,7 @@ export class RedisPubSub extends EventEmitter {
 
       this.emit("channel:subscribed", { channel });
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error subscribing to channel ${channel}:`, error);
       return false;
     }
@@ -265,7 +265,7 @@ export class RedisPubSub extends EventEmitter {
 
       this.emit("pattern:subscribed", { pattern });
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error subscribing to pattern ${pattern}:`, error);
       return false;
     }
@@ -304,7 +304,7 @@ export class RedisPubSub extends EventEmitter {
       this.emit("channel:unsubscribed", { channel });
 
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error unsubscribing from channel ${channel}:`, error);
       return false;
     }
@@ -341,7 +341,7 @@ export class RedisPubSub extends EventEmitter {
       this.emit("pattern:unsubscribed", { pattern });
 
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error unsubscribing from pattern ${pattern}:`, error);
       return false;
     }
@@ -488,7 +488,7 @@ export class RedisPubSub extends EventEmitter {
           ...Array.from(this.patternSubscriptions.keys()),
         );
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn("Error during cleanup unsubscribe:", error);
     }
 
@@ -563,7 +563,7 @@ export class RedisPubSub extends EventEmitter {
         callbacks.forEach((callback) => {
           try {
             callback(message);
-          } catch (error) {
+          } catch (error: unknown) {
             logger.error(
               `Error in message callback for channel ${channel}:`,
               error,
@@ -574,7 +574,7 @@ export class RedisPubSub extends EventEmitter {
       }
 
       this.emit("message:received", { channel, message });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error parsing message for channel ${channel}:`, error);
       this.updateChannelMetrics(channel, "error");
     }
@@ -599,7 +599,7 @@ export class RedisPubSub extends EventEmitter {
         callbacks.forEach((callback) => {
           try {
             callback(message);
-          } catch (error) {
+          } catch (error: unknown) {
             logger.error(
               `Error in pattern callback for pattern ${pattern}:`,
               error,
@@ -610,7 +610,7 @@ export class RedisPubSub extends EventEmitter {
       }
 
       this.emit("pattern:message:received", { pattern, channel, message });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`Error parsing pattern message for ${pattern}:`, error);
       this.updateChannelMetrics(channel, "error");
     }
@@ -654,7 +654,7 @@ export class RedisPubSub extends EventEmitter {
       }
 
       this.emit("reconnection:success");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Error during resubscription:", error);
       this.handleReconnection(); // Try again
     }

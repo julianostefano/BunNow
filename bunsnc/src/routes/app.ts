@@ -138,7 +138,7 @@ async function createApp() {
     // Initialize MongoDB persistence service
     await dataService.initialize();
     console.log(" MongoDB service initialized for enhanced features");
-  } catch (error) {
+  } catch (error: unknown) {
     console.warn(
       " MongoDB service not available, enhanced features will be limited:",
       error.message,
@@ -151,7 +151,7 @@ async function createApp() {
     redisStreams = new ServiceNowStreams();
     await redisStreams.initialize();
     console.log(" Redis Streams initialized for real-time features");
-  } catch (error) {
+  } catch (error: unknown) {
     console.warn(
       " Redis Streams not available, real-time features will be limited:",
       error.message,

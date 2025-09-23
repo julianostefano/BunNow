@@ -25,6 +25,7 @@ export interface IncidentDocument {
   data: {
     incident: any;
     slms: SLMData[];
+    all_fields: any; // Todos campos retornados pelo ServiceNow
     sync_timestamp: string;
     collection_version: string;
   };
@@ -40,6 +41,7 @@ export interface ChangeTaskDocument {
   data: {
     change_task: any;
     slms: SLMData[];
+    all_fields: any; // Todos campos retornados pelo ServiceNow
     sync_timestamp: string;
     collection_version: string;
   };
@@ -55,6 +57,7 @@ export interface SCTaskDocument {
   data: {
     sc_task: any;
     slms: SLMData[];
+    all_fields: any; // Todos campos retornados pelo ServiceNow
     sync_timestamp: string;
     collection_version: string;
   };
@@ -82,10 +85,11 @@ export interface GroupDocument {
 
 // Collection names following Python scripts pattern
 export const COLLECTION_NAMES = {
-  INCIDENTS: "sn_incidents_collection",
-  CHANGE_TASKS: "sn_ctasks_collection",
-  SC_TASKS: "sn_sctasks_collection",
+  INCIDENTS: "sn_incidents",
+  CHANGE_TASKS: "sn_ctasks",
+  SC_TASKS: "sn_sctasks",
   GROUPS: "sn_groups",
+  SLA_CONTRATADO: "sn_sla_contratado",
 } as const;
 
 export type CollectionName =
@@ -110,12 +114,22 @@ export const COLLECTION_CONFIGS: CollectionConfig[] = [
       { "data.incident.state": 1, updated_at: -1 }, // State-based queries
       { "data.incident.priority": 1, created_at: -1 }, // Priority sorting
       { "data.incident.assignment_group": 1 }, // Group-based queries
+      { "data.slms.taskslatable_sla": 1 }, // SLA lookup
+      { "data.slms.taskslatable_has_breached": 1 }, // Breach queries
+      { "data.slms.assignment_group": 1 }, // SLM assignment group
+      { "data.slms.taskslatable_stage": 1 }, // SLM stage
+      { "data.all_fields.state": 1, updated_at: -1 }, // All fields state queries
       { sys_id_prefix: 1, created_at: -1 }, // Partitioning support
       { updated_at: -1 }, // Time-based queries
       { "data.sync_timestamp": -1 }, // Sync tracking
       // Compound indexes for complex queries
       { "data.incident.state": 1, "data.incident.priority": 1, updated_at: -1 },
       { "data.incident.assignment_group": 1, "data.incident.state": 1 },
+      { "data.slms.assignment_group": 1, "data.slms.taskslatable_stage": 1 },
+      {
+        "data.slms.taskslatable_sla": 1,
+        "data.slms.taskslatable_has_breached": 1,
+      },
     ],
     shardKey: { sys_id_prefix: 1, sys_id: 1 },
     validation: {
@@ -127,7 +141,7 @@ export const COLLECTION_CONFIGS: CollectionConfig[] = [
           number: { bsonType: "string", pattern: "^INC[0-9]{7}$" },
           data: {
             bsonType: "object",
-            required: ["incident", "slms", "sync_timestamp"],
+            required: ["incident", "slms", "all_fields", "sync_timestamp"],
             properties: {
               sync_timestamp: { bsonType: "string" },
               collection_version: { bsonType: "string" },
@@ -146,9 +160,20 @@ export const COLLECTION_CONFIGS: CollectionConfig[] = [
       { "data.change_task.priority": 1, created_at: -1 },
       { "data.change_task.assignment_group": 1 },
       { "data.change_task.change_request": 1 }, // Parent change reference
+      { "data.slms.taskslatable_sla": 1 }, // SLA lookup
+      { "data.slms.taskslatable_has_breached": 1 }, // Breach queries
+      { "data.slms.assignment_group": 1 }, // SLM assignment group
+      { "data.slms.taskslatable_stage": 1 }, // SLM stage
+      { "data.all_fields.state": 1, updated_at: -1 }, // All fields state queries
       { sys_id_prefix: 1, created_at: -1 },
       { updated_at: -1 },
       { "data.sync_timestamp": -1 },
+      // Compound indexes for SLM queries
+      { "data.slms.assignment_group": 1, "data.slms.taskslatable_stage": 1 },
+      {
+        "data.slms.taskslatable_sla": 1,
+        "data.slms.taskslatable_has_breached": 1,
+      },
     ],
     shardKey: { sys_id_prefix: 1, sys_id: 1 },
   },
@@ -161,9 +186,20 @@ export const COLLECTION_CONFIGS: CollectionConfig[] = [
       { "data.sc_task.priority": 1, created_at: -1 },
       { "data.sc_task.assignment_group": 1 },
       { "data.sc_task.request": 1 }, // Parent service request
+      { "data.slms.taskslatable_sla": 1 }, // SLA lookup
+      { "data.slms.taskslatable_has_breached": 1 }, // Breach queries
+      { "data.slms.assignment_group": 1 }, // SLM assignment group
+      { "data.slms.taskslatable_stage": 1 }, // SLM stage
+      { "data.all_fields.state": 1, updated_at: -1 }, // All fields state queries
       { sys_id_prefix: 1, created_at: -1 },
       { updated_at: -1 },
       { "data.sync_timestamp": -1 },
+      // Compound indexes for SLM queries
+      { "data.slms.assignment_group": 1, "data.slms.taskslatable_stage": 1 },
+      {
+        "data.slms.taskslatable_sla": 1,
+        "data.slms.taskslatable_has_breached": 1,
+      },
     ],
     shardKey: { sys_id_prefix: 1, sys_id: 1 },
   },
@@ -205,6 +241,58 @@ export const COLLECTION_CONFIGS: CollectionConfig[] = [
             },
           },
           raw_data: { bsonType: "string", minLength: 1 },
+        },
+      },
+    },
+  },
+  // SLA Contractual Collection
+  {
+    name: COLLECTION_NAMES.SLA_CONTRATADO,
+    indexes: [
+      { id: 1 }, // Primary key
+      { ticket_type: 1, priority: 1, metric_type: 1 }, // Busca SLA específica
+      { ticket_type: 1 }, // Busca por tipo de ticket
+      { priority: 1 }, // Busca por prioridade
+      { metric_type: 1 }, // Busca por tipo de métrica
+      { business_hours_only: 1 }, // Filtro horário comercial
+      { penalty_percentage: 1 }, // Ordenação por penalidade
+      { sla_hours: 1 }, // Ordenação por horas SLA
+      { created_at: -1 }, // Ordenação temporal
+      { updated_at: -1 },
+      // Compound indexes para consultas complexas
+      { ticket_type: 1, metric_type: 1, sla_hours: 1 },
+      { priority: 1, business_hours_only: 1 },
+    ],
+    validation: {
+      $jsonSchema: {
+        bsonType: "object",
+        required: [
+          "id",
+          "ticket_type",
+          "metric_type",
+          "priority",
+          "sla_hours",
+          "penalty_percentage",
+          "created_at",
+          "updated_at",
+        ],
+        properties: {
+          id: { bsonType: "number" },
+          ticket_type: {
+            bsonType: "string",
+            enum: ["incident", "ctask", "sctask"],
+          },
+          metric_type: {
+            bsonType: "string",
+            enum: ["response_time", "resolution_time"],
+          },
+          priority: { bsonType: "string" },
+          sla_hours: { bsonType: "number", minimum: 0 },
+          penalty_percentage: { bsonType: "number", minimum: 0, maximum: 100 },
+          description: { bsonType: "string" },
+          business_hours_only: { bsonType: "bool" },
+          created_at: { bsonType: "date" },
+          updated_at: { bsonType: "date" },
         },
       },
     },
@@ -277,7 +365,7 @@ export class MongoDBCollectionManager {
         } else {
           throw new Error("DataService or mongoManager not initialized");
         }
-      } catch (error) {
+      } catch (error: unknown) {
         throw new Error(
           `MongoDB collections manager requires dataService.mongoManager to be initialized: ${error.message}`,
         );
@@ -296,7 +384,7 @@ export class MongoDBCollectionManager {
       try {
         await this.ensureCollection(config);
         console.log(` [MongoDB] Collection '${config.name}' configured`);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(
           ` [MongoDB] Failed to configure collection '${config.name}':`,
           error,
@@ -499,6 +587,13 @@ export class MongoDBCollectionManager {
   }
 
   /**
+   * Get SLA contratado collection
+   */
+  getSLAContratadoCollection(): Collection<any> {
+    return this.getCollection(COLLECTION_NAMES.SLA_CONTRATADO);
+  }
+
+  /**
    * Collection health check
    */
   async getCollectionStats(): Promise<any> {
@@ -519,7 +614,7 @@ export class MongoDBCollectionManager {
           indexes: Object.keys(indexStats).length,
           indexSizes: collStats.indexSizes,
         };
-      } catch (error) {
+      } catch (error: unknown) {
         stats[config.name] = { error: String(error) };
       }
     }
@@ -555,7 +650,7 @@ export class MongoDBCollectionManager {
         console.log(
           `🗑️ [MongoDB] Cleaned ${result.deletedCount} old documents from ${collectionName}`,
         );
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(` [MongoDB] Error cleaning ${collectionName}:`, error);
       }
     }

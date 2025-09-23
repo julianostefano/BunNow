@@ -46,7 +46,7 @@ const app = new Elysia({ prefix: "/api/v1/tasks" })
           },
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error fetching tasks:", error);
         return {
           success: false,
@@ -89,7 +89,7 @@ const app = new Elysia({ prefix: "/api/v1/tasks" })
           message: "Task created successfully",
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error creating task:", error);
         return {
           success: false,
@@ -135,7 +135,7 @@ const app = new Elysia({ prefix: "/api/v1/tasks" })
         data: { task },
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Error fetching task ${params.id}:`, error);
       return {
         success: false,
@@ -164,7 +164,7 @@ const app = new Elysia({ prefix: "/api/v1/tasks" })
           message: "Task cancelled successfully",
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`Error cancelling task ${params.id}:`, error);
         return {
           success: false,
@@ -198,7 +198,7 @@ const app = new Elysia({ prefix: "/api/v1/tasks" })
         data: stats,
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error fetching queue stats:", error);
       return {
         success: false,
@@ -226,7 +226,7 @@ const app = new Elysia({ prefix: "/api/v1/tasks" })
         data: stats,
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error fetching system stats:", error);
       return {
         success: false,
@@ -257,7 +257,7 @@ const app = new Elysia({ prefix: "/api/v1/tasks" })
           data: { history, count: history.length },
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error fetching task history:", error);
         return {
           success: false,
@@ -291,7 +291,7 @@ const app = new Elysia({ prefix: "/api/v1/tasks" })
         data: health,
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error checking task manager health:", error);
       return {
         success: false,
@@ -319,7 +319,7 @@ const app = new Elysia({ prefix: "/api/v1/tasks" })
         data: { scheduledTasks, count: scheduledTasks.length },
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error fetching scheduled tasks:", error);
       return {
         success: false,
@@ -349,7 +349,7 @@ const app = new Elysia({ prefix: "/api/v1/tasks" })
           message: "Task scheduled successfully",
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error scheduling task:", error);
         return {
           success: false,
@@ -392,7 +392,7 @@ const app = new Elysia({ prefix: "/api/v1/tasks" })
         message: "Scheduled task removed successfully",
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Error unscheduling task ${params.id}:`, error);
       return {
         success: false,
@@ -420,7 +420,7 @@ const app = new Elysia({ prefix: "/api/v1/tasks" })
         message: "Scheduled task triggered successfully",
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Error triggering scheduled task ${params.id}:`, error);
       return {
         success: false,
@@ -449,7 +449,7 @@ const app = new Elysia({ prefix: "/api/v1/tasks" })
           message: `Scheduled task ${body.enabled ? "enabled" : "disabled"} successfully`,
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`Error updating scheduled task ${params.id}:`, error);
         return {
           success: false,
@@ -490,7 +490,7 @@ const app = new Elysia({ prefix: "/api/v1/tasks" })
           message: `Parquet export started for table: ${body.table}`,
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error starting parquet export:", error);
         return {
           success: false,
@@ -532,7 +532,7 @@ const app = new Elysia({ prefix: "/api/v1/tasks" })
           message: `Pipeline execution started: ${body.pipelineId}`,
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error starting pipeline execution:", error);
         return {
           success: false,
@@ -573,7 +573,7 @@ const app = new Elysia({ prefix: "/api/v1/tasks" })
           message: `Data sync started for tables: ${body.tables.join(", ")}`,
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error starting data sync:", error);
         return {
           success: false,
@@ -613,7 +613,7 @@ const app = new Elysia({ prefix: "/api/v1/tasks" })
           message: "Cache refresh started",
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error starting cache refresh:", error);
         return {
           success: false,

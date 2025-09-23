@@ -14,6 +14,7 @@ export interface SearchOptions {
   highlight?: Record<string, any>;
   explain?: boolean;
   trackTotalHits?: boolean | number;
+  minimumShouldMatch?: number;
 }
 
 export interface AggregationConfig {
@@ -258,7 +259,7 @@ export class SearchQuery {
   /**
    * Add multiple filter conditions (AND logic)
    */
-  filters(conditions: FilterCondition[]): SearchQuery {
+  addFilters(conditions: FilterCondition[]): SearchQuery {
     conditions.forEach((condition) => this.filter(condition));
     return this;
   }
@@ -302,7 +303,7 @@ export class SearchQuery {
   /**
    * Add "must not" condition
    */
-  mustNot(condition: FilterCondition): SearchQuery {
+  addMustNot(condition: FilterCondition): SearchQuery {
     const filterQuery = this.buildFilterQuery(condition);
     this.mustNot.push(filterQuery);
     return this;
@@ -311,7 +312,10 @@ export class SearchQuery {
   /**
    * Add "should" condition (OR logic)
    */
-  should(condition: FilterCondition, minimumShouldMatch?: number): SearchQuery {
+  addShould(
+    condition: FilterCondition,
+    minimumShouldMatch?: number,
+  ): SearchQuery {
     const filterQuery = this.buildFilterQuery(condition);
     this.should.push(filterQuery);
 
@@ -333,7 +337,7 @@ export class SearchQuery {
   /**
    * Add multiple aggregations
    */
-  aggregations(aggregations: AggregationConfig): SearchQuery {
+  addAggregations(aggregations: AggregationConfig): SearchQuery {
     Object.assign(this.aggregations, aggregations);
     return this;
   }
@@ -342,7 +346,7 @@ export class SearchQuery {
    * Add ServiceNow-specific incident analytics aggregations
    */
   incidentAnalytics(): SearchQuery {
-    return this.aggregations({
+    return this.addAggregations({
       by_state: {
         terms: {
           field: "state",
@@ -398,7 +402,7 @@ export class SearchQuery {
    * Add ServiceNow-specific change request analytics
    */
   changeAnalytics(): SearchQuery {
-    return this.aggregations({
+    return this.addAggregations({
       by_type: {
         terms: {
           field: "type",
@@ -557,7 +561,7 @@ export class SearchQuery {
         from: fromDate.toISOString(),
         to: new Date().toISOString(),
       })
-      .aggregations({
+      .addAggregations({
         daily_incidents: {
           date_histogram: {
             field: "sys_created_on",
@@ -624,7 +628,7 @@ export class SearchQuery {
         from: fromDate.toISOString(),
         to: new Date().toISOString(),
       })
-      .aggregations({
+      .addAggregations({
         error_rate: {
           filters: {
             filters: {
@@ -1007,7 +1011,7 @@ export class ServiceNowSearchPatterns {
 
     if (options.includeGroup) {
       // Add OR condition for assignment group where user is member
-      query = query.should({
+      query = query.addShould({
         field: "assignment_group.members",
         operator: "equals",
         value: userId,

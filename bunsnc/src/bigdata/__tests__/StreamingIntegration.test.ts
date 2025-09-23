@@ -69,7 +69,7 @@ class MockDestinationStream extends Writable {
         this.records.push(chunk);
         callback();
       }, Math.random() * 10); // 0-10ms processing time
-    } catch (error) {
+    } catch (error: unknown) {
       this.writeErrors.push({ chunk, error });
       callback(error);
     }

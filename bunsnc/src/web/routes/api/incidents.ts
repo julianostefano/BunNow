@@ -14,7 +14,7 @@ import { logger } from "../../../utils/Logger";
 
 // Initialize services
 const mongoClient = new MongoClient(
-  process.env.MONGODB_URL || "mongodb://localhost:27017",
+  process.env.MONGODB_URL || "mongodb://localhost:27018",
 );
 const databaseName = process.env.MONGODB_DATABASE || "bunsnc";
 
@@ -132,7 +132,7 @@ const app = new Elysia({ prefix: "/api/incidents" })
           },
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error fetching incidents:", error);
         return {
           success: false,
@@ -209,7 +209,7 @@ const app = new Elysia({ prefix: "/api/incidents" })
         data: incident,
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error fetching incident:", error);
       return {
         success: false,
@@ -239,7 +239,7 @@ const app = new Elysia({ prefix: "/api/incidents" })
         data: validationResult,
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         ` [IncidentsAPI] Error validating incident ${params.id}:`,
         error,
@@ -401,7 +401,7 @@ const app = new Elysia({ prefix: "/api/incidents" })
           },
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error(
           " [IncidentsAPI] Error fetching incident statistics:",
           error,
@@ -460,7 +460,7 @@ const app = new Elysia({ prefix: "/api/incidents" })
           },
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error fetching hourly trends:", error);
         return {
           success: false,
@@ -489,7 +489,7 @@ const app = new Elysia({ prefix: "/api/incidents" })
           estimated_completion: new Date(Date.now() + 300000).toISOString(), // 5 minutes
           timestamp: new Date().toISOString(),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error initiating parquet export:", error);
         return {
           success: false,

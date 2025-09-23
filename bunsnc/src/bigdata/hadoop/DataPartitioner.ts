@@ -226,7 +226,7 @@ export class DataPartitioner extends EventEmitter {
               path: partition.path,
             });
           }
-        } catch (error) {
+        } catch (error: unknown) {
           logger.error(
             `Failed to create partition ${partition.id}:`,
             error as Error,
@@ -351,7 +351,7 @@ export class DataPartitioner extends EventEmitter {
               newPartition: compactedPartition.partitionId,
             });
           }
-        } catch (error) {
+        } catch (error: unknown) {
           logger.error(`Failed to compact partition group:`, error as Error);
         }
       }
@@ -414,7 +414,7 @@ export class DataPartitioner extends EventEmitter {
               reason: "expired",
             });
           }
-        } catch (error) {
+        } catch (error: unknown) {
           logger.error(
             `Failed to delete partition ${partition.partitionId}:`,
             error as Error,
@@ -798,7 +798,7 @@ export class DataPartitioner extends EventEmitter {
       this.partitionMetadata.set(compactedId, compactedMetadata);
 
       return compactedMetadata;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Error during partition compaction:", error as Error);
       return null;
     }
@@ -943,7 +943,7 @@ export class DataPartitioner extends EventEmitter {
         }
       }
       // Add other format handling as needed
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug(
         "Error parsing date range:",
         (error as Error).message || "Unknown error",

@@ -419,7 +419,7 @@ export const htmxAIRoutes = new Elysia({ prefix: "/ai" })
           <span style="color: #ef4444;">Erro ao verificar status dos serviços</span>
         </div>
       `);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("[HtmxAI] Services status check failed:", error);
       return html(`
         <div class="ai-metric">
@@ -532,7 +532,7 @@ export const htmxAIRoutes = new Elysia({ prefix: "/ai" })
           <p style="font-size: 12px; margin-top: 8px;">Tente termos como: "Oracle", "backup", "rede", "PostgreSQL"</p>
         </div>
       `);
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error("[HtmxAI] Quick search failed:", error);
         return html(`
         <div style="text-align: center; padding: 20px; color: #ef4444;">

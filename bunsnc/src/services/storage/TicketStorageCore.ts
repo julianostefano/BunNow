@@ -177,7 +177,7 @@ export class TicketStorageCore {
       this.isConnected = true;
 
       console.log(" Enhanced Ticket Storage Service initialized successfully");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(
         " Failed to initialize Enhanced Ticket Storage Service:",
         error,
@@ -404,7 +404,7 @@ export class TicketStorageCore {
     try {
       // Ping to verify connection is still active
       await this.client!.db("admin").command({ ping: 1 });
-    } catch (error) {
+    } catch (error: unknown) {
       console.log(" Reconnecting to MongoDB...");
       this.isConnected = false;
       await this.initialize();

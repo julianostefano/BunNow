@@ -90,7 +90,8 @@ export const E2E_CONFIG: E2ETestConfig = {
     },
     mongodb: {
       connectionUrl:
-        process.env.MONGODB_URL || "mongodb://localhost:27017/bunsnc_test",
+        process.env.MONGODB_URL ||
+        "mongodb://admin:Logica2011_@10.219.8.210:27018/bunsnc_test?authSource=admin",
       timeout: 10000,
       poolSize: 10,
     },

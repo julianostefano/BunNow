@@ -34,7 +34,7 @@ export class TicketDataCore {
       await this.initializeMongoDB();
       await this.groupService.initialize();
       logger.info(" [TICKET-DATA] TicketDataCore initialized successfully");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         " [TICKET-DATA] Failed to initialize TicketDataCore:",
         error,
@@ -71,7 +71,7 @@ export class TicketDataCore {
       this.isConnected = true;
 
       logger.info(" [TICKET-DATA] MongoDB connection established");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(" [TICKET-DATA] MongoDB connection failed:", error);
       throw error;
     }
@@ -135,7 +135,7 @@ export class TicketDataCore {
         groups: groupCount,
         lastSync: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`[TICKET-DATA] Error getting collection stats:`, error);
       return {
         incidents: 0,
@@ -176,7 +176,7 @@ export class TicketDataCore {
       if (!document) return null;
 
       return this.convertMongoDocumentToTicketData(document, table);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`[TICKET-DATA] Error fetching from MongoDB:`, error);
       return null;
     }
@@ -214,7 +214,7 @@ export class TicketDataCore {
       await collection.replaceOne({ sys_id: ticket.sysId }, document, {
         upsert: true,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(`[TICKET-DATA] Error storing ticket in MongoDB:`, error);
     }
   }
@@ -310,7 +310,7 @@ export class TicketDataCore {
           minute: "2-digit",
         });
       }
-    } catch (error) {
+    } catch (error: unknown) {
       return dateString.slice(0, 16);
     }
 

@@ -9,6 +9,8 @@
 import { Context } from "elysia";
 import { getUnifiedStatusConfig } from "../../models/StatusConfig";
 import { formatSafeDate } from "../../utils/DateFormatters";
+import { ticketSearchService } from "../../services/TicketSearchService";
+import { ErrorHandler } from "../../utils/ErrorHandler";
 
 /**
  * Interface for search query parameters
@@ -57,78 +59,31 @@ function parseSearchQuery(queryParams: Record<string, unknown>): SearchQuery {
   };
 }
 
-/**
- * Detect ticket type from number format
- */
-function detectTicketType(ticketNumber: string): string | null {
-  const upperNumber = ticketNumber.toUpperCase();
-
-  if (upperNumber.startsWith("INC")) return "incident";
-  if (upperNumber.startsWith("CTASK")) return "change_task";
-  if (upperNumber.startsWith("SCTASK")) return "sc_task";
-
-  return null;
-}
+// Search functionality is now handled by TicketSearchService
 
 /**
- * Build search filter based on query
- */
-function buildSearchFilter(searchQuery: SearchQuery): string {
-  const { query } = searchQuery;
-
-  // Check if query looks like a ticket number
-  const ticketType = detectTicketType(query);
-  if (ticketType) {
-    return `number=${query}`;
-  }
-
-  // Check if query is numeric (could be sys_id)
-  if (/^[a-f0-9]{32}$/i.test(query)) {
-    return `sys_id=${query}`;
-  }
-
-  // General text search across multiple fields
-  return `short_descriptionLIKE${query}^ORdescriptionLIKE${query}^ORnumberLIKE${query}`;
-}
-
-/**
- * Mock search function - replace with actual ServiceNow API call
- * TODO: Integrate with ConsolidatedDataService when circular dependency is resolved
+ * Real search function using TicketSearchService
+ * Searches MongoDB collections directly without circular dependencies
  */
 async function performSearch(
   searchQuery: SearchQuery,
+  filters?: {
+    table?: string;
+    state?: string;
+    priority?: string;
+    assignmentGroup?: string;
+  },
 ): Promise<SearchResult[]> {
   try {
-    // This would normally call the ServiceNow API through ConsolidatedDataService
-    // For now, return mock data to avoid circular dependency
-
-    console.log(` Searching for: "${searchQuery.query}"`);
-    const filter = buildSearchFilter(searchQuery);
-    console.log(` Search filter: ${filter}`);
-
-    // Mock results - replace with actual API call
-    const mockResults: SearchResult[] = [];
-
-    // If searching for specific ticket number, return focused results
-    const ticketType = detectTicketType(searchQuery.query);
-    if (ticketType) {
-      mockResults.push({
-        sys_id: "mock-sys-id-" + Date.now(),
-        number: searchQuery.query.toUpperCase(),
-        short_description: `Mock ticket for ${searchQuery.query}`,
-        state: "in_progress",
-        assigned_to: "System User",
-        created_on: new Date().toISOString(),
-        table: ticketType,
-        priority: "3",
-        urgency: "3",
-      });
-    }
-
-    return mockResults;
-  } catch (error) {
-    console.error("Search error:", error);
-    throw new Error(`Search failed: ${error.message}`);
+    // Use the TicketSearchService to search MongoDB directly
+    const results = await ticketSearchService.searchTickets(
+      searchQuery,
+      filters,
+    );
+    return results;
+  } catch (error: unknown) {
+    ErrorHandler.logUnknownError("SearchController.performSearch", error);
+    throw new Error(`Search failed: ${ErrorHandler.getErrorMessage(error)}`);
   }
 }
 
@@ -319,14 +274,29 @@ export async function handleSearchRequest(context: Context): Promise<string> {
     // Parse and validate query
     const searchQuery = parseSearchQuery(queryParams);
 
+    // Extract additional filters from query params
+    const filters = {
+      table: queryParams.table as string,
+      state: queryParams.state as string,
+      priority: queryParams.priority as string,
+      assignmentGroup: queryParams.assignmentGroup as string,
+    };
+
+    // Remove undefined values
+    Object.keys(filters).forEach((key) => {
+      if (!filters[key as keyof typeof filters]) {
+        delete filters[key as keyof typeof filters];
+      }
+    });
+
     // Perform search
-    const results = await performSearch(searchQuery);
+    const results = await performSearch(searchQuery, filters);
 
     // Generate results HTML
     return generateSearchResultsHTML(results, searchQuery.query);
   } catch (error: unknown) {
-    console.error("Error in search handler:", error);
+    ErrorHandler.logUnknownError("SearchController.handleSearchRequest", error);
     const query = context.query?.query || "unknown";
-    return generateSearchErrorHTML(error.message, query);
+    return generateSearchErrorHTML(ErrorHandler.getErrorMessage(error), query);
   }
 }

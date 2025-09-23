@@ -214,6 +214,9 @@ export class ServiceNowWebServer {
           .get("/mongodb/tickets/:type", ({ params, query }) =>
             this.apiController.getTicketsFromMongoDB(params.type, query),
           )
+          .get("/servicenow/tickets/:type", ({ params, query }) =>
+            this.apiController.getTicketsFromServiceNow(params.type, query),
+          )
           .get("/mongodb/stats", () => this.apiController.getMongoDBStats())
           .get("/mongodb/groups", () => this.apiController.getTargetGroups()),
       );

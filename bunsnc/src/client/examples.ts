@@ -43,7 +43,7 @@ export async function basicUsageExample() {
     // Get task statistics
     const taskStats = await client.getTaskQueueStats();
     console.log("Task queue stats:", taskStats.data?.data);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error in basic usage:", error);
   }
 }
@@ -110,7 +110,7 @@ export async function advancedUsageExample() {
 
       console.log("Scheduled task created:", scheduledSync.data?.data.taskId);
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error in advanced usage:", error);
   }
 }
@@ -180,7 +180,7 @@ export async function batchOperationsExample() {
     console.log(
       `${successfulTasks.length}/${taskIds.length} tasks completed successfully`,
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error in batch operations:", error);
   }
 }
@@ -260,7 +260,7 @@ export async function realTimeMonitoringExample() {
           // Wait before next check
           await new Promise((resolve) => setTimeout(resolve, 2000));
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Monitoring error:", error);
       }
     };
@@ -271,7 +271,7 @@ export async function realTimeMonitoringExample() {
     // Get final system stats
     const finalStats = await client.getSystemStats();
     console.log("Final system stats:", finalStats.data?.data.system);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error in real-time monitoring:", error);
   }
 }
@@ -296,7 +296,7 @@ export async function errorHandlingExample() {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         return await operation();
-      } catch (error) {
+      } catch (error: unknown) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
         if (attempt === maxRetries) {
@@ -341,7 +341,7 @@ export async function errorHandlingExample() {
 
       taskId = task.data.data.taskId;
       console.log("Task created successfully:", taskId);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Task creation failed:", error);
       return;
     }
@@ -358,7 +358,7 @@ export async function errorHandlingExample() {
       });
 
       console.log("Task completed successfully");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Task monitoring failed:", error);
 
       // Try to get final task state
@@ -369,7 +369,7 @@ export async function errorHandlingExample() {
         console.error("Could not retrieve final task state:", stateError);
       }
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Critical error in error handling example:", error);
   }
 }
@@ -419,7 +419,7 @@ export async function authenticationExample() {
           this.setAuthToken(data.accessToken);
           console.log("Auth token refreshed successfully");
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Token refresh failed:", error);
         throw error;
       }
@@ -454,7 +454,7 @@ export async function authenticationExample() {
     );
 
     console.log("Incidents retrieved:", incidents.data?.count);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Authentication example failed:", error);
   }
 }

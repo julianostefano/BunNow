@@ -151,7 +151,7 @@ export class IntelligenceDashboardService {
 
       this.setCachedData(cacheKey, metrics);
       return metrics;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         "[IntelligenceDashboard] Failed to get dashboard metrics:",
         error,
@@ -220,7 +220,7 @@ export class IntelligenceDashboardService {
 
       this.setCachedData(cacheKey, insights, 10 * 60 * 1000); // 10 minutes cache
       return insights;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         `[IntelligenceDashboard] Failed to get insights for ticket ${ticketId}:`,
         error,
@@ -262,7 +262,7 @@ export class IntelligenceDashboardService {
 
       this.setCachedData(cacheKey, stats, 15 * 60 * 1000); // 15 minutes cache
       return stats;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error(
         "[IntelligenceDashboard] Failed to get knowledge base stats:",
         error,
@@ -381,7 +381,7 @@ export class IntelligenceDashboardService {
       });
 
       return JSON.parse(response);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn(
         "[IntelligenceDashboard] Failed to generate AI insights:",
         error,
