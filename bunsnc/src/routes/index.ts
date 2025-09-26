@@ -17,6 +17,7 @@ import { createGroupRoutes } from "./GroupRoutes";
 import { createModalRoutes, createSSERoutes } from "./ModalRoutes";
 import { createSystemService, SystemConfig } from "../services/SystemService";
 import { MongoClient } from "mongodb";
+import { serviceNowProxyRoutes } from "../modules/servicenow-proxy";
 
 export async function createMainApp(): Promise<Elysia> {
   const mainApp = new Elysia();
@@ -98,6 +99,15 @@ export async function createMainApp(): Promise<Elysia> {
   } catch (error: unknown) {
     console.error(" Failed to add main application routes:", error);
     throw error;
+  }
+
+  // Add ServiceNow proxy routes (CRITICAL FIX for self-referencing calls)
+  try {
+    mainApp.use(serviceNowProxyRoutes);
+    console.log("🌉 ServiceNow proxy routes added - self-referencing calls resolved");
+  } catch (error: unknown) {
+    console.error(" Failed to add ServiceNow proxy routes:", error);
+    console.warn(" Server will continue but self-referencing calls will fail");
   }
 
   // Add notification routes (SSE, WebSocket) with error handling

@@ -47,6 +47,8 @@ export interface RateLimitConfig {
 }
 
 export class ServiceNowFetchClient {
+  protected readonly AUTH_SERVICE_PROXY_URL =
+    process.env.AUTH_SERVICE_PROXY_URL || "http://10.219.8.210:3008";
   private readonly baseUrl: string;
   private samlAuthData: SAMLAuthenticationData | null = null;
   private isAuthenticated = false;
@@ -65,9 +67,8 @@ export class ServiceNowFetchClient {
   };
 
   constructor(config?: Partial<RateLimitConfig>) {
-    this.baseUrl =
-      process.env.SERVICENOW_INSTANCE_URL ||
-      "https://iberdrola.service-now.com";
+    // Use auth service as proxy to avoid 61s infrastructure timeout
+    this.baseUrl = `${this.AUTH_SERVICE_PROXY_URL}/api/v1/servicenow/tickets`;
     this.rateLimitConfig = {
       maxRequestsPerSecond: parseInt(process.env.SERVICENOW_RATE_LIMIT || "25"),
       maxConcurrentRequests: parseInt(
@@ -225,15 +226,87 @@ export class ServiceNowFetchClient {
   }
 
   /**
+   * Make authenticated request to auth service proxy instead of direct ServiceNow
+   */
+  protected async makeProxyRequest(config: {
+    url: string;
+    method?: string;
+    params?: Record<string, string>;
+  }): Promise<any> {
+    const startTime = Date.now();
+
+    try {
+      // Build URL with query parameters
+      const url = new URL(config.url);
+      if (config.params) {
+        Object.entries(config.params).forEach(([key, value]) => {
+          url.searchParams.append(key, value);
+        });
+      }
+
+      // Simple headers - auth service will handle ServiceNow authentication
+      const headers = {
+        "User-Agent": "BunSNC-ServiceNow-Client/1.0",
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      };
+
+      const fetchConfig: RequestInit = {
+        method: config.method || "GET",
+        headers,
+        signal: AbortSignal.timeout(900000), // 15 minutes timeout
+      };
+
+      console.log(
+        `🚀 Auth service proxy request: ${config.method || "GET"} ${url.toString()}`,
+      );
+
+      const response = await fetch(url.toString(), fetchConfig);
+      const duration = Date.now() - startTime;
+
+      console.log(`✅ Auth service proxy request completed in ${duration}ms`);
+
+      if (!response.ok) {
+        console.error(`❌ Auth service proxy request failed:`, {
+          url: url.toString(),
+          method: config.method || "GET",
+          status: response.status,
+          statusText: response.statusText,
+        });
+
+        throw new Error(
+          `Auth service proxy returned status ${response.status}: ${response.statusText}`,
+        );
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        return await response.json();
+      } else {
+        return await response.text();
+      }
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      console.error(
+        `❌ Auth service proxy error after ${duration}ms:`,
+        error.message,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Create SAML configuration from environment variables
+   * CRITICAL FIX: SAML auth MUST use direct ServiceNow URL, not proxy
    */
   private createConfigFromEnv() {
+    // SAML authentication requires DIRECT ServiceNow URL (não proxy)
+    const directServiceNowUrl = "https://iberdrola.service-now.com";
+
     const config = {
       username: process.env.SERVICENOW_USERNAME || "",
       password: process.env.SERVICENOW_PASSWORD || "",
-      baseUrl:
-        process.env.SERVICENOW_INSTANCE_URL ||
-        "https://iberdrola.service-now.com",
+      baseUrl: directServiceNowUrl, // DIRECT URL for SAML handshake
       instance: "iberdrola",
       proxy: process.env.SERVICENOW_PROXY,
     };
@@ -244,13 +317,21 @@ export class ServiceNowFetchClient {
       );
     }
 
+    console.log("🔐 SAML Config:", {
+      baseUrl: config.baseUrl,
+      instance: config.instance,
+      hasUsername: !!config.username,
+      hasPassword: !!config.password,
+      useProxy: !!config.proxy
+    });
+
     return config;
   }
 
   /**
    * Make request with ALL fields (no sysparm_fields limitation)
    * Used for complete field mapping and analysis
-   * ALWAYS includes period filter (current month) like all other services
+   * Now uses proxy endpoints instead of direct ServiceNow connection
    */
   async makeRequestFullFields(
     table: string,
@@ -259,65 +340,43 @@ export class ServiceNowFetchClient {
     skipPeriodFilter: boolean = false,
   ): Promise<ServiceNowQueryResult> {
     return this.executeWithRateLimit(async () => {
-      await this.authenticate();
-
-      // Build query with optional period filter
-      let finalQuery = query;
-
-      if (!skipPeriodFilter && !query.includes("sys_created_onBETWEEN")) {
-        // Generate current month filter (SAME pattern as ServiceNowQueryService)
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = String(now.getMonth() + 1).padStart(2, "0");
-        const monthStart = `${currentYear}-${currentMonth}-01`;
-        const monthEnd = `${currentYear}-${currentMonth}-31`;
-
-        finalQuery = `sys_created_onBETWEEN${monthStart}@${monthEnd}`;
-        if (query) {
-          finalQuery += `^${query}`;
-        }
-      }
-
-      const url = `${this.baseUrl}/api/now/table/${table}`;
-      const searchParams = new URLSearchParams({
-        sysparm_query: finalQuery,
-        sysparm_display_value: "all",
-        sysparm_exclude_reference_link: "true",
-        sysparm_limit: limit.toString(),
-      });
-
-      const fullUrl = `${url}?${searchParams.toString()}`;
-
-      const startTime = Date.now();
-
       try {
-        const response = await this.makeAuthenticatedFetch(fullUrl, {
+        // Build query with optional period filter
+        let finalQuery = query;
+
+        if (!skipPeriodFilter && !query.includes("sys_created_onBETWEEN")) {
+          // Generate current month filter (SAME pattern as ServiceNowQueryService)
+          const now = new Date();
+          const currentYear = now.getFullYear();
+          const currentMonth = String(now.getMonth() + 1).padStart(2, "0");
+          const monthStart = `${currentYear}-${currentMonth}-01`;
+          const monthEnd = `${currentYear}-${currentMonth}-31`;
+
+          finalQuery = `sys_created_onBETWEEN${monthStart}@${monthEnd}`;
+          if (query) {
+            finalQuery += `^${query}`;
+          }
+        }
+
+        // Use proxy endpoint instead of direct ServiceNow connection
+        const response = await this.makeProxyRequest({
+          url: `${this.AUTH_SERVICE_PROXY_URL}/api/v1/servicenow/tickets/${table}`,
           method: "GET",
+          params: {
+            sysparm_query: finalQuery,
+            sysparm_display_value: "all",
+            sysparm_exclude_reference_link: "true",
+            sysparm_limit: limit.toString(),
+          },
         });
 
-        if (!response.ok) {
-          throw new Error(
-            `ServiceNow API returned status ${response.status}: ${response.statusText}`,
-          );
-        }
+        console.log(`✅ ServiceNow ${table} proxy request completed`);
 
-        const data = await response.json();
-        const duration = Date.now() - startTime;
-
-        this.updateMetrics(true, duration);
-        console.log(
-          `✅ ServiceNow ${table} request completed in ${duration}ms`,
-        );
-
-        return data;
-      } catch (error) {
-        const duration = Date.now() - startTime;
-        this.updateMetrics(false, duration);
-
-        console.error(
-          `❌ ServiceNow ${table} full fields error:`,
-          error.message,
-        );
+        return { result: response.result || [] };
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        console.error(`ServiceNow ${table} proxy request error:`, errorMessage);
         throw error;
       }
     });
@@ -367,8 +426,8 @@ export class ServiceNowFetchClient {
       headers["Cookie"] = cookieString;
     }
 
-    // Use same timeout as Python implementation (240 seconds)
-    const timeout = 240000; // 240 seconds like Python sctask_jsonb.py
+    // Use 15 minutes timeout (as specified by user)
+    const timeout = 900000; // 15 minutes timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -379,6 +438,7 @@ export class ServiceNowFetchClient {
         headers,
         body: config.body,
         signal: controller.signal,
+        verbose: true, // Add verbose logging as suggested by error messages
         ...(proxyUrl && { proxy: proxyUrl }),
       };
 
