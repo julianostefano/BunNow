@@ -371,6 +371,35 @@ export const serviceNowProxyRoutes = new Elysia({
       })
   )
 
+  // Legacy lazy-load endpoints for compatibility
+  .group('/tickets', (app) =>
+    app
+      .group('/lazy-load', (app) =>
+        app
+          // GET /tickets/lazy-load/:table/:state (legacy compatibility)
+          .get('/:table/:state', async ({ params, query, requestId }) => {
+            console.log(`[${requestId}] Legacy lazy-load: ${params.table}/${params.state}`);
+
+            // Delegate to standard tickets route with same parameters
+            return await serviceNowProxyHandlers.getTickets({
+              params: { table: params.table },
+              query: { ...query, state: params.state },
+              requestId
+            });
+          }, {
+            params: t.Object({
+              table: t.String({ minLength: 1 }),
+              state: t.String({ minLength: 1 })
+            }),
+            query: t.Optional(t.Record(t.String(), t.Any())),
+            detail: {
+              summary: 'Legacy lazy-load endpoint for backward compatibility',
+              tags: ['ServiceNow', 'Proxy', 'Legacy', 'Lazy-Load']
+            }
+          })
+      )
+  )
+
   // Health check endpoint
   .get('/health', async ({ requestId }) => {
     console.log(`[${requestId}] Proxy health check`);

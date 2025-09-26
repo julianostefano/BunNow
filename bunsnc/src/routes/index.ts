@@ -260,6 +260,17 @@ export async function createMainApp(): Promise<Elysia> {
   }
 
   console.log("🎯 BunSNC main application initialized successfully");
+
+  // Initialize deferred cache warming after server is ready
+  setImmediate(async () => {
+    try {
+      const { serviceNowAuthClient } = await import("../services/ServiceNowAuthClient");
+      await serviceNowAuthClient.initializeCacheWarming();
+    } catch (error) {
+      console.warn("⚠️ Failed to initialize deferred cache warming:", error);
+    }
+  });
+
   return mainApp;
 }
 

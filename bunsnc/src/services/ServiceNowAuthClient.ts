@@ -15,6 +15,7 @@ export class ServiceNowAuthClient {
   private authCore: ServiceNowAuthCore;
   private slaService: ServiceNowSLAService;
   private queryService: ServiceNowQueryService;
+  private cacheWarmingInitialized = false;
 
   constructor() {
     // Initialize all specialized services
@@ -22,12 +23,30 @@ export class ServiceNowAuthClient {
     this.slaService = new ServiceNowSLAService();
     this.queryService = new ServiceNowQueryService();
 
-    // Pre-warm cache for critical data on startup
-    this.queryService.preWarmCache().catch((error) => {
-      console.warn("Cache pre-warming failed:", error.message);
-    });
-
     console.log("ServiceNowAuthClient initialized with modular architecture");
+    console.log("⏳ Cache warming deferred until server is ready");
+  }
+
+  /**
+   * Initialize cache warming after server is ready
+   * Should be called after Elysia server is fully started
+   */
+  async initializeCacheWarming(): Promise<void> {
+    if (this.cacheWarmingInitialized) {
+      console.log("🔥 Cache warming already initialized, skipping...");
+      return;
+    }
+
+    console.log("🚀 Starting deferred cache warming - server is ready");
+    this.cacheWarmingInitialized = true;
+
+    try {
+      // Pre-warm cache for critical data after server startup
+      await this.queryService.preWarmCache();
+      console.log("✅ Deferred cache warming completed successfully");
+    } catch (error) {
+      console.warn("⚠️ Deferred cache warming failed:", error.message);
+    }
   }
 
   // === Authentication Methods ===

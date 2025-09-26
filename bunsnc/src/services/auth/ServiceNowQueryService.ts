@@ -10,7 +10,8 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
   private static cacheWarmingInProgress = false;
   private static cacheWarmingCompleted = false;
 
-  protected readonly AUTH_SERVICE_PROXY_URL = "http://10.219.8.210:3008"; // Auth service as ServiceNow proxy
+  protected readonly AUTH_SERVICE_PROXY_URL =
+    process.env.AUTH_SERVICE_PROXY_URL || "http://10.219.8.210:3008"; // Auth service as ServiceNow proxy
 
   /**
    * Make authenticated request to auth service proxy instead of direct ServiceNow
@@ -66,8 +67,8 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
         );
       }
 
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
         return await response.json();
       } else {
         return await response.text();
@@ -130,11 +131,13 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
     const cacheKey = `tickets_paginated:${table}:${group}:${state}:${currentMonth}:${page}:${limit}`;
 
     try {
-      // Try cache first
-      const cached = await this.redisCache.get(cacheKey);
-      if (cached) {
-        console.log(`🎯 Cache hit for paginated ${table} - page ${page}`);
-        return cached;
+      // Try cache first (if Redis is available)
+      if (this.redisCache) {
+        const cached = await this.redisCache.get(cacheKey);
+        if (cached) {
+          console.log(`🎯 Cache hit for paginated ${table} - page ${page}`);
+          return cached;
+        }
       }
 
       console.log(
@@ -168,8 +171,8 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
             sysparm_offset: offset,
           };
 
-          // Use auth service proxy endpoint for lazy-load
-          const url = `${this.AUTH_SERVICE_PROXY_URL}/tickets/lazy-load/${table}/${state}`;
+          // Use auth service proxy endpoint (fixed URL to match implemented routes)
+          const url = `${this.AUTH_SERVICE_PROXY_URL}/api/v1/servicenow/tickets/${table}`;
           const proxyParams = {
             group: group,
             page: page.toString(),
@@ -199,8 +202,10 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
             totalPages,
           };
 
-          // Cache result for 2 minutes (aggressive TTL for real-time data)
-          await this.redisCache.set(cacheKey, result, 120);
+          // Cache result for 2 minutes (aggressive TTL for real-time data) - if Redis is available
+          if (this.redisCache) {
+            await this.redisCache.set(cacheKey, result, 120);
+          }
 
           // Stream the data to Redis Streams for real-time updates
           try {
@@ -329,11 +334,13 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
     const cacheKey = `waiting_incidents:${assignmentGroup}`;
 
     try {
-      // Try cache first
-      const cached = await this.redisCache.get<ServiceNowRecord[]>(cacheKey);
-      if (cached) {
-        console.log(`🎯 Cache hit for waiting incidents: ${assignmentGroup}`);
-        return cached;
+      // Try cache first (if Redis is available)
+      if (this.redisCache) {
+        const cached = await this.redisCache.get<ServiceNowRecord[]>(cacheKey);
+        if (cached) {
+          console.log(`🎯 Cache hit for waiting incidents: ${assignmentGroup}`);
+          return cached;
+        }
       }
 
       const query = `assignment_group.nameCONTAINS${assignmentGroup}^state=3`;
@@ -346,8 +353,10 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
 
       const incidents = result.result || [];
 
-      // Cache for 5 minutes
-      await this.redisCache.set(cacheKey, incidents, 300);
+      // Cache for 5 minutes - if Redis is available
+      if (this.redisCache) {
+        await this.redisCache.set(cacheKey, incidents, 300);
+      }
       console.log(
         `📦 Cached ${incidents.length} waiting incidents for: ${assignmentGroup}`,
       );
@@ -371,13 +380,15 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
     const cacheKey = `waiting_ctasks:${assignmentGroup}`;
 
     try {
-      // Try cache first
-      const cached = await this.redisCache.get<ServiceNowRecord[]>(cacheKey);
-      if (cached) {
-        console.log(
-          `🎯 Cache hit for waiting change tasks: ${assignmentGroup}`,
-        );
-        return cached;
+      // Try cache first (if Redis is available)
+      if (this.redisCache) {
+        const cached = await this.redisCache.get<ServiceNowRecord[]>(cacheKey);
+        if (cached) {
+          console.log(
+            `🎯 Cache hit for waiting change tasks: ${assignmentGroup}`,
+          );
+          return cached;
+        }
       }
 
       const query = `assignment_group.nameCONTAINS${assignmentGroup}^state=3`;
@@ -390,8 +401,10 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
 
       const changeTasks = result.result || [];
 
-      // Cache for 5 minutes
-      await this.redisCache.set(cacheKey, changeTasks, 300);
+      // Cache for 5 minutes - if Redis is available
+      if (this.redisCache) {
+        await this.redisCache.set(cacheKey, changeTasks, 300);
+      }
       console.log(
         `📦 Cached ${changeTasks.length} waiting change tasks for: ${assignmentGroup}`,
       );
@@ -415,11 +428,13 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
     const cacheKey = `waiting_sctasks:${assignmentGroup}`;
 
     try {
-      // Try cache first
-      const cached = await this.redisCache.get<ServiceNowRecord[]>(cacheKey);
-      if (cached) {
-        console.log(`🎯 Cache hit for waiting SC tasks: ${assignmentGroup}`);
-        return cached;
+      // Try cache first (if Redis is available)
+      if (this.redisCache) {
+        const cached = await this.redisCache.get<ServiceNowRecord[]>(cacheKey);
+        if (cached) {
+          console.log(`🎯 Cache hit for waiting SC tasks: ${assignmentGroup}`);
+          return cached;
+        }
       }
 
       const query = `assignment_group.nameCONTAINS${assignmentGroup}^state=3`;
@@ -432,8 +447,10 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
 
       const scTasks = result.result || [];
 
-      // Cache for 5 minutes
-      await this.redisCache.set(cacheKey, scTasks, 300);
+      // Cache for 5 minutes - if Redis is available
+      if (this.redisCache) {
+        await this.redisCache.set(cacheKey, scTasks, 300);
+      }
       console.log(
         `📦 Cached ${scTasks.length} waiting SC tasks for: ${assignmentGroup}`,
       );
@@ -519,11 +536,13 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
     const cacheKey = `search:${searchTerm}:${tables.join(",")}:${limit}`;
 
     try {
-      // Try cache first
-      const cached = await this.redisCache.get<ServiceNowRecord[]>(cacheKey);
-      if (cached) {
-        console.log(`🎯 Cache hit for search: ${searchTerm}`);
-        return cached;
+      // Try cache first (if Redis is available)
+      if (this.redisCache) {
+        const cached = await this.redisCache.get<ServiceNowRecord[]>(cacheKey);
+        if (cached) {
+          console.log(`🎯 Cache hit for search: ${searchTerm}`);
+          return cached;
+        }
       }
 
       const searchPromises = tables.map(async (table) => {
@@ -551,8 +570,10 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
       const results = await Promise.all(searchPromises);
       const allRecords = results.flat().slice(0, limit);
 
-      // Cache for 10 minutes
-      await this.redisCache.set(cacheKey, allRecords, 600);
+      // Cache for 10 minutes - if Redis is available
+      if (this.redisCache) {
+        await this.redisCache.set(cacheKey, allRecords, 600);
+      }
       console.log(
         `📦 Cached ${allRecords.length} search results for: ${searchTerm}`,
       );
