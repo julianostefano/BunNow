@@ -105,8 +105,6 @@
     "@opentelemetry/semantic-conventions": "^1.25.0",
     "@tailwindcss/postcss": "^4.1.12",
     "apache-arrow": "^21.0.0",
-    "axios": "^1.11.0",
-    "bunsnc": ".",
     "elysia": "^1.4.5",
     "elysia-accepts": "^1.0.0",
     "elysia-autoload": "^1.7.0",
@@ -129,6 +127,7 @@
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.12",
+    "@types/bun": "^1.2.22",
     "@types/node": "^24.3.0",
     "autoprefixer": "^10.4.21",
     "bun-types": "^1.2.21",
