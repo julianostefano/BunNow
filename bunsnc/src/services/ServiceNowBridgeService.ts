@@ -94,6 +94,8 @@ export class ServiceNowBridgeService {
       );
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ ServiceNow API Error ${response.status}:`, errorText);
         throw new Error(
           `ServiceNow API returned status ${response.status}: ${response.statusText}`,
         );
@@ -150,11 +152,17 @@ export class ServiceNowBridgeService {
         directServiceNowUrl,
         {
           method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+          },
           body: JSON.stringify(data),
         },
       );
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ ServiceNow API Error ${response.status}:`, errorText);
         throw new Error(
           `ServiceNow API returned status ${response.status}: ${response.statusText}`,
         );
@@ -211,11 +219,17 @@ export class ServiceNowBridgeService {
         directServiceNowUrl,
         {
           method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+          },
           body: JSON.stringify(data),
         },
       );
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ ServiceNow API Error ${response.status}:`, errorText);
         throw new Error(
           `ServiceNow API returned status ${response.status}: ${response.statusText}`,
         );
@@ -275,6 +289,8 @@ export class ServiceNowBridgeService {
       );
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ ServiceNow API Error ${response.status}:`, errorText);
         throw new Error(
           `ServiceNow API returned status ${response.status}: ${response.statusText}`,
         );
