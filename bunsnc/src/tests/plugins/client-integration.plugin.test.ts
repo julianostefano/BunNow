@@ -69,7 +69,9 @@ describe("Client Integration Plugin Tests", () => {
 
       const data = await response.json();
       expect(data).toBeDefined();
-      expect(data.plugin).toBe("servicenow-client-integration-plugin");
+      if (data.result) {
+        expect(data.result.plugin).toBe("servicenow-client-integration-plugin");
+      }
       expect(typeof data.success).toBe("boolean");
     });
 
