@@ -3,10 +3,14 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import Redis, { Redis as RedisClient, Cluster as RedisCluster } from "ioredis";
+import { Redis as RedisClient, Cluster as RedisCluster } from "ioredis";
 import { EventEmitter } from "events";
 import { logger } from "../../utils/Logger";
 import { performanceMonitor } from "../../utils/PerformanceMonitor";
+import {
+  getRedisConnection,
+  redisConnectionManager,
+} from "../../utils/RedisConnection";
 
 export interface RedisCacheOptions {
   redis?: RedisClient | RedisCluster;
@@ -51,7 +55,7 @@ export interface CachePattern {
 }
 
 export class RedisCache extends EventEmitter {
-  private redis: RedisClient | RedisCluster;
+  private redis: RedisClient | RedisCluster | null = null;
   private options: Required<RedisCacheOptions>;
   private metrics: CacheMetrics = {
     hits: 0,
@@ -69,13 +73,9 @@ export class RedisCache extends EventEmitter {
   private refreshTimers: Map<string, NodeJS.Timeout> = new Map();
   private metricsTimer?: NodeJS.Timeout;
 
-  constructor(
-    redis: RedisClient | RedisCluster,
-    options: RedisCacheOptions = {},
-  ) {
+  constructor(options: RedisCacheOptions = {}) {
     super();
 
-    this.redis = redis;
     this.options = {
       redis: options.redis,
       defaultTtl: options.defaultTtl || 3600,
@@ -88,11 +88,14 @@ export class RedisCache extends EventEmitter {
       batchSize: options.batchSize || 100,
     };
 
+    // Initialize Redis connection using shared connection manager
+    this.initializeSharedConnection(options);
+
     if (this.options.enableMetrics) {
       this.startMetricsCollection();
     }
 
-    logger.info("RedisCache initialized with options:", "RedisCache", {
+    logger.info("RedisCache initialized with shared connection", "RedisCache", {
       defaultTtl: this.options.defaultTtl,
       keyPrefix: this.options.keyPrefix,
       serialization: this.options.serialization,
@@ -100,10 +103,50 @@ export class RedisCache extends EventEmitter {
     });
   }
 
+  private async initializeSharedConnection(
+    options: RedisCacheOptions = {},
+  ): Promise<void> {
+    try {
+      logger.info("Initializing shared Redis connection", "RedisCache");
+
+      // Use shared connection with custom config if provided
+      const redisConfig = {
+        keyPrefix: options.keyPrefix,
+        // Add other connection options if needed
+      };
+
+      // Get shared connection
+      this.redis = await getRedisConnection(redisConfig);
+
+      // Validate connection
+      if (this.redis) {
+        await this.redis.ping();
+      }
+
+      logger.info("RedisCache Redis connection established", "RedisCache");
+    } catch (error) {
+      logger.error(
+        "Redis initialization failed - continuing without Redis",
+        "RedisCache",
+        {
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
+      this.redis = null; // fallback controlado, sem throw
+    }
+  }
+
   /**
    * Get value from cache
    */
   async get<T = any>(key: string): Promise<T | null> {
+    if (!this.redis) {
+      logger.warn("Redis unavailable - cache get failed", "RedisCache", {
+        key,
+      });
+      return null;
+    }
+
     const timerName = `redis_cache_get_${Date.now()}_${Math.random()}`;
     performanceMonitor.startTimer(timerName);
     const fullKey = this.buildKey(key);
@@ -139,6 +182,13 @@ export class RedisCache extends EventEmitter {
    * Set value in cache
    */
   async set<T = any>(key: string, value: T, ttl?: number): Promise<boolean> {
+    if (!this.redis) {
+      logger.warn("Redis unavailable - cache set failed", "RedisCache", {
+        key,
+      });
+      return false;
+    }
+
     const timerName = `redis_cache_set_${Date.now()}_${Math.random()}`;
     performanceMonitor.startTimer(timerName);
     const fullKey = this.buildKey(key);
@@ -181,6 +231,13 @@ export class RedisCache extends EventEmitter {
    * Get multiple values at once
    */
   async mget<T = any>(keys: string[]): Promise<(T | null)[]> {
+    if (!this.redis) {
+      logger.warn("Redis unavailable - cache mget failed", "RedisCache", {
+        keys,
+      });
+      return keys.map(() => null);
+    }
+
     const timerName = `redis_cache_mget_${Date.now()}_${Math.random()}`;
     performanceMonitor.startTimer(timerName);
     const fullKeys = keys.map((key) => this.buildKey(key));
@@ -224,6 +281,13 @@ export class RedisCache extends EventEmitter {
   async mset<T = any>(
     entries: Array<{ key: string; value: T; ttl?: number }>,
   ): Promise<boolean> {
+    if (!this.redis) {
+      logger.warn("Redis unavailable - cache mset failed", "RedisCache", {
+        entryCount: entries.length,
+      });
+      return false;
+    }
+
     const timerName = `redis_cache_mset_${Date.now()}_${Math.random()}`;
     performanceMonitor.startTimer(timerName);
 
@@ -270,6 +334,13 @@ export class RedisCache extends EventEmitter {
    * Delete key from cache
    */
   async del(key: string): Promise<boolean> {
+    if (!this.redis) {
+      logger.warn("Redis unavailable - cache delete failed", "RedisCache", {
+        key,
+      });
+      return false;
+    }
+
     const timerName = `redis_cache_del_${Date.now()}_${Math.random()}`;
     performanceMonitor.startTimer(timerName);
     const fullKey = this.buildKey(key);
@@ -322,6 +393,13 @@ export class RedisCache extends EventEmitter {
    * Check if key exists
    */
   async exists(key: string): Promise<boolean> {
+    if (!this.redis) {
+      logger.warn("Redis unavailable - cache exists failed", "RedisCache", {
+        key,
+      });
+      return false;
+    }
+
     const fullKey = this.buildKey(key);
 
     try {
@@ -590,6 +668,16 @@ export class RedisCache extends EventEmitter {
     hitRate: number;
     avgResponseTime: number;
   }> {
+    if (!this.redis) {
+      return {
+        connected: false,
+        totalKeys: 0,
+        usedMemory: 0,
+        hitRate: 0,
+        avgResponseTime: 0,
+      };
+    }
+
     try {
       const info = await this.redis.info("memory");
       const keyspaceInfo = await this.redis.info("keyspace");
@@ -630,9 +718,13 @@ export class RedisCache extends EventEmitter {
     }
     this.refreshTimers.clear();
 
+    // Disconnect from shared Redis connection
+    await redisConnectionManager.disconnect();
+    this.redis = null;
+
     this.removeAllListeners();
 
-    logger.info("RedisCache destroyed");
+    logger.info("RedisCache destroyed - disconnected from shared connection");
   }
 
   private buildKey(key: string): string {

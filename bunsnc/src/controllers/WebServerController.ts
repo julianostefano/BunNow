@@ -12,6 +12,7 @@ import { jwt } from "@elysiajs/jwt";
 import { accepts } from "elysia-accepts";
 import { background } from "elysia-background";
 import { instrumentation } from "../instrumentation";
+import { serviceNowPlugin } from "../plugins/servicenow";
 
 import { ServiceNowClient } from "../client/ServiceNowClient";
 import { RedisStreamManager } from "../bigdata/redis/RedisStreamManager";
@@ -186,6 +187,7 @@ export class WebServerController {
 
     this.app = new Elysia()
       .use(instrumentation) // OpenTelemetry plugin applied first
+      .use(serviceNowPlugin) // ServiceNow Plugin with dependency injection - eliminates self-referencing calls
       .use(
         cors({
           origin: true,

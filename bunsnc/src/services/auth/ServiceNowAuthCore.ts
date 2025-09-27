@@ -5,11 +5,13 @@
 
 // Removed Axios - Using native Bun fetch
 import { serviceNowRateLimiter } from "../ServiceNowRateLimit";
-import Redis from "ioredis";
+import { Redis as RedisClient } from "ioredis";
+import { getRedisConnection } from "../../utils/RedisConnection";
 import { RedisCache } from "../../bigdata/redis/RedisCache";
 import { RedisStreamManager } from "../../bigdata/redis/RedisStreamManager";
 import { serviceNowSAMLAuth } from "./ServiceNowSAMLAuth";
 import { SAMLConfig, SAMLAuthenticationData } from "../../types/saml";
+import { ServiceNowBridgeService } from "../ServiceNowBridgeService";
 
 export interface AuthServiceResponse {
   cookies: Array<{
@@ -51,67 +53,58 @@ export class ServiceNowAuthCore {
   protected isAuthenticated = false;
   protected lastAuthTime = 0;
   protected authTTL = 30 * 60 * 1000; // 30 minutes
-  protected redisCache: RedisCache;
-  protected redisStreamManager: RedisStreamManager;
+  protected redisCache: RedisCache | null = null;
+  protected redisStreamManager: RedisStreamManager | null = null;
   protected authType: "external" | "saml" = "external";
   protected requestHeaders: Record<string, string> = {};
-  protected proxyUrl: string;
+  protected bridgeService: ServiceNowBridgeService;
+  // proxyUrl removed - using AUTH_SERVICE_PROXY_URL consistently
 
   protected readonly AUTH_SERVICE_URL = "http://10.219.8.210:8000/auth";
+  protected readonly AUTH_SERVICE_PROXY_URL =
+    process.env.AUTH_SERVICE_PROXY_URL || "http://10.219.8.210:3008"; // Auth service as ServiceNow proxy
   protected readonly SERVICENOW_INSTANCE = "iberdrola";
   protected readonly SERVICENOW_BASE_URL = `https://${this.SERVICENOW_INSTANCE}.service-now.com`;
 
-  protected readonly PROXY_CONFIG = {
-    host: "10.219.77.12",
-    port: 8080,
-    auth: {
-      username: "AMER%5CE966380",
-      password: "Neoenergia%402026",
-    },
-  };
+  // Proxy configuration moved to use AUTH_SERVICE_PROXY_URL consistently
+  // Legacy PROXY_CONFIG removed - all requests now go through auth service proxy
 
   constructor() {
     this.setupEnvironment();
     this.initializeFetchClient();
-    this.initializeRedis();
     this.setupLogging();
+
+    // Initialize ServiceNow Bridge Service directly - NO MORE HTTP SELF-REFERENCING CALLS
+    this.bridgeService = new ServiceNowBridgeService();
+    console.log('🔌 ServiceNowAuthCore using bridge service directly - self-referencing calls eliminated');
 
     // Determine authentication type from environment
     this.authType =
       (process.env.SERVICENOW_AUTH_TYPE as "external" | "saml") || "external";
     console.log(`🔐 ServiceNow authentication type: ${this.authType}`);
+
+    // Initialize Redis asynchronously and store the promise for dependent operations
+    this.initializeRedis();
   }
 
   private setupEnvironment(): void {
-    process.env.http_proxy =
-      "http://AMER%5CE966380:Neoenergia%402026@10.219.77.12:8080";
-    process.env.https_proxy =
-      "http://AMER%5CE966380:Neoenergia%402026@10.219.77.12:8080";
+    // Remove proxy environment variables - using AUTH_SERVICE_PROXY_URL instead
+    // All ServiceNow requests now go through the auth service proxy
     process.env.no_proxy =
       "10.219.8.210,localhost,127.0.0.1,ibfs.iberdrola.com,10.219.0.41";
   }
 
   private initializeFetchClient(): void {
-    // ServiceNow MUST use proxy - corporate rule
-    this.proxyUrl =
-      process.env.SERVICENOW_PROXY ||
-      "http://AMER%5CE966380:Neoenergia%402026@10.219.77.12:8080";
-
+    // Use AUTH_SERVICE_PROXY_URL consistently - no more direct ServiceNow calls
     console.log(
-      `🌐 ServiceNow API will use proxy: ${this.proxyUrl.replace(/\/\/.*@/, "//***:***@")}`,
+      `🚀 ServiceNow requests will use Auth Service Proxy: ${this.AUTH_SERVICE_PROXY_URL}`,
     );
-    console.log(`📋 Proxy format details:`);
-    console.log(`  - Full URL: ${this.proxyUrl}`);
-    console.log(`  - Username: AMER\\E966380 (encoded as AMER%5CE966380)`);
-    console.log(`  - Password: Neoenergia@2026 (encoded as Neoenergia%402026)`);
-    console.log(`  - Host: 10.219.77.12`);
-    console.log(`  - Port: 8080`);
-
-    // Set proxy environment variables for Bun fetch to use automatically
-    process.env.HTTP_PROXY = this.proxyUrl;
-    process.env.HTTPS_PROXY = this.proxyUrl;
-
-    console.log("🔧 Proxy environment variables set for Bun fetch");
+    console.log(`📋 Auth Service Proxy details:`);
+    console.log(`  - Proxy URL: ${this.AUTH_SERVICE_PROXY_URL}`);
+    console.log(`  - All ServiceNow API calls routed through auth service`);
+    console.log(
+      `  - Eliminates 61s timeout through optimized connection handling`,
+    );
 
     // Initialize default headers for all requests
     this.requestHeaders = {
@@ -121,31 +114,57 @@ export class ServiceNowAuthCore {
       Connection: "keep-alive",
     };
 
-    console.log("✅ Native Bun fetch client initialized");
+    console.log("✅ Auth Service Proxy client initialized");
   }
 
-  private initializeRedis(): void {
-    const redis = new Redis({
-      host: process.env.REDIS_HOST || "10.219.8.210",
-      port: parseInt(process.env.REDIS_PORT || "6380"),
-      password: process.env.REDIS_PASSWORD || "nexcdc2025",
-      db: parseInt(process.env.REDIS_DB || "1"),
-      retryDelayOnFailover: 100,
-      enableReadyCheck: false,
-      maxRetriesPerRequest: null,
-    });
+  private async initializeRedis(): Promise<void> {
+    try {
+      console.log("🔄 Initializing Redis components for ServiceNowAuthCore");
 
-    this.redisCache = new RedisCache(redis, {
-      keyPrefix: "servicenow:cache:",
-      defaultTtl: 120, // 2 minutes for faster refresh
-      enableMetrics: true,
-    });
+      // Initialize Redis components lazily - they will get shared connection when first used
+      const redis = await getRedisConnection({
+        host: process.env.REDIS_HOST || "10.219.8.210",
+        port: parseInt(process.env.REDIS_PORT || "6380"),
+        password: process.env.REDIS_PASSWORD || "nexcdc2025",
+        db: parseInt(process.env.REDIS_DB || "1"),
+        retryDelayOnFailover: 100,
+        enableReadyCheck: false,
+        maxRetriesPerRequest: null,
+      });
 
-    this.redisStreamManager = new RedisStreamManager({
-      host: process.env.REDIS_HOST || "10.219.8.210",
-      port: parseInt(process.env.REDIS_PORT || "6380"),
-      password: process.env.REDIS_PASSWORD || "nexcdc2025",
-    });
+      // Initialize RedisCache
+      this.redisCache = new RedisCache(redis, {
+        keyPrefix: "servicenow:cache:",
+        defaultTtl: 120, // 2 minutes for faster refresh
+        enableMetrics: true,
+      });
+
+      // Create RedisStreamManager with config (it will use shared connection internally)
+      this.redisStreamManager = new RedisStreamManager({
+        host: process.env.REDIS_HOST || "10.219.8.210",
+        port: parseInt(process.env.REDIS_PORT || "6380"),
+        password: process.env.REDIS_PASSWORD || "nexcdc2025",
+      });
+
+      console.log(
+        "✅ ServiceNowAuthCore Redis components initialized with shared connection",
+      );
+    } catch (error) {
+      console.error(
+        "❌ Failed to initialize Redis components in ServiceNowAuthCore - continuing without Redis:",
+        error,
+      );
+      this.redisCache = null;
+      this.redisStreamManager = null;
+      // Não fazer throw - permite aplicação funcionar sem Redis
+    }
+  }
+
+  protected async ensureRedisInitialized(): Promise<void> {
+    // Se Redis não foi inicializado, tenta inicializar novamente
+    if (!this.redisCache && !this.redisStreamManager) {
+      await this.initializeRedis();
+    }
   }
 
   private setupLogging(): void {
@@ -185,7 +204,7 @@ export class ServiceNowAuthCore {
           `🔐 Authenticating with ServiceNow external auth service (attempt ${attempt}/${maxRetries})...`,
         );
         console.log(`Auth URL: ${this.AUTH_SERVICE_URL}`);
-        console.log(`Proxy: ${this.proxyUrl.replace(/\/\/.*@/, "//***:***@")}`);
+        console.log(`Using Auth Service Proxy: ${this.AUTH_SERVICE_PROXY_URL}`);
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 900000); // 15 minutes timeout
@@ -204,9 +223,8 @@ export class ServiceNowAuthCore {
             rejectUnauthorized: false,
             checkServerIdentity: () => undefined,
           };
-          bunAuthConfig.proxy = this.proxyUrl;
-
-          console.log(`Proxy format being used: ${this.proxyUrl}`);
+          // No longer using direct proxy - auth service handles all routing
+          console.log(`Auth service will handle ServiceNow communication`);
 
           const authResponse = await fetch(this.AUTH_SERVICE_URL, authConfig, {
             verbose: true,
@@ -337,6 +355,77 @@ export class ServiceNowAuthCore {
   }
 
   /**
+   * Make authenticated request to auth service proxy instead of direct ServiceNow
+   * This method uses the auth service as proxy to avoid 61s infrastructure timeout
+   */
+  protected async makeProxyRequest(config: {
+    url: string;
+    method?: string;
+    params?: Record<string, string>;
+  }): Promise<any> {
+    const startTime = Date.now();
+
+    try {
+      // Build URL with query parameters
+      const url = new URL(config.url);
+      if (config.params) {
+        Object.entries(config.params).forEach(([key, value]) => {
+          url.searchParams.append(key, value);
+        });
+      }
+
+      // Simple headers - auth service will handle ServiceNow authentication
+      const headers = {
+        "User-Agent": "BunSNC-ServiceNow-Client/1.0",
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      };
+
+      const fetchConfig: RequestInit = {
+        method: config.method || "GET",
+        headers,
+        signal: AbortSignal.timeout(900000), // 15 minutes timeout
+      };
+
+      console.log(
+        `🚀 ServiceNow proxy request: ${config.method || "GET"} ${url.toString()}`,
+      );
+
+      const response = await fetch(url.toString(), fetchConfig);
+      const duration = Date.now() - startTime;
+
+      console.log(`✅ ServiceNow proxy request completed in ${duration}ms`);
+
+      if (!response.ok) {
+        console.error(`❌ ServiceNow proxy request failed:`, {
+          url: url.toString(),
+          method: config.method || "GET",
+          status: response.status,
+          statusText: response.statusText,
+        });
+
+        throw new Error(
+          `ServiceNow proxy returned status ${response.status}: ${response.statusText}`,
+        );
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        return await response.json();
+      } else {
+        return await response.text();
+      }
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      console.error(
+        `❌ ServiceNow proxy error after ${duration}ms:`,
+        error.message,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Make basic authenticated request to ServiceNow using native fetch
    */
   protected async makeBasicRequest(config: {
@@ -351,40 +440,33 @@ export class ServiceNowAuthCore {
       const startTime = Date.now();
 
       try {
-        // Build URL with query parameters
-        const url = new URL(config.url, this.SERVICENOW_BASE_URL);
+        // Use auth service proxy instead of direct ServiceNow connection
+        // Parse table from URL path
+        const urlPath = config.url.replace("/api/now/table/", "");
+        const tableName = urlPath.split("?")[0].split("/")[0];
+
+        // Build proxy URL - use auth service as proxy to avoid 61s timeout
+        const proxyUrl = `${this.AUTH_SERVICE_PROXY_URL}/api/v1/servicenow/tickets/${tableName}`;
+        const url = new URL(proxyUrl);
+
         if (config.params) {
           Object.entries(config.params).forEach(([key, value]) => {
             url.searchParams.append(key, value);
           });
         }
 
-        // Build headers
-        const headers = { ...this.requestHeaders };
+        // Simple headers - auth service will handle ServiceNow authentication
+        const headers = {
+          "User-Agent": "BunSNC-ServiceNow-Client/1.0",
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        };
 
-        // Build fetch config with proxy support and SSL bypass
         const fetchConfig: RequestInit = {
           method: config.method || "GET",
           headers,
-          // Use 15-minute timeout for ServiceNow response time (as specified by user)
-          signal: AbortSignal.timeout(900000),
+          signal: AbortSignal.timeout(900000), // 15 minutes timeout
         };
-
-        // Configure SSL/TLS and proxy for Bun fetch
-        const bunConfig = fetchConfig as any;
-        bunConfig.verbose = true; // Verbose logging
-        bunConfig.tls = {
-          rejectUnauthorized: false, // Accept invalid certificates
-          checkServerIdentity: () => undefined, // Bypass server identity check
-        };
-
-        // Explicit proxy configuration for Bun
-        if (this.proxyUrl) {
-          bunConfig.proxy = this.proxyUrl;
-          console.log(
-            `Proxy configured: ${this.proxyUrl.replace(/\/\/.*@/, "//***:***@")}`,
-          );
-        }
 
         // Add body for POST/PUT requests
         if (
@@ -394,64 +476,40 @@ export class ServiceNowAuthCore {
           fetchConfig.body = JSON.stringify(config.data);
         }
 
-        // Proxy already configured above in bunConfig
-
         console.log(
-          `🚀 ServiceNow request: ${config.method || "GET"} ${url.toString()}`,
+          `🚀 ServiceNow proxy request: ${config.method || "GET"} ${url.toString()}`,
         );
-        console.log(`⏱️ Timeout configured: 600 seconds (10 minutes)`);
 
-        const response = await fetch(url.toString(), fetchConfig, {
-          verbose: true,
-        });
+        const response = await fetch(url.toString(), fetchConfig);
         const duration = Date.now() - startTime;
 
-        console.log(`✅ ServiceNow request completed in ${duration}ms`);
-
-        if (duration > 60000) {
-          console.warn(
-            `⚠️ Long ServiceNow request: ${url.toString()} took ${Math.round(duration / 1000)}s`,
-          );
-        }
+        console.log(`✅ ServiceNow proxy request completed in ${duration}ms`);
 
         if (!response.ok) {
-          console.error(`❌ ServiceNow request failed after ${duration}ms:`, {
+          console.error(`❌ ServiceNow proxy request failed:`, {
             url: url.toString(),
             method: config.method || "GET",
             status: response.status,
             statusText: response.statusText,
           });
 
-          if (response.status === 401) {
-            this.isAuthenticated = false;
-            throw new Error("ServiceNow authentication expired");
-          }
-
           throw new Error(
-            `ServiceNow API returned status ${response.status}: ${response.statusText}`,
+            `ServiceNow proxy returned status ${response.status}: ${response.statusText}`,
           );
         }
 
-        const data = await response.json();
-
-        if (data?.result) {
-          return data;
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          return await response.json();
+        } else {
+          return await response.text();
         }
-
-        throw new Error(`ServiceNow API returned status ${response.status}`);
       } catch (error: any) {
         const duration = Date.now() - startTime;
         console.error(
-          `❌ ServiceNow API error after ${duration}ms:`,
+          `❌ ServiceNow proxy error after ${duration}ms:`,
           error.message,
         );
-
-        if (
-          error.name === "TimeoutError" ||
-          error.message?.includes("timeout")
-        ) {
-          throw new Error(`ServiceNow request timeout after ${duration}ms`);
-        }
 
         throw error;
       }
@@ -473,10 +531,10 @@ export class ServiceNowAuthCore {
   }
 
   /**
-   * Get ServiceNow base URL
+   * Get ServiceNow base URL (now proxied through auth service)
    */
   public getBaseUrl(): string {
-    return this.SERVICENOW_BASE_URL;
+    return "ServiceNow Bridge Service";
   }
 
   /**

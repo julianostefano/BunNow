@@ -5,7 +5,12 @@
  */
 
 import { EventEmitter } from "events";
-import { createClient, RedisClientType } from "redis";
+import { Redis as RedisClient, Cluster as RedisCluster } from "ioredis";
+import {
+  getRedisConnection,
+  redisConnectionManager,
+} from "../utils/RedisConnection";
+import { logger } from "../utils/Logger";
 import { TaskQueue, Task, TaskType, TaskPriority } from "./TaskQueue";
 
 export interface ScheduledTask {
@@ -44,7 +49,7 @@ export interface ScheduleOptions {
 }
 
 export class TaskScheduler extends EventEmitter {
-  private redis!: RedisClientType;
+  private redis: RedisClient | RedisCluster | null = null;
   private taskQueue: TaskQueue;
   private isRunning: boolean = false;
   private schedulerInterval?: Timer;

@@ -5,7 +5,12 @@
  */
 
 import { EventEmitter } from "events";
-import { createClient, RedisClientType } from "redis";
+import { Redis as RedisClient, Cluster as RedisCluster } from "ioredis";
+import {
+  getRedisConnection,
+  redisConnectionManager,
+} from "../utils/RedisConnection";
+import { logger } from "../utils/Logger";
 
 export interface Task {
   id: string;
@@ -83,8 +88,8 @@ export interface TaskQueueOptions {
 }
 
 export class TaskQueue extends EventEmitter {
-  private redis!: RedisClientType;
-  private subscriber!: RedisClientType;
+  private redis: RedisClient | RedisCluster | null = null;
+  private subscriber: RedisClient | RedisCluster | null = null;
   private options: TaskQueueOptions;
   private workers: Map<string, TaskWorker> = new Map();
   private isRunning: boolean = false;
@@ -101,40 +106,60 @@ export class TaskQueue extends EventEmitter {
   constructor(options: TaskQueueOptions) {
     super();
     this.options = options;
-    this.initializeRedis();
+    this.initializeSharedConnections();
   }
 
-  private async initializeRedis(): Promise<void> {
+  private async initializeSharedConnections(): Promise<void> {
     try {
-      // Main Redis client
-      this.redis = createClient({
-        socket: {
-          host: this.options.redis.host,
-          port: this.options.redis.port,
-        },
+      logger.info("Initializing shared Redis connections", "TaskQueue");
+
+      // Get shared Redis connections
+      this.redis = await getRedisConnection({
+        host: this.options.redis.host,
+        port: this.options.redis.port,
         password: this.options.redis.password,
-        database: this.options.redis.db || 0,
+        db: this.options.redis.db || 0,
       });
 
-      // Subscriber client for real-time updates
-      this.subscriber = this.redis.duplicate();
+      // Get separate connection for subscriber
+      this.subscriber = await getRedisConnection({
+        host: this.options.redis.host,
+        port: this.options.redis.port,
+        password: this.options.redis.password,
+        db: this.options.redis.db || 0,
+      });
 
-      await Promise.all([this.redis.connect(), this.subscriber.connect()]);
+      // Validate connections
+      if (this.redis) {
+        await this.redis.ping();
+      }
+      if (this.subscriber) {
+        await this.subscriber.ping();
+      }
 
       // Subscribe to task events
-      await this.subscriber.subscribe("task:events", (message) => {
-        try {
-          const event = JSON.parse(message);
-          this.emit("taskEvent", event);
-        } catch (error: unknown) {
-          console.error("Error parsing task event:", error);
-        }
-      });
+      if (this.subscriber) {
+        this.subscriber.subscribe("task:events", (message) => {
+          try {
+            const event = JSON.parse(message);
+            this.emit("taskEvent", event);
+          } catch (error: unknown) {
+            logger.error("Error parsing task event", "TaskQueue", { error });
+          }
+        });
+      }
 
-      console.log(" Task Queue Redis connection established");
+      logger.info("TaskQueue Redis connections established", "TaskQueue");
     } catch (error: unknown) {
-      console.error(" Failed to initialize Redis for TaskQueue:", error);
-      throw error;
+      logger.error(
+        "Redis initialization failed - continuing without Redis",
+        "TaskQueue",
+        {
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
+      this.redis = null;
+      this.subscriber = null;
     }
   }
 
@@ -155,9 +180,16 @@ export class TaskQueue extends EventEmitter {
       ...task,
     };
 
+    if (!this.redis) {
+      logger.warn("Redis unavailable - task not added", "TaskQueue", {
+        taskId,
+      });
+      return taskId; // degradação graciosa
+    }
+
     try {
       // Store task data
-      await this.redis.hSet(
+      await this.redis.hset(
         `${this.TASK_DATA_PREFIX}${taskId}`,
         "data",
         JSON.stringify(fullTask),
@@ -165,19 +197,20 @@ export class TaskQueue extends EventEmitter {
 
       // Add to pending queue with priority
       const priority = task.priority || TaskPriority.NORMAL;
-      await this.redis.zadd(this.PENDING_QUEUE, {
-        score: priority * 1000 + Date.now(),
-        value: taskId,
-      });
+      await this.redis.zadd(
+        this.PENDING_QUEUE,
+        priority * 1000 + Date.now(),
+        taskId,
+      );
 
       // Emit event
       await this.publishTaskEvent("task.added", { taskId, task: fullTask });
 
-      console.log(`📋 Task added to queue: ${taskId} (${task.type})`);
+      logger.info(`Task added to queue: ${taskId} (${task.type})`, "TaskQueue");
       return taskId;
     } catch (error: unknown) {
-      console.error(` Failed to add task ${taskId}:`, error);
-      throw error;
+      logger.error(`Failed to add task ${taskId}`, "TaskQueue", { error });
+      return taskId; // degradação graciosa em vez de throw
     }
   }
 
@@ -185,8 +218,15 @@ export class TaskQueue extends EventEmitter {
    * Get task by ID
    */
   async getTask(taskId: string): Promise<Task | null> {
+    if (!this.redis) {
+      logger.warn("Redis unavailable - task not retrieved", "TaskQueue", {
+        taskId,
+      });
+      return null;
+    }
+
     try {
-      const taskData = await this.redis.hGet(
+      const taskData = await this.redis.hget(
         `${this.TASK_DATA_PREFIX}${taskId}`,
         "data",
       );
@@ -194,7 +234,7 @@ export class TaskQueue extends EventEmitter {
 
       return JSON.parse(taskData);
     } catch (error: unknown) {
-      console.error(` Failed to get task ${taskId}:`, error);
+      logger.error(`Failed to get task ${taskId}`, "TaskQueue", { error });
       return null;
     }
   }
@@ -203,10 +243,18 @@ export class TaskQueue extends EventEmitter {
    * Update task status and progress
    */
   async updateTask(taskId: string, updates: Partial<Task>): Promise<void> {
+    if (!this.redis) {
+      logger.warn("Redis unavailable - task not updated", "TaskQueue", {
+        taskId,
+      });
+      return;
+    }
+
     try {
       const currentTask = await this.getTask(taskId);
       if (!currentTask) {
-        throw new Error(`Task ${taskId} not found`);
+        logger.warn(`Task ${taskId} not found`, "TaskQueue");
+        return;
       }
 
       const updatedTask: Task = {
@@ -215,7 +263,7 @@ export class TaskQueue extends EventEmitter {
       };
 
       // Update task data
-      await this.redis.hSet(
+      await this.redis.hset(
         `${this.TASK_DATA_PREFIX}${taskId}`,
         "data",
         JSON.stringify(updatedTask),
@@ -235,8 +283,8 @@ export class TaskQueue extends EventEmitter {
         changes: updates,
       });
     } catch (error: unknown) {
-      console.error(` Failed to update task ${taskId}:`, error);
-      throw error;
+      logger.error(`Failed to update task ${taskId}`, "TaskQueue", { error });
+      // Não fazer throw - permite aplicação continuar
     }
   }
 
@@ -283,6 +331,11 @@ export class TaskQueue extends EventEmitter {
     limit: number = 50,
     offset: number = 0,
   ): Promise<{ tasks: Task[]; total: number }> {
+    if (!this.redis) {
+      logger.warn("Redis unavailable - no tasks retrieved", "TaskQueue");
+      return { tasks: [], total: 0 };
+    }
+
     try {
       let queueName: string;
 
@@ -329,7 +382,7 @@ export class TaskQueue extends EventEmitter {
       }
 
       // Get tasks from specific queue
-      const total = await this.redis.zCard(queueName);
+      const total = await this.redis.zcard(queueName);
       const taskIds = await this.redis.zrange(
         queueName,
         offset,
@@ -361,14 +414,26 @@ export class TaskQueue extends EventEmitter {
     totalProcessed: number;
     avgProcessingTime: number;
   }> {
+    if (!this.redis) {
+      return {
+        pending: 0,
+        running: 0,
+        completed: 0,
+        failed: 0,
+        deadLetter: 0,
+        totalProcessed: 0,
+        avgProcessingTime: 0,
+      };
+    }
+
     try {
       const [pending, running, completed, failed, deadLetter] =
         await Promise.all([
-          this.redis.zCard(this.PENDING_QUEUE),
-          this.redis.zCard(this.RUNNING_QUEUE),
-          this.redis.zCard(this.COMPLETED_QUEUE),
-          this.redis.zCard(this.FAILED_QUEUE),
-          this.redis.zCard(this.DEAD_LETTER_QUEUE),
+          this.redis.zcard(this.PENDING_QUEUE),
+          this.redis.zcard(this.RUNNING_QUEUE),
+          this.redis.zcard(this.COMPLETED_QUEUE),
+          this.redis.zcard(this.FAILED_QUEUE),
+          this.redis.zcard(this.DEAD_LETTER_QUEUE),
         ]);
 
       const totalProcessed = completed + failed;
@@ -456,11 +521,13 @@ export class TaskQueue extends EventEmitter {
 
     this.workers.clear();
 
-    // Close Redis connections
-    await Promise.all([this.redis.disconnect(), this.subscriber.disconnect()]);
+    // Disconnect from shared Redis connections
+    await redisConnectionManager.disconnect();
+    this.redis = null;
+    this.subscriber = null;
 
     this.emit("stopped");
-    console.log(" TaskQueue stopped");
+    logger.info("TaskQueue stopped (shared connections)", "TaskQueue");
   }
 
   // Private Methods
@@ -494,15 +561,19 @@ export class TaskQueue extends EventEmitter {
     const oldQueue = getQueueName(oldStatus);
     const newQueue = getQueueName(newStatus);
 
-    if (oldQueue !== newQueue) {
+    if (oldQueue !== newQueue && this.redis) {
       await Promise.all([
         this.redis.zrem(oldQueue, taskId),
-        this.redis.zadd(newQueue, { score: Date.now(), value: taskId }),
+        this.redis.zadd(newQueue, Date.now(), taskId),
       ]);
     }
   }
 
   private async publishTaskEvent(event: string, data: any): Promise<void> {
+    if (!this.redis) {
+      return;
+    }
+
     try {
       await this.redis.publish(
         "task:events",
@@ -513,46 +584,51 @@ export class TaskQueue extends EventEmitter {
         }),
       );
     } catch (error: unknown) {
-      console.error(" Failed to publish task event:", error);
+      logger.error("Failed to publish task event", "TaskQueue", { error });
     }
   }
 
   private async cleanup(): Promise<void> {
+    if (!this.redis) {
+      return;
+    }
+
     try {
       const cutoffTime = Date.now() - 7 * 24 * 60 * 60 * 1000; // 7 days ago
 
       // Remove old completed tasks
-      await this.redis.zRemRangeByScore(this.COMPLETED_QUEUE, 0, cutoffTime);
+      await this.redis.zremrangebyscore(this.COMPLETED_QUEUE, 0, cutoffTime);
 
       // Remove old failed tasks
-      await this.redis.zRemRangeByScore(this.FAILED_QUEUE, 0, cutoffTime);
+      await this.redis.zremrangebyscore(this.FAILED_QUEUE, 0, cutoffTime);
 
-      console.log("🧹 TaskQueue cleanup completed");
+      logger.info("TaskQueue cleanup completed", "TaskQueue");
     } catch (error: unknown) {
-      console.error(" TaskQueue cleanup failed:", error);
+      logger.error("TaskQueue cleanup failed", "TaskQueue", { error });
     }
   }
 
   async getNextTask(): Promise<Task | null> {
+    if (!this.redis) {
+      return null;
+    }
+
     try {
       // Get highest priority pending task
-      const taskData = await this.redis.zPopMax(this.PENDING_QUEUE);
-      if (!taskData) return null;
+      const taskData = await this.redis.zpopmax(this.PENDING_QUEUE);
+      if (!taskData || taskData.length === 0) return null;
 
-      const taskId = taskData.member;
+      const taskId = taskData[0];
       const task = await this.getTask(taskId);
 
       if (task) {
         // Move to running queue
-        await this.redis.zadd(this.RUNNING_QUEUE, {
-          score: Date.now(),
-          value: taskId,
-        });
+        await this.redis.zadd(this.RUNNING_QUEUE, Date.now(), taskId);
       }
 
       return task;
     } catch (error: unknown) {
-      console.error(" Failed to get next task:", error);
+      logger.error("Failed to get next task", "TaskQueue", { error });
       return null;
     }
   }

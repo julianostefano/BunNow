@@ -166,10 +166,7 @@ export const streamingApiRoutes = new Elysia({ prefix: "/api/streaming" })
   .delete("/messages/:messageId", async ({ params }) => {
     try {
       const redis = (serviceNowStreams as any).redis;
-      const result = await redis.xdel(
-        "servicenow:changes",
-        params.messageId,
-      );
+      const result = await redis.xdel("servicenow:changes", params.messageId);
 
       return {
         success: result === 1,
@@ -199,19 +196,21 @@ export const streamingApiRoutes = new Elysia({ prefix: "/api/streaming" })
         count,
       );
 
-      const formattedMessages = messages.map(([id, fields]: [string, string[]]) => {
-        const data: Record<string, string> = {};
-        for (let i = 0; i < fields.length; i += 2) {
-          data[fields[i]] = fields[i + 1];
-        }
+      const formattedMessages = messages.map(
+        ([id, fields]: [string, string[]]) => {
+          const data: Record<string, string> = {};
+          for (let i = 0; i < fields.length; i += 2) {
+            data[fields[i]] = fields[i + 1];
+          }
 
-        return {
-          id,
-          timestamp: new Date(parseInt(id.split("-")[0])).toISOString(),
-          ...data,
-          data: data.data ? JSON.parse(data.data) : {},
-        };
-      });
+          return {
+            id,
+            timestamp: new Date(parseInt(id.split("-")[0])).toISOString(),
+            ...data,
+            data: data.data ? JSON.parse(data.data) : {},
+          };
+        },
+      );
 
       return {
         success: true,

@@ -1,10 +1,12 @@
 /**
  * ServiceNow SLA Service - Handles SLA-related operations
+ * Refactored to use ServiceNow Bridge Service directly (no self-referencing HTTP calls)
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
 import { ServiceNowAuthCore, ServiceNowRecord } from "./ServiceNowAuthCore";
 import { serviceNowRateLimiter } from "../ServiceNowRateLimit";
+import { ServiceNowBridgeService, BridgeResponse } from "../ServiceNowBridgeService";
 
 export interface SLATaskRecord extends ServiceNowRecord {
   task?: {
@@ -98,6 +100,40 @@ export interface SLAPerformanceMetrics {
 }
 
 export class ServiceNowSLAService extends ServiceNowAuthCore {
+  private bridgeService: ServiceNowBridgeService;
+
+  constructor() {
+    super();
+    // Use ServiceNow Bridge Service directly - NO MORE HTTP SELF-REFERENCING CALLS
+    this.bridgeService = new ServiceNowBridgeService();
+    console.log('🔌 ServiceNowSLAService using bridge service directly - self-referencing calls eliminated');
+  }
+
+  /**
+   * Execute ServiceNow SLA query using bridge service directly (eliminates self-referencing HTTP calls)
+   */
+  private async executeSLABridgeQuery(
+    table: string,
+    params: Record<string, any> = {}
+  ): Promise<BridgeResponse<ServiceNowRecord[]>> {
+    const startTime = Date.now();
+
+    try {
+      console.log(`🔍 SLA Bridge query: ${table}`, params);
+
+      // Use bridge service directly - NO HTTP CALL to self
+      const response = await this.bridgeService.queryTable(table, params);
+
+      const duration = Date.now() - startTime;
+      console.log(`✅ SLA Bridge query completed in ${duration}ms`);
+
+      return response;
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      console.error(`❌ SLA Bridge query error after ${duration}ms:`, error.message);
+      throw error;
+    }
+  }
   /**
    * Get comprehensive SLA data for a specific task/incident
    * Fetches data from task_sla, contract_sla, and sla_definition tables
@@ -113,19 +149,19 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
           sla_definitions: [],
         };
 
-        // Get task_sla records for this specific task
-        const taskSLAUrl = `${this.SERVICENOW_BASE_URL}/api/now/table/task_sla`;
-        const taskSLAResponse = await this.axiosClient({
-          method: "get",
-          url: taskSLAUrl,
-          params: {
-            sysparm_query: `task=${taskSysId}`,
-            sysparm_display_value: "all",
-            sysparm_exclude_reference_link: "true",
-            sysparm_limit: 50,
-          },
+        // Get task_sla records for this specific task using bridge service directly
+        const taskSLAResponse = await this.executeSLABridgeQuery('task_sla', {
+          sysparm_query: `task=${taskSysId}`,
+          sysparm_display_value: "all",
+          sysparm_exclude_reference_link: "true",
+          sysparm_limit: "50",
         });
-        slaData.task_slas = taskSLAResponse.data.result || [];
+
+        if (!taskSLAResponse.success) {
+          throw new Error(taskSLAResponse.error || 'Failed to retrieve task SLA data');
+        }
+
+        slaData.task_slas = taskSLAResponse.result || [];
 
         // Get SLA definitions referenced by task_slas
         const slaDefinitionIds = slaData.task_slas
@@ -133,17 +169,17 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
           .filter((id: string | undefined): id is string => !!id);
 
         if (slaDefinitionIds.length > 0) {
-          const slaDefUrl = `${this.SERVICENOW_BASE_URL}/api/now/table/sla_definition`;
-          const slaDefResponse = await this.axiosClient({
-            method: "get",
-            url: slaDefUrl,
-            params: {
-              sysparm_query: `sys_idIN${slaDefinitionIds.join(",")}`,
-              sysparm_display_value: "all",
-              sysparm_exclude_reference_link: "true",
-            },
+          const slaDefResponse = await this.executeSLABridgeQuery('sla_definition', {
+            sysparm_query: `sys_idIN${slaDefinitionIds.join(",")}`,
+            sysparm_display_value: "all",
+            sysparm_exclude_reference_link: "true",
           });
-          slaData.sla_definitions = slaDefResponse.data.result || [];
+
+          if (!slaDefResponse.success) {
+            throw new Error(slaDefResponse.error || 'Failed to retrieve SLA definition data');
+          }
+
+          slaData.sla_definitions = slaDefResponse.result || [];
         }
 
         return slaData;
@@ -173,19 +209,18 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
           query += `^location=${location}`;
         }
 
-        const url = `${this.SERVICENOW_BASE_URL}/api/now/table/contract_sla`;
-        const response = await this.axiosClient({
-          method: "get",
-          url,
-          params: {
-            sysparm_query: query,
-            sysparm_display_value: "all",
-            sysparm_exclude_reference_link: "true",
-            sysparm_limit: 20,
-          },
+        const response = await this.executeSLABridgeQuery('contract_sla', {
+          sysparm_query: query,
+          sysparm_display_value: "all",
+          sysparm_exclude_reference_link: "true",
+          sysparm_limit: "20",
         });
 
-        return response.data;
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to retrieve contract SLA data');
+        }
+
+        return { result: response.result || [] };
       } catch (error: unknown) {
         console.error(`ServiceNow contract SLA error:`, error);
         throw error;
@@ -259,19 +294,18 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
 
     return serviceNowRateLimiter.executeRequest(async () => {
       try {
-        const url = `${this.SERVICENOW_BASE_URL}/api/now/table/${table}`;
-        const response = await this.axiosClient({
-          method: "get",
-          url,
-          params: {
-            sysparm_query: query,
-            sysparm_display_value: "all",
-            sysparm_exclude_reference_link: "true",
-            sysparm_limit: limit,
-          },
+        const response = await this.executeSLABridgeQuery(table, {
+          sysparm_query: query,
+          sysparm_display_value: "all",
+          sysparm_exclude_reference_link: "true",
+          sysparm_limit: limit.toString(),
         });
 
-        return response.data;
+        if (!response.success) {
+          throw new Error(response.error || `Failed to retrieve ${table} data`);
+        }
+
+        return { result: response.result || [] };
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
@@ -299,19 +333,18 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
           query += `^sla.name=${slaType}`;
         }
 
-        const url = `${this.SERVICENOW_BASE_URL}/api/now/table/task_sla`;
-        const response = await this.axiosClient({
-          method: "get",
-          url,
-          params: {
-            sysparm_query: query,
-            sysparm_display_value: "all",
-            sysparm_exclude_reference_link: "true",
-            sysparm_limit: 1000,
-          },
+        const response = await this.executeSLABridgeQuery('task_sla', {
+          sysparm_query: query,
+          sysparm_display_value: "all",
+          sysparm_exclude_reference_link: "true",
+          sysparm_limit: "1000",
         });
 
-        const slaRecords = response.data.result || [];
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to retrieve SLA performance data');
+        }
+
+        const slaRecords = response.result || [];
 
         // Calculate metrics
         const metrics = {

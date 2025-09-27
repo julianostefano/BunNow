@@ -8,6 +8,7 @@ import { samlConfigManager } from "./auth/SAMLConfigManager";
 import { SAMLAuthenticationData, SAML_NO_PROXY_DOMAINS } from "../types/saml";
 import { serviceNowRateLimiter } from "./ServiceNowRateLimit";
 import { serviceNowCircuitBreaker } from "./CircuitBreaker";
+import { ServiceNowBridgeService } from "./ServiceNowBridgeService";
 
 export interface ServiceNowRecord {
   sys_id: string;
@@ -47,8 +48,7 @@ export interface RateLimitConfig {
 }
 
 export class ServiceNowFetchClient {
-  protected readonly AUTH_SERVICE_PROXY_URL =
-    process.env.AUTH_SERVICE_PROXY_URL || "http://10.219.8.210:3008";
+  private bridgeService: ServiceNowBridgeService;
   private readonly baseUrl: string;
   private samlAuthData: SAMLAuthenticationData | null = null;
   private isAuthenticated = false;
@@ -67,8 +67,9 @@ export class ServiceNowFetchClient {
   };
 
   constructor(config?: Partial<RateLimitConfig>) {
-    // Use auth service as proxy to avoid 61s infrastructure timeout
-    this.baseUrl = `${this.AUTH_SERVICE_PROXY_URL}/api/v1/servicenow/tickets`;
+    // Use ServiceNow Bridge Service directly - NO MORE HTTP SELF-REFERENCING CALLS
+    this.bridgeService = new ServiceNowBridgeService();
+    this.baseUrl = "ServiceNow Bridge Service"; // For logging purposes only
     this.rateLimitConfig = {
       maxRequestsPerSecond: parseInt(process.env.SERVICENOW_RATE_LIMIT || "25"),
       maxConcurrentRequests: parseInt(
@@ -78,8 +79,8 @@ export class ServiceNowFetchClient {
       ...config,
     };
 
-    console.log("🚀 ServiceNowFetchClient initialized (Native Fetch):");
-    console.log(`   - Base URL: ${this.baseUrl}`);
+    console.log("🔌 ServiceNowFetchClient using bridge service directly - self-referencing calls eliminated");
+    console.log(`   - Bridge Service: ${this.baseUrl}`);
     console.log(
       `   - Rate limit: ${this.rateLimitConfig.maxRequestsPerSecond} req/sec`,
     );
@@ -358,25 +359,25 @@ export class ServiceNowFetchClient {
           }
         }
 
-        // Use proxy endpoint instead of direct ServiceNow connection
-        const response = await this.makeProxyRequest({
-          url: `${this.AUTH_SERVICE_PROXY_URL}/api/v1/servicenow/tickets/${table}`,
-          method: "GET",
-          params: {
-            sysparm_query: finalQuery,
-            sysparm_display_value: "all",
-            sysparm_exclude_reference_link: "true",
-            sysparm_limit: limit.toString(),
-          },
+        // Use bridge service directly instead of proxy
+        const response = await this.bridgeService.queryTable(table, {
+          sysparm_query: finalQuery,
+          sysparm_display_value: "all",
+          sysparm_exclude_reference_link: "true",
+          sysparm_limit: limit.toString(),
         });
 
-        console.log(`✅ ServiceNow ${table} proxy request completed`);
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to query ServiceNow table');
+        }
+
+        console.log(`✅ ServiceNow ${table} bridge request completed`);
 
         return { result: response.result || [] };
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
-        console.error(`ServiceNow ${table} proxy request error:`, errorMessage);
+        console.error(`ServiceNow ${table} bridge request error:`, errorMessage);
         throw error;
       }
     });

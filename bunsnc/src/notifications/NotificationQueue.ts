@@ -7,6 +7,11 @@
 import { EventEmitter } from "events";
 import { Redis } from "ioredis";
 import {
+  getRedisConnection,
+  redisConnectionManager,
+} from "../utils/RedisConnection";
+import { logger } from "../utils/Logger";
+import {
   Notification,
   NotificationQueueItem,
   NotificationChannel,
@@ -36,7 +41,7 @@ export interface NotificationQueueOptions {
 }
 
 export class NotificationQueue extends EventEmitter {
-  private redis: Redis;
+  private redis: Redis | null = null;
   private options: NotificationQueueOptions;
   private isRunning: boolean = false;
   private processingTimer?: NodeJS.Timeout;
@@ -56,31 +61,81 @@ export class NotificationQueue extends EventEmitter {
   constructor(options: NotificationQueueOptions) {
     super();
     this.options = options;
-    this.redis = new Redis({
-      host: options.redis.host,
-      port: options.redis.port,
-      password: options.redis.password,
-      db: options.redis.db || 0,
-      retryDelayOnFailover: 100,
-      maxRetriesPerRequest: 3,
-    });
 
-    this.setupErrorHandling();
+    // Initialize with shared Redis connection
+    this.initializeSharedConnection(options);
   }
 
-  private setupErrorHandling(): void {
-    this.redis.on("error", (error) => {
-      console.error("Notification Queue Redis Error:", error);
+  private async initializeSharedConnection(
+    options: NotificationQueueOptions,
+  ): Promise<void> {
+    try {
+      logger.info("Initializing shared Redis connection", "NotificationQueue");
+
+      // Use shared Redis connection
+      this.redis = await getRedisConnection({
+        host: options.redis.host,
+        port: options.redis.port,
+        password: options.redis.password,
+        db: options.redis.db || 0,
+        retryDelayOnFailover: 100,
+        maxRetriesPerRequest: 3,
+      });
+
+      // Validate connection
+      await this.redis.ping();
+
+      this.setupSharedConnectionHandlers();
+      logger.info(
+        "NotificationQueue Redis connection established",
+        "NotificationQueue",
+        {
+          host: options.redis.host,
+          port: options.redis.port,
+          db: options.redis.db || 0,
+        },
+      );
+    } catch (error) {
+      logger.error(
+        "Redis initialization failed - continuing without Redis",
+        "NotificationQueue",
+        {
+          error: error instanceof Error ? error.message : String(error),
+          host: options.redis.host,
+          port: options.redis.port,
+        },
+      );
+      this.redis = null; // fallback controlado, sem throw
+      // Não propagar erro - permite aplicação funcionar sem Redis
+    }
+  }
+
+  private setupSharedConnectionHandlers(): void {
+    // Listen to the centralized connection manager events instead of direct Redis events
+    redisConnectionManager.on("error", (error) => {
+      logger.error(
+        "Notification Queue Redis Error (shared connection)",
+        "NotificationQueue",
+        {
+          error: error.message,
+        },
+      );
       this.emit("error", error);
     });
 
-    this.redis.on("connect", () => {
-      console.log("Notification Queue Redis Connected");
+    redisConnectionManager.on("connect", () => {
+      logger.info(
+        "Notification Queue Redis Connected (shared connection)",
+        "NotificationQueue",
+      );
       this.emit("connected");
     });
 
-    this.redis.on("ready", () => {
-      console.log("Notification Queue Redis Ready");
+    redisConnectionManager.on("ready", () => {
+      logger.info(
+        "Notification Queue Redis Ready (shared connection)",
+        "NotificationQueue",
+      );
       this.emit("ready");
     });
   }
@@ -91,6 +146,16 @@ export class NotificationQueue extends EventEmitter {
   async start(): Promise<void> {
     if (this.isRunning) {
       throw new Error("Notification queue is already running");
+    }
+
+    if (!this.redis) {
+      logger.warn(
+        "Redis unavailable - notification queue starting without Redis",
+        "NotificationQueue",
+      );
+      this.isRunning = true;
+      this.emit("started");
+      return; // degradação graciosa
     }
 
     try {
@@ -109,11 +174,13 @@ export class NotificationQueue extends EventEmitter {
         this.options.queue.cleanupInterval,
       );
 
-      console.log("Notification queue started");
+      logger.info("Notification queue started", "NotificationQueue");
       this.emit("started");
     } catch (error: unknown) {
-      console.error("Failed to start notification queue:", error);
-      throw error;
+      logger.error("Failed to start notification queue", "NotificationQueue", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      // Não fazer throw - permite aplicação continuar
     }
   }
 
@@ -135,8 +202,14 @@ export class NotificationQueue extends EventEmitter {
       this.cleanupTimer = undefined;
     }
 
-    await this.redis.quit();
-    console.log("Notification queue stopped");
+    // Disconnect from shared Redis connection
+    if (this.redis) {
+      await redisConnectionManager.disconnect();
+    }
+    logger.info(
+      "Notification queue stopped (shared connection)",
+      "NotificationQueue",
+    );
     this.emit("stopped");
   }
 
@@ -164,6 +237,19 @@ export class NotificationQueue extends EventEmitter {
       throw new Error(`Rate limit exceeded for source: ${notification.source}`);
     }
 
+    if (!this.redis) {
+      logger.warn(
+        "Redis unavailable - notification not queued",
+        "NotificationQueue",
+        {
+          notificationId: queueItem.id,
+          type: notification.type,
+          source: notification.source,
+        },
+      );
+      return queueItem.id; // degradação graciosa - retorna ID mesmo sem Redis
+    }
+
     // Check queue size
     const queueSize = await this.redis.llen(this.QUEUE_KEY);
     if (queueSize >= this.options.queue.maxSize) {
@@ -188,7 +274,10 @@ export class NotificationQueue extends EventEmitter {
     // Update statistics
     await this.updateStats("enqueued", notification.type);
 
-    console.log(`Notification queued: ${queueItem.id} (${notification.type})`);
+    logger.info(
+      `Notification queued: ${queueItem.id} (${notification.type})`,
+      "NotificationQueue",
+    );
     this.emit("enqueued", queueItem);
 
     return queueItem.id;

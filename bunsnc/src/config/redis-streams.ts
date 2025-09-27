@@ -3,7 +3,12 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import Redis from "ioredis";
+import { Redis } from "ioredis";
+import {
+  getRedisConnection,
+  redisConnectionManager,
+} from "../utils/RedisConnection";
+import { logger } from "../utils/Logger";
 
 export interface StreamMessage {
   id: string;
@@ -55,11 +60,13 @@ export interface RedisStreamConfig {
 }
 
 export class ServiceNowStreams {
-  private redis: Redis;
+  private redis: Redis | null = null;
   private config: RedisStreamConfig;
   private isConnected = false;
   private consumers: Map<string, (message: ServiceNowChange) => Promise<void>> =
     new Map();
+
+  private redisInitialized: Promise<void>;
 
   constructor(config?: Partial<RedisStreamConfig>) {
     this.config = {
@@ -75,34 +82,81 @@ export class ServiceNowStreams {
       ...config,
     };
 
-    this.redis = new Redis({
-      host: this.config.host,
-      port: this.config.port,
-      password: this.config.password,
-      db: this.config.db,
-      retryDelayOnFailover: 100,
-      maxRetriesPerRequest: 3,
-      lazyConnect: true,
-    });
-
-    this.setupEventHandlers();
+    // Initialize shared Redis connection and store promise
+    this.redisInitialized = this.initializeSharedConnection();
   }
 
-  private setupEventHandlers(): void {
-    this.redis.on("connect", () => {
-      console.log("🔗 Redis connected for ServiceNow streams");
+  private async initializeSharedConnection(): Promise<void> {
+    try {
+      logger.info("Initializing shared Redis connection", "ServiceNowStreams");
+
+      // Use shared Redis connection
+      this.redis = await getRedisConnection({
+        host: this.config.host,
+        port: this.config.port,
+        password: this.config.password,
+        db: this.config.db,
+        retryDelayOnFailover: 100,
+        maxRetriesPerRequest: 3,
+        lazyConnect: true,
+      });
+
+      // Validate connection
+      await this.redis.ping();
+
+      this.setupSharedConnectionHandlers();
+      logger.info(
+        "ServiceNowStreams Redis connection established",
+        "ServiceNowStreams",
+        {
+          host: this.config.host,
+          port: this.config.port,
+          db: this.config.db,
+        },
+      );
+    } catch (error) {
+      logger.error(
+        "Redis initialization failed - continuing without Redis",
+        "ServiceNowStreams",
+        {
+          error: error instanceof Error ? error.message : String(error),
+          host: this.config.host,
+          port: this.config.port,
+        },
+      );
+      this.redis = null; // fallback controlado, sem throw
+      // Não propagar erro - permite aplicação funcionar sem Redis
+    }
+  }
+
+  private setupSharedConnectionHandlers(): void {
+    // Listen to the centralized connection manager events instead of direct Redis events
+    redisConnectionManager.on("connect", () => {
+      logger.info(
+        "Redis connected for ServiceNow streams",
+        "ServiceNowStreams",
+      );
       this.isConnected = true;
     });
 
-    this.redis.on("error", (error) => {
-      console.error(" Redis connection error:", error);
+    redisConnectionManager.on("error", (error) => {
+      logger.error(
+        "Redis connection error for ServiceNow streams",
+        "ServiceNowStreams",
+        {
+          error: error.message,
+        },
+      );
       this.isConnected = false;
     });
 
-    this.redis.on("close", () => {
-      console.log(" Redis connection closed");
-      this.isConnected = false;
-    });
+    // Only set up Redis instance events if connection exists
+    if (this.redis) {
+      this.redis.on("close", () => {
+        logger.warn("Redis connection closed", "ServiceNowStreams");
+        this.isConnected = false;
+      });
+    }
   }
 
   /**
@@ -110,7 +164,16 @@ export class ServiceNowStreams {
    */
   async initialize(): Promise<void> {
     try {
-      await this.redis.connect();
+      // Ensure Redis is initialized first
+      await this.redisInitialized;
+
+      if (!this.redis) {
+        logger.warn(
+          "Redis connection not available - streams disabled",
+          "ServiceNowStreams",
+        );
+        return; // degradação graciosa - continua sem Redis
+      }
 
       // Create consumer group if it doesn't exist
       try {
@@ -121,29 +184,52 @@ export class ServiceNowStreams {
           "$",
           "MKSTREAM",
         );
-        console.log(` Consumer group '${this.config.consumerGroup}' created`);
+        logger.info("Consumer group created", "ServiceNowStreams", {
+          consumerGroup: this.config.consumerGroup,
+        });
       } catch (error: any) {
         if (!error.message.includes("BUSYGROUP")) {
           throw error;
         }
-        console.log(
-          `ℹ️ Consumer group '${this.config.consumerGroup}' already exists`,
-        );
+        logger.info("Consumer group already exists", "ServiceNowStreams", {
+          consumerGroup: this.config.consumerGroup,
+        });
       }
 
-      console.log(" ServiceNow streams initialized successfully");
+      logger.info(
+        "ServiceNow streams initialized successfully",
+        "ServiceNowStreams",
+      );
     } catch (error: unknown) {
-      console.error(" Failed to initialize ServiceNow streams:", error);
-      throw error;
+      logger.error(
+        "Failed to initialize ServiceNow streams",
+        "ServiceNowStreams",
+        {
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
+      // Não fazer throw - permite aplicação continuar
     }
   }
 
   /**
    * Publish ServiceNow change to stream
    */
-  async publishChange(change: ServiceNowChange): Promise<string> {
-    if (!this.isConnected) {
-      throw new Error("Redis not connected");
+  async publishChange(change: ServiceNowChange): Promise<string | null> {
+    // Ensure Redis is initialized first
+    await this.redisInitialized;
+
+    if (!this.redis) {
+      logger.warn(
+        "Redis unavailable - change not published",
+        "ServiceNowStreams",
+        {
+          sys_id: change.sys_id,
+          type: change.type,
+          action: change.action,
+        },
+      );
+      return null; // degradação graciosa
     }
 
     try {
@@ -165,13 +251,25 @@ export class ServiceNowStreams {
         ...Object.entries(streamData).flat(),
       );
 
-      console.log(
-        `📤 ServiceNow change published: ${change.type}:${change.action} (${messageId})`,
+      logger.info(
+        "ServiceNow change published to Redis stream",
+        "ServiceNowStreams",
+        {
+          messageId,
+          type: change.type,
+          action: change.action,
+          sys_id: change.sys_id,
+        },
       );
       return messageId;
     } catch (error: unknown) {
-      console.error(" Failed to publish ServiceNow change:", error);
-      throw error;
+      logger.error("Failed to publish ServiceNow change", "ServiceNowStreams", {
+        error: error instanceof Error ? error.message : String(error),
+        type: change.type,
+        action: change.action,
+        sys_id: change.sys_id,
+      });
+      return null; // degradação graciosa em vez de throw
     }
   }
 
@@ -202,6 +300,9 @@ export class ServiceNowStreams {
    * Start consuming messages from the stream
    */
   async startConsumer(): Promise<void> {
+    // Ensure Redis is initialized first
+    await this.redisInitialized;
+
     if (!this.isConnected) {
       await this.initialize();
     }

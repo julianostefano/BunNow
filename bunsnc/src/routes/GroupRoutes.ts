@@ -7,6 +7,7 @@ import { Elysia, t } from "elysia";
 import { dataService, GroupFilter } from "../services/ConsolidatedDataService";
 import { GroupData } from "../config/mongodb-collections";
 import { logger } from "../utils/Logger";
+import { mongoClient } from "../config/mongodb";
 import {
   GroupsAPIError,
   GroupValidationError,
@@ -134,7 +135,10 @@ export const createGroupRoutes = () => {
       .onBeforeHandle(async ({ request, path }) => {
         try {
           // Ensure MongoDB is connected and GroupService is initialized
-          if (!mongoClient.isConnected()) {
+          try {
+            mongoClient.getDatabase(); // This will throw if not connected
+            logger.debug(" [GROUP-API] MongoDB already connected");
+          } catch (error) {
             logger.info(" [GROUP-API] Establishing MongoDB connection...");
             await mongoClient.connect();
             logger.info(" [GROUP-API] MongoDB connected successfully");

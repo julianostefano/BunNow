@@ -22,7 +22,8 @@ export type {
   PubSubMetrics,
 } from "./RedisStreamManager";
 
-import Redis from "ioredis";
+import { Redis } from "ioredis";
+import { getRedisConnection } from "../../utils/RedisConnection";
 import { RedisStreamManager } from "./RedisStreamManager";
 import { RedisCache } from "./RedisCache";
 import { RedisPubSub } from "./RedisPubSub";
@@ -133,15 +134,14 @@ export class ServiceNowRedisFactory {
       };
     } = {},
   ) {
-    if (redisConfig.cluster) {
-      this.redis = new Redis.Cluster(redisConfig.cluster.nodes, {
-        ...redisConfig.cluster.options,
-        enableReadyCheck: true,
-        maxRetriesPerRequest: 3,
-        retryDelayOnFailover: 100,
-      });
-    } else {
-      this.redis = new Redis({
+    // Initialize with shared Redis connection
+    this.initializeSharedConnection(redisConfig);
+  }
+
+  private async initializeSharedConnection(redisConfig: any): Promise<void> {
+    try {
+      // Use shared Redis connection instead of creating new ones
+      this.redis = await getRedisConnection({
         host: redisConfig.host || "localhost",
         port: redisConfig.port || 6379,
         password: redisConfig.password,
@@ -153,7 +153,16 @@ export class ServiceNowRedisFactory {
         commandTimeout: 5000,
         enableOfflineQueue: true,
         lazyConnect: false,
+        cluster: redisConfig.cluster,
       });
+
+      console.log("✅ ServiceNowRedisFactory using shared Redis connection");
+    } catch (error) {
+      console.error(
+        "❌ Failed to initialize shared Redis connection for ServiceNowRedisFactory:",
+        error,
+      );
+      throw error;
     }
   }
 

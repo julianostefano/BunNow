@@ -1,104 +1,71 @@
 /**
  * ServiceNow Query Service - Handles all query operations with caching
+ * Refactored to use ServiceNow Bridge Service directly (no self-referencing HTTP calls)
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
 import { ServiceNowAuthCore, ServiceNowRecord } from "./ServiceNowAuthCore";
 import { serviceNowRateLimiter } from "../ServiceNowRateLimit";
+import { ServiceNowBridgeService, BridgeResponse } from "../ServiceNowBridgeService";
 
 export class ServiceNowQueryService extends ServiceNowAuthCore {
   private static cacheWarmingInProgress = false;
   private static cacheWarmingCompleted = false;
+  private bridgeService: ServiceNowBridgeService;
 
-  protected readonly AUTH_SERVICE_PROXY_URL =
-    process.env.AUTH_SERVICE_PROXY_URL || "http://10.219.8.210:3008"; // Auth service as ServiceNow proxy
+  constructor() {
+    super();
+    // Use ServiceNow Bridge Service directly - NO MORE HTTP SELF-REFERENCING CALLS
+    this.bridgeService = new ServiceNowBridgeService();
+    console.log('🔌 ServiceNowQueryService using bridge service directly - self-referencing calls eliminated');
+  }
 
   /**
-   * Make authenticated request to auth service proxy instead of direct ServiceNow
+   * Execute ServiceNow query using bridge service directly (eliminates self-referencing HTTP calls)
    */
-  protected async makeProxyRequest(config: {
-    url: string;
-    method?: string;
-    params?: Record<string, string>;
-  }): Promise<any> {
+  private async executeBridgeQuery(
+    table: string,
+    params: Record<string, any> = {}
+  ): Promise<BridgeResponse<ServiceNowRecord[]>> {
     const startTime = Date.now();
 
     try {
-      // Build URL with query parameters
-      const url = new URL(config.url);
-      if (config.params) {
-        Object.entries(config.params).forEach(([key, value]) => {
-          url.searchParams.append(key, value);
-        });
-      }
+      console.log(`🔍 Bridge query: ${table}`, params);
 
-      // Simple headers - auth service will handle ServiceNow authentication
-      const headers = {
-        "User-Agent": "BunSNC-ServiceNow-Client/1.0",
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      };
+      // Use bridge service directly - NO HTTP CALL to self
+      const response = await this.bridgeService.queryTable(table, params);
 
-      const fetchConfig: RequestInit = {
-        method: config.method || "GET",
-        headers,
-        signal: AbortSignal.timeout(900000), // 15 minutes timeout
-      };
-
-      console.log(
-        `🚀 Auth service proxy request: ${config.method || "GET"} ${url.toString()}`,
-      );
-
-      const response = await fetch(url.toString(), fetchConfig);
       const duration = Date.now() - startTime;
+      console.log(`✅ Bridge query completed in ${duration}ms`);
 
-      console.log(`✅ Auth service proxy request completed in ${duration}ms`);
-
-      if (!response.ok) {
-        console.error(`❌ Auth service proxy request failed:`, {
-          url: url.toString(),
-          method: config.method || "GET",
-          status: response.status,
-          statusText: response.statusText,
-        });
-
-        throw new Error(
-          `Auth service proxy returned status ${response.status}: ${response.statusText}`,
-        );
-      }
-
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        return await response.json();
-      } else {
-        return await response.text();
-      }
+      return response;
     } catch (error: any) {
       const duration = Date.now() - startTime;
-      console.error(
-        `❌ Auth service proxy error after ${duration}ms:`,
-        error.message,
-      );
+      console.error(`❌ Bridge query error after ${duration}ms:`, error.message);
       throw error;
     }
   }
 
   /**
-   * Generic method to make ServiceNow API requests (using native fetch)
+   * Generic method to make ServiceNow API requests (using bridge service directly)
    */
   async makeRequest(
     table: string,
     method: string = "GET",
     params: Record<string, any> = {},
   ): Promise<any> {
-    // Use auth service proxy endpoint instead of direct ServiceNow API
-    const url = `${this.AUTH_SERVICE_PROXY_URL}/api/v1/servicenow/tickets/${table}`;
+    // Use bridge service directly - eliminates self-referencing HTTP calls
+    const response = await this.executeBridgeQuery(table, params);
 
-    return this.makeProxyRequest({
-      url,
-      method: method.toUpperCase(),
-      params,
-    });
+    if (!response.success) {
+      throw new Error(response.error || 'Bridge service query failed');
+    }
+
+    return {
+      result: response.result,
+      total: response.total,
+      ...(response as any)
+    };
   }
 
   /**
@@ -171,19 +138,19 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
             sysparm_offset: offset,
           };
 
-          // Use auth service proxy endpoint (fixed URL to match implemented routes)
-          const url = `${this.AUTH_SERVICE_PROXY_URL}/api/v1/servicenow/tickets/${table}`;
-          const proxyParams = {
-            group: group,
-            page: page.toString(),
+          // Use bridge service directly - eliminates self-referencing HTTP calls
+          const bridgeParams = {
             ...params,
+            // Additional metadata for tracking
+            _group: group,
+            _page: page.toString(),
           };
 
-          const response = await this.makeProxyRequest({
-            url,
-            method: "GET",
-            params: proxyParams,
-          });
+          const response = await this.executeBridgeQuery(table, bridgeParams);
+
+          if (!response.success) {
+            throw new Error(response.error || 'Bridge service query failed');
+          }
 
           const data = response.result || [];
           const total = data.length; // For now, use array length (headers not available in fetch)
@@ -282,13 +249,12 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
             ` ServiceNow query via proxy: ${table} - ${query.substring(0, 100)}... (attempt ${attempt}/${retryAttempts})`,
           );
 
-          // Use auth service proxy endpoint
-          const url = `${this.AUTH_SERVICE_PROXY_URL}/api/v1/servicenow/tickets/${table}`;
-          const response = await this.makeProxyRequest({
-            url,
-            method: "GET",
-            params: queryParams,
-          });
+          // Use bridge service directly - eliminates self-referencing HTTP calls
+          const response = await this.executeBridgeQuery(table, queryParams);
+
+          if (!response.success) {
+            throw new Error(response.error || 'Bridge service query failed');
+          }
 
           if (!response || !response.result) {
             throw new Error(

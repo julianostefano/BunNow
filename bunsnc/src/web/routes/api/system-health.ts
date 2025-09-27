@@ -115,7 +115,10 @@ export const systemHealthApiRoutes = new Elysia({ prefix: "/api/system" })
         state: serviceNowCircuitBreaker.getMetrics().state,
       };
     } catch (error: unknown) {
-      logger.error("[SystemHealthAPI] Circuit breaker force open failed:", error);
+      logger.error(
+        "[SystemHealthAPI] Circuit breaker force open failed:",
+        error,
+      );
       return {
         success: false,
         error: "Circuit breaker force open failed",
@@ -134,7 +137,10 @@ export const systemHealthApiRoutes = new Elysia({ prefix: "/api/system" })
         state: serviceNowCircuitBreaker.getMetrics().state,
       };
     } catch (error: unknown) {
-      logger.error("[SystemHealthAPI] Circuit breaker force closed failed:", error);
+      logger.error(
+        "[SystemHealthAPI] Circuit breaker force closed failed:",
+        error,
+      );
       return {
         success: false,
         error: "Circuit breaker force closed failed",

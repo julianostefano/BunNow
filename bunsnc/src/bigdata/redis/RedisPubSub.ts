@@ -3,10 +3,14 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import Redis, { Redis as RedisClient, Cluster as RedisCluster } from "ioredis";
+import { Redis as RedisClient, Cluster as RedisCluster } from "ioredis";
 import { EventEmitter } from "events";
 import { logger } from "../../utils/Logger";
 import { performanceMonitor } from "../../utils/PerformanceMonitor";
+import {
+  getRedisConnection,
+  redisConnectionManager,
+} from "../../utils/RedisConnection";
 
 export interface PubSubMessage {
   channel: string;
@@ -47,8 +51,8 @@ export interface PubSubMetrics {
 }
 
 export class RedisPubSub extends EventEmitter {
-  private publisher: RedisClient | RedisCluster;
-  private subscriber: RedisClient | RedisCluster;
+  private publisher: RedisClient | RedisCluster | null = null;
+  private subscriber: RedisClient | RedisCluster | null = null;
   private options: Required<PubSubOptions>;
   private subscriptions: Map<string, Set<(message: PubSubMessage) => void>> =
     new Map();
@@ -62,15 +66,8 @@ export class RedisPubSub extends EventEmitter {
   private reconnectCount: number = 0;
   private metricsTimer?: NodeJS.Timeout;
 
-  constructor(
-    publisher: RedisClient | RedisCluster,
-    subscriber?: RedisClient | RedisCluster,
-    options: PubSubOptions = {},
-  ) {
+  constructor(options: PubSubOptions = {}) {
     super();
-
-    this.publisher = publisher;
-    this.subscriber = subscriber || publisher.duplicate();
 
     this.options = {
       enablePatternSubscription: options.enablePatternSubscription ?? true,
@@ -93,13 +90,47 @@ export class RedisPubSub extends EventEmitter {
       channelMetrics: new Map(),
     };
 
-    this.setupEventHandlers();
+    // Initialize Redis connections using shared connection manager
+    this.initializeSharedConnections(options);
 
     if (this.options.enableMetrics) {
       this.startMetricsCollection();
     }
 
-    logger.info("RedisPubSub initialized");
+    logger.info("RedisPubSub initialized with shared connections");
+  }
+
+  private async initializeSharedConnections(
+    options: PubSubOptions = {},
+  ): Promise<void> {
+    try {
+      logger.info("Initializing shared Redis connections", "RedisPubSub");
+
+      // Get shared connections - both publisher and subscriber
+      this.publisher = await getRedisConnection();
+      this.subscriber = await getRedisConnection(); // Separate connection for subscriber
+
+      // Validate connections
+      if (this.publisher) {
+        await this.publisher.ping();
+      }
+      if (this.subscriber) {
+        await this.subscriber.ping();
+      }
+
+      this.setupEventHandlers();
+      logger.info("RedisPubSub Redis connections established", "RedisPubSub");
+    } catch (error) {
+      logger.error(
+        "Redis initialization failed - continuing without Redis",
+        "RedisPubSub",
+        {
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
+      this.publisher = null;
+      this.subscriber = null;
+    }
   }
 
   /**
@@ -114,6 +145,13 @@ export class RedisPubSub extends EventEmitter {
       messageId?: string;
     } = {},
   ): Promise<boolean> {
+    if (!this.publisher) {
+      logger.warn("Redis unavailable - publish failed", "RedisPubSub", {
+        channel,
+      });
+      return false;
+    }
+
     const timer = performanceMonitor.startTimer("redis_pubsub_publish");
 
     try {
@@ -223,6 +261,13 @@ export class RedisPubSub extends EventEmitter {
     channel: string,
     callback: (message: PubSubMessage) => void,
   ): Promise<boolean> {
+    if (!this.subscriber) {
+      logger.warn("Redis unavailable - subscribe failed", "RedisPubSub", {
+        channel,
+      });
+      return false;
+    }
+
     try {
       if (!this.subscriptions.has(channel)) {
         this.subscriptions.set(channel, new Set());
@@ -458,8 +503,12 @@ export class RedisPubSub extends EventEmitter {
     messagesPending: number;
   } {
     return {
-      publisherConnected: this.publisher.status === "ready",
-      subscriberConnected: this.subscriber.status === "ready",
+      publisherConnected: this.publisher
+        ? this.publisher.status === "ready"
+        : false,
+      subscriberConnected: this.subscriber
+        ? this.subscriber.status === "ready"
+        : false,
       activeSubscriptions:
         this.subscriptions.size + this.patternSubscriptions.size,
       messagesPending: 0, // Redis Pub/Sub doesn't queue messages
@@ -477,13 +526,13 @@ export class RedisPubSub extends EventEmitter {
 
     // Unsubscribe from all channels and patterns
     try {
-      if (this.subscriptions.size > 0) {
+      if (this.subscriber && this.subscriptions.size > 0) {
         await this.subscriber.unsubscribe(
           ...Array.from(this.subscriptions.keys()),
         );
       }
 
-      if (this.patternSubscriptions.size > 0) {
+      if (this.subscriber && this.patternSubscriptions.size > 0) {
         await this.subscriber.punsubscribe(
           ...Array.from(this.patternSubscriptions.keys()),
         );
@@ -491,6 +540,11 @@ export class RedisPubSub extends EventEmitter {
     } catch (error: unknown) {
       logger.warn("Error during cleanup unsubscribe:", error);
     }
+
+    // Disconnect from shared Redis connections
+    await redisConnectionManager.disconnect();
+    this.publisher = null;
+    this.subscriber = null;
 
     // Clear internal state
     this.subscriptions.clear();
@@ -500,48 +554,54 @@ export class RedisPubSub extends EventEmitter {
     this.isConnected = false;
     this.removeAllListeners();
 
-    logger.info("RedisPubSub disconnected and cleaned up");
+    logger.info(
+      "RedisPubSub disconnected from shared connections and cleaned up",
+    );
   }
 
   private setupEventHandlers(): void {
     // Publisher events
-    this.publisher.on("connect", () => {
-      logger.info("Redis publisher connected");
-    });
+    if (this.publisher) {
+      this.publisher.on("connect", () => {
+        logger.info("Redis publisher connected");
+      });
 
-    this.publisher.on("error", (error) => {
-      logger.error("Redis publisher error:", error);
-      this.emit("error", { type: "publisher", error });
-    });
+      this.publisher.on("error", (error) => {
+        logger.error("Redis publisher error:", error);
+        this.emit("error", { type: "publisher", error });
+      });
+    }
 
     // Subscriber events
-    this.subscriber.on("connect", () => {
-      this.isConnected = true;
-      this.reconnectCount = 0;
-      logger.info("Redis subscriber connected");
-    });
+    if (this.subscriber) {
+      this.subscriber.on("connect", () => {
+        this.isConnected = true;
+        this.reconnectCount = 0;
+        logger.info("Redis subscriber connected");
+      });
 
-    this.subscriber.on("message", (channel: string, message: string) => {
-      this.handleMessage(channel, message);
-    });
+      this.subscriber.on("message", (channel: string, message: string) => {
+        this.handleMessage(channel, message);
+      });
 
-    this.subscriber.on(
-      "pmessage",
-      (pattern: string, channel: string, message: string) => {
-        this.handlePatternMessage(pattern, channel, message);
-      },
-    );
+      this.subscriber.on(
+        "pmessage",
+        (pattern: string, channel: string, message: string) => {
+          this.handlePatternMessage(pattern, channel, message);
+        },
+      );
 
-    this.subscriber.on("error", (error) => {
-      logger.error("Redis subscriber error:", error);
-      this.emit("error", { type: "subscriber", error });
-    });
+      this.subscriber.on("error", (error) => {
+        logger.error("Redis subscriber error:", error);
+        this.emit("error", { type: "subscriber", error });
+      });
 
-    this.subscriber.on("close", () => {
-      this.isConnected = false;
-      logger.warn("Redis subscriber connection closed");
-      this.handleReconnection();
-    });
+      this.subscriber.on("close", () => {
+        this.isConnected = false;
+        logger.warn("Redis subscriber connection closed");
+        this.handleReconnection();
+      });
+    }
   }
 
   private handleMessage(channel: string, rawMessage: string): void {

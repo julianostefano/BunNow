@@ -3,10 +3,14 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import Redis, { Redis as RedisClient, Cluster as RedisCluster } from "ioredis";
+import { Redis as RedisClient, Cluster as RedisCluster } from "ioredis";
 import { EventEmitter } from "events";
 import { logger } from "../../utils/Logger";
 import { performanceMonitor } from "../../utils/PerformanceMonitor";
+import {
+  getRedisConnection,
+  redisConnectionManager,
+} from "../../utils/RedisConnection";
 
 export interface RedisStreamOptions {
   host?: string;
@@ -63,7 +67,7 @@ export interface StreamStats {
 }
 
 export class RedisStreamManager extends EventEmitter {
-  private redis: RedisClient | RedisCluster;
+  private redis: RedisClient | RedisCluster | null = null;
   private consumers: Map<string, RedisConsumer> = new Map();
   private isConnected: boolean = false;
   private reconnectTimer?: NodeJS.Timeout;
@@ -73,34 +77,64 @@ export class RedisStreamManager extends EventEmitter {
   constructor(options: RedisStreamOptions = {}) {
     super();
 
-    // Setup Redis connection
-    if (options.cluster) {
-      this.redis = new Redis.Cluster(options.cluster.nodes, {
-        ...options.cluster.options,
-        enableReadyCheck: options.enableReadyCheck ?? true,
-        maxRetriesPerRequest: options.maxRetriesPerRequest ?? 3,
-        retryDelayOnFailover: options.retryDelayOnFailover ?? 100,
-      });
-    } else {
-      this.redis = new Redis({
-        host: options.host || "localhost",
-        port: options.port || 6379,
-        password: options.password,
-        db: options.db || 0,
-        keyPrefix: options.keyPrefix,
-        maxRetriesPerRequest: options.maxRetriesPerRequest ?? 3,
-        retryDelayOnFailover: options.retryDelayOnFailover ?? 100,
-        connectTimeout: options.connectTimeout || 10000,
-        commandTimeout: options.commandTimeout || 5000,
-        enableOfflineQueue: options.enableOfflineQueue ?? true,
-        lazyConnect: options.lazyConnect ?? false,
-      });
-    }
-
-    this.setupEventHandlers();
+    // Use shared Redis connection instead of creating a new one
+    this.initializeSharedConnection(options);
     this.startMetricsCollection();
 
     logger.info("RedisStreamManager initialized");
+  }
+
+  private async initializeSharedConnection(
+    options: RedisStreamOptions = {},
+  ): Promise<void> {
+    try {
+      logger.info("Initializing shared Redis connection", "RedisStreamManager");
+
+      // Use shared connection with custom config if provided
+      const redisConfig = {
+        host: options.host,
+        port: options.port,
+        password: options.password,
+        db: options.db,
+        keyPrefix: options.keyPrefix,
+        maxRetriesPerRequest: options.maxRetriesPerRequest,
+        retryDelayOnFailover: options.retryDelayOnFailover,
+        connectTimeout: options.connectTimeout,
+        commandTimeout: options.commandTimeout,
+        enableOfflineQueue: options.enableOfflineQueue,
+        lazyConnect: options.lazyConnect,
+        cluster: options.cluster,
+      };
+
+      // Get shared connection
+      this.redis = await getRedisConnection(redisConfig);
+
+      // Validate connection
+      await this.redis.ping();
+
+      this.setupSharedConnectionHandlers();
+      logger.info(
+        "RedisStreamManager Redis connection established",
+        "RedisStreamManager",
+        {
+          host: redisConfig.host || "default",
+          port: redisConfig.port || 6379,
+          db: redisConfig.db || 0,
+        },
+      );
+    } catch (error) {
+      logger.error(
+        "Redis initialization failed - continuing without Redis",
+        "RedisStreamManager",
+        {
+          error: error instanceof Error ? error.message : String(error),
+          host: options.host || "default",
+          port: options.port || 6379,
+        },
+      );
+      this.redis = null; // fallback controlado, sem throw
+      // Não propagar erro - permite aplicação funcionar sem Redis
+    }
   }
 
   /**
@@ -111,7 +145,19 @@ export class RedisStreamManager extends EventEmitter {
     data: Record<string, any>,
     messageId: string = "*",
     maxLength?: number,
-  ): Promise<string> {
+  ): Promise<string | null> {
+    if (!this.redis) {
+      logger.warn(
+        "Redis unavailable - message not added to stream",
+        "RedisStreamManager",
+        {
+          streamKey,
+          messageId,
+        },
+      );
+      return null; // degradação graciosa
+    }
+
     const timerName = "redis_stream_add";
     let timerStarted = false;
 
@@ -149,13 +195,24 @@ export class RedisStreamManager extends EventEmitter {
         );
       }
 
-      logger.debug(`Added message ${result} to stream ${streamKey}`);
+      logger.debug(
+        `Added message ${result} to stream ${streamKey}`,
+        "RedisStreamManager",
+      );
       this.emit("message:added", { streamKey, messageId: result, data });
 
       return result;
     } catch (error: unknown) {
-      logger.error(`Error adding message to stream ${streamKey}:`, error);
-      throw error;
+      logger.error(
+        `Error adding message to stream ${streamKey}`,
+        "RedisStreamManager",
+        {
+          error: error instanceof Error ? error.message : String(error),
+          streamKey,
+          messageId,
+        },
+      );
+      return null; // degradação graciosa em vez de throw
     } finally {
       // Only end timer if it was successfully started
       if (timerStarted) {
@@ -173,6 +230,17 @@ export class RedisStreamManager extends EventEmitter {
     count?: number,
     blockTime?: number,
   ): Promise<StreamMessage[]> {
+    if (!this.redis) {
+      logger.warn(
+        "Redis unavailable - no messages read",
+        "RedisStreamManager",
+        {
+          streamKey,
+        },
+      );
+      return []; // degradação graciosa
+    }
+
     const timerName = "redis_stream_read";
     performanceMonitor.startTimer(timerName);
 
@@ -215,6 +283,16 @@ export class RedisStreamManager extends EventEmitter {
       }
 
       return messages;
+    } catch (error: unknown) {
+      logger.error(
+        `Error reading messages from stream ${streamKey}`,
+        "RedisStreamManager",
+        {
+          error: error instanceof Error ? error.message : String(error),
+          streamKey,
+        },
+      );
+      return []; // degradação graciosa
     } finally {
       performanceMonitor.endTimer(timerName);
     }
@@ -228,6 +306,18 @@ export class RedisStreamManager extends EventEmitter {
     groupName: string,
     startId: string = "0",
   ): Promise<void> {
+    if (!this.redis) {
+      logger.warn(
+        "Redis unavailable - consumer group not created",
+        "RedisStreamManager",
+        {
+          streamKey,
+          groupName,
+        },
+      );
+      return; // degradação graciosa
+    }
+
     try {
       await this.redis.xgroup(
         "CREATE",
@@ -238,12 +328,21 @@ export class RedisStreamManager extends EventEmitter {
       );
       logger.info(
         `Created consumer group ${groupName} for stream ${streamKey}`,
+        "RedisStreamManager",
       );
     } catch (error: unknown) {
       // Group might already exist
       if (!(error as Error).message.includes("BUSYGROUP")) {
-        logger.error(`Error creating consumer group ${groupName}:`, error);
-        throw error;
+        logger.error(
+          `Error creating consumer group ${groupName}`,
+          "RedisStreamManager",
+          {
+            error: error instanceof Error ? error.message : String(error),
+            streamKey,
+            groupName,
+          },
+        );
+        // Não fazer throw - permite aplicação continuar
       }
     }
   }
@@ -501,6 +600,15 @@ export class RedisStreamManager extends EventEmitter {
     memory: any;
     keyspace: any;
   }> {
+    if (!this.redis) {
+      return {
+        connected: false,
+        latency: -1,
+        memory: null,
+        keyspace: null,
+      };
+    }
+
     try {
       const startTime = Date.now();
       const pong = await this.redis.ping();
@@ -516,6 +624,9 @@ export class RedisStreamManager extends EventEmitter {
         keyspace: this.parseInfoString(keyspace),
       };
     } catch (error: unknown) {
+      logger.debug("Redis health check failed", "RedisStreamManager", {
+        error: error instanceof Error ? error.message : String(error),
+      });
       return {
         connected: false,
         latency: -1,
@@ -544,40 +655,69 @@ export class RedisStreamManager extends EventEmitter {
       clearInterval(this.metricsTimer);
     }
 
-    // Close Redis connection
-    this.redis.disconnect();
+    // Disconnect from shared Redis connection
+    await redisConnectionManager.disconnect();
     this.isConnected = false;
 
-    logger.info("RedisStreamManager disconnected");
+    logger.info(
+      "RedisStreamManager disconnected from shared connection",
+      "RedisStreamManager",
+    );
   }
 
-  private setupEventHandlers(): void {
-    this.redis.on("connect", () => {
-      this.isConnected = true;
-      logger.info("Redis connected");
-      this.emit("connected");
-    });
+  /**
+   * Setup event handlers for shared Redis connection
+   */
+  private setupSharedConnectionHandlers(): void {
+    if (!this.redis) return;
 
-    this.redis.on("ready", () => {
-      logger.info("Redis ready");
+    // Listen to the centralized connection manager events instead of direct Redis events
+    redisConnectionManager.on("ready", () => {
+      this.isConnected = true;
+      logger.debug(
+        "RedisStreamManager connected via shared connection",
+        "RedisStreamManager",
+      );
       this.emit("ready");
     });
 
-    this.redis.on("error", (error) => {
-      logger.error("Redis error:", error);
+    redisConnectionManager.on("error", (error) => {
+      logger.debug(
+        "RedisStreamManager connection error via shared connection",
+        "RedisStreamManager",
+        { error },
+      );
       this.emit("error", error);
     });
 
-    this.redis.on("close", () => {
+    redisConnectionManager.on("close", () => {
       this.isConnected = false;
-      logger.warn("Redis connection closed");
+      logger.debug(
+        "RedisStreamManager disconnected via shared connection",
+        "RedisStreamManager",
+      );
       this.emit("disconnected");
     });
 
-    this.redis.on("reconnecting", () => {
-      logger.info("Redis reconnecting...");
+    redisConnectionManager.on("reconnecting", (delay) => {
+      logger.debug(
+        `RedisStreamManager reconnecting via shared connection in ${delay}ms`,
+        "RedisStreamManager",
+      );
       this.emit("reconnecting");
     });
+
+    redisConnectionManager.on("end", () => {
+      this.isConnected = false;
+      logger.debug(
+        "RedisStreamManager connection ended via shared connection",
+        "RedisStreamManager",
+      );
+      this.emit("disconnected");
+    });
+
+    // Set initial connection state
+    this.isConnected = redisConnectionManager.isReady();
   }
 
   private startMetricsCollection(): void {
@@ -631,7 +771,7 @@ export class RedisStreamManager extends EventEmitter {
  * Redis Stream Consumer class
  */
 export class RedisConsumer extends EventEmitter {
-  private redis: RedisClient | RedisCluster;
+  private redis: RedisClient | RedisCluster | null = null;
   private options: Required<ConsumerGroupOptions>;
   private isRunning: boolean = false;
   private processingPromise?: Promise<void>;
@@ -642,7 +782,7 @@ export class RedisConsumer extends EventEmitter {
   ) => Promise<boolean>;
 
   constructor(
-    redis: RedisClient | RedisCluster,
+    redis: RedisClient | RedisCluster | null,
     options: ConsumerGroupOptions,
   ) {
     super();

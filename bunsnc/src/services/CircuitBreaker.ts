@@ -70,9 +70,7 @@ export class CircuitBreaker {
 
     if (this.state === CircuitState.HALF_OPEN) {
       if (this.halfOpenCalls >= this.config.halfOpenMaxCalls) {
-        throw new Error(
-          "Circuit breaker is HALF_OPEN and max calls exceeded",
-        );
+        throw new Error("Circuit breaker is HALF_OPEN and max calls exceeded");
       }
       this.halfOpenCalls++;
     }
@@ -112,10 +110,7 @@ export class CircuitBreaker {
     if (this.state === CircuitState.HALF_OPEN) {
       this.moveToOpen();
       logger.warn("🔴 Circuit breaker moved to OPEN (half-open failure)");
-    } else if (
-      this.state === CircuitState.CLOSED &&
-      this.shouldOpenCircuit()
-    ) {
+    } else if (this.state === CircuitState.CLOSED && this.shouldOpenCircuit()) {
       this.moveToOpen();
       logger.warn(
         `🔴 Circuit breaker OPENED (${this.failureCount} failures in monitoring period)`,
@@ -210,7 +205,8 @@ export class CircuitBreaker {
         ...metrics,
         recentFailures,
         failureRate: Math.round(failureRate * 100) / 100,
-        timeUntilReset: this.state === CircuitState.OPEN ? this.timeUntilReset() : 0,
+        timeUntilReset:
+          this.state === CircuitState.OPEN ? this.timeUntilReset() : 0,
         config: this.config,
       },
     };

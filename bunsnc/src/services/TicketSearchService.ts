@@ -417,7 +417,9 @@ export class TicketSearchService {
   ): Promise<any> {
     try {
       const db = await mongoClient.db();
-      const result = await db.collection(collection).updateOne(filter, updateData);
+      const result = await db
+        .collection(collection)
+        .updateOne(filter, updateData);
       return result;
     } catch (error: unknown) {
       ErrorHandler.logUnknownError("TicketSearchService.updateTicket", error);

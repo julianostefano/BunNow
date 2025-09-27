@@ -1,11 +1,13 @@
 /**
  * Consolidated ServiceNow Service - Complete ServiceNow operations
+ * Refactored to use ServiceNow Bridge Service directly (no self-referencing HTTP calls)
  * Consolidates: servicenow.service, ConsolidatedServiceNowService, ConsolidatedServiceNowService, AttachmentService, BatchService
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
 import { EventEmitter } from "events";
 import { logger } from "../utils/Logger";
+import { ServiceNowBridgeService, BridgeResponse } from "./ServiceNowBridgeService";
 import type {
   QueryOptions,
   ServiceNowRecord,
@@ -123,9 +125,7 @@ export interface ServiceNowConfig {
 }
 
 export class ConsolidatedServiceNowService extends EventEmitter {
-  private baseUrl: string;
-  private attachmentUrl: string;
-  private headers: HeadersInit;
+  private bridgeService: ServiceNowBridgeService;
   private config: ServiceNowConfig;
   private requestQueue: Array<() => Promise<any>> = [];
   private rateLimitTracker: Map<string, number[]> = new Map();
@@ -134,15 +134,11 @@ export class ConsolidatedServiceNowService extends EventEmitter {
   constructor(config: ServiceNowConfig) {
     super();
     this.config = config;
-    this.baseUrl = `${config.instanceUrl}/api/now/table`;
-    this.attachmentUrl = `${config.instanceUrl}/api/now/attachment`;
-    this.headers = {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      Authorization: config.authToken.startsWith("Bearer ")
-        ? config.authToken
-        : `Bearer ${config.authToken}`,
-    };
+
+    // Use ServiceNow Bridge Service directly - NO MORE HTTP SELF-REFERENCING CALLS
+    this.bridgeService = new ServiceNowBridgeService();
+
+    console.log('🔌 ConsolidatedServiceNowService using bridge service directly - self-referencing calls eliminated');
 
     if (config.rateLimiting?.enabled) {
       this.startQueueProcessor();
@@ -156,21 +152,13 @@ export class ConsolidatedServiceNowService extends EventEmitter {
     data: ServiceNowRecord,
   ): Promise<ServiceNowRecord> {
     return this.executeRequest(async () => {
-      const response = await fetch(`${this.baseUrl}/${table}`, {
-        method: "POST",
-        headers: this.headers,
-        body: JSON.stringify(data),
-      });
+      const response = await this.bridgeService.createRecord(table, data);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `ServiceNow API Error (${response.status}): ${errorText}`,
-        );
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create record');
       }
 
-      const result = (await response.json()) as any;
-      const record = result.result || result;
+      const record = response.result!;
 
       logger.info(` [ServiceNow] Created record in ${table}: ${record.sys_id}`);
       this.emit("recordCreated", { table, sysId: record.sys_id, data: record });
@@ -181,25 +169,21 @@ export class ConsolidatedServiceNowService extends EventEmitter {
 
   async read(table: string, sysId: string): Promise<ServiceNowRecord | null> {
     return this.executeRequest(async () => {
-      const response = await fetch(`${this.baseUrl}/${table}/${sysId}`, {
-        method: "GET",
-        headers: this.headers,
-      });
+      const response = await this.bridgeService.getRecord(table, sysId);
 
-      if (response.status === 404) {
+      if (!response.success) {
+        if (response.error?.includes('not found') || response.error?.includes('404')) {
+          logger.warn(` [ServiceNow] Record not found: ${table}/${sysId}`);
+          return null;
+        }
+        throw new Error(response.error || 'Failed to read record');
+      }
+
+      const record = response.result;
+      if (!record) {
         logger.warn(` [ServiceNow] Record not found: ${table}/${sysId}`);
         return null;
       }
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `ServiceNow API Error (${response.status}): ${errorText}`,
-        );
-      }
-
-      const result = (await response.json()) as any;
-      const record = result.result || result;
 
       logger.debug(` [ServiceNow] Read record from ${table}: ${sysId}`);
       this.emit("recordRead", { table, sysId, data: record });
@@ -214,21 +198,13 @@ export class ConsolidatedServiceNowService extends EventEmitter {
     data: Partial<ServiceNowRecord>,
   ): Promise<ServiceNowRecord> {
     return this.executeRequest(async () => {
-      const response = await fetch(`${this.baseUrl}/${table}/${sysId}`, {
-        method: "PUT",
-        headers: this.headers,
-        body: JSON.stringify(data),
-      });
+      const response = await this.bridgeService.updateRecord(table, sysId, data);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `ServiceNow API Error (${response.status}): ${errorText}`,
-        );
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to update record');
       }
 
-      const result = (await response.json()) as any;
-      const record = result.result || result;
+      const record = response.result!;
 
       logger.info(` [ServiceNow] Updated record in ${table}: ${sysId}`);
       this.emit("recordUpdated", { table, sysId, data: record });
@@ -239,23 +215,16 @@ export class ConsolidatedServiceNowService extends EventEmitter {
 
   async delete(table: string, sysId: string): Promise<boolean> {
     return this.executeRequest(async () => {
-      const response = await fetch(`${this.baseUrl}/${table}/${sysId}`, {
-        method: "DELETE",
-        headers: this.headers,
-      });
+      const response = await this.bridgeService.deleteRecord(table, sysId);
 
-      if (response.status === 404) {
-        logger.warn(
-          ` [ServiceNow] Record not found for deletion: ${table}/${sysId}`,
-        );
-        return false;
-      }
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `ServiceNow API Error (${response.status}): ${errorText}`,
-        );
+      if (!response.success) {
+        if (response.error?.includes('not found') || response.error?.includes('404')) {
+          logger.warn(
+            ` [ServiceNow] Record not found for deletion: ${table}/${sysId}`,
+          );
+          return false;
+        }
+        throw new Error(response.error || 'Failed to delete record');
       }
 
       logger.info(`🗑️ [ServiceNow] Deleted record from ${table}: ${sysId}`);
@@ -267,33 +236,21 @@ export class ConsolidatedServiceNowService extends EventEmitter {
 
   async query(options: QueryOptions): Promise<ServiceNowRecord[]> {
     return this.executeRequest(async () => {
-      const params = new URLSearchParams();
+      const params: Record<string, any> = {};
 
-      if (options.filter) params.append("sysparm_query", options.filter);
-      if (options.limit)
-        params.append("sysparm_limit", options.limit.toString());
-      if (options.offset)
-        params.append("sysparm_offset", options.offset.toString());
-      if (options.fields)
-        params.append("sysparm_fields", options.fields.join(","));
-      if (options.orderBy) params.append("sysparm_order_by", options.orderBy);
+      if (options.filter) params.sysparm_query = options.filter;
+      if (options.limit) params.sysparm_limit = options.limit.toString();
+      if (options.offset) params.sysparm_offset = options.offset.toString();
+      if (options.fields) params.sysparm_fields = options.fields.join(",");
+      if (options.orderBy) params.sysparm_order_by = options.orderBy;
 
-      const url = `${this.baseUrl}/${options.table}?${params.toString()}`;
+      const response = await this.bridgeService.queryTable(options.table, params);
 
-      const response = await fetch(url, {
-        method: "GET",
-        headers: this.headers,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `ServiceNow API Error (${response.status}): ${errorText}`,
-        );
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to query records');
       }
 
-      const result = (await response.json()) as any;
-      const records = result.result || [];
+      const records = response.result || [];
 
       logger.info(
         ` [ServiceNow] Queried ${records.length} records from ${options.table}`,
@@ -1035,7 +992,7 @@ export class ConsolidatedServiceNowService extends EventEmitter {
         retry_policy_enabled: this.config.retryPolicy?.enabled || false,
         is_processing_queue: this.isProcessingQueue,
         recent_request_count: this.rateLimitTracker.get("global")?.length || 0,
-        base_url: this.baseUrl,
+        base_url: "ServiceNow Bridge Service",
         instance_url: this.config.instanceUrl,
       };
     } catch (error: unknown) {
@@ -1046,13 +1003,12 @@ export class ConsolidatedServiceNowService extends EventEmitter {
 
   async healthCheck(): Promise<boolean> {
     try {
-      // Simple health check - try to read a system table
-      const response = await fetch(`${this.baseUrl}/sys_user?sysparm_limit=1`, {
-        method: "GET",
-        headers: this.headers,
+      // Simple health check - try to read a system table using bridge service
+      const response = await this.bridgeService.queryTable('sys_user', {
+        sysparm_limit: '1'
       });
 
-      return response.ok;
+      return response.success;
     } catch (error: unknown) {
       logger.error(" [ServiceNow] Health check failed:", error);
       return false;
@@ -1077,10 +1033,13 @@ const instanceUrl =
 // Use ServiceNowAuthClient with broker authentication
 const authClient = new ServiceNowAuthClient();
 
-if (!authClient.isAuthValid()) {
+// Check if auth is configured properly (will always be false initially due to deferred initialization)
+if (!authClient.getBaseUrl()) {
   console.warn(
-    "[ConsolidatedServiceNowService] Authentication broker not available, will initialize with URL only",
+    "[ConsolidatedServiceNowService] Authentication broker not configured, using direct proxy URLs",
   );
+} else {
+  console.log("✅ [ConsolidatedServiceNowService] Authentication broker integrated successfully");
 }
 
 const consolidatedServiceNowService = new ConsolidatedServiceNowService({

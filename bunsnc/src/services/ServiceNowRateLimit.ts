@@ -258,7 +258,7 @@ export class ServiceNowRateLimiter {
     // More aggressive backoff for 502 errors
     const baseDelay = Math.min(
       Math.pow(this.config.exponentialBackoffBase, retryCount) * 2000,
-      30000 // Cap at 30 seconds
+      30000, // Cap at 30 seconds
     );
 
     if (this.config.jitterEnabled) {
@@ -312,14 +312,14 @@ export class ServiceNowRateLimiter {
       "err_bad_response",
       "econnreset",
       "econnrefused",
-      "etimedout"
+      "etimedout",
     ];
 
     return (
       retryableStatuses.includes(statusCode) ||
       this.isRateLimitError(error) ||
-      retryableMessages.some(msg => message.includes(msg)) ||
-      retryableMessages.some(msg => code.includes(msg))
+      retryableMessages.some((msg) => message.includes(msg)) ||
+      retryableMessages.some((msg) => code.includes(msg))
     );
   }
 
