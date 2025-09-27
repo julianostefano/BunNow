@@ -47,10 +47,11 @@ export class ServiceNowBridgeService {
     averageResponseTime: 0,
   };
 
-  constructor() {
-    // Inicializa cliente com SAML authentication (agora usando URL direto)
-    this.fetchClient = new ServiceNowFetchClient();
-    console.log('🌉 ServiceNow Bridge Service initialized');
+  constructor(fetchClient?: ServiceNowFetchClient) {
+    // Dependency injection para eliminar dependência circular
+    // Se fetchClient não for injetado, cria um novo (fallback)
+    this.fetchClient = fetchClient || new ServiceNowFetchClient();
+    console.log('🌉 ServiceNow Bridge Service initialized with dependency injection');
   }
 
   /**

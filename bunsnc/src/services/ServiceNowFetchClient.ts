@@ -48,7 +48,7 @@ export interface RateLimitConfig {
 }
 
 export class ServiceNowFetchClient {
-  private bridgeService: ServiceNowBridgeService;
+  // bridgeService removido para eliminar dependência circular
   private readonly baseUrl: string;
   private samlAuthData: SAMLAuthenticationData | null = null;
   private isAuthenticated = false;
@@ -67,9 +67,8 @@ export class ServiceNowFetchClient {
   };
 
   constructor(config?: Partial<RateLimitConfig>) {
-    // Use ServiceNow Bridge Service directly - NO MORE HTTP SELF-REFERENCING CALLS
-    this.bridgeService = new ServiceNowBridgeService();
-    this.baseUrl = "ServiceNow Bridge Service"; // For logging purposes only
+    // Eliminada dependência circular com ServiceNowBridgeService
+    this.baseUrl = "ServiceNow Direct Client"; // For logging purposes only
     this.rateLimitConfig = {
       maxRequestsPerSecond: parseInt(process.env.SERVICENOW_RATE_LIMIT || "25"),
       maxConcurrentRequests: parseInt(
@@ -79,8 +78,8 @@ export class ServiceNowFetchClient {
       ...config,
     };
 
-    console.log("🔌 ServiceNowFetchClient using bridge service directly - self-referencing calls eliminated");
-    console.log(`   - Bridge Service: ${this.baseUrl}`);
+    console.log("🔌 ServiceNowFetchClient initialized without circular dependency");
+    console.log(`   - Client Type: ${this.baseUrl}`);
     console.log(
       `   - Rate limit: ${this.rateLimitConfig.maxRequestsPerSecond} req/sec`,
     );
@@ -359,21 +358,33 @@ export class ServiceNowFetchClient {
           }
         }
 
-        // Use bridge service directly instead of proxy
-        const response = await this.bridgeService.queryTable(table, {
+        // Use direct ServiceNow call (no bridge service to avoid circular dependency)
+        const params = new URLSearchParams({
           sysparm_query: finalQuery,
           sysparm_display_value: "all",
           sysparm_exclude_reference_link: "true",
           sysparm_limit: limit.toString(),
         });
 
-        if (!response.success) {
-          throw new Error(response.error || 'Failed to query ServiceNow table');
+        const url = `https://iberdrola.service-now.com/api/now/table/${table}?${params.toString()}`;
+
+        const response = await this.makeAuthenticatedFetch(url, {
+          method: "GET",
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`ServiceNow API Error (${response.status}): ${errorText}`);
         }
 
-        console.log(`✅ ServiceNow ${table} bridge request completed`);
+        const result = await response.json();
+        console.log(`✅ ServiceNow ${table} direct request completed`);
 
-        return { result: response.result || [] };
+        return { result: result.result || [] };
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : String(error);

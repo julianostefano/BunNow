@@ -14,6 +14,7 @@
 
 import { Elysia } from 'elysia';
 import { ServiceNowBridgeService } from '../services/ServiceNowBridgeService';
+import { ServiceNowFetchClient } from '../services/ServiceNowFetchClient';
 import type { BridgeResponse, BridgeRequestConfig } from '../services/ServiceNowBridgeService';
 import type { ServiceNowRecord } from '../services/ServiceNowFetchClient';
 
@@ -49,8 +50,11 @@ export const serviceNowPlugin = new Elysia({
     console.log('🚀 ServiceNow Plugin starting - initializing bridge service');
   })
 
-  // Dependency Injection: Decorate context with ServiceNow services
-  .decorate('serviceNowBridge', new ServiceNowBridgeService())
+  // Dependency Injection: Create fetchClient first, then inject into bridge service
+  .decorate('serviceNowFetchClient', new ServiceNowFetchClient())
+  .derive(({ serviceNowFetchClient }) => ({
+    serviceNowBridge: new ServiceNowBridgeService(serviceNowFetchClient)
+  }))
 
   // High-level query method - replaces HTTP calls in services
   .decorate('queryServiceNow', async function(
