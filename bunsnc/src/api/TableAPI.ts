@@ -8,7 +8,10 @@ import {
   createExceptionFromResponse,
 } from "../exceptions";
 import type { ServiceNowRecord, QueryOptions } from "../types/servicenow";
-import { ServiceNowBridgeService, BridgeResponse } from "../services/ServiceNowBridgeService";
+import {
+  ServiceNowBridgeService,
+  BridgeResponse,
+} from "../services/ServiceNowBridgeService";
 
 export interface ITableAPI {
   get(table: string, sysId: string): Promise<ServiceNowRecord | null>;
@@ -40,7 +43,9 @@ export class TableAPI implements ITableAPI {
   ) {
     // Use ServiceNow Bridge Service directly - NO MORE HTTP SELF-REFERENCING CALLS
     this.bridgeService = new ServiceNowBridgeService();
-    console.log('🔌 TableAPI using bridge service directly - self-referencing calls eliminated');
+    console.log(
+      "🔌 TableAPI using bridge service directly - self-referencing calls eliminated",
+    );
   }
 
   /**
@@ -51,10 +56,13 @@ export class TableAPI implements ITableAPI {
       const response = await this.bridgeService.getRecord(table, sysId);
 
       if (!response.success) {
-        if (response.error?.includes('not found') || response.error?.includes('404')) {
+        if (
+          response.error?.includes("not found") ||
+          response.error?.includes("404")
+        ) {
           return null;
         }
-        throw new Error(response.error || 'Failed to get record');
+        throw new Error(response.error || "Failed to get record");
       }
 
       return response.result || null;
@@ -74,7 +82,7 @@ export class TableAPI implements ITableAPI {
       const response = await this.bridgeService.createRecord(table, data);
 
       if (!response.success) {
-        throw new Error(response.error || 'Failed to create record');
+        throw new Error(response.error || "Failed to create record");
       }
 
       return response.result!;
@@ -92,10 +100,14 @@ export class TableAPI implements ITableAPI {
     data: Partial<ServiceNowRecord>,
   ): Promise<ServiceNowRecord> {
     try {
-      const response = await this.bridgeService.updateRecord(table, sysId, data);
+      const response = await this.bridgeService.updateRecord(
+        table,
+        sysId,
+        data,
+      );
 
       if (!response.success) {
-        throw new Error(response.error || 'Failed to update record');
+        throw new Error(response.error || "Failed to update record");
       }
 
       return response.result!;
@@ -114,10 +126,14 @@ export class TableAPI implements ITableAPI {
   ): Promise<ServiceNowRecord> {
     try {
       // Use update method for PATCH operations (bridge service handles this)
-      const response = await this.bridgeService.updateRecord(table, sysId, data);
+      const response = await this.bridgeService.updateRecord(
+        table,
+        sysId,
+        data,
+      );
 
       if (!response.success) {
-        throw new Error(response.error || 'Failed to patch record');
+        throw new Error(response.error || "Failed to patch record");
       }
 
       return response.result!;
@@ -134,10 +150,13 @@ export class TableAPI implements ITableAPI {
       const response = await this.bridgeService.deleteRecord(table, sysId);
 
       if (!response.success) {
-        if (response.error?.includes('not found') || response.error?.includes('404')) {
+        if (
+          response.error?.includes("not found") ||
+          response.error?.includes("404")
+        ) {
           return false; // Record doesn't exist
         }
-        throw new Error(response.error || 'Failed to delete record');
+        throw new Error(response.error || "Failed to delete record");
       }
 
       return true;
@@ -173,14 +192,19 @@ export class TableAPI implements ITableAPI {
       params.sysparm_display_value = "all";
       params.sysparm_exclude_reference_link = "false";
 
-      const response = await this.bridgeService.queryTable(options.table, params);
+      const response = await this.bridgeService.queryTable(
+        options.table,
+        params,
+      );
 
       if (!response.success) {
         // Check for transaction timeout
         if (response.error?.includes("maximum execution time exceeded")) {
-          throw new Error("Query timeout: reduce batch size or add more specific filters");
+          throw new Error(
+            "Query timeout: reduce batch size or add more specific filters",
+          );
         }
-        throw new Error(response.error || 'Failed to query records');
+        throw new Error(response.error || "Failed to query records");
       }
 
       return response.result || [];
@@ -205,10 +229,13 @@ export class TableAPI implements ITableAPI {
         ...params,
       };
 
-      const response = await this.bridgeService.queryTable(table, defaultParams);
+      const response = await this.bridgeService.queryTable(
+        table,
+        defaultParams,
+      );
 
       if (!response.success) {
-        throw new Error(response.error || 'Failed to list records');
+        throw new Error(response.error || "Failed to list records");
       }
 
       return response.result || [];

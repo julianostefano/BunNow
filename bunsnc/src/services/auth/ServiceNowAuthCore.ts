@@ -76,7 +76,9 @@ export class ServiceNowAuthCore {
 
     // Initialize ServiceNow Bridge Service directly - NO MORE HTTP SELF-REFERENCING CALLS
     this.bridgeService = new ServiceNowBridgeService();
-    console.log('🔌 ServiceNowAuthCore using bridge service directly - self-referencing calls eliminated');
+    console.log(
+      "🔌 ServiceNowAuthCore using bridge service directly - self-referencing calls eliminated",
+    );
 
     // Determine authentication type from environment
     this.authType =

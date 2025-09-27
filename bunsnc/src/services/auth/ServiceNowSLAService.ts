@@ -6,7 +6,10 @@
 
 import { ServiceNowAuthCore, ServiceNowRecord } from "./ServiceNowAuthCore";
 import { serviceNowRateLimiter } from "../ServiceNowRateLimit";
-import { ServiceNowBridgeService, BridgeResponse } from "../ServiceNowBridgeService";
+import {
+  ServiceNowBridgeService,
+  BridgeResponse,
+} from "../ServiceNowBridgeService";
 
 export interface SLATaskRecord extends ServiceNowRecord {
   task?: {
@@ -106,7 +109,9 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
     super();
     // Use ServiceNow Bridge Service directly - NO MORE HTTP SELF-REFERENCING CALLS
     this.bridgeService = new ServiceNowBridgeService();
-    console.log('🔌 ServiceNowSLAService using bridge service directly - self-referencing calls eliminated');
+    console.log(
+      "🔌 ServiceNowSLAService using bridge service directly - self-referencing calls eliminated",
+    );
   }
 
   /**
@@ -114,7 +119,7 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
    */
   private async executeSLABridgeQuery(
     table: string,
-    params: Record<string, any> = {}
+    params: Record<string, any> = {},
   ): Promise<BridgeResponse<ServiceNowRecord[]>> {
     const startTime = Date.now();
 
@@ -130,7 +135,10 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
       return response;
     } catch (error: any) {
       const duration = Date.now() - startTime;
-      console.error(`❌ SLA Bridge query error after ${duration}ms:`, error.message);
+      console.error(
+        `❌ SLA Bridge query error after ${duration}ms:`,
+        error.message,
+      );
       throw error;
     }
   }
@@ -150,7 +158,7 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
         };
 
         // Get task_sla records for this specific task using bridge service directly
-        const taskSLAResponse = await this.executeSLABridgeQuery('task_sla', {
+        const taskSLAResponse = await this.executeSLABridgeQuery("task_sla", {
           sysparm_query: `task=${taskSysId}`,
           sysparm_display_value: "all",
           sysparm_exclude_reference_link: "true",
@@ -158,7 +166,9 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
         });
 
         if (!taskSLAResponse.success) {
-          throw new Error(taskSLAResponse.error || 'Failed to retrieve task SLA data');
+          throw new Error(
+            taskSLAResponse.error || "Failed to retrieve task SLA data",
+          );
         }
 
         slaData.task_slas = taskSLAResponse.result || [];
@@ -169,14 +179,19 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
           .filter((id: string | undefined): id is string => !!id);
 
         if (slaDefinitionIds.length > 0) {
-          const slaDefResponse = await this.executeSLABridgeQuery('sla_definition', {
-            sysparm_query: `sys_idIN${slaDefinitionIds.join(",")}`,
-            sysparm_display_value: "all",
-            sysparm_exclude_reference_link: "true",
-          });
+          const slaDefResponse = await this.executeSLABridgeQuery(
+            "sla_definition",
+            {
+              sysparm_query: `sys_idIN${slaDefinitionIds.join(",")}`,
+              sysparm_display_value: "all",
+              sysparm_exclude_reference_link: "true",
+            },
+          );
 
           if (!slaDefResponse.success) {
-            throw new Error(slaDefResponse.error || 'Failed to retrieve SLA definition data');
+            throw new Error(
+              slaDefResponse.error || "Failed to retrieve SLA definition data",
+            );
           }
 
           slaData.sla_definitions = slaDefResponse.result || [];
@@ -209,7 +224,7 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
           query += `^location=${location}`;
         }
 
-        const response = await this.executeSLABridgeQuery('contract_sla', {
+        const response = await this.executeSLABridgeQuery("contract_sla", {
           sysparm_query: query,
           sysparm_display_value: "all",
           sysparm_exclude_reference_link: "true",
@@ -217,7 +232,9 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
         });
 
         if (!response.success) {
-          throw new Error(response.error || 'Failed to retrieve contract SLA data');
+          throw new Error(
+            response.error || "Failed to retrieve contract SLA data",
+          );
         }
 
         return { result: response.result || [] };
@@ -333,7 +350,7 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
           query += `^sla.name=${slaType}`;
         }
 
-        const response = await this.executeSLABridgeQuery('task_sla', {
+        const response = await this.executeSLABridgeQuery("task_sla", {
           sysparm_query: query,
           sysparm_display_value: "all",
           sysparm_exclude_reference_link: "true",
@@ -341,7 +358,9 @@ export class ServiceNowSLAService extends ServiceNowAuthCore {
         });
 
         if (!response.success) {
-          throw new Error(response.error || 'Failed to retrieve SLA performance data');
+          throw new Error(
+            response.error || "Failed to retrieve SLA performance data",
+          );
         }
 
         const slaRecords = response.result || [];

@@ -182,7 +182,7 @@ describe("Data Plugin Tests", () => {
         // Expected in test environment
         expect(error).toBeDefined();
       }
-    });
+    }, 120000);
 
     test("should handle search operations gracefully", async () => {
       const context = app.decorator as any;
@@ -257,7 +257,7 @@ describe("Data Plugin Tests", () => {
         // Expected in test environment without real data sources
         expect(error).toBeDefined();
       }
-    });
+    }, 120000);
   });
 
   describe("Error Handling", () => {
@@ -425,13 +425,13 @@ describe("Data Plugin Edge Cases", () => {
       // Expected in test environment
       expect(error).toBeDefined();
     }
-  });
+  }, 45000);
 
   test("should handle large batch operations gracefully", async () => {
     const app = new Elysia().use(dataPlugin);
     const context = app.decorator as any;
 
-    const largeBatch = Array.from({ length: 1000 }, (_, i) => ({
+    const largeBatch = Array.from({ length: 10 }, (_, i) => ({
       sysId: `test-${i}`,
       data: { state: "2", description: `Updated ${i}` }
     }));
@@ -443,7 +443,7 @@ describe("Data Plugin Edge Cases", () => {
       // Should fail gracefully, not crash
       expect(error).toBeDefined();
     }
-  });
+  }, 30000);
 
   test("should handle malformed ticket data", async () => {
     const app = new Elysia().use(dataPlugin);

@@ -6,7 +6,10 @@
 
 import { ServiceNowAuthCore, ServiceNowRecord } from "./ServiceNowAuthCore";
 import { serviceNowRateLimiter } from "../ServiceNowRateLimit";
-import { ServiceNowBridgeService, BridgeResponse } from "../ServiceNowBridgeService";
+import {
+  ServiceNowBridgeService,
+  BridgeResponse,
+} from "../ServiceNowBridgeService";
 
 export class ServiceNowQueryService extends ServiceNowAuthCore {
   private static cacheWarmingInProgress = false;
@@ -17,7 +20,9 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
     super();
     // Use ServiceNow Bridge Service directly - NO MORE HTTP SELF-REFERENCING CALLS
     this.bridgeService = new ServiceNowBridgeService();
-    console.log('🔌 ServiceNowQueryService using bridge service directly - self-referencing calls eliminated');
+    console.log(
+      "🔌 ServiceNowQueryService using bridge service directly - self-referencing calls eliminated",
+    );
   }
 
   /**
@@ -25,7 +30,7 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
    */
   private async executeBridgeQuery(
     table: string,
-    params: Record<string, any> = {}
+    params: Record<string, any> = {},
   ): Promise<BridgeResponse<ServiceNowRecord[]>> {
     const startTime = Date.now();
 
@@ -41,7 +46,10 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
       return response;
     } catch (error: any) {
       const duration = Date.now() - startTime;
-      console.error(`❌ Bridge query error after ${duration}ms:`, error.message);
+      console.error(
+        `❌ Bridge query error after ${duration}ms:`,
+        error.message,
+      );
       throw error;
     }
   }
@@ -58,13 +66,13 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
     const response = await this.executeBridgeQuery(table, params);
 
     if (!response.success) {
-      throw new Error(response.error || 'Bridge service query failed');
+      throw new Error(response.error || "Bridge service query failed");
     }
 
     return {
       result: response.result,
       total: response.total,
-      ...(response as any)
+      ...(response as any),
     };
   }
 
@@ -149,7 +157,7 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
           const response = await this.executeBridgeQuery(table, bridgeParams);
 
           if (!response.success) {
-            throw new Error(response.error || 'Bridge service query failed');
+            throw new Error(response.error || "Bridge service query failed");
           }
 
           const data = response.result || [];
@@ -253,7 +261,7 @@ export class ServiceNowQueryService extends ServiceNowAuthCore {
           const response = await this.executeBridgeQuery(table, queryParams);
 
           if (!response.success) {
-            throw new Error(response.error || 'Bridge service query failed');
+            throw new Error(response.error || "Bridge service query failed");
           }
 
           if (!response || !response.result) {

@@ -24,6 +24,7 @@ import {
   ConsolidatedServiceNowService
 } from "../services";
 import { ServiceNowAuthClient } from "../services/ServiceNowAuthClient";
+import { ServiceNowBridgeService, serviceNowBridgeService } from "../services/ServiceNowBridgeService";
 import type { ServiceNowRecord, QueryOptions } from "../types/servicenow";
 
 // Types para Eden Treaty
@@ -100,7 +101,7 @@ export const clientIntegrationPlugin = new Elysia({
     const clientConfig: ClientConfiguration = {
       instance: instanceUrl,
       auth: authToken,
-      timeout: 30000,
+      timeout: 900000, // 15 minutes (as per Auth Service Proxy architecture)
       retryLimit: 3,
       enableCache: true,
       enablePerformanceMonitoring: true,
@@ -153,40 +154,239 @@ export const clientIntegrationPlugin = new Elysia({
     };
   })
 
-  // Unified query method - replaces direct API calls
+  // Unified query method - replaces direct API calls with real functionality via Bridge Service
   .decorate("unifiedQuery", async (options: QueryOptions): Promise<ServiceNowRecord[]> => {
-    console.log("🔍 Client Integration Plugin: Mock unifiedQuery called");
-    return [];
+    try {
+      console.log("🔍 Client Integration Plugin: Executing real unifiedQuery via Bridge Service...");
+
+      // Use ServiceNow Bridge Service to avoid 61s timeout issue
+      const table = options.table || "incident";
+      const query = options.query || "";
+      const limit = options.limit || 10;
+
+      // Build query parameters for bridge service
+      const queryParams: Record<string, any> = {
+        sysparm_query: query,
+        sysparm_limit: limit,
+        sysparm_display_value: "all",
+        sysparm_exclude_reference_link: "true"
+      };
+
+      // Execute query via bridge service (eliminates 61s timeout)
+      const bridgeResponse = await serviceNowBridgeService.queryTable(table, queryParams);
+
+      if (!bridgeResponse.success) {
+        throw new Error(bridgeResponse.error || "Bridge service query failed");
+      }
+
+      const records = bridgeResponse.result || [];
+      console.log(`✅ Client Integration Plugin: Retrieved ${records.length} records from ${table} via Bridge Service`);
+      return records;
+    } catch (error: any) {
+      console.error("❌ Client Integration Plugin: Query error:", error.message);
+      throw error;
+    }
   })
 
-  // Unified create method - replaces direct API calls
+  // Unified create method - replaces direct API calls with real functionality via Bridge Service
   .decorate("unifiedCreate", async (table: string, data: ServiceNowRecord): Promise<ServiceNowRecord> => {
-    console.log("📝 Client Integration Plugin: Mock unifiedCreate called");
-    return { ...data, sys_id: "mock-sys-id" };
+    try {
+      console.log(`📝 Client Integration Plugin: Creating real record in ${table} via Bridge Service...`);
+
+      // Use ServiceNow Bridge Service to avoid 61s timeout issue
+      const bridgeResponse = await serviceNowBridgeService.createRecord(table, data);
+
+      if (!bridgeResponse.success) {
+        throw new Error(bridgeResponse.error || "Bridge service create failed");
+      }
+
+      const createdRecord = bridgeResponse.result;
+      console.log(`✅ Client Integration Plugin: Record created in ${table} via Bridge Service`);
+      return createdRecord;
+    } catch (error: any) {
+      console.error("❌ Client Integration Plugin: Create error:", error.message);
+      throw error;
+    }
   })
 
-  // Unified read method - replaces direct API calls
+  // Unified read method - replaces direct API calls with real functionality via Bridge Service
   .decorate("unifiedRead", async (table: string, sysId: string): Promise<ServiceNowRecord | null> => {
-    console.log("📚 Client Integration Plugin: Mock unifiedRead called");
-    return null;
+    try {
+      console.log(`📚 Client Integration Plugin: Reading real record from ${table}, sys_id: ${sysId} via Bridge Service...`);
+
+      // Use ServiceNow Bridge Service to avoid 61s timeout issue
+      const bridgeResponse = await serviceNowBridgeService.getRecord(table, sysId);
+
+      if (!bridgeResponse.success) {
+        throw new Error(bridgeResponse.error || "Bridge service read failed");
+      }
+
+      const record = bridgeResponse.result;
+      if (record) {
+        console.log(`✅ Client Integration Plugin: Record found in ${table} via Bridge Service`);
+        return record;
+      } else {
+        console.log(`⚠️ Client Integration Plugin: Record not found in ${table} via Bridge Service`);
+        return null;
+      }
+    } catch (error: any) {
+      console.error("❌ Client Integration Plugin: Read error:", error.message);
+      throw error;
+    }
   })
 
-  // Unified update method - replaces direct API calls
+  // Unified update method - replaces direct API calls with real functionality via Bridge Service
   .decorate("unifiedUpdate", async (table: string, sysId: string, data: Partial<ServiceNowRecord>): Promise<ServiceNowRecord> => {
-    console.log("✏️ Client Integration Plugin: Mock unifiedUpdate called");
-    return { ...data, sys_id: sysId };
+    try {
+      console.log(`✏️ Client Integration Plugin: Updating real record in ${table}, sys_id: ${sysId} via Bridge Service...`);
+
+      // Use ServiceNow Bridge Service to avoid 61s timeout issue
+      const bridgeResponse = await serviceNowBridgeService.updateRecord(table, sysId, data);
+
+      if (!bridgeResponse.success) {
+        throw new Error(bridgeResponse.error || "Bridge service update failed");
+      }
+
+      const updatedRecord = bridgeResponse.result;
+      console.log(`✅ Client Integration Plugin: Record updated in ${table} via Bridge Service`);
+      return updatedRecord;
+    } catch (error: any) {
+      console.error("❌ Client Integration Plugin: Update error:", error.message);
+      throw error;
+    }
   })
 
-  // Unified delete method - replaces direct API calls
+  // Unified delete method - replaces direct API calls with real functionality via Bridge Service
   .decorate("unifiedDelete", async (table: string, sysId: string): Promise<boolean> => {
-    console.log("🗑️ Client Integration Plugin: Mock unifiedDelete called");
-    return true;
+    try {
+      console.log(`🗑️ Client Integration Plugin: Deleting real record from ${table}, sys_id: ${sysId} via Bridge Service...`);
+
+      // Use ServiceNow Bridge Service to avoid 61s timeout issue
+      const bridgeResponse = await serviceNowBridgeService.deleteRecord(table, sysId);
+
+      if (!bridgeResponse.success) {
+        console.error(`❌ Client Integration Plugin: Delete failed: ${bridgeResponse.error}`);
+        return false;
+      }
+
+      console.log(`✅ Client Integration Plugin: Record deleted from ${table} via Bridge Service`);
+      return true;
+    } catch (error: any) {
+      console.error("❌ Client Integration Plugin: Delete error:", error.message);
+      return false;
+    }
   })
 
-  // Unified batch operations method - replaces direct API calls
+  // Unified batch operations method - replaces direct API calls with real functionality via Bridge Service
   .decorate("unifiedBatch", async (operations: any[]): Promise<any> => {
-    console.log("📋 Client Integration Plugin: Mock unifiedBatch called");
-    return { results: operations.map(op => ({ success: true, op })) };
+    try {
+      console.log(`📋 Client Integration Plugin: Executing real batch operations (${operations.length} operations) via Bridge Service...`);
+
+      const results: any[] = [];
+      let successCount = 0;
+
+      // Process operations sequentially to respect ServiceNow rate limits
+      for (let i = 0; i < operations.length; i++) {
+        const operation = operations[i];
+
+        try {
+          let operationResult: any;
+
+          switch (operation.op) {
+            case "read":
+            case "get":
+              const readResponse = await serviceNowBridgeService.getRecord(operation.table, operation.sysId);
+              operationResult = {
+                success: readResponse.success,
+                data: readResponse.result || null,
+                error: readResponse.error,
+                operation
+              };
+              break;
+
+            case "query":
+              const queryParams = {
+                sysparm_query: operation.query || "",
+                sysparm_limit: operation.limit || 10,
+                sysparm_display_value: "all",
+                sysparm_exclude_reference_link: "true"
+              };
+              const queryResponse = await serviceNowBridgeService.queryTable(operation.table, queryParams);
+              operationResult = {
+                success: queryResponse.success,
+                data: queryResponse.result || [],
+                count: queryResponse.result?.length || 0,
+                error: queryResponse.error,
+                operation
+              };
+              break;
+
+            case "create":
+              const createResponse = await serviceNowBridgeService.createRecord(operation.table, operation.data);
+              operationResult = {
+                success: createResponse.success,
+                data: createResponse.result,
+                error: createResponse.error,
+                operation
+              };
+              break;
+
+            case "update":
+              const updateResponse = await serviceNowBridgeService.updateRecord(operation.table, operation.sysId, operation.data);
+              operationResult = {
+                success: updateResponse.success,
+                data: updateResponse.result,
+                error: updateResponse.error,
+                operation
+              };
+              break;
+
+            case "delete":
+              const deleteResponse = await serviceNowBridgeService.deleteRecord(operation.table, operation.sysId);
+              operationResult = {
+                success: deleteResponse.success,
+                error: deleteResponse.error,
+                operation
+              };
+              break;
+
+            default:
+              operationResult = {
+                success: false,
+                error: `Unsupported operation: ${operation.op}`,
+                operation
+              };
+          }
+
+          results.push(operationResult);
+          if (operationResult.success) {
+            successCount++;
+          }
+        } catch (operationError: any) {
+          results.push({
+            success: false,
+            error: operationError.message,
+            operation
+          });
+        }
+
+        // Add small delay between operations
+        if (i < operations.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+
+      console.log(`✅ Client Integration Plugin: Batch completed via Bridge Service: ${successCount}/${operations.length} successful`);
+      return {
+        totalOperations: operations.length,
+        successful: successCount,
+        failed: operations.length - successCount,
+        results
+      };
+    } catch (error: any) {
+      console.error("❌ Client Integration Plugin: Batch error:", error.message);
+      throw error;
+    }
   })
 
   // Unified upload method - replaces direct API calls
@@ -201,41 +401,113 @@ export const clientIntegrationPlugin = new Elysia({
     return new ArrayBuffer(0);
   })
 
-  // Connection testing method
+  // Connection testing method with real functionality via Bridge Service
   .decorate("testConnection", async (): Promise<boolean> => {
-    console.log("🔌 Client Integration Plugin: Mock testConnection called");
-    return false;
+    try {
+      console.log("🔌 Client Integration Plugin: Testing real ServiceNow connection via Bridge Service...");
+
+      // Use ServiceNow Bridge Service health check to avoid 61s timeout issue
+      const healthResponse = await serviceNowBridgeService.healthCheck();
+
+      if (healthResponse.success && healthResponse.result) {
+        const isConnected = healthResponse.result.auth;
+        console.log(`✅ Client Integration Plugin: Connection test ${isConnected ? 'successful' : 'failed'} via Bridge Service`);
+        return isConnected;
+      } else {
+        console.log("❌ Client Integration Plugin: Health check failed via Bridge Service");
+        return false;
+      }
+    } catch (error: any) {
+      console.error("❌ Client Integration Plugin: Connection test error:", error.message);
+      return false;
+    }
   })
 
-  // Client statistics method
+  // Client statistics method with real functionality via Bridge Service
   .decorate("getClientStats", async (): Promise<any> => {
-    console.log("📊 Client Integration Plugin: Mock getClientStats called");
-    return {
-      connection: { status: "mock", connected: false },
-      cache: { hitRatio: 0, size: 0 },
-      performance: { averageResponseTime: 0 },
-      timestamp: new Date().toISOString(),
-    };
+    try {
+      console.log("📊 Client Integration Plugin: Getting real client statistics via Bridge Service...");
+
+      // Get real metrics from the bridge service
+      const metrics = serviceNowBridgeService.getMetrics();
+      const healthResponse = await serviceNowBridgeService.healthCheck();
+      const isAuthValid = healthResponse.success && healthResponse.result?.auth;
+
+      const stats = {
+        connection: {
+          status: isAuthValid ? "authenticated" : "not_authenticated",
+          connected: isAuthValid,
+          authValid: isAuthValid
+        },
+        performance: {
+          totalRequests: metrics.totalRequests || 0,
+          successfulRequests: metrics.successfulRequests || 0,
+          failedRequests: metrics.failedRequests || 0,
+          averageResponseTime: metrics.averageResponseTime || 0,
+          successRate: metrics.totalRequests > 0 ? (metrics.successfulRequests / metrics.totalRequests * 100).toFixed(2) : 0
+        },
+        client: {
+          baseUrl: "ServiceNow Bridge Service",
+          type: "ServiceNowBridgeService"
+        },
+        timestamp: new Date().toISOString(),
+      };
+
+      console.log("✅ Client Integration Plugin: Real client statistics retrieved via Bridge Service");
+      return stats;
+    } catch (error: any) {
+      console.error("❌ Client Integration Plugin: Stats error:", error.message);
+      return {
+        connection: { status: "error", connected: false },
+        performance: { error: error.message },
+        timestamp: new Date().toISOString(),
+      };
+    }
   })
 
-  // Client configuration method
+  // Client configuration method with real configuration
   .decorate("getClientConfig", (): any => {
-    console.log("⚙️ Client Integration Plugin: Mock getClientConfig called");
-    return {
-      instance: "missing",
-      auth: "missing",
-      timeout: 30000,
+    console.log("⚙️ Client Integration Plugin: Getting real client configuration...");
+
+    // Get real configuration from environment
+    const config = {
+      instance: process.env.SERVICENOW_USERNAME ? "iberdrola.service-now.com" : "not_configured",
+      auth: process.env.SERVICENOW_USERNAME ? "SAML_configured" : "not_configured",
+      authMethod: "SAML",
+      environment: {
+        hasUsername: !!process.env.SERVICENOW_USERNAME,
+        hasPassword: !!process.env.SERVICENOW_PASSWORD,
+        hasProxy: !!process.env.SERVICENOW_PROXY,
+      },
+      timeout: 900000, // 15 minutes (as per Bridge Service architecture)
       retryLimit: 3,
       enableCache: true,
       enablePerformanceMonitoring: true,
-      enableLogging: false,
+      enableLogging: process.env.NODE_ENV === "development",
     };
+
+    console.log("✅ Client Integration Plugin: Real client configuration retrieved");
+    return config;
   })
 
-  // Connection refresh method
+  // Connection refresh method with real functionality via Bridge Service
   .decorate("refreshClientConnection", async (): Promise<boolean> => {
-    console.log("🔄 Client Integration Plugin: Mock refreshClientConnection called");
-    return false;
+    try {
+      console.log("🔄 Client Integration Plugin: Refreshing real ServiceNow connection via Bridge Service...");
+
+      // Reset authentication on bridge service to force re-authentication
+      serviceNowBridgeService.resetAuth();
+
+      // Test the connection after reset
+      const healthResponse = await serviceNowBridgeService.healthCheck();
+      const isRefreshed = healthResponse.success && healthResponse.result?.auth;
+
+      console.log(`✅ Client Integration Plugin: Connection refresh ${isRefreshed ? 'successful' : 'failed'} via Bridge Service`);
+      return isRefreshed;
+    } catch (error: any) {
+      console.error("❌ Client Integration Plugin: Refresh error:", error.message);
+      return false;
+    }
   })
 
   // Lifecycle Hook: onStop - Cleanup client resources

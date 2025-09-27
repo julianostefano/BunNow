@@ -104,7 +104,9 @@ export async function createMainApp(): Promise<Elysia> {
   // Add ServiceNow proxy routes (CRITICAL FIX for self-referencing calls)
   try {
     mainApp.use(serviceNowProxyRoutes);
-    console.log("🌉 ServiceNow proxy routes added - self-referencing calls resolved");
+    console.log(
+      "🌉 ServiceNow proxy routes added - self-referencing calls resolved",
+    );
   } catch (error: unknown) {
     console.error(" Failed to add ServiceNow proxy routes:", error);
     console.warn(" Server will continue but self-referencing calls will fail");
@@ -264,7 +266,9 @@ export async function createMainApp(): Promise<Elysia> {
   // Initialize deferred cache warming after server is ready
   setImmediate(async () => {
     try {
-      const { serviceNowAuthClient } = await import("../services/ServiceNowAuthClient");
+      const { serviceNowAuthClient } = await import(
+        "../services/ServiceNowAuthClient"
+      );
       await serviceNowAuthClient.initializeCacheWarming();
     } catch (error) {
       console.warn("⚠️ Failed to initialize deferred cache warming:", error);

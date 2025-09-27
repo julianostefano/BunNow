@@ -12,9 +12,13 @@
  * - makeAuthenticatedFetch() + shouldUseProxy() para conexão real
  */
 
-import { ServiceNowFetchClient, ServiceNowRecord, ServiceNowQueryResult } from './ServiceNowFetchClient';
-import { serviceNowRateLimiter } from './ServiceNowRateLimit';
-import { serviceNowCircuitBreaker } from './CircuitBreaker';
+import {
+  ServiceNowFetchClient,
+  ServiceNowRecord,
+  ServiceNowQueryResult,
+} from "./ServiceNowFetchClient";
+import { serviceNowRateLimiter } from "./ServiceNowRateLimit";
+import { serviceNowCircuitBreaker } from "./CircuitBreaker";
 
 // Interface para requests bridge
 export interface BridgeRequestConfig {
@@ -22,7 +26,7 @@ export interface BridgeRequestConfig {
   params?: Record<string, any>;
   data?: Record<string, any>;
   sysId?: string;
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method?: "GET" | "POST" | "PUT" | "DELETE";
 }
 
 // Interface para response padronizado
@@ -51,7 +55,9 @@ export class ServiceNowBridgeService {
     // Dependency injection para eliminar dependência circular
     // Se fetchClient não for injetado, cria um novo (fallback)
     this.fetchClient = fetchClient || new ServiceNowFetchClient();
-    console.log('🌉 ServiceNow Bridge Service initialized with dependency injection');
+    console.log(
+      "🌉 ServiceNow Bridge Service initialized with dependency injection",
+    );
   }
 
   /**
@@ -59,7 +65,7 @@ export class ServiceNowBridgeService {
    */
   async queryTable(
     table: string,
-    params: Record<string, any> = {}
+    params: Record<string, any> = {},
   ): Promise<BridgeResponse<ServiceNowRecord[]>> {
     const startTime = Date.now();
 
@@ -80,12 +86,17 @@ export class ServiceNowBridgeService {
         }
       });
 
-      const response = await this.fetchClient['makeAuthenticatedFetch'](url.toString(), {
-        method: 'GET'
-      });
+      const response = await this.fetchClient["makeAuthenticatedFetch"](
+        url.toString(),
+        {
+          method: "GET",
+        },
+      );
 
       if (!response.ok) {
-        throw new Error(`ServiceNow API returned status ${response.status}: ${response.statusText}`);
+        throw new Error(
+          `ServiceNow API returned status ${response.status}: ${response.statusText}`,
+        );
       }
 
       const data = await response.json();
@@ -99,19 +110,21 @@ export class ServiceNowBridgeService {
         success: true,
         result: data.result || [],
         total: data.result?.length || 0,
-        duration
+        duration,
       };
-
     } catch (error: any) {
       const duration = Date.now() - startTime;
       this.updateMetrics(false, duration);
 
-      console.error(`❌ Bridge Query failed after ${duration}ms:`, error.message);
+      console.error(
+        `❌ Bridge Query failed after ${duration}ms:`,
+        error.message,
+      );
 
       return {
         success: false,
         error: error.message,
-        duration
+        duration,
       };
     }
   }
@@ -121,7 +134,7 @@ export class ServiceNowBridgeService {
    */
   async createRecord(
     table: string,
-    data: Record<string, any>
+    data: Record<string, any>,
   ): Promise<BridgeResponse<ServiceNowRecord>> {
     const startTime = Date.now();
 
@@ -133,13 +146,18 @@ export class ServiceNowBridgeService {
 
       const directServiceNowUrl = `https://iberdrola.service-now.com/api/now/table/${table}`;
 
-      const response = await this.fetchClient['makeAuthenticatedFetch'](directServiceNowUrl, {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
+      const response = await this.fetchClient["makeAuthenticatedFetch"](
+        directServiceNowUrl,
+        {
+          method: "POST",
+          body: JSON.stringify(data),
+        },
+      );
 
       if (!response.ok) {
-        throw new Error(`ServiceNow API returned status ${response.status}: ${response.statusText}`);
+        throw new Error(
+          `ServiceNow API returned status ${response.status}: ${response.statusText}`,
+        );
       }
 
       const result = await response.json();
@@ -152,19 +170,21 @@ export class ServiceNowBridgeService {
       return {
         success: true,
         result: result.result,
-        duration
+        duration,
       };
-
     } catch (error: any) {
       const duration = Date.now() - startTime;
       this.updateMetrics(false, duration);
 
-      console.error(`❌ Bridge Create failed after ${duration}ms:`, error.message);
+      console.error(
+        `❌ Bridge Create failed after ${duration}ms:`,
+        error.message,
+      );
 
       return {
         success: false,
         error: error.message,
-        duration
+        duration,
       };
     }
   }
@@ -175,7 +195,7 @@ export class ServiceNowBridgeService {
   async updateRecord(
     table: string,
     sysId: string,
-    data: Record<string, any>
+    data: Record<string, any>,
   ): Promise<BridgeResponse<ServiceNowRecord>> {
     const startTime = Date.now();
 
@@ -187,13 +207,18 @@ export class ServiceNowBridgeService {
 
       const directServiceNowUrl = `https://iberdrola.service-now.com/api/now/table/${table}/${sysId}`;
 
-      const response = await this.fetchClient['makeAuthenticatedFetch'](directServiceNowUrl, {
-        method: 'PUT',
-        body: JSON.stringify(data)
-      });
+      const response = await this.fetchClient["makeAuthenticatedFetch"](
+        directServiceNowUrl,
+        {
+          method: "PUT",
+          body: JSON.stringify(data),
+        },
+      );
 
       if (!response.ok) {
-        throw new Error(`ServiceNow API returned status ${response.status}: ${response.statusText}`);
+        throw new Error(
+          `ServiceNow API returned status ${response.status}: ${response.statusText}`,
+        );
       }
 
       const result = await response.json();
@@ -206,19 +231,21 @@ export class ServiceNowBridgeService {
       return {
         success: true,
         result: result.result,
-        duration
+        duration,
       };
-
     } catch (error: any) {
       const duration = Date.now() - startTime;
       this.updateMetrics(false, duration);
 
-      console.error(`❌ Bridge Update failed after ${duration}ms:`, error.message);
+      console.error(
+        `❌ Bridge Update failed after ${duration}ms:`,
+        error.message,
+      );
 
       return {
         success: false,
         error: error.message,
-        duration
+        duration,
       };
     }
   }
@@ -228,7 +255,7 @@ export class ServiceNowBridgeService {
    */
   async deleteRecord(
     table: string,
-    sysId: string
+    sysId: string,
   ): Promise<BridgeResponse<void>> {
     const startTime = Date.now();
 
@@ -240,12 +267,17 @@ export class ServiceNowBridgeService {
 
       const directServiceNowUrl = `https://iberdrola.service-now.com/api/now/table/${table}/${sysId}`;
 
-      const response = await this.fetchClient['makeAuthenticatedFetch'](directServiceNowUrl, {
-        method: 'DELETE'
-      });
+      const response = await this.fetchClient["makeAuthenticatedFetch"](
+        directServiceNowUrl,
+        {
+          method: "DELETE",
+        },
+      );
 
       if (!response.ok) {
-        throw new Error(`ServiceNow API returned status ${response.status}: ${response.statusText}`);
+        throw new Error(
+          `ServiceNow API returned status ${response.status}: ${response.statusText}`,
+        );
       }
 
       const duration = Date.now() - startTime;
@@ -256,19 +288,21 @@ export class ServiceNowBridgeService {
 
       return {
         success: true,
-        duration
+        duration,
       };
-
     } catch (error: any) {
       const duration = Date.now() - startTime;
       this.updateMetrics(false, duration);
 
-      console.error(`❌ Bridge Delete failed after ${duration}ms:`, error.message);
+      console.error(
+        `❌ Bridge Delete failed after ${duration}ms:`,
+        error.message,
+      );
 
       return {
         success: false,
         error: error.message,
-        duration
+        duration,
       };
     }
   }
@@ -279,7 +313,7 @@ export class ServiceNowBridgeService {
   async getRecord(
     table: string,
     sysId: string,
-    params: Record<string, any> = {}
+    params: Record<string, any> = {},
   ): Promise<BridgeResponse<ServiceNowRecord | null>> {
     const startTime = Date.now();
 
@@ -299,9 +333,12 @@ export class ServiceNowBridgeService {
         }
       });
 
-      const response = await this.fetchClient['makeAuthenticatedFetch'](url.toString(), {
-        method: 'GET'
-      });
+      const response = await this.fetchClient["makeAuthenticatedFetch"](
+        url.toString(),
+        {
+          method: "GET",
+        },
+      );
 
       const duration = Date.now() - startTime;
 
@@ -310,10 +347,12 @@ export class ServiceNowBridgeService {
           return {
             success: true,
             result: null,
-            duration
+            duration,
           };
         }
-        throw new Error(`ServiceNow API returned status ${response.status}: ${response.statusText}`);
+        throw new Error(
+          `ServiceNow API returned status ${response.status}: ${response.statusText}`,
+        );
       }
 
       const data = await response.json();
@@ -324,9 +363,8 @@ export class ServiceNowBridgeService {
       return {
         success: true,
         result: data.result || null,
-        duration
+        duration,
       };
-
     } catch (error: any) {
       const duration = Date.now() - startTime;
       this.updateMetrics(false, duration);
@@ -336,7 +374,7 @@ export class ServiceNowBridgeService {
       return {
         success: false,
         error: error.message,
-        duration
+        duration,
       };
     }
   }
@@ -344,21 +382,23 @@ export class ServiceNowBridgeService {
   /**
    * Check if bridge service is healthy
    */
-  async healthCheck(): Promise<BridgeResponse<{ status: string; auth: boolean }>> {
+  async healthCheck(): Promise<
+    BridgeResponse<{ status: string; auth: boolean }>
+  > {
     try {
       const authValid = this.fetchClient.isAuthValid();
 
       return {
         success: true,
         result: {
-          status: 'healthy',
-          auth: authValid
-        }
+          status: "healthy",
+          auth: authValid,
+        },
       };
     } catch (error: any) {
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -375,7 +415,7 @@ export class ServiceNowBridgeService {
    */
   resetAuth(): void {
     this.fetchClient.resetAuth();
-    console.log('🔄 Bridge Service authentication reset');
+    console.log("🔄 Bridge Service authentication reset");
   }
 
   /**
@@ -391,12 +431,13 @@ export class ServiceNowBridgeService {
     }
 
     // Update average response time using exponential moving average
-    const totalRequests = this.metrics.successfulRequests + this.metrics.failedRequests;
+    const totalRequests =
+      this.metrics.successfulRequests + this.metrics.failedRequests;
     if (totalRequests === 1) {
       this.metrics.averageResponseTime = duration;
     } else {
       this.metrics.averageResponseTime = Math.round(
-        this.metrics.averageResponseTime * 0.9 + duration * 0.1
+        this.metrics.averageResponseTime * 0.9 + duration * 0.1,
       );
     }
   }

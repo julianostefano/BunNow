@@ -78,7 +78,9 @@ export class ServiceNowFetchClient {
       ...config,
     };
 
-    console.log("🔌 ServiceNowFetchClient initialized without circular dependency");
+    console.log(
+      "🔌 ServiceNowFetchClient initialized without circular dependency",
+    );
     console.log(`   - Client Type: ${this.baseUrl}`);
     console.log(
       `   - Rate limit: ${this.rateLimitConfig.maxRequestsPerSecond} req/sec`,
@@ -322,7 +324,7 @@ export class ServiceNowFetchClient {
       instance: config.instance,
       hasUsername: !!config.username,
       hasPassword: !!config.password,
-      useProxy: !!config.proxy
+      useProxy: !!config.proxy,
     });
 
     return config;
@@ -371,14 +373,16 @@ export class ServiceNowFetchClient {
         const response = await this.makeAuthenticatedFetch(url, {
           method: "GET",
           headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
+            Accept: "application/json",
+            "Content-Type": "application/json",
           },
         });
 
         if (!response.ok) {
           const errorText = await response.text();
-          throw new Error(`ServiceNow API Error (${response.status}): ${errorText}`);
+          throw new Error(
+            `ServiceNow API Error (${response.status}): ${errorText}`,
+          );
         }
 
         const result = await response.json();
@@ -388,7 +392,10 @@ export class ServiceNowFetchClient {
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
-        console.error(`ServiceNow ${table} bridge request error:`, errorMessage);
+        console.error(
+          `ServiceNow ${table} bridge request error:`,
+          errorMessage,
+        );
         throw error;
       }
     });

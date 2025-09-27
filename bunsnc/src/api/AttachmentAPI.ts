@@ -10,7 +10,10 @@ import {
 import { logger } from "../utils/Logger";
 import { cache } from "../utils/Cache";
 import type { ServiceNowRecord } from "../types/servicenow";
-import { ServiceNowBridgeService, BridgeResponse } from "../services/ServiceNowBridgeService";
+import {
+  ServiceNowBridgeService,
+  BridgeResponse,
+} from "../services/ServiceNowBridgeService";
 
 export interface IAttachmentAPI {
   get(sysId: string): Promise<ServiceNowRecord | null>;
@@ -83,14 +86,17 @@ export class AttachmentAPI implements IAttachmentAPI {
     this.cachingEnabled = options.enableCaching ?? true;
 
     // Direct ServiceNow URL for file operations (not self-referencing)
-    this.directServiceNowUrl = process.env.SNC_INSTANCE_URL || "https://iberdrola.service-now.com";
+    this.directServiceNowUrl =
+      process.env.SNC_INSTANCE_URL || "https://iberdrola.service-now.com";
     this.headers = {
       "User-Agent": "BunSNC-ServiceNow-Client/1.0",
       Accept: "application/json",
       Authorization: authToken || process.env.SNC_AUTH_TOKEN || "",
     };
 
-    console.log('🔌 AttachmentAPI using bridge service for metadata, direct URLs for files - self-referencing calls eliminated');
+    console.log(
+      "🔌 AttachmentAPI using bridge service for metadata, direct URLs for files - self-referencing calls eliminated",
+    );
     logger.debug("AttachmentAPI initialized", "AttachmentAPI", {
       apiId: this.apiId,
       instanceUrl,
@@ -122,14 +128,20 @@ export class AttachmentAPI implements IAttachmentAPI {
         }
       }
 
-      const response = await this.bridgeService.getRecord('sys_attachment', sysId);
+      const response = await this.bridgeService.getRecord(
+        "sys_attachment",
+        sysId,
+      );
 
       if (!response.success) {
-        if (response.error?.includes('not found') || response.error?.includes('404')) {
+        if (
+          response.error?.includes("not found") ||
+          response.error?.includes("404")
+        ) {
           operation.success("Attachment not found", { found: false });
           return null;
         }
-        throw new Error(response.error || 'Failed to get attachment metadata');
+        throw new Error(response.error || "Failed to get attachment metadata");
       }
 
       const attachmentData = response.result;
@@ -181,10 +193,13 @@ export class AttachmentAPI implements IAttachmentAPI {
         sysparm_display_value: "all",
       };
 
-      const response = await this.bridgeService.queryTable('sys_attachment', params);
+      const response = await this.bridgeService.queryTable(
+        "sys_attachment",
+        params,
+      );
 
       if (!response.success) {
-        throw new Error(response.error || 'Failed to list attachments');
+        throw new Error(response.error || "Failed to list attachments");
       }
 
       const attachments = response.result || [];
@@ -309,12 +324,15 @@ export class AttachmentAPI implements IAttachmentAPI {
         onProgress(0);
       }
 
-      const response = await fetch(`${this.directServiceNowUrl}/api/now/attachment/file`, {
-        method: "POST",
-        headers: uploadHeaders,
-        body: formData,
-        signal: AbortSignal.timeout(900000), // 15 minutes timeout
-      });
+      const response = await fetch(
+        `${this.directServiceNowUrl}/api/now/attachment/file`,
+        {
+          method: "POST",
+          headers: uploadHeaders,
+          body: formData,
+          signal: AbortSignal.timeout(900000), // 15 minutes timeout
+        },
+      );
 
       // Report completion progress
       if (onProgress) {
@@ -413,11 +431,14 @@ export class AttachmentAPI implements IAttachmentAPI {
         }
       }
 
-      const response = await fetch(`${this.directServiceNowUrl}/api/now/attachment/${sysId}/file`, {
-        method: "GET",
-        headers: this.headers,
-        signal: AbortSignal.timeout(900000), // 15 minutes timeout
-      });
+      const response = await fetch(
+        `${this.directServiceNowUrl}/api/now/attachment/${sysId}/file`,
+        {
+          method: "GET",
+          headers: this.headers,
+          signal: AbortSignal.timeout(900000), // 15 minutes timeout
+        },
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -487,16 +508,22 @@ export class AttachmentAPI implements IAttachmentAPI {
     });
 
     try {
-      const response = await this.bridgeService.deleteRecord('sys_attachment', sysId);
+      const response = await this.bridgeService.deleteRecord(
+        "sys_attachment",
+        sysId,
+      );
 
       if (!response.success) {
-        if (response.error?.includes('not found') || response.error?.includes('404')) {
+        if (
+          response.error?.includes("not found") ||
+          response.error?.includes("404")
+        ) {
           operation.success("Attachment not found for deletion", {
             found: false,
           });
           return false; // Attachment doesn't exist
         }
-        throw new Error(response.error || 'Failed to delete attachment');
+        throw new Error(response.error || "Failed to delete attachment");
       }
 
       const success = response.success;
@@ -594,11 +621,14 @@ export class AttachmentAPI implements IAttachmentAPI {
 
       // Try to access the file to check if it's accessible
       try {
-        const response = await fetch(`${this.directServiceNowUrl}/api/now/attachment/${sysId}/file`, {
-          method: "HEAD",
-          headers: this.headers,
-          signal: AbortSignal.timeout(900000), // 15 minutes timeout
-        });
+        const response = await fetch(
+          `${this.directServiceNowUrl}/api/now/attachment/${sysId}/file`,
+          {
+            method: "HEAD",
+            headers: this.headers,
+            signal: AbortSignal.timeout(900000), // 15 minutes timeout
+          },
+        );
 
         return {
           ...metadata,
