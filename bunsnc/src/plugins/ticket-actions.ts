@@ -25,8 +25,8 @@ export interface TicketActionsPluginContext {
   updateCategory: (data: UpdateCategoryRequest) => Promise<ActionResult>;
   escalateTicket: (data: EscalateTicketRequest) => Promise<ActionResult>;
   selfAssignTicket: (data: SelfAssignRequest) => Promise<ActionResult>;
-  getResolutionCodes: (table: string) => ResolutionCode[];
-  getCloseCodes: (table: string) => CloseCode[];
+  getResolutionCodes: (table: string) => Promise<ResolutionCode[]>;
+  getCloseCodes: (table: string) => Promise<CloseCode[]>;
 }
 
 export interface ResolveTicketRequest {
@@ -278,11 +278,23 @@ export const ticketActionsPlugin = new Elysia({
 
   .decorate('selfAssignTicket', async function(
     this: {},
-    data: SelfAssignRequest
+    data: SelfAssignRequest,
+    authContext?: { userId?: string; userSysId?: string }
   ): Promise<ActionResult> {
     try {
-      // In a real implementation, this would get the current user from auth context
-      const currentUser = "current.user"; // Placeholder
+      // Get current user from authentication context or environment
+      const currentUser = authContext?.userSysId ||
+                         authContext?.userId ||
+                         process.env.SERVICENOW_DEFAULT_USER ||
+                         "system.admin";
+
+      if (!currentUser || currentUser === "system.admin") {
+        return {
+          success: false,
+          error: "User authentication required for self-assignment",
+          timestamp: new Date().toISOString(),
+        };
+      }
 
       const result = await consolidatedServiceNowService.assignTicket({
         table: data.table,
@@ -305,60 +317,81 @@ export const ticketActionsPlugin = new Elysia({
     }
   })
 
-  // Reference data methods
-  .decorate('getResolutionCodes', function(
+  // Reference data methods - queries ServiceNow for real resolution codes
+  .decorate('getResolutionCodes', async function(
     this: {},
     table: string
-  ): ResolutionCode[] {
-    const codes: Record<string, ResolutionCode[]> = {
-      incident: [
-        { value: "Solved (Work Around)", label: "Solved (Work Around)" },
-        { value: "Solved (Permanently)", label: "Solved (Permanently)" },
-        { value: "Solved Remotely (Work Around)", label: "Solved Remotely (Work Around)" },
-        { value: "Solved Remotely (Permanently)", label: "Solved Remotely (Permanently)" },
-        { value: "Not Solved (Not Reproducible)", label: "Not Solved (Not Reproducible)" },
-        { value: "Not Solved (Too Costly)", label: "Not Solved (Too Costly)" },
-      ],
-      change_task: [
-        { value: "Successful", label: "Successful" },
-        { value: "Successful with Issues", label: "Successful with Issues" },
-        { value: "Unsuccessful", label: "Unsuccessful" },
-      ],
-      sc_task: [
-        { value: "Fulfilled", label: "Fulfilled" },
-        { value: "Rejected", label: "Rejected" },
-        { value: "Cancelled", label: "Cancelled" },
-      ],
-    };
+  ): Promise<ResolutionCode[]> {
+    try {
+      // Query ServiceNow for actual resolution codes based on table type
+      const fieldName = table === 'incident' ? 'resolution_code' :
+                       table === 'change_task' ? 'close_code' :
+                       table === 'sc_task' ? 'state' : 'resolution_code';
 
-    return codes[table] || [];
+      // Use consolidated service to get choice list values
+      const choiceListQuery = {
+        sysparm_query: `name=${table}^element=${fieldName}^language=en`,
+        sysparm_fields: 'value,label',
+        sysparm_limit: 100
+      };
+
+      const result = await consolidatedServiceNowService.query('sys_choice', choiceListQuery);
+
+      if (result.success && result.result) {
+        return result.result.map((choice: any) => ({
+          value: choice.value || choice.sys_id,
+          label: choice.label || choice.display_value || choice.value
+        }));
+      }
+
+      // Fallback to minimal default values if ServiceNow query fails
+      console.warn(`Failed to get resolution codes for ${table}, using fallback`);
+      return table === 'incident' ?
+        [{ value: "Solved", label: "Solved" }, { value: "Not Solved", label: "Not Solved" }] :
+        [{ value: "Successful", label: "Successful" }, { value: "Unsuccessful", label: "Unsuccessful" }];
+
+    } catch (error: any) {
+      console.error(`Error getting resolution codes for ${table}:`, error.message);
+      return [{ value: "Resolved", label: "Resolved" }]; // Minimal fallback
+    }
   })
 
-  .decorate('getCloseCodes', function(
+  .decorate('getCloseCodes', async function(
     this: {},
     table: string
-  ): CloseCode[] {
-    const codes: Record<string, CloseCode[]> = {
-      incident: [
-        { value: "Solved (Permanently)", label: "Solved (Permanently)" },
-        { value: "Solved (Work Around)", label: "Solved (Work Around)" },
-        { value: "Not Solved (Not Reproducible)", label: "Not Solved (Not Reproducible)" },
-        { value: "Not Solved (Too Costly)", label: "Not Solved (Too Costly)" },
-        { value: "Closed/Resolved by Caller", label: "Closed/Resolved by Caller" },
-      ],
-      change_task: [
-        { value: "Successful", label: "Successful" },
-        { value: "Successful with Issues", label: "Successful with Issues" },
-        { value: "Rolled Back", label: "Rolled Back" },
-      ],
-      sc_task: [
-        { value: "Request Fulfilled", label: "Request Fulfilled" },
-        { value: "Request Cancelled", label: "Request Cancelled" },
-        { value: "Request Rejected", label: "Request Rejected" },
-      ],
-    };
+  ): Promise<CloseCode[]> {
+    try {
+      // Query ServiceNow for actual close codes based on table type
+      const fieldName = table === 'incident' ? 'close_code' :
+                       table === 'change_task' ? 'close_code' :
+                       table === 'sc_task' ? 'close_code' : 'close_code';
 
-    return codes[table] || [];
+      // Use consolidated service to get choice list values for close codes
+      const choiceListQuery = {
+        sysparm_query: `name=${table}^element=${fieldName}^language=en`,
+        sysparm_fields: 'value,label',
+        sysparm_limit: 100
+      };
+
+      const result = await consolidatedServiceNowService.query('sys_choice', choiceListQuery);
+
+      if (result.success && result.result) {
+        return result.result.map((choice: any) => ({
+          value: choice.value || choice.sys_id,
+          label: choice.label || choice.display_value || choice.value
+        }));
+      }
+
+      // Fallback to minimal default values if ServiceNow query fails
+      console.warn(`Failed to get close codes for ${table}, using fallback`);
+      return table === 'incident' ?
+        [{ value: "Solved", label: "Solved" }, { value: "Closed", label: "Closed" }] :
+        [{ value: "Successful", label: "Successful" }, { value: "Complete", label: "Complete" }];
+
+    } catch (error: any) {
+      console.error(`Error getting close codes for ${table}:`, error.message);
+      return [{ value: "Closed", label: "Closed" }]; // Minimal fallback
+    }
   })
 
   // === API ENDPOINTS ===
@@ -535,16 +568,25 @@ export const ticketActionsPlugin = new Elysia({
    * Get available resolution codes for a table
    * GET /tickets/actions/resolution-codes/:table
    */
-  .get('/resolution-codes/:table', ({ getResolutionCodes, params: { table } }) => {
-    return {
-      success: true,
-      data: getResolutionCodes(table),
-      timestamp: new Date().toISOString(),
-    };
+  .get('/resolution-codes/:table', async ({ getResolutionCodes, params: { table } }) => {
+    try {
+      const codes = await getResolutionCodes(table);
+      return {
+        success: true,
+        data: codes,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      };
+    }
   }, {
     detail: {
       summary: 'Get Resolution Codes',
-      description: 'Get available resolution codes for a table',
+      description: 'Get available resolution codes for a table from ServiceNow',
       tags: ['Tickets', 'Reference', 'Resolution']
     }
   })
@@ -553,16 +595,25 @@ export const ticketActionsPlugin = new Elysia({
    * Get available close codes for a table
    * GET /tickets/actions/close-codes/:table
    */
-  .get('/close-codes/:table', ({ getCloseCodes, params: { table } }) => {
-    return {
-      success: true,
-      data: getCloseCodes(table),
-      timestamp: new Date().toISOString(),
-    };
+  .get('/close-codes/:table', async ({ getCloseCodes, params: { table } }) => {
+    try {
+      const codes = await getCloseCodes(table);
+      return {
+        success: true,
+        data: codes,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      };
+    }
   }, {
     detail: {
       summary: 'Get Close Codes',
-      description: 'Get available close codes for a table',
+      description: 'Get available close codes for a table from ServiceNow',
       tags: ['Tickets', 'Reference', 'Close']
     }
   })
