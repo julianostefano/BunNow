@@ -15,9 +15,7 @@ describe("Data Ingestion Plugin Real Data Tests", () => {
   let testServer: any;
 
   beforeAll(async () => {
-    app = new Elysia()
-      .use(dataPlugin)
-      .compile();
+    app = new Elysia().use(dataPlugin).compile();
 
     testServer = app.listen(0);
   });
@@ -32,12 +30,14 @@ describe("Data Ingestion Plugin Real Data Tests", () => {
     const context = app.decorator as any;
 
     try {
-      console.log("🔄 Testing real ServiceNow to MongoDB sync via Data Ingestion Plugin...");
+      console.log(
+        "🔄 Testing real ServiceNow to MongoDB sync via Data Ingestion Plugin...",
+      );
 
       // Test real sync operation - should fetch from ServiceNow and save to MongoDB
       const syncResult = await context.syncFromServiceNow("incident", {
         batchSize: 5,
-        skipIfExists: true
+        skipIfExists: true,
       });
 
       expect(syncResult).toBeDefined();
@@ -50,9 +50,15 @@ describe("Data Ingestion Plugin Real Data Tests", () => {
       expect(typeof syncResult.duration).toBe("number");
       expect(typeof syncResult.lastSyncTime).toBe("string");
 
-      console.log(`✅ SUCCESS: Real sync operation completed for table: ${syncResult.table}`);
-      console.log(`Processed: ${syncResult.processed}, Saved: ${syncResult.saved}, Updated: ${syncResult.updated}`);
-      console.log(`Errors: ${syncResult.errors}, Duration: ${syncResult.duration}ms`);
+      console.log(
+        `✅ SUCCESS: Real sync operation completed for table: ${syncResult.table}`,
+      );
+      console.log(
+        `Processed: ${syncResult.processed}, Saved: ${syncResult.saved}, Updated: ${syncResult.updated}`,
+      );
+      console.log(
+        `Errors: ${syncResult.errors}, Duration: ${syncResult.duration}ms`,
+      );
       console.log(`Last sync: ${syncResult.lastSyncTime}`);
 
       if (syncResult.errorDetails && syncResult.errorDetails.length > 0) {
@@ -64,7 +70,6 @@ describe("Data Ingestion Plugin Real Data Tests", () => {
 
       // Validate that we actually processed some data
       expect(syncResult.processed).toBeGreaterThanOrEqual(0);
-
     } catch (error: any) {
       console.error("❌ Real ServiceNow sync failed:", error.message);
 
@@ -81,7 +86,9 @@ describe("Data Ingestion Plugin Real Data Tests", () => {
         errorMessage.includes("save");
 
       expect(isRealSyncError).toBe(true);
-      console.log(`✅ Real ServiceNow sync operation attempted: ${error.message}`);
+      console.log(
+        `✅ Real ServiceNow sync operation attempted: ${error.message}`,
+      );
     }
   }, 60000);
 
@@ -89,7 +96,9 @@ describe("Data Ingestion Plugin Real Data Tests", () => {
     const context = app.decorator as any;
 
     try {
-      console.log("💾 Testing real ticket save to MongoDB via Data Ingestion Plugin...");
+      console.log(
+        "💾 Testing real ticket save to MongoDB via Data Ingestion Plugin...",
+      );
 
       // Create real ticket data structure
       const realTicketData = {
@@ -98,13 +107,14 @@ describe("Data Ingestion Plugin Real Data Tests", () => {
         table: "incident",
         state: "1",
         priority: "3",
-        short_description: "Test incident from Data Ingestion Plugin real data test",
+        short_description:
+          "Test incident from Data Ingestion Plugin real data test",
         assignment_group: "IT Support",
         sys_created_on: new Date().toISOString(),
         sys_updated_on: new Date().toISOString(),
         description: "This is a test incident created during real data testing",
         urgency: "3",
-        impact: "3"
+        impact: "3",
       };
 
       // Test real save operation - should save to actual MongoDB
@@ -114,24 +124,32 @@ describe("Data Ingestion Plugin Real Data Tests", () => {
       expect(typeof saveResult).toBe("boolean");
 
       if (saveResult) {
-        console.log(`✅ SUCCESS: Real ticket saved to MongoDB with sys_id: ${realTicketData.sys_id}`);
+        console.log(
+          `✅ SUCCESS: Real ticket saved to MongoDB with sys_id: ${realTicketData.sys_id}`,
+        );
       } else {
-        console.log(`⚠️ INFO: Ticket save returned false (may indicate update vs insert)`);
+        console.log(
+          `⚠️ INFO: Ticket save returned false (may indicate update vs insert)`,
+        );
       }
 
       // Verify ticket was actually saved by trying to find it
       try {
-        const foundTicket = await context.findTicket(realTicketData.sys_id, "incident");
+        const foundTicket = await context.findTicket(
+          realTicketData.sys_id,
+          "incident",
+        );
         if (foundTicket) {
           console.log(`✅ VERIFICATION: Ticket found in MongoDB after save`);
           expect(foundTicket.sys_id).toBe(realTicketData.sys_id);
           expect(foundTicket.number).toBe(realTicketData.number);
-          expect(foundTicket.short_description).toBe(realTicketData.short_description);
+          expect(foundTicket.short_description).toBe(
+            realTicketData.short_description,
+          );
         }
       } catch (findError) {
         console.log(`⚠️ Could not verify ticket save: ${findError}`);
       }
-
     } catch (error: any) {
       console.error("❌ Real ticket save failed:", error.message);
 
@@ -155,17 +173,23 @@ describe("Data Ingestion Plugin Real Data Tests", () => {
     const context = app.decorator as any;
 
     try {
-      console.log("🔄 Testing real cache operations via Data Ingestion Plugin...");
+      console.log(
+        "🔄 Testing real cache operations via Data Ingestion Plugin...",
+      );
 
       // Test real cache set operation
       const cacheKey = `test-cache-${Date.now()}`;
       const cacheValue = {
         data: "test cache data",
         timestamp: new Date().toISOString(),
-        source: "data-ingestion-plugin-test"
+        source: "data-ingestion-plugin-test",
       };
 
-      const setCacheResult = await context.setCacheData(cacheKey, cacheValue, 300); // 5 minutes TTL
+      const setCacheResult = await context.setCacheData(
+        cacheKey,
+        cacheValue,
+        300,
+      ); // 5 minutes TTL
 
       expect(setCacheResult).toBeDefined();
       expect(typeof setCacheResult).toBe("boolean");
@@ -187,7 +211,6 @@ describe("Data Ingestion Plugin Real Data Tests", () => {
       } else {
         console.log(`⚠️ WARNING: Cache set operation returned false`);
       }
-
     } catch (error: any) {
       console.error("❌ Real cache operations failed:", error.message);
 
@@ -211,7 +234,9 @@ describe("Data Ingestion Plugin Real Data Tests", () => {
     const context = app.decorator as any;
 
     try {
-      console.log("📊 Testing real sync status operations via Data Ingestion Plugin...");
+      console.log(
+        "📊 Testing real sync status operations via Data Ingestion Plugin...",
+      );
 
       // Test real sync status retrieval
       const syncStatus = await context.getSyncStatus();
@@ -220,7 +245,7 @@ describe("Data Ingestion Plugin Real Data Tests", () => {
       expect(typeof syncStatus).toBe("object");
 
       console.log(`✅ SUCCESS: Sync status retrieved`);
-      console.log(`Status keys: ${Object.keys(syncStatus).join(', ')}`);
+      console.log(`Status keys: ${Object.keys(syncStatus).join(", ")}`);
 
       // Should have real sync status fields
       if (syncStatus.lastSync) {
@@ -242,7 +267,6 @@ describe("Data Ingestion Plugin Real Data Tests", () => {
         expect(typeof syncStatus.successRate).toBe("number");
         console.log(`Success rate: ${syncStatus.successRate}%`);
       }
-
     } catch (error: any) {
       console.error("❌ Real sync status operations failed:", error.message);
 
@@ -266,7 +290,9 @@ describe("Data Ingestion Plugin Real Data Tests", () => {
     const context = app.decorator as any;
 
     try {
-      console.log("🔄 Testing real batch ticket updates via Data Ingestion Plugin...");
+      console.log(
+        "🔄 Testing real batch ticket updates via Data Ingestion Plugin...",
+      );
 
       // Create test tickets for batch update
       const testTickets = [
@@ -279,7 +305,7 @@ describe("Data Ingestion Plugin Real Data Tests", () => {
           short_description: "Batch test incident 1",
           assignment_group: "IT Support",
           sys_created_on: new Date().toISOString(),
-          sys_updated_on: new Date().toISOString()
+          sys_updated_on: new Date().toISOString(),
         },
         {
           sys_id: `batch-test-2-${Date.now()}`,
@@ -290,8 +316,8 @@ describe("Data Ingestion Plugin Real Data Tests", () => {
           short_description: "Batch test incident 2",
           assignment_group: "IT Support",
           sys_created_on: new Date().toISOString(),
-          sys_updated_on: new Date().toISOString()
-        }
+          sys_updated_on: new Date().toISOString(),
+        },
       ];
 
       // Test real batch update operation
@@ -305,11 +331,15 @@ describe("Data Ingestion Plugin Real Data Tests", () => {
       expect(Array.isArray(batchResult.results)).toBe(true);
 
       console.log(`✅ SUCCESS: Batch update completed`);
-      console.log(`Processed: ${batchResult.processed}, Successful: ${batchResult.successful}, Failed: ${batchResult.failed}`);
+      console.log(
+        `Processed: ${batchResult.processed}, Successful: ${batchResult.successful}, Failed: ${batchResult.failed}`,
+      );
 
       if (batchResult.results.length > 0) {
         batchResult.results.forEach((result: any, index: number) => {
-          console.log(`  Ticket ${index + 1}: ${result.success ? 'SUCCESS' : 'FAILED'} - ${result.sys_id}`);
+          console.log(
+            `  Ticket ${index + 1}: ${result.success ? "SUCCESS" : "FAILED"} - ${result.sys_id}`,
+          );
           if (result.error) {
             console.log(`    Error: ${result.error}`);
           }
@@ -318,8 +348,9 @@ describe("Data Ingestion Plugin Real Data Tests", () => {
 
       // Validate batch operation stats
       expect(batchResult.processed).toBe(testTickets.length);
-      expect(batchResult.successful + batchResult.failed).toBe(batchResult.processed);
-
+      expect(batchResult.successful + batchResult.failed).toBe(
+        batchResult.processed,
+      );
     } catch (error: any) {
       console.error("❌ Real batch update failed:", error.message);
 

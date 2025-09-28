@@ -13,7 +13,10 @@
  */
 
 import { Elysia } from "elysia";
-import { ServiceNowBridgeService, serviceNowBridgeService } from "../services/ServiceNowBridgeService";
+import {
+  ServiceNowBridgeService,
+  serviceNowBridgeService,
+} from "../services/ServiceNowBridgeService";
 import type {
   BridgeResponse,
   BridgeRequestConfig,
@@ -235,7 +238,7 @@ export const serviceNowPlugin = new Elysia({
   )
 
   // Global scope - exposes context across entire application following best practices
-  .as('global');
+  .as("global");
 
 // Export plugin context type for Eden Treaty
 export type ServiceNowPluginApp = typeof serviceNowPlugin;

@@ -21,33 +21,35 @@ import { serviceNowProxyRoutes } from "../modules/servicenow-proxy";
 // Plugin System Integration
 import {
   createWebPluginComposition,
-  type ConsolidatedPluginContext
+  type ConsolidatedPluginContext,
 } from "../plugins";
 
 export async function createMainApp(): Promise<Elysia> {
   const mainApp = new Elysia();
 
   // Integrate Plugin System - All 8 plugins with dependency injection
-  mainApp.use(createWebPluginComposition({
-    enableHealthChecks: true,
-    enableMetrics: true,
-    pluginConfig: {
-      serviceNow: {
-        instanceUrl: process.env.SNC_INSTANCE_URL,
-        username: process.env.SNC_USERNAME,
-        password: process.env.SNC_PASSWORD
+  mainApp.use(
+    createWebPluginComposition({
+      enableHealthChecks: true,
+      enableMetrics: true,
+      pluginConfig: {
+        serviceNow: {
+          instanceUrl: process.env.SNC_INSTANCE_URL,
+          username: process.env.SNC_USERNAME,
+          password: process.env.SNC_PASSWORD,
+        },
+        redis: {
+          host: process.env.REDIS_HOST || "localhost",
+          port: parseInt(process.env.REDIS_PORT || "6379"),
+          password: process.env.REDIS_PASSWORD,
+        },
+        mongodb: {
+          url: process.env.MONGODB_URL || "mongodb://localhost:27018",
+          database: process.env.MONGODB_DATABASE || "bunsnc",
+        },
       },
-      redis: {
-        host: process.env.REDIS_HOST || "localhost",
-        port: parseInt(process.env.REDIS_PORT || "6379"),
-        password: process.env.REDIS_PASSWORD
-      },
-      mongodb: {
-        url: process.env.MONGODB_URL || "mongodb://localhost:27018",
-        database: process.env.MONGODB_DATABASE || "bunsnc"
-      }
-    }
-  }));
+    }),
+  );
 
   // Add CORS support - Allow all origins
   mainApp.use(

@@ -1027,7 +1027,7 @@ export const createDataService = (config: DataServiceConfig) => {
 };
 
 // Export singleton for global use with default config
-const defaultDataServiceConfig: DataServiceConfig = {
+export const defaultDataServiceConfig: DataServiceConfig = {
   mongodb: {
     connectionString: `mongodb://${process.env.MONGODB_USERNAME || "admin"}:${encodeURIComponent(process.env.MONGODB_PASSWORD || "Logica2011_")}@${process.env.MONGODB_HOST || "10.219.8.210"}:${process.env.MONGODB_PORT || "27018"}/${process.env.MONGODB_DATABASE || "bunsnc"}?authSource=admin`,
     databaseName: process.env.MONGODB_DATABASE || "bunsnc",

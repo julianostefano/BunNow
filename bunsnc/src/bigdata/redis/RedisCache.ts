@@ -7,10 +7,7 @@ import { Redis as RedisClient, Cluster as RedisCluster } from "ioredis";
 import { EventEmitter } from "events";
 import { logger } from "../../utils/Logger";
 import { performanceMonitor } from "../../utils/PerformanceMonitor";
-import {
-  getRedisConnection,
-  redisConnectionManager,
-} from "../../utils/RedisConnection";
+import { redisConnectionManager } from "../../utils/RedisConnection";
 
 export interface RedisCacheOptions {
   redis?: RedisClient | RedisCluster;
@@ -116,7 +113,7 @@ export class RedisCache extends EventEmitter {
       };
 
       // Get shared connection
-      this.redis = await getRedisConnection(redisConfig);
+      this.redis = await redisConnectionManager.connect(redisConfig);
 
       // Validate connection
       if (this.redis) {

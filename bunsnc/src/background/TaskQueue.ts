@@ -6,10 +6,7 @@
 
 import { EventEmitter } from "events";
 import { Redis as RedisClient, Cluster as RedisCluster } from "ioredis";
-import {
-  getRedisConnection,
-  redisConnectionManager,
-} from "../utils/RedisConnection";
+import { redisConnectionManager } from "../utils/RedisConnection";
 import { logger } from "../utils/Logger";
 
 export interface Task {
@@ -114,7 +111,7 @@ export class TaskQueue extends EventEmitter {
       logger.info("Initializing shared Redis connections", "TaskQueue");
 
       // Get shared Redis connections
-      this.redis = await getRedisConnection({
+      this.redis = await redisConnectionManager.connect({
         host: this.options.redis.host,
         port: this.options.redis.port,
         password: this.options.redis.password,
@@ -122,7 +119,7 @@ export class TaskQueue extends EventEmitter {
       });
 
       // Get separate connection for subscriber
-      this.subscriber = await getRedisConnection({
+      this.subscriber = await redisConnectionManager.connect({
         host: this.options.redis.host,
         port: this.options.redis.port,
         password: this.options.redis.password,

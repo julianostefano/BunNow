@@ -22,7 +22,7 @@ import { WebServerController } from "../controllers/WebServerController";
 // Plugin System Integration
 import {
   createWebPluginComposition,
-  type ConsolidatedPluginContext
+  type ConsolidatedPluginContext,
 } from "../plugins";
 
 interface WebServerConfig {
@@ -95,15 +95,17 @@ export class ServiceNowWebServer {
     const app = this.webServerController.setupServer();
 
     app
-      .use(createWebPluginComposition({
-        enableHealthChecks: true,
-        enableMetrics: true,
-        pluginConfig: {
-          serviceNow: this.webServerController.getConfig().serviceNow,
-          redis: this.webServerController.getConfig().redis,
-          mongodb: this.webServerController.getConfig().mongodb
-        }
-      }))
+      .use(
+        createWebPluginComposition({
+          enableHealthChecks: true,
+          enableMetrics: true,
+          pluginConfig: {
+            serviceNow: this.webServerController.getConfig().serviceNow,
+            redis: this.webServerController.getConfig().redis,
+            mongodb: this.webServerController.getConfig().mongodb,
+          },
+        }),
+      )
       .use(authRoutes)
       .use(htmxDashboardClean)
       .use(htmxDashboardEnhanced)

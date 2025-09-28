@@ -6,10 +6,7 @@
 
 import { EventEmitter } from "events";
 import { Redis } from "ioredis";
-import {
-  getRedisConnection,
-  redisConnectionManager,
-} from "../utils/RedisConnection";
+import { redisConnectionManager } from "../utils/RedisConnection";
 import { logger } from "../utils/Logger";
 import {
   Notification,
@@ -73,7 +70,7 @@ export class NotificationQueue extends EventEmitter {
       logger.info("Initializing shared Redis connection", "NotificationQueue");
 
       // Use shared Redis connection
-      this.redis = await getRedisConnection({
+      this.redis = await redisConnectionManager.connect({
         host: options.redis.host,
         port: options.redis.port,
         password: options.redis.password,

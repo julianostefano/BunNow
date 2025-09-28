@@ -6,7 +6,7 @@
 // Removed Axios - Using native Bun fetch
 import { serviceNowRateLimiter } from "../ServiceNowRateLimit";
 import { Redis as RedisClient } from "ioredis";
-import { getRedisConnection } from "../../utils/RedisConnection";
+import { redisConnectionManager } from "../../utils/RedisConnection";
 import { RedisCache } from "../../bigdata/redis/RedisCache";
 import { RedisStreamManager } from "../../bigdata/redis/RedisStreamManager";
 import { serviceNowSAMLAuth } from "./ServiceNowSAMLAuth";
@@ -69,7 +69,7 @@ export class ServiceNowAuthCore {
   // Proxy configuration moved to use AUTH_SERVICE_PROXY_URL consistently
   // Legacy PROXY_CONFIG removed - all requests now go through auth service proxy
 
-  constructor() {
+  constructor(redis?: RedisClient) {
     this.setupEnvironment();
     this.initializeFetchClient();
     this.setupLogging();
@@ -85,8 +85,12 @@ export class ServiceNowAuthCore {
       (process.env.SERVICENOW_AUTH_TYPE as "external" | "saml") || "external";
     console.log(`🔐 ServiceNow authentication type: ${this.authType}`);
 
-    // Initialize Redis asynchronously and store the promise for dependent operations
-    this.initializeRedis();
+    // Initialize Redis - use provided connection or initialize async
+    if (redis) {
+      this.initializeRedisWithConnection(redis);
+    } else {
+      this.initializeRedis();
+    }
   }
 
   private setupEnvironment(): void {
@@ -123,8 +127,8 @@ export class ServiceNowAuthCore {
     try {
       console.log("🔄 Initializing Redis components for ServiceNowAuthCore");
 
-      // Initialize Redis components lazily - they will get shared connection when first used
-      const redis = await getRedisConnection({
+      // Initialize Redis components lazily - using manager for shared connection
+      const redis = await redisConnectionManager.connect({
         host: process.env.REDIS_HOST || "10.219.8.210",
         port: parseInt(process.env.REDIS_PORT || "6380"),
         password: process.env.REDIS_PASSWORD || "nexcdc2025",
@@ -159,6 +163,37 @@ export class ServiceNowAuthCore {
       this.redisCache = null;
       this.redisStreamManager = null;
       // Não fazer throw - permite aplicação funcionar sem Redis
+    }
+  }
+
+  private initializeRedisWithConnection(redis: RedisClient): void {
+    try {
+      console.log(
+        "🔄 Initializing Redis components with provided connection (Elysia DI)",
+      );
+
+      // Initialize RedisCache with provided connection
+      this.redisCache = new RedisCache(redis, {
+        keyPrefix: "servicenow:cache:",
+        defaultTTL: 300000, // 5 minutes
+      });
+
+      // Initialize RedisStreamManager with provided connection
+      this.redisStreamManager = new RedisStreamManager(redis, {
+        maxLen: 10000,
+        trimStrategy: "MAXLEN",
+      });
+
+      console.log(
+        "✅ ServiceNowAuthCore Redis components initialized with Elysia DI connection",
+      );
+    } catch (error) {
+      console.error(
+        "❌ Failed to initialize Redis components with provided connection:",
+        error,
+      );
+      this.redisCache = null;
+      this.redisStreamManager = null;
     }
   }
 

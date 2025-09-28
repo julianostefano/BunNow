@@ -22,9 +22,7 @@ describe("Data Plugin Tests", () => {
 
   beforeAll(async () => {
     // Create test app with Data plugin
-    app = new Elysia()
-      .use(dataPlugin)
-      .compile();
+    app = new Elysia().use(dataPlugin).compile();
 
     // Start test server on random port
     testServer = app.listen(0);
@@ -71,7 +69,7 @@ describe("Data Plugin Tests", () => {
       const response = await app.handle(
         new Request("http://localhost/data/health", {
           method: "GET",
-        })
+        }),
       );
 
       // Accept both 200 and 500 as valid responses in test environment
@@ -88,7 +86,7 @@ describe("Data Plugin Tests", () => {
       const response = await app.handle(
         new Request("http://localhost/data/cache/metrics", {
           method: "GET",
-        })
+        }),
       );
 
       // Accept both 200 and 500 as valid responses in test environment
@@ -109,9 +107,9 @@ describe("Data Plugin Tests", () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            strategy: { preload: true, limit: 100 }
+            strategy: { preload: true, limit: 100 },
           }),
-        })
+        }),
       );
 
       // Accept multiple status codes as valid in test environment
@@ -127,9 +125,9 @@ describe("Data Plugin Tests", () => {
           },
           body: JSON.stringify({
             limit: 10,
-            dateRange: "current_month"
+            dateRange: "current_month",
           }),
-        })
+        }),
       );
 
       // Accept multiple status codes as valid in test environment
@@ -159,7 +157,7 @@ describe("Data Plugin Tests", () => {
           sys_id: "test-sys-id",
           number: "INC0000001",
           short_description: "Test ticket",
-          state: "1"
+          state: "1",
         };
 
         const result = await context.saveTicket(mockTicket, "incident");
@@ -174,7 +172,9 @@ describe("Data Plugin Tests", () => {
       const context = app.decorator as any;
 
       try {
-        const result = await context.syncFromServiceNow("incident", { limit: 10 });
+        const result = await context.syncFromServiceNow("incident", {
+          limit: 10,
+        });
         expect(result).toBeDefined();
         expect(typeof result.processed).toBe("number");
         expect(typeof result.saved).toBe("number");
@@ -188,7 +188,11 @@ describe("Data Plugin Tests", () => {
       const context = app.decorator as any;
 
       try {
-        const results = await context.searchTickets("incident", { state: "1" }, 10);
+        const results = await context.searchTickets(
+          "incident",
+          { state: "1" },
+          10,
+        );
         expect(Array.isArray(results)).toBe(true);
       } catch (error) {
         // Expected in test environment
@@ -214,7 +218,7 @@ describe("Data Plugin Tests", () => {
       try {
         const updates = [
           { sysId: "test-1", data: { state: "2" } },
-          { sysId: "test-2", data: { state: "3" } }
+          { sysId: "test-2", data: { state: "3" } },
         ];
 
         const count = await context.batchUpdateTickets(updates);
@@ -269,7 +273,7 @@ describe("Data Plugin Tests", () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({}),
-        })
+        }),
       );
 
       // Accept multiple status codes as valid in test environment
@@ -284,7 +288,7 @@ describe("Data Plugin Tests", () => {
             "Content-Type": "application/json",
           },
           body: "invalid json",
-        })
+        }),
       );
 
       // Should handle gracefully - accept multiple status codes
@@ -364,12 +368,14 @@ describe("Data Plugin Tests", () => {
 
     test("should handle concurrent health checks", async () => {
       const promises = Array.from({ length: 5 }, () =>
-        app.handle(new Request("http://localhost/data/health", { method: "GET" }))
+        app.handle(
+          new Request("http://localhost/data/health", { method: "GET" }),
+        ),
       );
 
       const responses = await Promise.all(promises);
 
-      responses.forEach(response => {
+      responses.forEach((response) => {
         expect([200, 400, 500]).toContain(response.status);
       });
     });
@@ -383,7 +389,7 @@ describe("Data Plugin Integration Tests", () => {
       .use(dataPlugin)
       .get("/integration-test", ({ dataService }) => ({
         integrated: true,
-        hasDataService: !!dataService
+        hasDataService: !!dataService,
       }));
 
     expect(app).toBeDefined();
@@ -395,12 +401,18 @@ describe("Data Plugin Integration Tests", () => {
     const context = app.decorator as any;
 
     const expectedMethods = [
-      'getTicket', 'saveTicket', 'syncFromServiceNow',
-      'getCacheStats', 'clearCache', 'warmupCache',
-      'getTicketsByState', 'searchTickets', 'batchUpdateTickets'
+      "getTicket",
+      "saveTicket",
+      "syncFromServiceNow",
+      "getCacheStats",
+      "clearCache",
+      "warmupCache",
+      "getTicketsByState",
+      "searchTickets",
+      "batchUpdateTickets",
     ];
 
-    expectedMethods.forEach(method => {
+    expectedMethods.forEach((method) => {
       expect(typeof context[method]).toBe("function");
     });
   });
@@ -412,12 +424,12 @@ describe("Data Plugin Edge Cases", () => {
     const context = app.decorator as any;
 
     const syncPromises = Array.from({ length: 3 }, (_, i) =>
-      context.syncFromServiceNow(`test_table_${i}`, { limit: 1 })
+      context.syncFromServiceNow(`test_table_${i}`, { limit: 1 }),
     );
 
     try {
       const results = await Promise.all(syncPromises);
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result).toBeDefined();
         expect(typeof result.processed).toBe("number");
       });
@@ -433,7 +445,7 @@ describe("Data Plugin Edge Cases", () => {
 
     const largeBatch = Array.from({ length: 10 }, (_, i) => ({
       sysId: `test-${i}`,
-      data: { state: "2", description: `Updated ${i}` }
+      data: { state: "2", description: `Updated ${i}` },
     }));
 
     try {
@@ -451,7 +463,7 @@ describe("Data Plugin Edge Cases", () => {
 
     const malformedTicket = {
       // Missing required fields
-      description: "Incomplete ticket"
+      description: "Incomplete ticket",
     };
 
     try {

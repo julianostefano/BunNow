@@ -15,9 +15,7 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 // Create Elysia app with CLI plugin
-const cliApp = new Elysia()
-  .use(cliPlugin)
-  .compile();
+const cliApp = new Elysia().use(cliPlugin).compile();
 
 // Main CLI execution function
 async function runCLI() {
@@ -39,7 +37,9 @@ async function runCLI() {
       console.log("  upload <table> <sysId> <file>   Upload attachment");
       console.log("  download <attachmentId> <dest>  Download attachment");
       console.log("");
-      console.log("For help on a specific command: bun src/cli.ts <command> --help");
+      console.log(
+        "For help on a specific command: bun src/cli.ts <command> --help",
+      );
       return;
     }
 
@@ -51,7 +51,7 @@ async function runCLI() {
       body: {},
       set: { status: 200 },
       cookie: {},
-      server: null
+      server: null,
     };
 
     // Get the plugin context through a mock request
@@ -60,10 +60,8 @@ async function runCLI() {
     // For CLI, we need to access the decorators directly
     // This is a simplified approach - in production we'd want a more elegant solution
     const { Command } = await import("commander");
-    const {
-      consolidatedServiceNowService,
-      serviceNowAuthClient,
-    } = await import("./services");
+    const { consolidatedServiceNowService, serviceNowAuthClient } =
+      await import("./services");
 
     const program = new Command();
     program
@@ -79,7 +77,10 @@ async function runCLI() {
       .requiredOption("-p, --password <password>")
       .action(async (opts) => {
         const { username, password } = opts;
-        const result = await serviceNowAuthClient.authenticate(username, password);
+        const result = await serviceNowAuthClient.authenticate(
+          username,
+          password,
+        );
         console.log(JSON.stringify(result, null, 2));
       });
 
@@ -110,7 +111,11 @@ async function runCLI() {
       .option("-d, --data <json>", "Dados em JSON", "{}")
       .action(async (table, sysId, opts) => {
         const data = JSON.parse(opts.data);
-        const result = await consolidatedServiceNowService.update(table, sysId, data);
+        const result = await consolidatedServiceNowService.update(
+          table,
+          sysId,
+          data,
+        );
         console.log(JSON.stringify(result, null, 2));
       });
 
@@ -130,7 +135,8 @@ async function runCLI() {
       .requiredOption("-o, --operations <json>", "Array de operações em JSON")
       .action(async (opts) => {
         const operations = JSON.parse(opts.operations);
-        const result = await consolidatedServiceNowService.executeBatch(operations);
+        const result =
+          await consolidatedServiceNowService.executeBatch(operations);
         console.log(JSON.stringify(result, null, 2));
       });
 
@@ -144,7 +150,11 @@ async function runCLI() {
         const uint8 = new Uint8Array(fileBuffer);
         const fileName = filePath.split("/").pop() || "upload.bin";
         const fileObj = new File([uint8], fileName);
-        const result = await consolidatedServiceNowService.upload(table, sysId, fileObj);
+        const result = await consolidatedServiceNowService.upload(
+          table,
+          sysId,
+          fileObj,
+        );
         console.log(JSON.stringify({ attachmentId: result }, null, 2));
       });
 
@@ -156,18 +166,24 @@ async function runCLI() {
         const data = await consolidatedServiceNowService.download(attachmentId);
         const fs = await import("fs/promises");
         await fs.writeFile(dest, Buffer.from(data));
-        console.log(JSON.stringify({ message: `Arquivo salvo em ${dest}` }, null, 2));
+        console.log(
+          JSON.stringify({ message: `Arquivo salvo em ${dest}` }, null, 2),
+        );
       });
 
     // Parse and execute the command
-    await program.parseAsync(args, { from: 'user' });
-
+    await program.parseAsync(args, { from: "user" });
   } catch (error: any) {
     console.error("CLI Error:", error.message);
 
-    if (error.message.includes("Unknown command") || error.message.includes("unknown command")) {
+    if (
+      error.message.includes("Unknown command") ||
+      error.message.includes("unknown command")
+    ) {
       console.log("");
-      console.log("Available commands: login, record, read, update, delete, batch, upload, download");
+      console.log(
+        "Available commands: login, record, read, update, delete, batch, upload, download",
+      );
       console.log("Use --help with any command for detailed usage information");
     }
 

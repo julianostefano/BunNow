@@ -7,6 +7,11 @@ import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { swagger } from "@elysiajs/swagger";
 import { logger } from "../utils/Logger";
+// Plugin System Integration - Shared Plugins Pattern
+import {
+  createSharedPluginsComposition,
+  type ConsolidatedPluginContext,
+} from "../plugins";
 import { aiRoutes } from "./routes/api/ai";
 import { searchRoutes } from "./routes/api/search";
 
@@ -62,6 +67,33 @@ export class AIServer {
               ],
             },
             path: "/docs",
+          }),
+        )
+
+        // Plugin System Integration - Shared Plugins Pattern
+        .use(
+          createSharedPluginsComposition({
+            enableHealthChecks: true,
+            enableMetrics: true,
+            pluginConfig: {
+              serviceNow: {
+                instanceUrl:
+                  process.env.SNC_INSTANCE_URL ||
+                  "https://iberdrola.service-now.com",
+                username: process.env.SNC_USERNAME || "",
+                password: process.env.SNC_PASSWORD || "",
+              },
+              redis: {
+                host: process.env.REDIS_HOST || "10.219.8.210",
+                port: parseInt(process.env.REDIS_PORT || "6380"),
+                password: process.env.REDIS_PASSWORD || "nexcdc2025",
+              },
+              mongodb: {
+                host: process.env.MONGODB_HOST || "10.219.8.210",
+                port: parseInt(process.env.MONGODB_PORT || "27018"),
+                database: process.env.MONGODB_DATABASE || "bunsnc",
+              },
+            },
           }),
         )
 

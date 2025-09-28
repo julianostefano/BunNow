@@ -339,9 +339,16 @@ class RedisConnectionManager extends EventEmitter {
 export const redisConnectionManager = RedisConnectionManager.getInstance();
 
 // Convenience functions for common operations
+/**
+ * @deprecated Use Redis plugin instead via Elysia DI
+ * This function creates multiple Redis connections - use redis plugin context
+ */
 export async function getRedisConnection(
   config?: Partial<RedisConnectionConfig>,
 ): Promise<RedisClient | RedisCluster> {
+  console.warn(
+    "⚠️  DEPRECATED: getRedisConnection() creates multiple connections. Use Redis plugin via Elysia DI instead.",
+  );
   return redisConnectionManager.connect(config);
 }
 

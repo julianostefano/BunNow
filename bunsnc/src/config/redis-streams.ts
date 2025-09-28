@@ -4,10 +4,7 @@
  */
 
 import { Redis } from "ioredis";
-import {
-  getRedisConnection,
-  redisConnectionManager,
-} from "../utils/RedisConnection";
+import { redisConnectionManager } from "../utils/RedisConnection";
 import { logger } from "../utils/Logger";
 
 export interface StreamMessage {
@@ -91,7 +88,7 @@ export class ServiceNowStreams {
       logger.info("Initializing shared Redis connection", "ServiceNowStreams");
 
       // Use shared Redis connection
-      this.redis = await getRedisConnection({
+      this.redis = await redisConnectionManager.connect({
         host: this.config.host,
         port: this.config.port,
         password: this.config.password,

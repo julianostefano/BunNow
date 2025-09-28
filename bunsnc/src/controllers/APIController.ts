@@ -415,7 +415,10 @@ export class APIController {
         duration: bridgeResponse.duration,
       };
     } catch (error: unknown) {
-      console.error(`❌ API Controller: Error getting ${ticketType} from ServiceNow:`, error);
+      console.error(
+        `❌ API Controller: Error getting ${ticketType} from ServiceNow:`,
+        error,
+      );
       return {
         success: false,
         message: `Error getting ${ticketType}: ${(error as Error).message}`,

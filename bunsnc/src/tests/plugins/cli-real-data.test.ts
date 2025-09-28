@@ -15,9 +15,7 @@ describe("CLI Plugin Real Data Tests", () => {
   let testServer: any;
 
   beforeAll(async () => {
-    app = new Elysia()
-      .use(cliPlugin)
-      .compile();
+    app = new Elysia().use(cliPlugin).compile();
 
     testServer = app.listen(0);
   });
@@ -32,7 +30,9 @@ describe("CLI Plugin Real Data Tests", () => {
     const context = app.decorator as any;
 
     try {
-      console.log("🔍 Testing real groups fetch from MongoDB sn_groups collection...");
+      console.log(
+        "🔍 Testing real groups fetch from MongoDB sn_groups collection...",
+      );
       const groups = await context.cliListGroups();
 
       expect(groups).toBeDefined();
@@ -51,9 +51,13 @@ describe("CLI Plugin Real Data Tests", () => {
         expect(firstGroup.created_at).toBeDefined();
         expect(firstGroup.updated_at).toBeDefined();
 
-        console.log(`✅ SUCCESS: Found ${groups.length} groups in sn_groups collection`);
+        console.log(
+          `✅ SUCCESS: Found ${groups.length} groups in sn_groups collection`,
+        );
         console.log(`First group: ${firstGroup.nome} (ID: ${firstGroup.id})`);
-        console.log(`Group details: Responsável=${firstGroup.responsavel}, Temperatura=${firstGroup.temperatura}`);
+        console.log(
+          `Group details: Responsável=${firstGroup.responsavel}, Temperatura=${firstGroup.temperatura}`,
+        );
       } else {
         console.log("⚠️ WARNING: No groups found in sn_groups collection");
       }
@@ -76,15 +80,23 @@ describe("CLI Plugin Real Data Tests", () => {
 
       if (groups.length > 0) {
         const firstGroup = groups[0];
-        console.log(`🎫 Testing ticket fetch for group: ${firstGroup.nome} (ID: ${firstGroup.id})`);
+        console.log(
+          `🎫 Testing ticket fetch for group: ${firstGroup.nome} (ID: ${firstGroup.id})`,
+        );
 
         // Test getting tickets for this group using real MongoDB query
-        const tickets = await context.cliGetTickets(firstGroup.nome, undefined, 5);
+        const tickets = await context.cliGetTickets(
+          firstGroup.nome,
+          undefined,
+          5,
+        );
 
         expect(tickets).toBeDefined();
         expect(Array.isArray(tickets)).toBe(true);
 
-        console.log(`✅ SUCCESS: Found ${tickets.length} tickets for group ${firstGroup.nome}`);
+        console.log(
+          `✅ SUCCESS: Found ${tickets.length} tickets for group ${firstGroup.nome}`,
+        );
 
         if (tickets.length > 0) {
           const firstTicket = tickets[0];
@@ -95,8 +107,12 @@ describe("CLI Plugin Real Data Tests", () => {
           expect(firstTicket.table).toBeDefined();
           expect(firstTicket.short_description).toBeDefined();
 
-          console.log(`First ticket: ${firstTicket.number} - ${firstTicket.short_description}`);
-          console.log(`Ticket table: ${firstTicket.table}, State: ${firstTicket.state}`);
+          console.log(
+            `First ticket: ${firstTicket.number} - ${firstTicket.short_description}`,
+          );
+          console.log(
+            `Ticket table: ${firstTicket.table}, State: ${firstTicket.state}`,
+          );
           console.log(`Assignment group: ${firstTicket.assignment_group}`);
         } else {
           console.log(`⚠️ No tickets found for group ${firstGroup.nome}`);
@@ -105,10 +121,18 @@ describe("CLI Plugin Real Data Tests", () => {
         // Test with different group if available
         if (groups.length > 1) {
           const secondGroup = groups[1];
-          console.log(`🎫 Testing ticket fetch for second group: ${secondGroup.nome}`);
+          console.log(
+            `🎫 Testing ticket fetch for second group: ${secondGroup.nome}`,
+          );
 
-          const moreTickets = await context.cliGetTickets(secondGroup.nome, undefined, 3);
-          console.log(`✅ Found ${moreTickets.length} tickets for group ${secondGroup.nome}`);
+          const moreTickets = await context.cliGetTickets(
+            secondGroup.nome,
+            undefined,
+            3,
+          );
+          console.log(
+            `✅ Found ${moreTickets.length} tickets for group ${secondGroup.nome}`,
+          );
         }
       } else {
         console.log("⚠️ WARNING: No groups available to test ticket queries");
@@ -133,7 +157,9 @@ describe("CLI Plugin Real Data Tests", () => {
       expect(groups).toBeDefined();
 
       if (Array.isArray(groups)) {
-        console.log(`✅ SUCCESS: MongoDB sn_groups collection accessible with ${groups.length} groups`);
+        console.log(
+          `✅ SUCCESS: MongoDB sn_groups collection accessible with ${groups.length} groups`,
+        );
 
         // Verify structure matches expected GroupDocument format from config/mongodb-collections
         if (groups.length > 0) {
@@ -155,7 +181,7 @@ describe("CLI Plugin Real Data Tests", () => {
           console.log(`  - Nome: ${group.nome}`);
           console.log(`  - Responsável: ${group.responsavel}`);
           console.log(`  - Temperatura: ${group.temperatura}`);
-          console.log(`  - Tags: ${group.tags.join(', ')}`);
+          console.log(`  - Tags: ${group.tags.join(", ")}`);
           console.log(`  - Descrição: ${group.descricao.substring(0, 50)}...`);
           console.log(`  - Created: ${group.created_at}`);
           console.log(`  - Updated: ${group.updated_at}`);
@@ -202,9 +228,13 @@ describe("CLI Plugin Real Data Tests", () => {
       expect(typeof loginResult.message).toBe("string");
 
       if (loginResult.success) {
-        console.log(`✅ SUCCESS: ServiceNow authentication successful: ${loginResult.message}`);
+        console.log(
+          `✅ SUCCESS: ServiceNow authentication successful: ${loginResult.message}`,
+        );
       } else {
-        console.log(`⚠️ INFO: ServiceNow authentication failed (expected in test): ${loginResult.message}`);
+        console.log(
+          `⚠️ INFO: ServiceNow authentication failed (expected in test): ${loginResult.message}`,
+        );
 
         // Even if auth fails, validate it's a real error message
         expect(loginResult.message.length).toBeGreaterThan(0);
@@ -220,7 +250,9 @@ describe("CLI Plugin Real Data Tests", () => {
           message.includes("failed");
 
         expect(isRealAuthError).toBe(true);
-        console.log(`✅ Real ServiceNow authentication attempted (failed as expected)`);
+        console.log(
+          `✅ Real ServiceNow authentication attempted (failed as expected)`,
+        );
       }
     } catch (error) {
       console.error("❌ ServiceNow authentication test failed:", error);

@@ -7,10 +7,7 @@ import { Redis as RedisClient, Cluster as RedisCluster } from "ioredis";
 import { EventEmitter } from "events";
 import { logger } from "../../utils/Logger";
 import { performanceMonitor } from "../../utils/PerformanceMonitor";
-import {
-  getRedisConnection,
-  redisConnectionManager,
-} from "../../utils/RedisConnection";
+import { redisConnectionManager } from "../../utils/RedisConnection";
 
 export interface PubSubMessage {
   channel: string;
@@ -107,8 +104,8 @@ export class RedisPubSub extends EventEmitter {
       logger.info("Initializing shared Redis connections", "RedisPubSub");
 
       // Get shared connections - both publisher and subscriber
-      this.publisher = await getRedisConnection();
-      this.subscriber = await getRedisConnection(); // Separate connection for subscriber
+      this.publisher = await redisConnectionManager.connect();
+      this.subscriber = await redisConnectionManager.connect(); // Separate connection for subscriber
 
       // Validate connections
       if (this.publisher) {

@@ -6,10 +6,7 @@
 
 import { EventEmitter } from "events";
 import { Redis as RedisClient, Cluster as RedisCluster } from "ioredis";
-import {
-  getRedisConnection,
-  redisConnectionManager,
-} from "../utils/RedisConnection";
+import { redisConnectionManager } from "../utils/RedisConnection";
 import { logger } from "../utils/Logger";
 import { TaskQueue, Task, TaskType, TaskPriority } from "./TaskQueue";
 

@@ -520,7 +520,7 @@ export class ServiceNowFetchClient {
    */
   private async waitForConcurrentSlot(): Promise<void> {
     let waitTime = 0;
-    const maxWaitTime = 30000; // 30 seconds max wait
+    const maxWaitTime = 900000; // 15 minutes max wait (Bridge Service architecture)
 
     while (
       this.concurrentRequests >= this.rateLimitConfig.maxConcurrentRequests

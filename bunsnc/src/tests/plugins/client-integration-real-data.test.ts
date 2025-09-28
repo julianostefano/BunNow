@@ -15,9 +15,7 @@ describe("Client Integration Plugin Real Data Tests", () => {
   let testServer: any;
 
   beforeAll(async () => {
-    app = new Elysia()
-      .use(clientIntegrationPlugin)
-      .compile();
+    app = new Elysia().use(clientIntegrationPlugin).compile();
 
     testServer = app.listen(0);
   });
@@ -32,19 +30,23 @@ describe("Client Integration Plugin Real Data Tests", () => {
     const context = app.decorator as any;
 
     try {
-      console.log("🔍 Testing real ServiceNow query via Client Integration Plugin...");
+      console.log(
+        "🔍 Testing real ServiceNow query via Client Integration Plugin...",
+      );
 
       // Test real ServiceNow query - should use actual ServiceNowFetchClient
       const queryResult = await context.unifiedQuery({
         table: "incident",
         query: "",
-        limit: 5
+        limit: 5,
       });
 
       expect(queryResult).toBeDefined();
       expect(Array.isArray(queryResult)).toBe(true);
 
-      console.log(`✅ SUCCESS: Real ServiceNow query returned ${queryResult.length} incidents`);
+      console.log(
+        `✅ SUCCESS: Real ServiceNow query returned ${queryResult.length} incidents`,
+      );
 
       if (queryResult.length > 0) {
         const firstRecord = queryResult[0];
@@ -55,13 +57,18 @@ describe("Client Integration Plugin Real Data Tests", () => {
         expect(typeof firstRecord.sys_id).toBe("string");
         expect(typeof firstRecord.number).toBe("string");
 
-        console.log(`First incident: ${firstRecord.number} (${firstRecord.sys_id})`);
-        console.log(`State: ${firstRecord.state}, Priority: ${firstRecord.priority}`);
-        console.log(`Description: ${firstRecord.short_description?.substring(0, 100)}...`);
+        console.log(
+          `First incident: ${firstRecord.number} (${firstRecord.sys_id})`,
+        );
+        console.log(
+          `State: ${firstRecord.state}, Priority: ${firstRecord.priority}`,
+        );
+        console.log(
+          `Description: ${firstRecord.short_description?.substring(0, 100)}...`,
+        );
       } else {
         console.log("⚠️ No incidents returned from ServiceNow query");
       }
-
     } catch (error: any) {
       console.error("❌ Real ServiceNow query failed:", error.message);
 
@@ -88,7 +95,9 @@ describe("Client Integration Plugin Real Data Tests", () => {
     const context = app.decorator as any;
 
     try {
-      console.log("🔌 Testing real ServiceNow connection via Client Integration Plugin...");
+      console.log(
+        "🔌 Testing real ServiceNow connection via Client Integration Plugin...",
+      );
 
       // Test real connection - should attempt actual ServiceNow authentication
       const connectionTest = await context.testConnection();
@@ -99,9 +108,10 @@ describe("Client Integration Plugin Real Data Tests", () => {
       if (connectionTest) {
         console.log("✅ SUCCESS: ServiceNow connection test passed");
       } else {
-        console.log("⚠️ INFO: ServiceNow connection test failed (expected without proper auth)");
+        console.log(
+          "⚠️ INFO: ServiceNow connection test failed (expected without proper auth)",
+        );
       }
-
     } catch (error: any) {
       console.error("❌ ServiceNow connection test failed:", error.message);
 
@@ -126,7 +136,9 @@ describe("Client Integration Plugin Real Data Tests", () => {
     const context = app.decorator as any;
 
     try {
-      console.log("📊 Testing real client statistics via Client Integration Plugin...");
+      console.log(
+        "📊 Testing real client statistics via Client Integration Plugin...",
+      );
 
       // Test real client stats - should return actual ServiceNow client metrics
       const clientStats = await context.getClientStats();
@@ -135,7 +147,7 @@ describe("Client Integration Plugin Real Data Tests", () => {
       expect(typeof clientStats).toBe("object");
 
       console.log("✅ SUCCESS: Client statistics retrieved");
-      console.log(`Stats keys: ${Object.keys(clientStats).join(', ')}`);
+      console.log(`Stats keys: ${Object.keys(clientStats).join(", ")}`);
 
       // Should have real statistical data
       if (clientStats.requests !== undefined) {
@@ -147,7 +159,6 @@ describe("Client Integration Plugin Real Data Tests", () => {
       if (clientStats.lastActivity !== undefined) {
         expect(clientStats.lastActivity).toBeDefined();
       }
-
     } catch (error: any) {
       console.error("❌ Client statistics retrieval failed:", error.message);
 
@@ -155,7 +166,9 @@ describe("Client Integration Plugin Real Data Tests", () => {
       expect(error).toBeDefined();
       expect(typeof error.message).toBe("string");
 
-      console.log(`✅ Real client statistics operation attempted: ${error.message}`);
+      console.log(
+        `✅ Real client statistics operation attempted: ${error.message}`,
+      );
     }
   }, 30000);
 
@@ -163,7 +176,9 @@ describe("Client Integration Plugin Real Data Tests", () => {
     const context = app.decorator as any;
 
     try {
-      console.log("⚙️ Testing real client configuration via Client Integration Plugin...");
+      console.log(
+        "⚙️ Testing real client configuration via Client Integration Plugin...",
+      );
 
       // Test real client config - should return actual ServiceNow client configuration
       const clientConfig = await context.getClientConfig();
@@ -172,7 +187,7 @@ describe("Client Integration Plugin Real Data Tests", () => {
       expect(typeof clientConfig).toBe("object");
 
       console.log("✅ SUCCESS: Client configuration retrieved");
-      console.log(`Config keys: ${Object.keys(clientConfig).join(', ')}`);
+      console.log(`Config keys: ${Object.keys(clientConfig).join(", ")}`);
 
       // Should have real configuration data
       if (clientConfig.instanceUrl) {
@@ -185,7 +200,6 @@ describe("Client Integration Plugin Real Data Tests", () => {
         expect(typeof clientConfig.authMethod).toBe("string");
         console.log(`Auth method: ${clientConfig.authMethod}`);
       }
-
     } catch (error: any) {
       console.error("❌ Client configuration retrieval failed:", error.message);
 
@@ -193,7 +207,9 @@ describe("Client Integration Plugin Real Data Tests", () => {
       expect(error).toBeDefined();
       expect(typeof error.message).toBe("string");
 
-      console.log(`✅ Real client configuration operation attempted: ${error.message}`);
+      console.log(
+        `✅ Real client configuration operation attempted: ${error.message}`,
+      );
     }
   }, 30000);
 
@@ -201,26 +217,31 @@ describe("Client Integration Plugin Real Data Tests", () => {
     const context = app.decorator as any;
 
     try {
-      console.log("📝 Testing real ServiceNow record creation via Client Integration Plugin...");
+      console.log(
+        "📝 Testing real ServiceNow record creation via Client Integration Plugin...",
+      );
 
       // Test real record creation - should attempt actual ServiceNow API call
       const createResult = await context.unifiedCreate("incident", {
         short_description: "Test incident from Client Integration Plugin",
         description: "This is a test record created during real data testing",
         urgency: "3",
-        impact: "3"
+        impact: "3",
       });
 
       expect(createResult).toBeDefined();
 
       if (createResult && createResult.sys_id) {
-        console.log(`✅ SUCCESS: ServiceNow record created with sys_id: ${createResult.sys_id}`);
+        console.log(
+          `✅ SUCCESS: ServiceNow record created with sys_id: ${createResult.sys_id}`,
+        );
         expect(typeof createResult.sys_id).toBe("string");
         expect(createResult.sys_id.length).toBeGreaterThan(0);
       } else {
-        console.log("⚠️ INFO: ServiceNow record creation returned no sys_id (expected without proper auth)");
+        console.log(
+          "⚠️ INFO: ServiceNow record creation returned no sys_id (expected without proper auth)",
+        );
       }
-
     } catch (error: any) {
       console.error("❌ ServiceNow record creation failed:", error.message);
 
@@ -238,7 +259,9 @@ describe("Client Integration Plugin Real Data Tests", () => {
         errorMessage.includes("incident");
 
       expect(isRealCreationError).toBe(true);
-      console.log(`✅ Real ServiceNow record creation attempted: ${error.message}`);
+      console.log(
+        `✅ Real ServiceNow record creation attempted: ${error.message}`,
+      );
     }
   }, 30000);
 
@@ -246,7 +269,9 @@ describe("Client Integration Plugin Real Data Tests", () => {
     const context = app.decorator as any;
 
     try {
-      console.log("🔄 Testing real batch operations via Client Integration Plugin...");
+      console.log(
+        "🔄 Testing real batch operations via Client Integration Plugin...",
+      );
 
       // Test real batch operations - should attempt actual ServiceNow API calls
       const batchOps = [
@@ -254,14 +279,14 @@ describe("Client Integration Plugin Real Data Tests", () => {
           op: "query",
           table: "incident",
           query: "state=1",
-          limit: 2
+          limit: 2,
         },
         {
           op: "query",
           table: "sys_user_group",
           query: "active=true",
-          limit: 3
-        }
+          limit: 3,
+        },
       ];
 
       const batchResult = await context.unifiedBatch(batchOps);
@@ -269,11 +294,15 @@ describe("Client Integration Plugin Real Data Tests", () => {
       expect(batchResult).toBeDefined();
       expect(Array.isArray(batchResult)).toBe(true);
 
-      console.log(`✅ SUCCESS: Batch operations completed, ${batchResult.length} results`);
+      console.log(
+        `✅ SUCCESS: Batch operations completed, ${batchResult.length} results`,
+      );
 
       if (batchResult.length > 0) {
         batchResult.forEach((result, index) => {
-          console.log(`Batch operation ${index + 1}: ${result.success ? 'SUCCESS' : 'FAILED'}`);
+          console.log(
+            `Batch operation ${index + 1}: ${result.success ? "SUCCESS" : "FAILED"}`,
+          );
           if (result.data && Array.isArray(result.data)) {
             console.log(`  - Returned ${result.data.length} records`);
           }
@@ -282,7 +311,6 @@ describe("Client Integration Plugin Real Data Tests", () => {
           }
         });
       }
-
     } catch (error: any) {
       console.error("❌ Batch operations failed:", error.message);
 

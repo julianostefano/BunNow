@@ -23,7 +23,7 @@ export type {
 } from "./RedisStreamManager";
 
 import { Redis } from "ioredis";
-import { getRedisConnection } from "../../utils/RedisConnection";
+import { redisConnectionManager } from "../../utils/RedisConnection";
 import { RedisStreamManager } from "./RedisStreamManager";
 import { RedisCache } from "./RedisCache";
 import { RedisPubSub } from "./RedisPubSub";
@@ -141,7 +141,7 @@ export class ServiceNowRedisFactory {
   private async initializeSharedConnection(redisConfig: any): Promise<void> {
     try {
       // Use shared Redis connection instead of creating new ones
-      this.redis = await getRedisConnection({
+      this.redis = await redisConnectionManager.connect({
         host: redisConfig.host || "localhost",
         port: redisConfig.port || 6379,
         password: redisConfig.password,

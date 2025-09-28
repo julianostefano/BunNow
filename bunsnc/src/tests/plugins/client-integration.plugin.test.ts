@@ -7,7 +7,10 @@
 
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { Elysia } from "elysia";
-import { clientIntegrationPlugin, type ClientIntegrationContext } from "../../plugins/client-integration";
+import {
+  clientIntegrationPlugin,
+  type ClientIntegrationContext,
+} from "../../plugins/client-integration";
 
 describe("Client Integration Plugin Tests", () => {
   let app: Elysia;
@@ -15,9 +18,7 @@ describe("Client Integration Plugin Tests", () => {
 
   beforeAll(async () => {
     // Create test app with Client Integration plugin
-    app = new Elysia()
-      .use(clientIntegrationPlugin)
-      .compile();
+    app = new Elysia().use(clientIntegrationPlugin).compile();
 
     // Start test server on random port
     testServer = app.listen(0);
@@ -62,7 +63,7 @@ describe("Client Integration Plugin Tests", () => {
       const response = await app.handle(
         new Request("http://localhost/client/health", {
           method: "GET",
-        })
+        }),
       );
 
       // Accept both 200 and 500 as valid responses in test environment
@@ -73,12 +74,16 @@ describe("Client Integration Plugin Tests", () => {
         expect(data).toBeDefined();
 
         if (response.status === 200 && data.result) {
-          expect(data.result.plugin).toBe("servicenow-client-integration-plugin");
+          expect(data.result.plugin).toBe(
+            "servicenow-client-integration-plugin",
+          );
         }
         expect(typeof data.success).toBe("boolean");
       } catch (jsonError) {
         // If JSON parsing fails, that's acceptable in error cases
-        console.log("Client health endpoint returned non-JSON response (acceptable in error cases)");
+        console.log(
+          "Client health endpoint returned non-JSON response (acceptable in error cases)",
+        );
         expect(response.status).toBe(500);
       }
     }, 30000);
@@ -87,7 +92,7 @@ describe("Client Integration Plugin Tests", () => {
       const response = await app.handle(
         new Request("http://localhost/client/config", {
           method: "GET",
-        })
+        }),
       );
 
       // Accept both 200 and 500 as valid responses in test environment
@@ -99,7 +104,9 @@ describe("Client Integration Plugin Tests", () => {
         expect(typeof data.success).toBe("boolean");
       } catch (jsonError) {
         // If JSON parsing fails, that's acceptable in error cases
-        console.log("Client config endpoint returned non-JSON response (acceptable in error cases)");
+        console.log(
+          "Client config endpoint returned non-JSON response (acceptable in error cases)",
+        );
         expect(response.status).toBe(500);
       }
     }, 30000);
@@ -108,7 +115,7 @@ describe("Client Integration Plugin Tests", () => {
       const response = await app.handle(
         new Request("http://localhost/client/test-connection", {
           method: "POST",
-        })
+        }),
       );
 
       // Accept both 200 and 500 as valid responses in test environment
@@ -120,7 +127,9 @@ describe("Client Integration Plugin Tests", () => {
         expect(typeof data.success).toBe("boolean");
       } catch (jsonError) {
         // If JSON parsing fails, that's acceptable in error cases
-        console.log("Connection test endpoint returned non-JSON response (acceptable in error cases)");
+        console.log(
+          "Connection test endpoint returned non-JSON response (acceptable in error cases)",
+        );
         expect(response.status).toBe(500);
       }
     }, 30000);
@@ -129,7 +138,7 @@ describe("Client Integration Plugin Tests", () => {
       const response = await app.handle(
         new Request("http://localhost/client/refresh", {
           method: "POST",
-        })
+        }),
       );
 
       // Accept both 200 and 500 as valid responses in test environment
@@ -141,7 +150,9 @@ describe("Client Integration Plugin Tests", () => {
         expect(typeof data.success).toBe("boolean");
       } catch (jsonError) {
         // If JSON parsing fails, that's acceptable in error cases
-        console.log("Connection refresh endpoint returned non-JSON response (acceptable in error cases)");
+        console.log(
+          "Connection refresh endpoint returned non-JSON response (acceptable in error cases)",
+        );
         expect(response.status).toBe(500);
       }
     }, 30000);
@@ -191,8 +202,13 @@ describe("Client Integration Plugin Tests", () => {
       const context = app.decorator as any;
 
       try {
-        console.log("🔍 Testing real ServiceNow query via Client Integration Plugin...");
-        const result = await context.unifiedQuery({ table: "incident", limit: 1 });
+        console.log(
+          "🔍 Testing real ServiceNow query via Client Integration Plugin...",
+        );
+        const result = await context.unifiedQuery({
+          table: "incident",
+          limit: 1,
+        });
 
         expect(result).toBeDefined();
         expect(Array.isArray(result)).toBe(true);
@@ -222,25 +238,36 @@ describe("Client Integration Plugin Tests", () => {
       const context = app.decorator as any;
 
       try {
-        console.log("📝 Testing real ServiceNow record creation via Client Integration Plugin...");
+        console.log(
+          "📝 Testing real ServiceNow record creation via Client Integration Plugin...",
+        );
         const createResult = await context.unifiedCreate("incident", {
-          short_description: "Test incident from Client Integration Plugin test",
-          description: "This is a test record created during plugin testing"
+          short_description:
+            "Test incident from Client Integration Plugin test",
+          description: "This is a test record created during plugin testing",
         });
 
         expect(createResult).toBeDefined();
         console.log(`✅ SUCCESS: Record creation attempted`);
       } catch (error: any) {
-        console.error("❌ Real ServiceNow record creation failed:", error.message);
+        console.error(
+          "❌ Real ServiceNow record creation failed:",
+          error.message,
+        );
         expect(error).toBeDefined();
         expect(typeof error.message).toBe("string");
       }
 
       try {
-        console.log("🔎 Testing real ServiceNow record read via Client Integration Plugin...");
+        console.log(
+          "🔎 Testing real ServiceNow record read via Client Integration Plugin...",
+        );
         await context.unifiedRead("incident", "test-id-123");
       } catch (error: any) {
-        console.error("❌ Real ServiceNow record read failed (expected):", error.message);
+        console.error(
+          "❌ Real ServiceNow record read failed (expected):",
+          error.message,
+        );
         expect(error).toBeDefined();
         expect(typeof error.message).toBe("string");
       }
@@ -253,28 +280,32 @@ describe("Client Integration Plugin Tests", () => {
         {
           op: "create",
           table: "incident",
-          data: { short_description: "test batch incident 1" }
+          data: { short_description: "test batch incident 1" },
         },
         {
           op: "create",
           table: "incident",
-          data: { short_description: "test batch incident 2" }
+          data: { short_description: "test batch incident 2" },
         },
         {
           op: "query",
           table: "incident",
           query: "state=1",
-          limit: 1
-        }
+          limit: 1,
+        },
       ];
 
       try {
-        console.log("📜 Testing real batch operations via Client Integration Plugin...");
+        console.log(
+          "📜 Testing real batch operations via Client Integration Plugin...",
+        );
         const result = await context.unifiedBatch(batchOps);
 
         expect(result).toBeDefined();
         expect(Array.isArray(result)).toBe(true);
-        console.log(`✅ SUCCESS: Batch operations completed, ${result.length} results`);
+        console.log(
+          `✅ SUCCESS: Batch operations completed, ${result.length} results`,
+        );
       } catch (error: any) {
         console.error("❌ Real batch operations failed:", error.message);
         expect(error).toBeDefined();
@@ -298,14 +329,18 @@ describe("Client Integration Plugin Tests", () => {
       const context = app.decorator as any;
 
       try {
-        console.log("🔌 Testing real ServiceNow connection via Client Integration Plugin...");
+        console.log(
+          "🔌 Testing real ServiceNow connection via Client Integration Plugin...",
+        );
         const result = await context.testConnection();
         expect(typeof result).toBe("boolean");
 
         if (result) {
           console.log("✅ SUCCESS: ServiceNow connection test passed");
         } else {
-          console.log("⚠️ INFO: ServiceNow connection test failed (expected without proper auth)");
+          console.log(
+            "⚠️ INFO: ServiceNow connection test failed (expected without proper auth)",
+          );
         }
       } catch (error: any) {
         console.error("❌ ServiceNow connection test failed:", error.message);
@@ -329,13 +364,18 @@ describe("Client Integration Plugin Tests", () => {
       const context = app.decorator as any;
 
       try {
-        console.log("🔄 Testing real ServiceNow connection refresh via Client Integration Plugin...");
+        console.log(
+          "🔄 Testing real ServiceNow connection refresh via Client Integration Plugin...",
+        );
         const result = await context.refreshClientConnection();
         expect(typeof result).toBe("boolean");
 
         console.log(`✅ SUCCESS: Connection refresh completed: ${result}`);
       } catch (error: any) {
-        console.error("❌ ServiceNow connection refresh failed:", error.message);
+        console.error(
+          "❌ ServiceNow connection refresh failed:",
+          error.message,
+        );
         expect(error).toBeDefined();
         expect(typeof error.message).toBe("string");
       }
@@ -347,13 +387,15 @@ describe("Client Integration Plugin Tests", () => {
       const context = app.decorator as any;
 
       try {
-        console.log("📈 Testing real client statistics via Client Integration Plugin...");
+        console.log(
+          "📈 Testing real client statistics via Client Integration Plugin...",
+        );
         const stats = await context.getClientStats();
         expect(stats).toBeDefined();
         expect(typeof stats).toBe("object");
 
         console.log("✅ SUCCESS: Client statistics retrieved");
-        console.log(`Stats keys: ${Object.keys(stats).join(', ')}`);
+        console.log(`Stats keys: ${Object.keys(stats).join(", ")}`);
       } catch (error: any) {
         console.error("❌ Client statistics retrieval failed:", error.message);
         expect(error).toBeDefined();
@@ -365,7 +407,7 @@ describe("Client Integration Plugin Tests", () => {
       const response = await app.handle(
         new Request("http://localhost/client/stats", {
           method: "GET",
-        })
+        }),
       );
 
       // Accept both 200 and 500 as valid responses in test environment
@@ -377,7 +419,9 @@ describe("Client Integration Plugin Tests", () => {
         expect(typeof data.success).toBe("boolean");
       } catch (jsonError) {
         // If JSON parsing fails, that's acceptable in error cases
-        console.log("Stats endpoint returned non-JSON response (acceptable in error cases)");
+        console.log(
+          "Stats endpoint returned non-JSON response (acceptable in error cases)",
+        );
         expect(response.status).toBe(500);
       }
     }, 30000);
@@ -454,7 +498,9 @@ describe("Client Integration Performance Tests", () => {
     const app = new Elysia().use(clientIntegrationPlugin);
 
     const promises = Array.from({ length: 3 }, () =>
-      app.handle(new Request("http://localhost/client/health", { method: "GET" }))
+      app.handle(
+        new Request("http://localhost/client/health", { method: "GET" }),
+      ),
     );
 
     const responses = await Promise.all(promises);
@@ -487,7 +533,7 @@ describe("Client Integration Edge Cases", () => {
 
     const largeData = {
       description: "x".repeat(10000),
-      comments: "y".repeat(5000)
+      comments: "y".repeat(5000),
     };
 
     try {

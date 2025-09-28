@@ -267,7 +267,7 @@ export const authPlugin = new Elysia({
   )
 
   // Global scope - exposes context across entire application following best practices
-  .as('global');
+  .as("global");
 
 // Export plugin context type for Eden Treaty
 export type AuthPluginApp = typeof authPlugin;

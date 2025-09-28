@@ -41,10 +41,7 @@ describe("CLI Plugin Simple Tests", () => {
 
     test("should handle CLI command setup", () => {
       const program = new Command();
-      program
-        .name("test-cli")
-        .description("Test CLI")
-        .version("1.0.0");
+      program.name("test-cli").description("Test CLI").version("1.0.0");
 
       program
         .command("test-command")
@@ -86,7 +83,9 @@ describe("CLI Plugin Simple Tests", () => {
 
     test("should import ServiceNow client", async () => {
       try {
-        const { ServiceNowClient } = await import("../../client/ServiceNowClient");
+        const { ServiceNowClient } = await import(
+          "../../client/ServiceNowClient"
+        );
         expect(ServiceNowClient).toBeDefined();
         expect(typeof ServiceNowClient).toBe("function");
       } catch (error) {
@@ -162,11 +161,11 @@ describe("CLI Implementation Integration", () => {
         "delete",
         "batch",
         "upload",
-        "download"
+        "download",
       ];
 
       // Setup basic commands like in our CLI
-      expectedCommands.forEach(cmdName => {
+      expectedCommands.forEach((cmdName) => {
         program
           .command(cmdName === "record" ? `${cmdName} <table>` : cmdName)
           .description(`Test ${cmdName} command`);

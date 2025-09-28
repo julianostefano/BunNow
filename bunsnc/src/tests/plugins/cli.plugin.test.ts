@@ -19,9 +19,7 @@ describe("CLI Plugin Tests", () => {
 
   beforeAll(async () => {
     // Create test app with CLI plugin
-    app = new Elysia()
-      .use(cliPlugin)
-      .compile();
+    app = new Elysia().use(cliPlugin).compile();
 
     // Start test server on random port
     testServer = app.listen(0);
@@ -70,7 +68,7 @@ describe("CLI Plugin Tests", () => {
       const response = await app.handle(
         new Request("http://localhost/cli/health", {
           method: "GET",
-        })
+        }),
       );
 
       // Accept both 200 and 500 as valid responses in test environment
@@ -92,7 +90,9 @@ describe("CLI Plugin Tests", () => {
         }
       } catch (jsonError) {
         // If JSON parsing fails, that's acceptable in error cases
-        console.log("Health endpoint returned non-JSON response (acceptable in error cases)");
+        console.log(
+          "Health endpoint returned non-JSON response (acceptable in error cases)",
+        );
         expect(response.status).toBe(500);
       }
     });
@@ -101,7 +101,7 @@ describe("CLI Plugin Tests", () => {
       const response = await app.handle(
         new Request("http://localhost/cli/commands", {
           method: "GET",
-        })
+        }),
       );
 
       // Accept both 200 and 500 as valid responses in test environment
@@ -122,7 +122,9 @@ describe("CLI Plugin Tests", () => {
         }
       } catch (jsonError) {
         // If JSON parsing fails, that's acceptable in error cases
-        console.log("Commands endpoint returned non-JSON response (acceptable in error cases)");
+        console.log(
+          "Commands endpoint returned non-JSON response (acceptable in error cases)",
+        );
         expect(response.status).toBe(500);
       }
     });
@@ -138,7 +140,7 @@ describe("CLI Plugin Tests", () => {
             command: "login",
             params: {},
           }),
-        })
+        }),
       );
 
       // Accept both 200 and 500 as valid responses in test environment
@@ -156,7 +158,9 @@ describe("CLI Plugin Tests", () => {
         }
       } catch (jsonError) {
         // If JSON parsing fails, that's acceptable in error cases
-        console.log("Execute endpoint returned non-JSON response (acceptable in error cases)");
+        console.log(
+          "Execute endpoint returned non-JSON response (acceptable in error cases)",
+        );
         expect(response.status).toBe(500);
       }
     });
@@ -218,7 +222,7 @@ describe("CLI Plugin Tests", () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({}),
-        })
+        }),
       );
 
       // Accept both 200 and 500 as valid responses in test environment
@@ -235,7 +239,9 @@ describe("CLI Plugin Tests", () => {
         }
       } catch (jsonError) {
         // If JSON parsing fails, that's acceptable in error cases
-        console.log("Missing command endpoint returned non-JSON response (acceptable in error cases)");
+        console.log(
+          "Missing command endpoint returned non-JSON response (acceptable in error cases)",
+        );
         expect(response.status).toBe(500);
       }
     });
@@ -248,7 +254,7 @@ describe("CLI Plugin Tests", () => {
             "Content-Type": "application/json",
           },
           body: "invalid json",
-        })
+        }),
       );
 
       // Should handle gracefully - accept multiple status codes
@@ -261,7 +267,9 @@ describe("CLI Plugin Tests", () => {
           expect(data).toBeDefined();
         } catch (jsonError) {
           // If JSON parsing fails on invalid JSON request, that's expected
-          console.log("Invalid JSON endpoint correctly rejected malformed input");
+          console.log(
+            "Invalid JSON endpoint correctly rejected malformed input",
+          );
         }
       }
     });
@@ -315,7 +323,9 @@ describe("CLI Plugin Tests", () => {
       const context = app.decorator as any;
 
       try {
-        console.log("🔍 Testing real groups fetch from MongoDB via CLI Plugin...");
+        console.log(
+          "🔍 Testing real groups fetch from MongoDB via CLI Plugin...",
+        );
         const groups = await context.cliListGroups();
 
         expect(groups).toBeDefined();
@@ -333,7 +343,9 @@ describe("CLI Plugin Tests", () => {
           expect(firstGroup.created_at).toBeDefined();
           expect(firstGroup.updated_at).toBeDefined();
 
-          console.log(`✅ SUCCESS: Found ${groups.length} groups in sn_groups collection`);
+          console.log(
+            `✅ SUCCESS: Found ${groups.length} groups in sn_groups collection`,
+          );
           console.log(`First group: ${firstGroup.nome} (ID: ${firstGroup.id})`);
         } else {
           console.log("⚠️ WARNING: No groups found in sn_groups collection");
@@ -367,7 +379,9 @@ describe("CLI Plugin Tests", () => {
 
       try {
         // First get groups from sn_groups collection
-        console.log("🔍 Getting groups from sn_groups to test ticket queries...");
+        console.log(
+          "🔍 Getting groups from sn_groups to test ticket queries...",
+        );
         const groups = await context.cliListGroups();
 
         expect(groups).toBeDefined();
@@ -375,15 +389,23 @@ describe("CLI Plugin Tests", () => {
 
         if (groups.length > 0) {
           const firstGroup = groups[0];
-          console.log(`🎫 Testing ticket fetch for group: ${firstGroup.nome} (ID: ${firstGroup.id})`);
+          console.log(
+            `🎫 Testing ticket fetch for group: ${firstGroup.nome} (ID: ${firstGroup.id})`,
+          );
 
           // Test getting tickets for this group using real MongoDB query
-          const tickets = await context.cliGetTickets(firstGroup.nome, undefined, 5);
+          const tickets = await context.cliGetTickets(
+            firstGroup.nome,
+            undefined,
+            5,
+          );
 
           expect(tickets).toBeDefined();
           expect(Array.isArray(tickets)).toBe(true);
 
-          console.log(`✅ SUCCESS: Found ${tickets.length} tickets for group ${firstGroup.nome}`);
+          console.log(
+            `✅ SUCCESS: Found ${tickets.length} tickets for group ${firstGroup.nome}`,
+          );
 
           if (tickets.length > 0) {
             const firstTicket = tickets[0];
@@ -393,8 +415,12 @@ describe("CLI Plugin Tests", () => {
             expect(firstTicket.table).toBeDefined();
             expect(firstTicket.short_description).toBeDefined();
 
-            console.log(`First ticket: ${firstTicket.number} - ${firstTicket.short_description}`);
-            console.log(`Ticket table: ${firstTicket.table}, State: ${firstTicket.state}`);
+            console.log(
+              `First ticket: ${firstTicket.number} - ${firstTicket.short_description}`,
+            );
+            console.log(
+              `Ticket table: ${firstTicket.table}, State: ${firstTicket.state}`,
+            );
             console.log(`Assignment group: ${firstTicket.assignment_group}`);
           } else {
             console.log(`⚠️ No tickets found for group ${firstGroup.nome}`);
@@ -413,7 +439,9 @@ describe("CLI Plugin Tests", () => {
       const context = app.decorator as any;
 
       try {
-        console.log("🔐 Testing real ServiceNow authentication via CLI Plugin...");
+        console.log(
+          "🔐 Testing real ServiceNow authentication via CLI Plugin...",
+        );
 
         // Test real login functionality - this will attempt SAML authentication
         const loginResult = await context.cliLogin();
@@ -422,9 +450,13 @@ describe("CLI Plugin Tests", () => {
         expect(typeof loginResult.message).toBe("string");
 
         if (loginResult.success) {
-          console.log(`✅ SUCCESS: ServiceNow authentication successful: ${loginResult.message}`);
+          console.log(
+            `✅ SUCCESS: ServiceNow authentication successful: ${loginResult.message}`,
+          );
         } else {
-          console.log(`⚠️ INFO: ServiceNow authentication failed (expected in test): ${loginResult.message}`);
+          console.log(
+            `⚠️ INFO: ServiceNow authentication failed (expected in test): ${loginResult.message}`,
+          );
 
           // Even if auth fails, validate it's a real error message
           expect(loginResult.message.length).toBeGreaterThan(0);
@@ -440,10 +472,15 @@ describe("CLI Plugin Tests", () => {
             message.includes("failed");
 
           expect(isRealAuthError).toBe(true);
-          console.log(`✅ Real ServiceNow authentication attempted (failed as expected)`);
+          console.log(
+            `✅ Real ServiceNow authentication attempted (failed as expected)`,
+          );
         }
       } catch (error: any) {
-        console.error("❌ ServiceNow authentication test failed:", error.message);
+        console.error(
+          "❌ ServiceNow authentication test failed:",
+          error.message,
+        );
 
         // Even errors should be real ServiceNow related errors
         expect(error).toBeDefined();
@@ -463,12 +500,14 @@ describe("CLI Plugin Tests", () => {
       const context = app.decorator as any;
 
       try {
-        console.log("📝 Testing real ServiceNow record creation via CLI Plugin...");
+        console.log(
+          "📝 Testing real ServiceNow record creation via CLI Plugin...",
+        );
 
         // Test creating a real record (should use real ServiceNow client)
         const testRecord = await context.cliCreateRecord("incident", {
           short_description: "Test incident from CLI plugin test",
-          description: "This is a test record created during plugin testing"
+          description: "This is a test record created during plugin testing",
         });
 
         expect(testRecord).toBeDefined();
@@ -476,14 +515,20 @@ describe("CLI Plugin Tests", () => {
         expect(typeof testRecord.message).toBe("string");
 
         if (testRecord.success) {
-          console.log(`✅ Real ServiceNow record created: ${testRecord.sys_id}`);
+          console.log(
+            `✅ Real ServiceNow record created: ${testRecord.sys_id}`,
+          );
           expect(testRecord.sys_id).toBeDefined();
         } else {
-          console.log(`⚠️ ServiceNow record creation failed (expected in test): ${testRecord.message}`);
+          console.log(
+            `⚠️ ServiceNow record creation failed (expected in test): ${testRecord.message}`,
+          );
         }
-
       } catch (error: any) {
-        console.error("❌ Real ServiceNow record creation failed:", error.message);
+        console.error(
+          "❌ Real ServiceNow record creation failed:",
+          error.message,
+        );
 
         // Expected to fail without proper auth, but error should come from real ServiceNow client
         expect(error).toBeDefined();
@@ -510,7 +555,9 @@ describe("CLI Plugin Tests", () => {
       const context = app.decorator as any;
 
       try {
-        console.log("🗄️ Testing MongoDB collections accessibility via CLI Plugin...");
+        console.log(
+          "🗄️ Testing MongoDB collections accessibility via CLI Plugin...",
+        );
 
         // Test that we can access MongoDB collections through the real CLI decorators
         const groups = await context.cliListGroups();
@@ -519,7 +566,9 @@ describe("CLI Plugin Tests", () => {
         expect(groups).toBeDefined();
 
         if (Array.isArray(groups)) {
-          console.log(`✅ SUCCESS: MongoDB sn_groups collection accessible with ${groups.length} groups`);
+          console.log(
+            `✅ SUCCESS: MongoDB sn_groups collection accessible with ${groups.length} groups`,
+          );
 
           // Verify structure matches expected GroupDocument format from config/mongodb-collections
           if (groups.length > 0) {
@@ -579,7 +628,9 @@ describe("CLI Plugin Tests", () => {
 
     test("should handle concurrent health checks", async () => {
       const promises = Array.from({ length: 5 }, () =>
-        app.handle(new Request("http://localhost/cli/health", { method: "GET" }))
+        app.handle(
+          new Request("http://localhost/cli/health", { method: "GET" }),
+        ),
       );
 
       const responses = await Promise.all(promises);
@@ -654,7 +705,11 @@ describe("CLI Plugin Edge Cases", () => {
     const largeData = "x".repeat(10000);
 
     try {
-      await context.executeCommand("record", ["incident", "--data", `{"description":"${largeData}"}`]);
+      await context.executeCommand("record", [
+        "incident",
+        "--data",
+        `{"description":"${largeData}"}`,
+      ]);
     } catch (error) {
       // Might fail due to validation or network, but should not crash
       expect(error).toBeDefined();

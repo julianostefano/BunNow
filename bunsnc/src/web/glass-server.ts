@@ -9,7 +9,11 @@ import { staticPlugin } from "@elysiajs/static";
 import { cors } from "@elysiajs/cors";
 import { swagger } from "@elysiajs/swagger";
 import { htmx } from "@gtramontina.com/elysia-htmx";
-import { consolidatedServiceNowService } from "../services/ConsolidatedServiceNowService";
+// Plugin System Integration - replacing direct service imports
+import {
+  createSharedPluginsComposition,
+  type ConsolidatedPluginContext,
+} from "../plugins";
 import { htmxAIRoutes } from "./routes/HtmxAIRoutes";
 import { htmxAIChatRoutes } from "./routes/HtmxAIChatRoutes";
 import { workflowGuidanceRoutes } from "./routes/HtmxWorkflowGuidanceRoutes";
@@ -261,7 +265,6 @@ async function generateRealtimeNotification(): Promise<any | null> {
 export class GlassDesignServer {
   private app: Elysia;
   private port: number;
-  private consolidatedService = consolidatedServiceNowService;
 
   constructor(port: number = 3010) {
     this.port = port;
@@ -273,6 +276,33 @@ export class GlassDesignServer {
       new Elysia()
         .use(html())
         .use(htmx())
+
+        // Plugin System Integration - Shared Plugins Pattern
+        .use(
+          createSharedPluginsComposition({
+            enableHealthChecks: true,
+            enableMetrics: true,
+            pluginConfig: {
+              serviceNow: {
+                instanceUrl:
+                  process.env.SNC_INSTANCE_URL ||
+                  "https://iberdrola.service-now.com",
+                username: process.env.SNC_USERNAME || "",
+                password: process.env.SNC_PASSWORD || "",
+              },
+              redis: {
+                host: process.env.REDIS_HOST || "10.219.8.210",
+                port: parseInt(process.env.REDIS_PORT || "6380"),
+                password: process.env.REDIS_PASSWORD || "nexcdc2025",
+              },
+              mongodb: {
+                host: process.env.MONGODB_HOST || "10.219.8.210",
+                port: parseInt(process.env.MONGODB_PORT || "27018"),
+                database: process.env.MONGODB_DATABASE || "bunsnc",
+              },
+            },
+          }),
+        )
 
         // CORS configuration
         .use(
