@@ -130,6 +130,9 @@ export class ServiceNowStreams {
   }
 
   private setupSharedConnectionHandlers(): void {
+    // Configure maxListeners to prevent memory leak warnings (following best practices)
+    redisConnectionManager.setMaxListeners(50);
+
     // Listen to the centralized connection manager events instead of direct Redis events
     redisConnectionManager.on("connect", () => {
       logger.info(

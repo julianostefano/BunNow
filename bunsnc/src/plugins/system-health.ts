@@ -1159,7 +1159,10 @@ export const systemHealthPlugin = new Elysia({
         tags: ["Health", "History", "Monitoring"],
       },
     },
-  );
+  )
+
+  // Global scope - exposes context across entire application following best practices
+  .as('global');
 
 // Export plugin context type for Eden Treaty
 export type SystemHealthPluginApp = typeof systemHealthPlugin;

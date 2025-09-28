@@ -583,7 +583,10 @@ export const streamingPlugin = new Elysia({
         tags: ["Streaming", "Connections", "Monitoring"],
       },
     },
-  );
+  )
+
+  // Global scope - exposes context across entire application following best practices
+  .as('global');
 
 // Export plugin context type for Eden Treaty
 export type StreamingPluginApp = typeof streamingPlugin;

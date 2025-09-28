@@ -1,6 +1,11 @@
 /**
- * ServiceNow Web Interface Server - Modular MVC Architecture
+ * ServiceNow Web Interface Server - Modular MVC Architecture with Plugin System
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
+ *
+ * Integrado com Elysia Plugin System:
+ * - Core Plugin Composition para dependency injection
+ * - Plugin lifecycle management
+ * - Type safety com Eden Treaty
  */
 
 import htmxDashboardClean from "./htmx-dashboard-clean";
@@ -13,6 +18,12 @@ import { createIncidentNotesRoutes } from "../routes/IncidentNotesRoutes";
 import { authRoutes } from "../routes/auth";
 
 import { WebServerController } from "../controllers/WebServerController";
+
+// Plugin System Integration
+import {
+  createWebPluginComposition,
+  type ConsolidatedPluginContext
+} from "../plugins";
 
 interface WebServerConfig {
   port: number;
@@ -84,6 +95,15 @@ export class ServiceNowWebServer {
     const app = this.webServerController.setupServer();
 
     app
+      .use(createWebPluginComposition({
+        enableHealthChecks: true,
+        enableMetrics: true,
+        pluginConfig: {
+          serviceNow: this.webServerController.getConfig().serviceNow,
+          redis: this.webServerController.getConfig().redis,
+          mongodb: this.webServerController.getConfig().mongodb
+        }
+      }))
       .use(authRoutes)
       .use(htmxDashboardClean)
       .use(htmxDashboardEnhanced)

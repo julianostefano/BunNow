@@ -739,7 +739,10 @@ export const ticketActionsPlugin = new Elysia({
   // Lifecycle Hook: onStop - Cleanup
   .onStop(() => {
     console.log("🛑 Ticket Actions Plugin stopping - cleanup completed");
-  });
+  })
+
+  // Global scope - exposes context across entire application following best practices
+  .as('global');
 
 // Export plugin context type for Eden Treaty
 export type TicketActionsPluginApp = typeof ticketActionsPlugin;

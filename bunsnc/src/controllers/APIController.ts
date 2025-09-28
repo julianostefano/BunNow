@@ -6,7 +6,7 @@
 import { ServiceNowClient } from "../client/ServiceNowClient";
 import { ticketService } from "../services";
 import { WebServerConfig } from "./WebServerController";
-import { ServiceNowFetchClient } from "../services/ServiceNowFetchClient";
+import { serviceNowBridgeService } from "../services/ServiceNowBridgeService";
 
 // Response interfaces
 interface SyncResponse {
@@ -350,7 +350,7 @@ export class APIController {
   }
 
   /**
-   * Get tickets directly from ServiceNow using ServiceNowFetchClient
+   * Get tickets directly from ServiceNow using Bridge Service
    */
   public async getTicketsFromServiceNow(
     ticketType: string,
@@ -362,9 +362,6 @@ export class APIController {
           `Invalid ticket type: ${ticketType}. Must be incident, sc_task, or change_task`,
         );
       }
-
-      const fetchClient = new ServiceNowFetchClient();
-      await fetchClient.authenticate();
 
       // Build ServiceNow query
       let serviceNowQuery = "";
@@ -383,28 +380,42 @@ export class APIController {
       const limit = parseInt(query.limit as string) || 50;
 
       console.log(
-        `🔍 Fetching ${ticketType} from ServiceNow with query: ${serviceNowQuery || "(no filter)"}`,
+        `🔍 API Controller: Fetching ${ticketType} from ServiceNow via Bridge Service with query: ${serviceNowQuery || "(no filter)"}`,
       );
 
-      // Fetch directly from ServiceNow
-      const result = await fetchClient.makeRequestFullFields(
+      // Build query parameters for Bridge Service
+      const queryParams: Record<string, any> = {
+        sysparm_limit: limit,
+        sysparm_display_value: "all",
+        sysparm_exclude_reference_link: "true",
+      };
+
+      if (serviceNowQuery) {
+        queryParams.sysparm_query = serviceNowQuery;
+      }
+
+      // Fetch via Bridge Service
+      const bridgeResponse = await serviceNowBridgeService.queryTable(
         ticketType,
-        serviceNowQuery,
-        limit,
-        false, // Use period filter (current month)
+        queryParams,
       );
+
+      if (!bridgeResponse.success) {
+        throw new Error(bridgeResponse.error || "Bridge Service query failed");
+      }
 
       return {
         success: true,
-        tickets: result.result || [],
-        count: result.result?.length || 0,
+        tickets: bridgeResponse.result || [],
+        count: bridgeResponse.result?.length || 0,
         ticketType,
         query: serviceNowQuery,
-        source: "ServiceNow Direct",
+        source: "ServiceNow Bridge Service",
         timestamp: new Date().toISOString(),
+        duration: bridgeResponse.duration,
       };
     } catch (error: unknown) {
-      console.error(` Error getting ${ticketType} from ServiceNow:`, error);
+      console.error(`❌ API Controller: Error getting ${ticketType} from ServiceNow:`, error);
       return {
         success: false,
         message: `Error getting ${ticketType}: ${(error as Error).message}`,

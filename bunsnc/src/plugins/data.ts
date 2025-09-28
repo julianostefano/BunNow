@@ -761,7 +761,10 @@ export const dataPlugin = new Elysia({
         tags: ["Data", "Sync", "ServiceNow"],
       },
     },
-  );
+  )
+
+  // Global scope - exposes context across entire application following best practices
+  .as('global');
 
 // Export plugin context type for Eden Treaty
 export type DataPluginApp = typeof dataPlugin;

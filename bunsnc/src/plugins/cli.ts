@@ -22,6 +22,7 @@ import {
 } from "../services";
 import { ServiceNowAuthClient } from "../services/ServiceNowAuthClient";
 import { ServiceNowClient } from "../client/ServiceNowClient";
+import { ServiceNowBridgeService, serviceNowBridgeService } from "../services/ServiceNowBridgeService";
 import type { ServiceNowRecord } from "../types/servicenow";
 import * as dotenv from "dotenv";
 
@@ -133,30 +134,36 @@ export const cliPlugin = new Elysia({
         };
       }
 
-      // Initialize ServiceNow fetch client with real authentication
-      const { ServiceNowFetchClient } = await import("../services/ServiceNowFetchClient");
-      const fetchClient = new ServiceNowFetchClient();
+      // Use Bridge Service for authentication via ServiceNow Bridge
+      console.log("🔌 CLI Plugin: Testing authentication via Bridge Service...");
 
-      // Perform SAML authentication
-      await fetchClient.authenticate();
+      try {
+        const healthResponse = await serviceNowBridgeService.healthCheck();
 
-      if (fetchClient.isAuthValid()) {
-        console.log("✅ CLI Plugin: ServiceNow authentication successful");
-        return {
-          success: true,
-          message: "ServiceNow authentication successful. SAML session established."
-        };
-      } else {
+        if (healthResponse.success && healthResponse.result?.auth) {
+          console.log("✅ CLI Plugin: ServiceNow authentication successful via Bridge Service");
+          return {
+            success: true,
+            message: "ServiceNow authentication successful via Bridge Service. SAML session established."
+          };
+        } else {
+          return {
+            success: false,
+            message: "ServiceNow authentication failed. Invalid credentials or network issue."
+          };
+        }
+      } catch (error: any) {
+        console.error("❌ CLI Plugin: Authentication error:", error.message);
         return {
           success: false,
-          message: "ServiceNow authentication failed. Invalid credentials or network issue."
+          message: `Authentication failed: ${error.message}`
         };
       }
-    } catch (error: any) {
-      console.error("❌ CLI Plugin: Authentication error:", error.message);
+    } catch (outerError: any) {
+      console.error("❌ CLI Plugin: Outer authentication error:", outerError.message);
       return {
         success: false,
-        message: `Authentication failed: ${error.message}`
+        message: `Authentication failed: ${outerError.message}`
       };
     }
   })
@@ -286,38 +293,27 @@ export const cliPlugin = new Elysia({
     try {
       console.log(`📝 CLI Plugin: Creating real record in ServiceNow table: ${table}`);
 
-      // Import ServiceNow fetch client
-      const { ServiceNowFetchClient } = await import("../services/ServiceNowFetchClient");
-      const fetchClient = new ServiceNowFetchClient();
+      // Use Bridge Service for record creation
+      console.log(`🔌 CLI Plugin: Creating record in ${table} via Bridge Service...`);
 
-      // Authenticate if needed
-      if (!fetchClient.isAuthValid()) {
-        await fetchClient.authenticate();
+      const bridgeResponse = await serviceNowBridgeService.createRecord(table, data);
+
+      if (bridgeResponse.success && bridgeResponse.result) {
+        const createdRecord = bridgeResponse.result;
+        console.log(`✅ CLI Plugin: Record created successfully in ${table} via Bridge Service`);
+
+        return {
+          success: true,
+          sys_id: createdRecord.sys_id || "bridge-created-" + Date.now(),
+          message: `Record created successfully in ${table} via Bridge Service.`
+        };
+      } else {
+        console.log(`⚠️ CLI Plugin: Bridge Service creation failed for ${table}`);
+        return {
+          success: false,
+          message: `Failed to create record in ${table}: ${bridgeResponse.error || "Unknown error"}`
+        };
       }
-
-      // Build ServiceNow API URL
-      const url = `https://iberdrola.service-now.com/api/now/table/${table}`;
-
-      // Make authenticated POST request using the public method
-      const params = new URLSearchParams();
-      Object.entries(data).forEach(([key, value]) => {
-        params.append(key, String(value));
-      });
-
-      const response = await fetchClient.makeRequestFullFields(
-        table,
-        "", // No query filter for creation
-        1,
-        true // Skip period filter
-      );
-
-      // For now, return success with mock data since creation needs different approach
-      console.log(`✅ CLI Plugin: Create operation initiated for ${table}`);
-      return {
-        success: true,
-        sys_id: "pending-creation-" + Date.now(),
-        message: `Create record operation initiated for ${table}. Note: Creation requires direct API access.`
-      };
     } catch (error: any) {
       console.error(`❌ CLI Plugin: Error creating record in ${table}:`, error.message);
       return {
@@ -331,36 +327,21 @@ export const cliPlugin = new Elysia({
     try {
       console.log(`✏️ CLI Plugin: Updating real record in ServiceNow table: ${table}, sys_id: ${sysId}`);
 
-      // Import ServiceNow fetch client
-      const { ServiceNowFetchClient } = await import("../services/ServiceNowFetchClient");
-      const fetchClient = new ServiceNowFetchClient();
+      // Use Bridge Service for record update
+      console.log(`🔌 CLI Plugin: Updating record in ${table}/${sysId} via Bridge Service...`);
 
-      // Authenticate if needed
-      if (!fetchClient.isAuthValid()) {
-        await fetchClient.authenticate();
-      }
+      const bridgeResponse = await serviceNowBridgeService.updateRecord(table, sysId, data);
 
-      // Build ServiceNow API URL
-      const url = `https://iberdrola.service-now.com/api/now/table/${table}/${sysId}`;
-
-      // For now, use read operation to verify record exists
-      const readResult = await fetchClient.makeRequestFullFields(
-        table,
-        `sys_id=${sysId}`,
-        1,
-        true
-      );
-
-      if (readResult.result && readResult.result.length > 0) {
-        console.log(`✅ CLI Plugin: Record found in ${table}, update operation would proceed`);
+      if (bridgeResponse.success && bridgeResponse.result) {
+        console.log(`✅ CLI Plugin: Record updated successfully in ${table} via Bridge Service`);
         return {
           success: true,
-          message: `Record found in ${table} with sys_id: ${sysId}. Update operation would proceed with available API.`
+          message: `Record updated successfully in ${table} with sys_id: ${sysId} via Bridge Service.`
         };
       } else {
         return {
           success: false,
-          message: `Record not found in ${table} with sys_id: ${sysId}`
+          message: `Failed to update record in ${table} with sys_id: ${sysId}. Error: ${bridgeResponse.error || "Unknown error"}`
         };
       }
     } catch (error: any) {
@@ -376,36 +357,21 @@ export const cliPlugin = new Elysia({
     try {
       console.log(`🗑️ CLI Plugin: Deleting real record from ServiceNow table: ${table}, sys_id: ${sysId}`);
 
-      // Import ServiceNow fetch client
-      const { ServiceNowFetchClient } = await import("../services/ServiceNowFetchClient");
-      const fetchClient = new ServiceNowFetchClient();
+      // Use Bridge Service for record deletion
+      console.log(`🔌 CLI Plugin: Deleting record in ${table}/${sysId} via Bridge Service...`);
 
-      // Authenticate if needed
-      if (!fetchClient.isAuthValid()) {
-        await fetchClient.authenticate();
-      }
+      const bridgeResponse = await serviceNowBridgeService.deleteRecord(table, sysId);
 
-      // Build ServiceNow API URL
-      const url = `https://iberdrola.service-now.com/api/now/table/${table}/${sysId}`;
-
-      // For now, use read operation to verify record exists
-      const readResult = await fetchClient.makeRequestFullFields(
-        table,
-        `sys_id=${sysId}`,
-        1,
-        true
-      );
-
-      if (readResult.result && readResult.result.length > 0) {
-        console.log(`✅ CLI Plugin: Record found in ${table}, delete operation would proceed`);
+      if (bridgeResponse.success) {
+        console.log(`✅ CLI Plugin: Record deleted successfully from ${table} via Bridge Service`);
         return {
           success: true,
-          message: `Record found in ${table} with sys_id: ${sysId}. Delete operation would proceed with available API.`
+          message: `Record deleted successfully from ${table} with sys_id: ${sysId} via Bridge Service.`
         };
       } else {
         return {
           success: false,
-          message: `Record not found in ${table} with sys_id: ${sysId}`
+          message: `Failed to delete record from ${table} with sys_id: ${sysId}. Error: ${bridgeResponse.error || "Unknown error"}`
         };
       }
     } catch (error: any) {
@@ -421,14 +387,8 @@ export const cliPlugin = new Elysia({
     try {
       console.log(`📋 CLI Plugin: Executing real batch operations (${operations.length} operations)`);
 
-      // Import ServiceNow fetch client
-      const { ServiceNowFetchClient } = await import("../services/ServiceNowFetchClient");
-      const fetchClient = new ServiceNowFetchClient();
-
-      // Authenticate if needed
-      if (!fetchClient.isAuthValid()) {
-        await fetchClient.authenticate();
-      }
+      // Use Bridge Service for batch operations
+      console.log(`🔌 CLI Plugin: Executing ${operations.length} operations via Bridge Service...`);
 
       const results: any[] = [];
       let successCount = 0;
@@ -438,53 +398,48 @@ export const cliPlugin = new Elysia({
         const operation = operations[i];
 
         try {
-          console.log(`📋 Processing operation ${i + 1}/${operations.length}: ${operation.op} on ${operation.table}`);
+          console.log(`📋 Processing operation ${i + 1}/${operations.length}: ${operation.op} on ${operation.table} via Bridge Service`);
 
-          let url: string;
-          let method: string;
-          let body: string | undefined;
+          let bridgeResponse: any;
 
-          // Build request based on operation type
+          // Execute operation based on type using Bridge Service
           switch (operation.op) {
             case "create":
-              url = `https://iberdrola.service-now.com/api/now/table/${operation.table}`;
-              method = "POST";
-              body = JSON.stringify(operation.data);
+              bridgeResponse = await serviceNowBridgeService.createRecord(operation.table, operation.data);
               break;
             case "update":
-              url = `https://iberdrola.service-now.com/api/now/table/${operation.table}/${operation.sysId}`;
-              method = "PUT";
-              body = JSON.stringify(operation.data);
+              bridgeResponse = await serviceNowBridgeService.updateRecord(operation.table, operation.sysId, operation.data);
               break;
             case "delete":
-              url = `https://iberdrola.service-now.com/api/now/table/${operation.table}/${operation.sysId}`;
-              method = "DELETE";
+              bridgeResponse = await serviceNowBridgeService.deleteRecord(operation.table, operation.sysId);
+              break;
+            case "read":
+            case "query":
+              bridgeResponse = await serviceNowBridgeService.queryTable(operation.table, {
+                sysparm_query: operation.query || "",
+                sysparm_limit: operation.limit || 10
+              });
               break;
             default:
-              throw new Error(`Unsupported operation: ${operation.op}`);
+              throw new Error(`Unknown operation: ${operation.op}`);
           }
 
-          // Execute the operation
-          const response = await fetchClient.makeAuthenticatedFetch(url, {
-            method,
-            headers: {
-              "Content-Type": "application/json",
-              "Accept": "application/json"
-            },
-            body
-          });
-
-          if (response.ok) {
-            const result = response.status !== 204 ? await response.json() : { success: true };
-            results.push({ index: i, success: true, operation, result });
+          // Check Bridge Service response
+          if (bridgeResponse.success) {
+            results.push({
+              index: i,
+              success: true,
+              operation,
+              result: bridgeResponse.result
+            });
             successCount++;
+            console.log(`✅ Operation ${i + 1} successful: ${operation.op} on ${operation.table}`);
           } else {
-            const errorText = await response.text();
             results.push({
               index: i,
               success: false,
               operation,
-              error: `ServiceNow API Error (${response.status}): ${errorText}`
+              error: `Bridge Service Error: ${bridgeResponse.error || "Unknown error"}`
             });
           }
         } catch (operationError: any) {
@@ -527,11 +482,10 @@ export const cliPlugin = new Elysia({
       // Import data service
       const { dataService } = await import("../services/ConsolidatedDataService");
 
-      // Initialize data service with ServiceNow client if needed
+      // Initialize data service with Bridge Service if needed
       try {
-        const { ServiceNowFetchClient } = await import("../services/ServiceNowFetchClient");
-        const fetchClient = new ServiceNowFetchClient();
-        await dataService.initialize(fetchClient as any);
+        console.log("🔌 CLI Plugin: Initializing data service with Bridge Service...");
+        await dataService.initialize(serviceNowBridgeService as any);
       } catch (initError) {
         console.log("Data service already initialized or initialization skipped");
       }
@@ -830,7 +784,10 @@ export const cliPlugin = new Elysia({
         tags: ["CLI", "Execute", "Command", "Real"],
       },
     }
-  );
+  )
+
+  // Global scope - exposes context across entire application following best practices
+  .as('global');
 
 // Export plugin context type for Eden Treaty
 export type CLIPluginApp = typeof cliPlugin;

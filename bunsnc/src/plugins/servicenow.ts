@@ -13,8 +13,7 @@
  */
 
 import { Elysia } from "elysia";
-import { ServiceNowBridgeService } from "../services/ServiceNowBridgeService";
-import { ServiceNowFetchClient } from "../services/ServiceNowFetchClient";
+import { ServiceNowBridgeService, serviceNowBridgeService } from "../services/ServiceNowBridgeService";
 import type {
   BridgeResponse,
   BridgeRequestConfig,
@@ -74,11 +73,8 @@ export const serviceNowPlugin = new Elysia({
     console.log("🚀 ServiceNow Plugin starting - initializing bridge service");
   })
 
-  // Dependency Injection: Create fetchClient first, then inject into bridge service
-  .decorate("serviceNowFetchClient", new ServiceNowFetchClient())
-  .derive(({ serviceNowFetchClient }) => ({
-    serviceNowBridge: new ServiceNowBridgeService(serviceNowFetchClient),
-  }))
+  // Dependency Injection: Use shared bridge service instance
+  .decorate("serviceNowBridge", serviceNowBridgeService)
 
   // High-level query method - replaces HTTP calls in services
   .decorate(
@@ -236,7 +232,10 @@ export const serviceNowPlugin = new Elysia({
         tags: ["Health", "Plugin", "ServiceNow"],
       },
     },
-  );
+  )
+
+  // Global scope - exposes context across entire application following best practices
+  .as('global');
 
 // Export plugin context type for Eden Treaty
 export type ServiceNowPluginApp = typeof serviceNowPlugin;

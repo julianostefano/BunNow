@@ -677,7 +677,10 @@ export const clientIntegrationPlugin = new Elysia({
         tags: ["Client", "Connection", "Refresh"],
       },
     }
-  );
+  )
+
+  // Global scope - exposes context across entire application following best practices
+  .as('global');
 
 // Export plugin context type for Eden Treaty
 export type ClientIntegrationPluginApp = typeof clientIntegrationPlugin;
