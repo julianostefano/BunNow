@@ -683,16 +683,17 @@ export interface ConfigPluginContext {
 }
 
 /**
- * Configuration Plugin - Following Elysia "Separate Instance Method" Pattern
+ * Configuration Plugin - Following Elysia "1 controller = 1 instance" Pattern
  * Provides configuration management as dependency injection across all plugins
  */
 export const configPlugin = new Elysia({ name: "config" })
-  .derive(async () => {
+  .onStart(async () => {
     logger.info(
-      "🔧 Configuration Plugin initializing with Elysia DI pattern",
+      "🔧 Configuration Plugin initializing with Elysia best practices",
       "ConfigPlugin",
     );
-
+  })
+  .derive(async () => {
     // Create configuration manager instance
     const configManager = new PluginConfigurationManager();
 
@@ -885,7 +886,8 @@ export const configPlugin = new Elysia({ name: "config" })
   })
   .onStop(() => {
     logger.info("🛑 Configuration Plugin stopped", "ConfigPlugin");
-  });
+  })
+  .as('scoped'); // Critical fix: Enable context propagation across routes
 
 // Export legacy instance for backward compatibility (deprecated)
 // @deprecated Use configPlugin instead
