@@ -112,12 +112,20 @@ export const cliPlugin = new Elysia({
 
     // Initialize ServiceNow client
     const instanceUrl = process.env.SNC_INSTANCE_URL || "";
-    const authToken = process.env.SNC_AUTH_TOKEN || "";
+    const username = process.env.SNC_USERNAME || process.env.SERVICENOW_USERNAME || "";
+    const password = process.env.SNC_PASSWORD || process.env.SERVICENOW_PASSWORD || "";
 
-    const serviceNowClient = new ServiceNowClient({
-      instance: instanceUrl,
-      auth: authToken,
-    });
+    // ✅ FIX v5.4.5: Use factory method instead of incorrect object constructor
+    // ServiceNowClient constructor expects (instanceUrl, authToken, options)
+    // NOT an object with {instance, auth} properties
+    const serviceNowClient = ServiceNowClient.createWithCredentials(
+      instanceUrl,
+      username,
+      password,
+      {
+        enableCache: true,
+      },
+    );
 
     // Initialize commander instance
     const cliCommander = new Command();
