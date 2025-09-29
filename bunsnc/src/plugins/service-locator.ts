@@ -26,6 +26,7 @@ import { healthController } from "./health-controller";
 import { apiControllerPlugin } from "./api-controller";
 import { ticketControllerPlugin } from "./ticket-controller";
 import { attachmentControllerPlugin } from "./attachment-controller";
+import { knowledgeGraphControllerPlugin } from "./knowledge-graph-controller";
 
 // Service availability tracking
 export interface ServiceStatus {
@@ -37,6 +38,7 @@ export interface ServiceStatus {
   api: boolean;
   ticket: boolean;
   attachment: boolean;
+  knowledgeGraph: boolean;
 }
 
 // Service locator configuration
@@ -156,6 +158,7 @@ export const globalServiceRegistry = new ServiceRegistry();
  * 6. apiControllerPlugin (scoped) - REST API endpoints
  * 7. ticketControllerPlugin (scoped) - Ticket management operations
  * 8. attachmentControllerPlugin (scoped) - File attachment operations
+ * 9. knowledgeGraphControllerPlugin (scoped) - Knowledge graph and analytics
  */
 export const serviceLocator = new Elysia({ name: "service-locator" })
   .onStart(async () => {
@@ -175,6 +178,7 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
   .use(apiControllerPlugin) // API Controller - scoped for REST endpoints
   .use(ticketControllerPlugin) // Ticket Controller - scoped for ticket operations
   .use(attachmentControllerPlugin) // Attachment Controller - scoped for file operations
+  .use(knowledgeGraphControllerPlugin) // Knowledge Graph Controller - scoped for AI analytics
 
   // Phase 3: Service Registration and Context Creation
   .derive(
@@ -187,6 +191,7 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
       apiController,
       ticketController,
       attachmentController,
+      knowledgeGraphController,
     }) => {
       try {
         logger.info(
@@ -218,6 +223,7 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
         }
         if (attachmentController) {
           globalServiceRegistry.register("attachment", attachmentController);
+        globalServiceRegistry.register("knowledgeGraph", knowledgeGraphController);
         }
 
         // Get service availability status
@@ -248,6 +254,7 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
           api: apiController || null,
           ticket: ticketController || null,
           attachment: attachmentController || null,
+          knowledgeGraph: knowledgeGraphController || null,
 
           // Convenience Methods - Configuration
           getConfig: config?.getConfig || (() => ({})),
@@ -458,6 +465,27 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
               error: "Service unavailable"
             })),
 
+          // Convenience Methods - Knowledge Graph Controller
+          addDocumentNode:
+            knowledgeGraphController?.addDocumentNode ||
+            (async () => ({
+              success: false,
+              error: "Knowledge Graph service unavailable",
+              processing_time_ms: 0,
+            })),
+          queryKnowledgeGraph:
+            knowledgeGraphController?.queryKnowledgeGraph ||
+            (async () => ({
+              success: false,
+              error: "Knowledge Graph service unavailable",
+              processing_time_ms: 0,
+            })),
+          getGraphAnalytics:
+            knowledgeGraphController?.getGraphAnalytics ||
+            (async () => {
+              throw new Error("Knowledge Graph analytics service unavailable");
+            }),
+
           // Health Check - Service Locator Level
           healthCheck: async (): Promise<boolean> => {
             try {
@@ -488,6 +516,9 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
               const attachmentHealthy = attachmentController
                 ? await attachmentController.getStorageStats().then(stats => stats.success)
                 : true;
+              const knowledgeGraphHealthy = knowledgeGraphController
+                ? await knowledgeGraphController.getGraphAnalytics().then(() => true).catch(() => false)
+                : true;
 
               return (
                 criticalAvailable &&
@@ -496,7 +527,8 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
                 syncHealthy &&
                 healthHealthy &&
                 ticketHealthy &&
-                attachmentHealthy
+                attachmentHealthy &&
+                knowledgeGraphHealthy
               );
             } catch (error: any) {
               logger.error(
@@ -577,6 +609,7 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
             api: false,
             ticket: false,
             attachment: false,
+            knowledgeGraph: false,
           },
           config: null,
           mongo: null,
@@ -586,6 +619,7 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
           api: null,
           ticket: null,
           attachment: null,
+          knowledgeGraph: null,
           healthCheck: async () => false,
           getStats: async () => ({ error: "Service composition failed" }),
         };
@@ -617,6 +651,7 @@ export interface ServiceLocatorContext {
   api: any;
   ticket: any;
   attachment: any;
+  knowledgeGraph: any;
 
   // Configuration Methods
   getConfig: () => any;
@@ -703,6 +738,11 @@ export interface ServiceLocatorContext {
   getAttachmentInfo: (attachmentId: string) => Promise<any>;
   getStorageStats: () => Promise<any>;
   getOperationalStats: () => any;
+
+  // Knowledge Graph Controller Methods
+  addDocumentNode: (documentId: string, metadata: any, relationships: any[]) => Promise<any>;
+  queryKnowledgeGraph: (query: any) => Promise<any>;
+  getGraphAnalytics: () => Promise<any>;
 }
 
 /**
