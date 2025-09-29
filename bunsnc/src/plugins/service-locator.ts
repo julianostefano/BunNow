@@ -25,6 +25,7 @@ import { syncController } from "./sync-controller";
 import { healthController } from "./health-controller";
 import { apiControllerPlugin } from "./api-controller";
 import { ticketControllerPlugin } from "./ticket-controller";
+import { attachmentControllerPlugin } from "./attachment-controller";
 
 // Service availability tracking
 export interface ServiceStatus {
@@ -35,6 +36,7 @@ export interface ServiceStatus {
   health: boolean;
   api: boolean;
   ticket: boolean;
+  attachment: boolean;
 }
 
 // Service locator configuration
@@ -59,6 +61,7 @@ export class ServiceRegistry {
     health: false,
     api: false,
     ticket: false,
+    attachment: false,
   };
   private startTime = Date.now();
 
@@ -124,6 +127,7 @@ export class ServiceRegistry {
       health: false,
       api: false,
       ticket: false,
+      attachment: false,
     };
   }
 
@@ -151,6 +155,7 @@ export const globalServiceRegistry = new ServiceRegistry();
  * 5. healthController (scoped) - System monitoring
  * 6. apiControllerPlugin (scoped) - REST API endpoints
  * 7. ticketControllerPlugin (scoped) - Ticket management operations
+ * 8. attachmentControllerPlugin (scoped) - File attachment operations
  */
 export const serviceLocator = new Elysia({ name: "service-locator" })
   .onStart(async () => {
@@ -169,6 +174,7 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
   .use(healthController) // Health Monitoring - scoped for monitoring
   .use(apiControllerPlugin) // API Controller - scoped for REST endpoints
   .use(ticketControllerPlugin) // Ticket Controller - scoped for ticket operations
+  .use(attachmentControllerPlugin) // Attachment Controller - scoped for file operations
 
   // Phase 3: Service Registration and Context Creation
   .derive(
@@ -180,6 +186,7 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
       healthService,
       apiController,
       ticketController,
+      attachmentController,
     }) => {
       try {
         logger.info(
@@ -209,6 +216,9 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
         if (ticketController) {
           globalServiceRegistry.register("ticket", ticketController);
         }
+        if (attachmentController) {
+          globalServiceRegistry.register("attachment", attachmentController);
+        }
 
         // Get service availability status
         const serviceStatus = globalServiceRegistry.getServiceStatus();
@@ -237,6 +247,7 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
           health: healthService || null,
           api: apiController || null,
           ticket: ticketController || null,
+          attachment: attachmentController || null,
 
           // Convenience Methods - Configuration
           getConfig: config?.getConfig || (() => ({})),
@@ -395,6 +406,58 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
             ticketController?.getTicketStats ||
             (async () => ({ error: "Service unavailable" })),
 
+          // Convenience Methods - Attachment Controller
+          uploadAttachment:
+            attachmentController?.uploadAttachment ||
+            (async () => ({
+              success: false,
+              error: "Attachment service unavailable",
+              code: "SERVICE_UNAVAILABLE"
+            })),
+          downloadAttachment:
+            attachmentController?.downloadAttachment ||
+            (async () => new Response("Attachment service unavailable", { status: 503 })),
+          listAttachments:
+            attachmentController?.listAttachments ||
+            (async () => ({
+              success: false,
+              data: [],
+              count: 0,
+              error: "Attachment service unavailable",
+              code: "SERVICE_UNAVAILABLE"
+            })),
+          deleteAttachment:
+            attachmentController?.deleteAttachment ||
+            (async () => ({
+              success: false,
+              error: "Attachment service unavailable",
+              code: "SERVICE_UNAVAILABLE"
+            })),
+          getAttachmentInfo:
+            attachmentController?.getAttachmentInfo ||
+            (async () => ({
+              success: false,
+              error: "Attachment service unavailable",
+              code: "SERVICE_UNAVAILABLE"
+            })),
+          getStorageStats:
+            attachmentController?.getStorageStats ||
+            (async () => ({
+              success: false,
+              error: "Attachment service unavailable"
+            })),
+          getOperationalStats:
+            attachmentController?.getOperationalStats ||
+            (() => ({
+              uploads: 0,
+              downloads: 0,
+              deletes: 0,
+              cacheHits: 0,
+              totalSize: 0,
+              operationCount: 0,
+              error: "Service unavailable"
+            })),
+
           // Health Check - Service Locator Level
           healthCheck: async (): Promise<boolean> => {
             try {
@@ -422,6 +485,9 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
               const ticketHealthy = ticketController
                 ? await ticketController.ticketHealthCheck()
                 : true;
+              const attachmentHealthy = attachmentController
+                ? await attachmentController.getStorageStats().then(stats => stats.success)
+                : true;
 
               return (
                 criticalAvailable &&
@@ -429,7 +495,8 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
                 cacheHealthy &&
                 syncHealthy &&
                 healthHealthy &&
-                ticketHealthy
+                ticketHealthy &&
+                attachmentHealthy
               );
             } catch (error: any) {
               logger.error(
@@ -462,6 +529,12 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
               const ticketStats = ticketController
                 ? await ticketController.getTicketStats()
                 : null;
+              const attachmentStats = attachmentController
+                ? {
+                    operational: attachmentController.getOperationalStats(),
+                    storage: await attachmentController.getStorageStats()
+                  }
+                : null;
 
               return {
                 serviceLocator: registryStats,
@@ -471,6 +544,7 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
                   sync: syncStats,
                   health: healthStats,
                   ticket: ticketStats,
+                  attachment: attachmentStats,
                 },
               };
             } catch (error: any) {
@@ -502,6 +576,7 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
             health: false,
             api: false,
             ticket: false,
+            attachment: false,
           },
           config: null,
           mongo: null,
@@ -510,6 +585,7 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
           health: null,
           api: null,
           ticket: null,
+          attachment: null,
           healthCheck: async () => false,
           getStats: async () => ({ error: "Service composition failed" }),
         };
@@ -540,6 +616,7 @@ export interface ServiceLocatorContext {
   health: any;
   api: any;
   ticket: any;
+  attachment: any;
 
   // Configuration Methods
   getConfig: () => any;
@@ -617,6 +694,15 @@ export interface ServiceLocatorContext {
   getPriorityLabel: (priority: string) => string;
   ticketHealthCheck: () => Promise<boolean>;
   getTicketStats: () => Promise<any>;
+
+  // Attachment Controller Methods
+  uploadAttachment: (table: string, tableSysId: string, file: File) => Promise<any>;
+  downloadAttachment: (attachmentId: string) => Promise<Response>;
+  listAttachments: (table: string, tableSysId: string) => Promise<any>;
+  deleteAttachment: (attachmentId: string) => Promise<any>;
+  getAttachmentInfo: (attachmentId: string) => Promise<any>;
+  getStorageStats: () => Promise<any>;
+  getOperationalStats: () => any;
 }
 
 /**
