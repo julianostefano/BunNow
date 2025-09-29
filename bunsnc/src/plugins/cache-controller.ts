@@ -72,8 +72,17 @@ export interface CacheService {
 
   // Stream operations
   xadd(stream: string, fields: Record<string, any>): Promise<string>;
-  xread(streams: Record<string, string>, count?: number, block?: number): Promise<any[]>;
-  xrange(stream: string, start?: string, end?: string, count?: number): Promise<any[]>;
+  xread(
+    streams: Record<string, string>,
+    count?: number,
+    block?: number,
+  ): Promise<any[]>;
+  xrange(
+    stream: string,
+    start?: string,
+    end?: string,
+    count?: number,
+  ): Promise<any[]>;
   xlen(stream: string): Promise<number>;
 
   // Pub/Sub operations
@@ -107,7 +116,8 @@ class RedisCacheService implements CacheService {
   private maxRetries = 3;
   private retryDelay = 2000;
   private subscribers: Map<string, (message: any) => void> = new Map();
-  private fallbackCache: Map<string, { value: any; expires?: number }> = new Map();
+  private fallbackCache: Map<string, { value: any; expires?: number }> =
+    new Map();
 
   constructor(config: CacheConfig) {
     this.config = {
@@ -121,7 +131,7 @@ class RedisCacheService implements CacheService {
       enableReadyCheck: config.enableReadyCheck !== false,
       maxRetriesPerCommand: config.maxRetriesPerCommand || 3,
       lazyConnect: config.lazyConnect !== false,
-      cluster: config.cluster || { enabled: false }
+      cluster: config.cluster || { enabled: false },
     };
   }
 
@@ -134,7 +144,7 @@ class RedisCacheService implements CacheService {
         host: this.config.host,
         port: this.config.port,
         database: this.config.database,
-        cluster: this.config.cluster?.enabled
+        cluster: this.config.cluster?.enabled,
       });
 
       const redisOptions: RedisOptions = {
@@ -148,16 +158,18 @@ class RedisCacheService implements CacheService {
         enableReadyCheck: this.config.enableReadyCheck,
         lazyConnect: this.config.lazyConnect,
         reconnectOnError: (err) => {
-          logger.warn("🔄 Redis reconnecting on error", "CacheController", { error: err.message });
+          logger.warn("🔄 Redis reconnecting on error", "CacheController", {
+            error: err.message,
+          });
           return true;
-        }
+        },
       };
 
       // Create Redis client (cluster or single)
       if (this.config.cluster?.enabled && this.config.cluster.nodes) {
         this.client = new Redis.Cluster(this.config.cluster.nodes, {
           redisOptions,
-          enableOfflineQueue: false
+          enableOfflineQueue: false,
         });
       } else {
         this.client = new Redis(redisOptions);
@@ -174,9 +186,8 @@ class RedisCacheService implements CacheService {
       logger.info("✅ Redis connected successfully", "CacheController", {
         cluster: this.config.cluster?.enabled,
         database: this.config.database,
-        keyPrefix: this.config.keyPrefix
+        keyPrefix: this.config.keyPrefix,
       });
-
     } catch (error: any) {
       await this.handleConnectionError(error);
     }
@@ -212,7 +223,9 @@ class RedisCacheService implements CacheService {
         return result as T;
       }
     } catch (error: any) {
-      logger.error(`❌ Redis get failed for key ${key}`, "CacheController", { error: error.message });
+      logger.error(`❌ Redis get failed for key ${key}`, "CacheController", {
+        error: error.message,
+      });
       return this.getFallback<T>(key);
     }
   }
@@ -223,7 +236,8 @@ class RedisCacheService implements CacheService {
         return this.setFallback(key, value, ttl);
       }
 
-      const serializedValue = typeof value === 'string' ? value : JSON.stringify(value);
+      const serializedValue =
+        typeof value === "string" ? value : JSON.stringify(value);
 
       if (ttl) {
         await this.client!.setex(key, ttl, serializedValue);
@@ -235,7 +249,9 @@ class RedisCacheService implements CacheService {
       this.setFallback(key, value, ttl);
       return true;
     } catch (error: any) {
-      logger.error(`❌ Redis set failed for key ${key}`, "CacheController", { error: error.message });
+      logger.error(`❌ Redis set failed for key ${key}`, "CacheController", {
+        error: error.message,
+      });
       return this.setFallback(key, value, ttl);
     }
   }
@@ -251,7 +267,9 @@ class RedisCacheService implements CacheService {
       this.fallbackCache.delete(key);
       return result > 0;
     } catch (error: any) {
-      logger.error(`❌ Redis del failed for key ${key}`, "CacheController", { error: error.message });
+      logger.error(`❌ Redis del failed for key ${key}`, "CacheController", {
+        error: error.message,
+      });
       this.fallbackCache.delete(key);
       return true;
     }
@@ -266,7 +284,9 @@ class RedisCacheService implements CacheService {
       const result = await this.client!.exists(key);
       return result > 0;
     } catch (error: any) {
-      logger.error(`❌ Redis exists failed for key ${key}`, "CacheController", { error: error.message });
+      logger.error(`❌ Redis exists failed for key ${key}`, "CacheController", {
+        error: error.message,
+      });
       return this.fallbackCache.has(key);
     }
   }
@@ -276,7 +296,7 @@ class RedisCacheService implements CacheService {
       if (!this.isConnected) {
         const item = this.fallbackCache.get(key);
         if (item) {
-          item.expires = Date.now() + (ttl * 1000);
+          item.expires = Date.now() + ttl * 1000;
           return true;
         }
         return false;
@@ -285,7 +305,9 @@ class RedisCacheService implements CacheService {
       const result = await this.client!.expire(key, ttl);
       return result === 1;
     } catch (error: any) {
-      logger.error(`❌ Redis expire failed for key ${key}`, "CacheController", { error: error.message });
+      logger.error(`❌ Redis expire failed for key ${key}`, "CacheController", {
+        error: error.message,
+      });
       return false;
     }
   }
@@ -302,7 +324,9 @@ class RedisCacheService implements CacheService {
 
       return await this.client!.ttl(key);
     } catch (error: any) {
-      logger.error(`❌ Redis ttl failed for key ${key}`, "CacheController", { error: error.message });
+      logger.error(`❌ Redis ttl failed for key ${key}`, "CacheController", {
+        error: error.message,
+      });
       return -1;
     }
   }
@@ -322,7 +346,11 @@ class RedisCacheService implements CacheService {
         return result as T;
       }
     } catch (error: any) {
-      logger.error(`❌ Redis hget failed for ${key}.${field}`, "CacheController", { error: error.message });
+      logger.error(
+        `❌ Redis hget failed for ${key}.${field}`,
+        "CacheController",
+        { error: error.message },
+      );
       return null;
     }
   }
@@ -331,11 +359,16 @@ class RedisCacheService implements CacheService {
     try {
       if (!this.isConnected) return false;
 
-      const serializedValue = typeof value === 'string' ? value : JSON.stringify(value);
+      const serializedValue =
+        typeof value === "string" ? value : JSON.stringify(value);
       await this.client!.hset(key, field, serializedValue);
       return true;
     } catch (error: any) {
-      logger.error(`❌ Redis hset failed for ${key}.${field}`, "CacheController", { error: error.message });
+      logger.error(
+        `❌ Redis hset failed for ${key}.${field}`,
+        "CacheController",
+        { error: error.message },
+      );
       return false;
     }
   }
@@ -359,7 +392,11 @@ class RedisCacheService implements CacheService {
 
       return parsed as T;
     } catch (error: any) {
-      logger.error(`❌ Redis hgetall failed for key ${key}`, "CacheController", { error: error.message });
+      logger.error(
+        `❌ Redis hgetall failed for key ${key}`,
+        "CacheController",
+        { error: error.message },
+      );
       return null;
     }
   }
@@ -371,7 +408,11 @@ class RedisCacheService implements CacheService {
       const result = await this.client!.hdel(key, field);
       return result > 0;
     } catch (error: any) {
-      logger.error(`❌ Redis hdel failed for ${key}.${field}`, "CacheController", { error: error.message });
+      logger.error(
+        `❌ Redis hdel failed for ${key}.${field}`,
+        "CacheController",
+        { error: error.message },
+      );
       return false;
     }
   }
@@ -382,7 +423,9 @@ class RedisCacheService implements CacheService {
 
       return await this.client!.hkeys(key);
     } catch (error: any) {
-      logger.error(`❌ Redis hkeys failed for key ${key}`, "CacheController", { error: error.message });
+      logger.error(`❌ Redis hkeys failed for key ${key}`, "CacheController", {
+        error: error.message,
+      });
       return [];
     }
   }
@@ -393,10 +436,13 @@ class RedisCacheService implements CacheService {
     try {
       if (!this.isConnected) return 0;
 
-      const serializedValue = typeof value === 'string' ? value : JSON.stringify(value);
+      const serializedValue =
+        typeof value === "string" ? value : JSON.stringify(value);
       return await this.client!.lpush(key, serializedValue);
     } catch (error: any) {
-      logger.error(`❌ Redis lpush failed for key ${key}`, "CacheController", { error: error.message });
+      logger.error(`❌ Redis lpush failed for key ${key}`, "CacheController", {
+        error: error.message,
+      });
       return 0;
     }
   }
@@ -405,10 +451,13 @@ class RedisCacheService implements CacheService {
     try {
       if (!this.isConnected) return 0;
 
-      const serializedValue = typeof value === 'string' ? value : JSON.stringify(value);
+      const serializedValue =
+        typeof value === "string" ? value : JSON.stringify(value);
       return await this.client!.rpush(key, serializedValue);
     } catch (error: any) {
-      logger.error(`❌ Redis rpush failed for key ${key}`, "CacheController", { error: error.message });
+      logger.error(`❌ Redis rpush failed for key ${key}`, "CacheController", {
+        error: error.message,
+      });
       return 0;
     }
   }
@@ -426,7 +475,9 @@ class RedisCacheService implements CacheService {
         return result as T;
       }
     } catch (error: any) {
-      logger.error(`❌ Redis lpop failed for key ${key}`, "CacheController", { error: error.message });
+      logger.error(`❌ Redis lpop failed for key ${key}`, "CacheController", {
+        error: error.message,
+      });
       return null;
     }
   }
@@ -444,7 +495,9 @@ class RedisCacheService implements CacheService {
         return result as T;
       }
     } catch (error: any) {
-      logger.error(`❌ Redis rpop failed for key ${key}`, "CacheController", { error: error.message });
+      logger.error(`❌ Redis rpop failed for key ${key}`, "CacheController", {
+        error: error.message,
+      });
       return null;
     }
   }
@@ -455,17 +508,23 @@ class RedisCacheService implements CacheService {
 
       return await this.client!.llen(key);
     } catch (error: any) {
-      logger.error(`❌ Redis llen failed for key ${key}`, "CacheController", { error: error.message });
+      logger.error(`❌ Redis llen failed for key ${key}`, "CacheController", {
+        error: error.message,
+      });
       return 0;
     }
   }
 
-  async lrange<T = any>(key: string, start: number, stop: number): Promise<T[]> {
+  async lrange<T = any>(
+    key: string,
+    start: number,
+    stop: number,
+  ): Promise<T[]> {
     try {
       if (!this.isConnected) return [];
 
       const results = await this.client!.lrange(key, start, stop);
-      return results.map(result => {
+      return results.map((result) => {
         try {
           return JSON.parse(result) as T;
         } catch {
@@ -473,7 +532,9 @@ class RedisCacheService implements CacheService {
         }
       });
     } catch (error: any) {
-      logger.error(`❌ Redis lrange failed for key ${key}`, "CacheController", { error: error.message });
+      logger.error(`❌ Redis lrange failed for key ${key}`, "CacheController", {
+        error: error.message,
+      });
       return [];
     }
   }
@@ -484,11 +545,14 @@ class RedisCacheService implements CacheService {
     try {
       if (!this.isConnected) return false;
 
-      const serializedMember = typeof member === 'string' ? member : JSON.stringify(member);
+      const serializedMember =
+        typeof member === "string" ? member : JSON.stringify(member);
       const result = await this.client!.sadd(key, serializedMember);
       return result > 0;
     } catch (error: any) {
-      logger.error(`❌ Redis sadd failed for key ${key}`, "CacheController", { error: error.message });
+      logger.error(`❌ Redis sadd failed for key ${key}`, "CacheController", {
+        error: error.message,
+      });
       return false;
     }
   }
@@ -497,11 +561,14 @@ class RedisCacheService implements CacheService {
     try {
       if (!this.isConnected) return false;
 
-      const serializedMember = typeof member === 'string' ? member : JSON.stringify(member);
+      const serializedMember =
+        typeof member === "string" ? member : JSON.stringify(member);
       const result = await this.client!.srem(key, serializedMember);
       return result > 0;
     } catch (error: any) {
-      logger.error(`❌ Redis srem failed for key ${key}`, "CacheController", { error: error.message });
+      logger.error(`❌ Redis srem failed for key ${key}`, "CacheController", {
+        error: error.message,
+      });
       return false;
     }
   }
@@ -511,7 +578,7 @@ class RedisCacheService implements CacheService {
       if (!this.isConnected) return [];
 
       const results = await this.client!.smembers(key);
-      return results.map(result => {
+      return results.map((result) => {
         try {
           return JSON.parse(result) as T;
         } catch {
@@ -519,7 +586,11 @@ class RedisCacheService implements CacheService {
         }
       });
     } catch (error: any) {
-      logger.error(`❌ Redis smembers failed for key ${key}`, "CacheController", { error: error.message });
+      logger.error(
+        `❌ Redis smembers failed for key ${key}`,
+        "CacheController",
+        { error: error.message },
+      );
       return [];
     }
   }
@@ -528,11 +599,16 @@ class RedisCacheService implements CacheService {
     try {
       if (!this.isConnected) return false;
 
-      const serializedMember = typeof member === 'string' ? member : JSON.stringify(member);
+      const serializedMember =
+        typeof member === "string" ? member : JSON.stringify(member);
       const result = await this.client!.sismember(key, serializedMember);
       return result === 1;
     } catch (error: any) {
-      logger.error(`❌ Redis sismember failed for key ${key}`, "CacheController", { error: error.message });
+      logger.error(
+        `❌ Redis sismember failed for key ${key}`,
+        "CacheController",
+        { error: error.message },
+      );
       return false;
     }
   }
@@ -546,17 +622,28 @@ class RedisCacheService implements CacheService {
       // Convert fields to Redis stream format
       const streamFields: string[] = [];
       for (const [key, value] of Object.entries(fields)) {
-        streamFields.push(key, typeof value === 'string' ? value : JSON.stringify(value));
+        streamFields.push(
+          key,
+          typeof value === "string" ? value : JSON.stringify(value),
+        );
       }
 
       return await this.client!.xadd(stream, "*", ...streamFields);
     } catch (error: any) {
-      logger.error(`❌ Redis xadd failed for stream ${stream}`, "CacheController", { error: error.message });
+      logger.error(
+        `❌ Redis xadd failed for stream ${stream}`,
+        "CacheController",
+        { error: error.message },
+      );
       return "0-0";
     }
   }
 
-  async xread(streams: Record<string, string>, count?: number, block?: number): Promise<any[]> {
+  async xread(
+    streams: Record<string, string>,
+    count?: number,
+    block?: number,
+  ): Promise<any[]> {
     try {
       if (!this.isConnected) return [];
 
@@ -579,12 +666,19 @@ class RedisCacheService implements CacheService {
       const result = await this.client!.xread(...args);
       return result || [];
     } catch (error: any) {
-      logger.error("❌ Redis xread failed", "CacheController", { error: error.message });
+      logger.error("❌ Redis xread failed", "CacheController", {
+        error: error.message,
+      });
       return [];
     }
   }
 
-  async xrange(stream: string, start = "-", end = "+", count?: number): Promise<any[]> {
+  async xrange(
+    stream: string,
+    start = "-",
+    end = "+",
+    count?: number,
+  ): Promise<any[]> {
     try {
       if (!this.isConnected) return [];
 
@@ -596,7 +690,11 @@ class RedisCacheService implements CacheService {
       const result = await this.client!.xrange(...args);
       return result || [];
     } catch (error: any) {
-      logger.error(`❌ Redis xrange failed for stream ${stream}`, "CacheController", { error: error.message });
+      logger.error(
+        `❌ Redis xrange failed for stream ${stream}`,
+        "CacheController",
+        { error: error.message },
+      );
       return [];
     }
   }
@@ -607,7 +705,11 @@ class RedisCacheService implements CacheService {
 
       return await this.client!.xlen(stream);
     } catch (error: any) {
-      logger.error(`❌ Redis xlen failed for stream ${stream}`, "CacheController", { error: error.message });
+      logger.error(
+        `❌ Redis xlen failed for stream ${stream}`,
+        "CacheController",
+        { error: error.message },
+      );
       return 0;
     }
   }
@@ -618,22 +720,30 @@ class RedisCacheService implements CacheService {
     try {
       if (!this.isConnected) return 0;
 
-      const serializedMessage = typeof message === 'string' ? message : JSON.stringify(message);
+      const serializedMessage =
+        typeof message === "string" ? message : JSON.stringify(message);
       return await this.client!.publish(channel, serializedMessage);
     } catch (error: any) {
-      logger.error(`❌ Redis publish failed for channel ${channel}`, "CacheController", { error: error.message });
+      logger.error(
+        `❌ Redis publish failed for channel ${channel}`,
+        "CacheController",
+        { error: error.message },
+      );
       return 0;
     }
   }
 
-  async subscribe(channel: string, callback: (message: any) => void): Promise<void> {
+  async subscribe(
+    channel: string,
+    callback: (message: any) => void,
+  ): Promise<void> {
     try {
       if (!this.isConnected) return;
 
       this.subscribers.set(channel, callback);
       await this.client!.subscribe(channel);
 
-      this.client!.on('message', (receivedChannel, message) => {
+      this.client!.on("message", (receivedChannel, message) => {
         if (receivedChannel === channel) {
           try {
             const parsed = JSON.parse(message);
@@ -644,7 +754,11 @@ class RedisCacheService implements CacheService {
         }
       });
     } catch (error: any) {
-      logger.error(`❌ Redis subscribe failed for channel ${channel}`, "CacheController", { error: error.message });
+      logger.error(
+        `❌ Redis subscribe failed for channel ${channel}`,
+        "CacheController",
+        { error: error.message },
+      );
     }
   }
 
@@ -655,7 +769,11 @@ class RedisCacheService implements CacheService {
       await this.client!.unsubscribe(channel);
       this.subscribers.delete(channel);
     } catch (error: any) {
-      logger.error(`❌ Redis unsubscribe failed for channel ${channel}`, "CacheController", { error: error.message });
+      logger.error(
+        `❌ Redis unsubscribe failed for channel ${channel}`,
+        "CacheController",
+        { error: error.message },
+      );
     }
   }
 
@@ -683,7 +801,11 @@ class RedisCacheService implements CacheService {
 
       return await this.client!.keys(pattern);
     } catch (error: any) {
-      logger.error(`❌ Redis keys failed for pattern ${pattern}`, "CacheController", { error: error.message });
+      logger.error(
+        `❌ Redis keys failed for pattern ${pattern}`,
+        "CacheController",
+        { error: error.message },
+      );
       return [];
     }
   }
@@ -699,7 +821,9 @@ class RedisCacheService implements CacheService {
       this.fallbackCache.clear();
       return true;
     } catch (error: any) {
-      logger.error("❌ Redis flushdb failed", "CacheController", { error: error.message });
+      logger.error("❌ Redis flushdb failed", "CacheController", {
+        error: error.message,
+      });
       return false;
     }
   }
@@ -710,7 +834,9 @@ class RedisCacheService implements CacheService {
 
       return await this.client!.info(section);
     } catch (error: any) {
-      logger.error("❌ Redis info failed", "CacheController", { error: error.message });
+      logger.error("❌ Redis info failed", "CacheController", {
+        error: error.message,
+      });
       return "";
     }
   }
@@ -725,7 +851,9 @@ class RedisCacheService implements CacheService {
       await this.client.ping();
       return true;
     } catch (error: any) {
-      logger.warn("⚠️ Redis health check failed", "CacheController", { error: error.message });
+      logger.warn("⚠️ Redis health check failed", "CacheController", {
+        error: error.message,
+      });
       return false;
     }
   }
@@ -736,7 +864,7 @@ class RedisCacheService implements CacheService {
         return {
           connected: false,
           fallbackCacheSize: this.fallbackCache.size,
-          error: "Not connected"
+          error: "Not connected",
         };
       }
 
@@ -751,13 +879,13 @@ class RedisCacheService implements CacheService {
         fallbackCacheSize: this.fallbackCache.size,
         subscribers: this.subscribers.size,
         cluster: this.config.cluster?.enabled,
-        info: this.parseRedisInfo(info)
+        info: this.parseRedisInfo(info),
       };
     } catch (error: any) {
       return {
         connected: false,
         fallbackCacheSize: this.fallbackCache.size,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -767,26 +895,28 @@ class RedisCacheService implements CacheService {
   private setupEventHandlers(): void {
     if (!this.client) return;
 
-    this.client.on('connect', () => {
+    this.client.on("connect", () => {
       logger.info("🔌 Redis connected", "CacheController");
       this.isConnected = true;
     });
 
-    this.client.on('ready', () => {
+    this.client.on("ready", () => {
       logger.info("✅ Redis ready", "CacheController");
     });
 
-    this.client.on('error', (error) => {
-      logger.error("❌ Redis error", "CacheController", { error: error.message });
+    this.client.on("error", (error) => {
+      logger.error("❌ Redis error", "CacheController", {
+        error: error.message,
+      });
       this.isConnected = false;
     });
 
-    this.client.on('close', () => {
+    this.client.on("close", () => {
       logger.warn("🔌 Redis connection closed", "CacheController");
       this.isConnected = false;
     });
 
-    this.client.on('reconnecting', () => {
+    this.client.on("reconnecting", () => {
       logger.info("🔄 Redis reconnecting...", "CacheController");
     });
   }
@@ -806,7 +936,7 @@ class RedisCacheService implements CacheService {
   private setFallback(key: string, value: any, ttl?: number): boolean {
     const item: { value: any; expires?: number } = { value };
     if (ttl) {
-      item.expires = Date.now() + (ttl * 1000);
+      item.expires = Date.now() + ttl * 1000;
     }
     this.fallbackCache.set(key, item);
     return true;
@@ -814,17 +944,17 @@ class RedisCacheService implements CacheService {
 
   private parseRedisInfo(info: string): any {
     const parsed: any = {};
-    const sections = info.split('\r\n\r\n');
+    const sections = info.split("\r\n\r\n");
 
     for (const section of sections) {
-      const lines = section.split('\r\n');
-      const sectionName = lines[0]?.replace('# ', '') || 'unknown';
+      const lines = section.split("\r\n");
+      const sectionName = lines[0]?.replace("# ", "") || "unknown";
       parsed[sectionName] = {};
 
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
-        if (line && !line.startsWith('#')) {
-          const [key, value] = line.split(':');
+        if (line && !line.startsWith("#")) {
+          const [key, value] = line.split(":");
           if (key && value !== undefined) {
             parsed[sectionName][key] = value;
           }
@@ -839,17 +969,23 @@ class RedisCacheService implements CacheService {
     logger.error("❌ Redis connection failed", "CacheController", {
       error: error.message,
       retries: this.connectionRetries,
-      maxRetries: this.maxRetries
+      maxRetries: this.maxRetries,
     });
 
     if (this.connectionRetries < this.maxRetries) {
       this.connectionRetries++;
-      logger.info(`🔄 Retrying Redis connection in ${this.retryDelay}ms... (${this.connectionRetries}/${this.maxRetries})`, "CacheController");
+      logger.info(
+        `🔄 Retrying Redis connection in ${this.retryDelay}ms... (${this.connectionRetries}/${this.maxRetries})`,
+        "CacheController",
+      );
 
-      await new Promise(resolve => setTimeout(resolve, this.retryDelay));
+      await new Promise((resolve) => setTimeout(resolve, this.retryDelay));
       await this.initialize();
     } else {
-      logger.warn("⚠️ Redis connection failed after max retries - running with in-memory fallback", "CacheController");
+      logger.warn(
+        "⚠️ Redis connection failed after max retries - running with in-memory fallback",
+        "CacheController",
+      );
       this.isConnected = false;
     }
   }
@@ -871,7 +1007,7 @@ export const cacheController = new Elysia({ name: "cache" })
       password: config?.redis?.password,
       database: config?.redis?.database,
       keyPrefix: config?.redis?.keyPrefix || "bunsnc:",
-      cluster: config?.redis?.cluster
+      cluster: config?.redis?.cluster,
     };
 
     // Create Redis cache service instance
@@ -884,7 +1020,7 @@ export const cacheController = new Elysia({ name: "cache" })
       logger.info("✅ Cache Controller ready", "CacheController", {
         connected: cacheService.isConnected,
         database: cacheConfig.database,
-        keyPrefix: cacheConfig.keyPrefix
+        keyPrefix: cacheConfig.keyPrefix,
       });
 
       return {
@@ -907,13 +1043,16 @@ export const cacheController = new Elysia({ name: "cache" })
         cacheXread: cacheService.xread.bind(cacheService),
         cacheXrange: cacheService.xrange.bind(cacheService),
         cacheHealthCheck: cacheService.healthCheck.bind(cacheService),
-        cacheStats: cacheService.getStats.bind(cacheService)
+        cacheStats: cacheService.getStats.bind(cacheService),
       };
-
     } catch (error: any) {
-      logger.error("❌ Cache Controller initialization failed", "CacheController", {
-        error: error.message
-      });
+      logger.error(
+        "❌ Cache Controller initialization failed",
+        "CacheController",
+        {
+          error: error.message,
+        },
+      );
 
       // Return fallback service that doesn't crash the application
       const fallbackService: CacheService = {
@@ -953,7 +1092,10 @@ export const cacheController = new Elysia({ name: "cache" })
         flushdb: async () => false,
         info: async () => "",
         healthCheck: async () => false,
-        getStats: async () => ({ connected: false, error: "Connection failed" })
+        getStats: async () => ({
+          connected: false,
+          error: "Connection failed",
+        }),
       };
 
       return {
@@ -975,7 +1117,7 @@ export const cacheController = new Elysia({ name: "cache" })
         cacheXread: fallbackService.xread,
         cacheXrange: fallbackService.xrange,
         cacheHealthCheck: fallbackService.healthCheck,
-        cacheStats: fallbackService.getStats
+        cacheStats: fallbackService.getStats,
       };
     }
   })
@@ -985,29 +1127,29 @@ export const cacheController = new Elysia({ name: "cache" })
       logger.info("🛑 Cache Controller stopped", "CacheController");
     }
   })
-  .as('global'); // Global scope for cache access across all routes
+  .as("global"); // Global scope for cache access across all routes
 
 // Cache Controller Context Type
 export interface CacheControllerContext {
   cache: CacheService;
   cacheService: CacheService;
-  cacheGet: CacheService['get'];
-  cacheSet: CacheService['set'];
-  cacheDel: CacheService['del'];
-  cacheExists: CacheService['exists'];
-  cacheExpire: CacheService['expire'];
-  cacheTtl: CacheService['ttl'];
-  cacheHget: CacheService['hget'];
-  cacheHset: CacheService['hset'];
-  cacheHgetall: CacheService['hgetall'];
-  cacheKeys: CacheService['keys'];
-  cachePublish: CacheService['publish'];
-  cacheSubscribe: CacheService['subscribe'];
-  cacheXadd: CacheService['xadd'];
-  cacheXread: CacheService['xread'];
-  cacheXrange: CacheService['xrange'];
-  cacheHealthCheck: CacheService['healthCheck'];
-  cacheStats: CacheService['getStats'];
+  cacheGet: CacheService["get"];
+  cacheSet: CacheService["set"];
+  cacheDel: CacheService["del"];
+  cacheExists: CacheService["exists"];
+  cacheExpire: CacheService["expire"];
+  cacheTtl: CacheService["ttl"];
+  cacheHget: CacheService["hget"];
+  cacheHset: CacheService["hset"];
+  cacheHgetall: CacheService["hgetall"];
+  cacheKeys: CacheService["keys"];
+  cachePublish: CacheService["publish"];
+  cacheSubscribe: CacheService["subscribe"];
+  cacheXadd: CacheService["xadd"];
+  cacheXread: CacheService["xread"];
+  cacheXrange: CacheService["xrange"];
+  cacheHealthCheck: CacheService["healthCheck"];
+  cacheStats: CacheService["getStats"];
 }
 
 export default cacheController;

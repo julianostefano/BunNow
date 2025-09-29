@@ -1,0 +1,183 @@
+{
+  "version": "5.1.0",
+  "environment": "development",
+  "lastModified": "2025-09-28T18:15:00.000Z",
+  "encrypted": false,
+
+  "serviceNow": {
+    "instanceUrl": "https://iberdrola.service-now.com",
+    "authType": "saml",
+    "timeout": 30000,
+    "retries": 3,
+    "rateLimit": {
+      "enabled": true,
+      "maxRequests": 25,
+      "maxConcurrent": 18,
+      "windowMs": 1000
+    },
+    "proxy": {
+      "enabled": true,
+      "url": "http://10.219.8.210:3008"
+    }
+  },
+
+  "redis": {
+    "host": "10.219.8.210",
+    "port": 6380,
+    "database": 0,
+    "keyPrefix": "bunsnc:",
+    "maxRetries": 3,
+    "retryDelay": 1000,
+    "connectTimeout": 10000,
+    "commandTimeout": 5000,
+    "enableOfflineQueue": false,
+    "cluster": {
+      "enabled": false
+    }
+  },
+
+  "mongodb": {
+    "host": "10.219.8.210",
+    "port": 27018,
+    "database": "bunsnc",
+    "username": "admin",
+    "password": "Logica2011_",
+    "authSource": "admin",
+    "ssl": false,
+    "maxPoolSize": 10,
+    "minPoolSize": 2,
+    "maxIdleTimeMS": 30000,
+    "serverSelectionTimeoutMS": 30000,
+    "socketTimeoutMS": 0,
+    "connectTimeoutMS": 30000
+  },
+
+  "server": {
+    "port": 3008,
+    "host": "0.0.0.0",
+    "cors": {
+      "enabled": true,
+      "origin": true,
+      "credentials": true,
+      "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      "allowedHeaders": ["Content-Type", "Authorization", "X-Requested-With"]
+    },
+    "rateLimit": {
+      "enabled": true,
+      "max": 1000,
+      "windowMs": 60000,
+      "message": "Too many requests"
+    },
+    "compression": {
+      "enabled": true,
+      "level": 6
+    },
+    "ssl": {
+      "enabled": false
+    }
+  },
+
+  "logging": {
+    "level": "info",
+    "format": "text",
+    "output": {
+      "console": true,
+      "file": {
+        "enabled": false,
+        "path": "logs/app.log",
+        "maxSize": "10MB",
+        "maxFiles": 5
+      },
+      "syslog": {
+        "enabled": false,
+        "facility": "local0"
+      }
+    },
+    "includeTimestamp": true,
+    "includeLevel": true,
+    "includeLocation": false
+  },
+
+  "hotReload": {
+    "enabled": true,
+    "watchPaths": ["src/plugins"],
+    "debounceMs": 1000,
+    "safeMode": true,
+    "excludePatterns": ["*.test.ts", "*.spec.ts", "*.d.ts"],
+    "maxReloadAttempts": 3,
+    "reloadTimeout": 30000
+  },
+
+  "plugins": {
+    "config-manager": {
+      "enabled": true,
+      "scope": "scoped"
+    },
+    "mongo-controller": {
+      "enabled": true,
+      "scope": "global"
+    },
+    "cache-controller": {
+      "enabled": true,
+      "scope": "global"
+    },
+    "sync-controller": {
+      "enabled": true,
+      "scope": "scoped"
+    },
+    "health-controller": {
+      "enabled": true,
+      "scope": "scoped"
+    },
+    "service-locator": {
+      "enabled": true,
+      "scope": "global"
+    },
+    "api-controller": {
+      "enabled": true,
+      "scope": "scoped"
+    },
+    "ticket-controller": {
+      "enabled": true,
+      "scope": "scoped"
+    }
+  },
+
+  "features": {
+    "realTimeSync": true,
+    "redisStreams": true,
+    "mongoSharding": false,
+    "healthMonitoring": true,
+    "openTelemetry": true,
+    "circuitBreaker": true,
+    "rateLimit": true,
+    "caching": true
+  },
+
+  "performance": {
+    "metrics": {
+      "enabled": true,
+      "interval": 60000,
+      "retention": 86400000
+    }
+  },
+
+  "security": {
+    "encryption": {
+      "enabled": false,
+      "algorithm": "aes-256-gcm",
+      "keyDerivation": "pbkdf2"
+    },
+    "secrets": {
+      "environment": true,
+      "vault": {
+        "enabled": false,
+        "path": "bunsnc"
+      },
+      "file": {
+        "enabled": false,
+        "path": ".secrets"
+      }
+    }
+  }
+}

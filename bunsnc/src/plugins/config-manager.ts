@@ -13,234 +13,254 @@
  * - Graceful degradation with safe defaults
  */
 
-import { Elysia } from "elysia";
-import { z } from "zod";
+import { Elysia, t } from "elysia";
 import { readFile, writeFile, access, mkdir } from "fs/promises";
 import { join, dirname } from "path";
 import { logger } from "../utils/Logger";
 
 // Base Configuration Schema
-const BaseConfigSchema = z.object({
-  version: z.string().default("1.0.0"),
-  environment: z
-    .enum(["development", "staging", "production"])
-    .default("development"),
-  lastModified: z
-    .string()
-    .datetime()
-    .default(() => new Date().toISOString()),
-  encrypted: z.boolean().default(false),
+const BaseConfigSchema = t.Object({
+  version: t.String({ default: "1.0.0" }),
+  environment: t.Union(
+    [t.Literal("development"), t.Literal("staging"), t.Literal("production")],
+    { default: "development" },
+  ),
+  lastModified: t.String({
+    format: "date-time",
+    default: new Date().toISOString(),
+  }),
+  encrypted: t.Boolean({ default: false }),
 });
 
 // ServiceNow Configuration Schema
-const ServiceNowConfigSchema = z.object({
-  instanceUrl: z.string().url().optional(),
-  username: z.string().optional(),
-  password: z.string().optional(),
-  token: z.string().optional(),
-  authType: z.enum(["basic", "oauth", "saml", "bearer"]).default("basic"),
-  timeout: z.number().min(1000).max(300000).default(30000),
-  retries: z.number().min(0).max(10).default(3),
-  rateLimit: z.object({
-    enabled: z.boolean().default(true),
-    maxRequests: z.number().default(25),
-    maxConcurrent: z.number().default(18),
-    windowMs: z.number().default(1000),
+const ServiceNowConfigSchema = t.Object({
+  instanceUrl: t.Optional(t.String({ format: "uri" })),
+  username: t.Optional(t.String()),
+  password: t.Optional(t.String()),
+  token: t.Optional(t.String()),
+  authType: t.Union(
+    [
+      t.Literal("basic"),
+      t.Literal("oauth"),
+      t.Literal("saml"),
+      t.Literal("bearer"),
+    ],
+    { default: "basic" },
+  ),
+  timeout: t.Number({ minimum: 1000, maximum: 300000, default: 30000 }),
+  retries: t.Number({ minimum: 0, maximum: 10, default: 3 }),
+  rateLimit: t.Object({
+    enabled: t.Boolean({ default: true }),
+    maxRequests: t.Number({ default: 25 }),
+    maxConcurrent: t.Number({ default: 18 }),
+    windowMs: t.Number({ default: 1000 }),
   }),
-  proxy: z
-    .object({
-      enabled: z.boolean().default(false),
-      url: z.string().optional(),
-      auth: z
-        .object({
-          username: z.string().optional(),
-          password: z.string().optional(),
-        })
-        .optional(),
-    })
-    .optional(),
+  proxy: t.Optional(
+    t.Object({
+      enabled: t.Boolean({ default: false }),
+      url: t.Optional(t.String()),
+      auth: t.Optional(
+        t.Object({
+          username: t.Optional(t.String()),
+          password: t.Optional(t.String()),
+        }),
+      ),
+    }),
+  ),
 });
 
 // Redis Configuration Schema
-const RedisConfigSchema = z.object({
-  host: z.string().default("localhost"),
-  port: z.number().min(1).max(65535).default(6379),
-  password: z.string().optional(),
-  database: z.number().min(0).max(15).default(0),
-  keyPrefix: z.string().default("bunsnc:"),
-  maxRetries: z.number().min(0).max(10).default(3),
-  retryDelay: z.number().min(100).max(10000).default(1000),
-  connectTimeout: z.number().min(1000).max(60000).default(10000),
-  commandTimeout: z.number().min(1000).max(60000).default(5000),
-  enableOfflineQueue: z.boolean().default(false),
-  cluster: z
-    .object({
-      enabled: z.boolean().default(false),
-      nodes: z
-        .array(
-          z.object({
-            host: z.string(),
-            port: z.number(),
+const RedisConfigSchema = t.Object({
+  host: t.String({ default: "localhost" }),
+  port: t.Number({ minimum: 1, maximum: 65535, default: 6379 }),
+  password: t.Optional(t.String()),
+  database: t.Number({ minimum: 0, maximum: 15, default: 0 }),
+  keyPrefix: t.String({ default: "bunsnc:" }),
+  maxRetries: t.Number({ minimum: 0, maximum: 10, default: 3 }),
+  retryDelay: t.Number({ minimum: 100, maximum: 10000, default: 1000 }),
+  connectTimeout: t.Number({ minimum: 1000, maximum: 60000, default: 10000 }),
+  commandTimeout: t.Number({ minimum: 1000, maximum: 60000, default: 5000 }),
+  enableOfflineQueue: t.Boolean({ default: false }),
+  cluster: t.Optional(
+    t.Object({
+      enabled: t.Boolean({ default: false }),
+      nodes: t.Optional(
+        t.Array(
+          t.Object({
+            host: t.String(),
+            port: t.Number(),
           }),
-        )
-        .optional(),
-    })
-    .optional(),
+        ),
+      ),
+    }),
+  ),
 });
 
 // MongoDB Configuration Schema
-const MongoDBConfigSchema = z.object({
-  host: z.string().default("localhost"),
-  port: z.number().min(1).max(65535).default(27017),
-  database: z.string().default("bunsnc"),
-  username: z.string().optional(),
-  password: z.string().optional(),
-  authSource: z.string().default("admin"),
-  ssl: z.boolean().default(false),
-  replicaSet: z.string().optional(),
-  maxPoolSize: z.number().min(1).max(100).default(10),
-  minPoolSize: z.number().min(0).max(50).default(0),
-  maxIdleTimeMS: z.number().default(30000),
-  serverSelectionTimeoutMS: z.number().default(30000),
-  socketTimeoutMS: z.number().default(0),
-  connectTimeoutMS: z.number().default(30000),
+const MongoDBConfigSchema = t.Object({
+  host: t.String({ default: "localhost" }),
+  port: t.Number({ minimum: 1, maximum: 65535, default: 27017 }),
+  database: t.String({ default: "bunsnc" }),
+  username: t.Optional(t.String()),
+  password: t.Optional(t.String()),
+  authSource: t.String({ default: "admin" }),
+  ssl: t.Boolean({ default: false }),
+  replicaSet: t.Optional(t.String()),
+  maxPoolSize: t.Number({ minimum: 1, maximum: 100, default: 10 }),
+  minPoolSize: t.Number({ minimum: 0, maximum: 50, default: 0 }),
+  maxIdleTimeMS: t.Number({ default: 30000 }),
+  serverSelectionTimeoutMS: t.Number({ default: 30000 }),
+  socketTimeoutMS: t.Number({ default: 0 }),
+  connectTimeoutMS: t.Number({ default: 30000 }),
 });
 
 // Hot-Reload Configuration Schema
-const HotReloadConfigSchema = z.object({
-  enabled: z.boolean().default(true),
-  watchPaths: z.array(z.string()).default(["src/plugins"]),
-  debounceMs: z.number().min(100).max(10000).default(1000),
-  safeMode: z.boolean().default(true),
-  excludePatterns: z
-    .array(z.string())
-    .default(["*.test.ts", "*.spec.ts", "*.d.ts"]),
-  maxReloadAttempts: z.number().min(1).max(10).default(3),
-  reloadTimeout: z.number().min(5000).max(120000).default(30000),
+const HotReloadConfigSchema = t.Object({
+  enabled: t.Boolean({ default: true }),
+  watchPaths: t.Array(t.String(), { default: ["src/plugins"] }),
+  debounceMs: t.Number({ minimum: 100, maximum: 10000, default: 1000 }),
+  safeMode: t.Boolean({ default: true }),
+  excludePatterns: t.Array(t.String(), {
+    default: ["*.test.ts", "*.spec.ts", "*.d.ts"],
+  }),
+  maxReloadAttempts: t.Number({ minimum: 1, maximum: 10, default: 3 }),
+  reloadTimeout: t.Number({ minimum: 5000, maximum: 120000, default: 30000 }),
 });
 
 // Server Configuration Schema
-const ServerConfigSchema = z.object({
-  port: z.number().min(1).max(65535).default(3000),
-  host: z.string().default("0.0.0.0"),
-  cors: z.object({
-    enabled: z.boolean().default(true),
-    origin: z
-      .union([z.string(), z.boolean(), z.array(z.string())])
-      .default(true),
-    credentials: z.boolean().default(true),
-    methods: z
-      .array(z.string())
-      .default(["GET", "POST", "PUT", "DELETE", "OPTIONS"]),
-    allowedHeaders: z
-      .array(z.string())
-      .default(["Content-Type", "Authorization", "X-Requested-With"]),
+const ServerConfigSchema = t.Object({
+  port: t.Number({ minimum: 1, maximum: 65535, default: 3000 }),
+  host: t.String({ default: "0.0.0.0" }),
+  cors: t.Object({
+    enabled: t.Boolean({ default: true }),
+    origin: t.Union([t.String(), t.Boolean(), t.Array(t.String())], {
+      default: true,
+    }),
+    credentials: t.Boolean({ default: true }),
+    methods: t.Array(t.String(), {
+      default: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    }),
+    allowedHeaders: t.Array(t.String(), {
+      default: ["Content-Type", "Authorization", "X-Requested-With"],
+    }),
   }),
-  rateLimit: z.object({
-    enabled: z.boolean().default(true),
-    max: z.number().default(100),
-    windowMs: z.number().default(60000),
-    message: z.string().default("Too many requests"),
+  rateLimit: t.Object({
+    enabled: t.Boolean({ default: true }),
+    max: t.Number({ default: 100 }),
+    windowMs: t.Number({ default: 60000 }),
+    message: t.String({ default: "Too many requests" }),
   }),
-  compression: z.object({
-    enabled: z.boolean().default(true),
-    level: z.number().min(1).max(9).default(6),
+  compression: t.Object({
+    enabled: t.Boolean({ default: true }),
+    level: t.Number({ minimum: 1, maximum: 9, default: 6 }),
   }),
-  ssl: z
-    .object({
-      enabled: z.boolean().default(false),
-      key: z.string().optional(),
-      cert: z.string().optional(),
-      ca: z.string().optional(),
-    })
-    .optional(),
+  ssl: t.Optional(
+    t.Object({
+      enabled: t.Boolean({ default: false }),
+      key: t.Optional(t.String()),
+      cert: t.Optional(t.String()),
+      ca: t.Optional(t.String()),
+    }),
+  ),
 });
 
 // Logging Configuration Schema
-const LoggingConfigSchema = z.object({
-  level: z.enum(["debug", "info", "warn", "error"]).default("info"),
-  format: z.enum(["json", "text", "dev"]).default("text"),
-  output: z.object({
-    console: z.boolean().default(true),
-    file: z.object({
-      enabled: z.boolean().default(false),
-      path: z.string().default("logs/app.log"),
-      maxSize: z.string().default("10MB"),
-      maxFiles: z.number().default(5),
-    }),
-    syslog: z
-      .object({
-        enabled: z.boolean().default(false),
-        host: z.string().optional(),
-        port: z.number().optional(),
-        facility: z.string().default("local0"),
-      })
-      .optional(),
+const LoggingConfigSchema = t.Object({
+  level: t.Union(
+    [
+      t.Literal("debug"),
+      t.Literal("info"),
+      t.Literal("warn"),
+      t.Literal("error"),
+    ],
+    { default: "info" },
+  ),
+  format: t.Union([t.Literal("json"), t.Literal("text"), t.Literal("dev")], {
+    default: "text",
   }),
-  includeTimestamp: z.boolean().default(true),
-  includeLevel: z.boolean().default(true),
-  includeLocation: z.boolean().default(false),
+  output: t.Object({
+    console: t.Boolean({ default: true }),
+    file: t.Object({
+      enabled: t.Boolean({ default: false }),
+      path: t.String({ default: "logs/app.log" }),
+      maxSize: t.String({ default: "10MB" }),
+      maxFiles: t.Number({ default: 5 }),
+    }),
+    syslog: t.Optional(
+      t.Object({
+        enabled: t.Boolean({ default: false }),
+        host: t.Optional(t.String()),
+        port: t.Optional(t.Number()),
+        facility: t.String({ default: "local0" }),
+      }),
+    ),
+  }),
+  includeTimestamp: t.Boolean({ default: true }),
+  includeLevel: t.Boolean({ default: true }),
+  includeLocation: t.Boolean({ default: false }),
 });
 
 // Complete Plugin Configuration Schema
-export const PluginConfigSchema = BaseConfigSchema.extend({
-  serviceNow: ServiceNowConfigSchema.optional(),
-  redis: RedisConfigSchema.optional(),
-  mongodb: MongoDBConfigSchema.optional(),
-  hotReload: HotReloadConfigSchema.optional(),
-  server: ServerConfigSchema.default({}),
-  logging: LoggingConfigSchema.optional(),
+export const PluginConfigSchema = t.Object({
+  ...BaseConfigSchema.properties,
+
+  serviceNow: t.Optional(ServiceNowConfigSchema),
+  redis: t.Optional(RedisConfigSchema),
+  mongodb: t.Optional(MongoDBConfigSchema),
+  hotReload: t.Optional(HotReloadConfigSchema),
+  server: t.Optional(ServerConfigSchema),
+  logging: t.Optional(LoggingConfigSchema),
 
   // Plugin-specific configurations
-  plugins: z.record(z.string(), z.any()).optional(),
+  plugins: t.Optional(t.Record(t.String(), t.Any())),
 
   // Feature flags
-  features: z.record(z.string(), z.boolean()).optional(),
+  features: t.Optional(t.Record(t.String(), t.Boolean())),
 
   // Performance settings
-  performance: z
-    .object({
-      memoryLimit: z.number().optional(),
-      cpuLimit: z.number().optional(),
-      gcInterval: z.number().optional(),
-      metrics: z.object({
-        enabled: z.boolean().default(true),
-        interval: z.number().default(60000),
-        retention: z.number().default(86400000), // 24 hours
+  performance: t.Optional(
+    t.Object({
+      memoryLimit: t.Optional(t.Number()),
+      cpuLimit: t.Optional(t.Number()),
+      gcInterval: t.Optional(t.Number()),
+      metrics: t.Object({
+        enabled: t.Boolean({ default: true }),
+        interval: t.Number({ default: 60000 }),
+        retention: t.Number({ default: 86400000 }), // 24 hours
       }),
-    })
-    .optional(),
+    }),
+  ),
 
   // Security settings
-  security: z
-    .object({
-      encryption: z.object({
-        enabled: z.boolean().default(false),
-        algorithm: z.string().default("aes-256-gcm"),
-        keyDerivation: z.string().default("pbkdf2"),
+  security: t.Optional(
+    t.Object({
+      encryption: t.Object({
+        enabled: t.Boolean({ default: false }),
+        algorithm: t.String({ default: "aes-256-gcm" }),
+        keyDerivation: t.String({ default: "pbkdf2" }),
       }),
-      secrets: z.object({
-        vault: z
-          .object({
-            enabled: z.boolean().default(false),
-            url: z.string().optional(),
-            token: z.string().optional(),
-            path: z.string().default("bunsnc"),
-          })
-          .optional(),
-        environment: z.boolean().default(true),
-        file: z
-          .object({
-            enabled: z.boolean().default(false),
-            path: z.string().default(".secrets"),
-          })
-          .optional(),
+      secrets: t.Object({
+        vault: t.Optional(
+          t.Object({
+            enabled: t.Boolean({ default: false }),
+            url: t.Optional(t.String()),
+            token: t.Optional(t.String()),
+            path: t.String({ default: "bunsnc" }),
+          }),
+        ),
+        environment: t.Boolean({ default: true }),
+        file: t.Optional(
+          t.Object({
+            enabled: t.Boolean({ default: false }),
+            path: t.String({ default: ".secrets" }),
+          }),
+        ),
       }),
-    })
-    .optional(),
+    }),
+  ),
 });
 
-export type PluginConfig = z.infer<typeof PluginConfigSchema>;
+export type PluginConfig = typeof PluginConfigSchema.static;
 
 export interface ConfigurationSource {
   name: string;
@@ -251,7 +271,7 @@ export interface ConfigurationSource {
 }
 
 export class PluginConfigurationManager {
-  private config: PluginConfig = {};
+  private config: Partial<PluginConfig> = {};
   private sources: ConfigurationSource[] = [];
   private watchers: Set<(config: PluginConfig) => void> = new Set();
   private configPath: string;
@@ -360,7 +380,7 @@ export class PluginConfigurationManager {
   /**
    * Get current configuration
    */
-  getConfig(): PluginConfig {
+  getConfig(): Partial<PluginConfig> {
     if (!this.isLoaded) {
       throw new Error("Configuration not loaded. Call load() first.");
     }
@@ -488,13 +508,28 @@ export class PluginConfigurationManager {
     config: Partial<PluginConfig>,
   ): Promise<PluginConfig> {
     try {
-      const validatedConfig = PluginConfigSchema.parse(config);
+      // TypeBox validation using Value.Check and Value.Default
+      const { Value } = await import("@sinclair/typebox/value");
+
+      // Apply defaults first
+      const configWithDefaults = Value.Default(PluginConfigSchema, config);
+
+      // Validate the configuration
+      if (!Value.Check(PluginConfigSchema, configWithDefaults)) {
+        const errors = [
+          ...Value.Errors(PluginConfigSchema, configWithDefaults),
+        ];
+        const errorMessage = errors
+          .map((e) => `${e.path}: ${e.message}`)
+          .join(", ");
+        throw new Error(`Configuration validation failed: ${errorMessage}`);
+      }
+
       logger.info("✅ Configuration validation successful", "ConfigManager");
-      return validatedConfig;
+      return configWithDefaults as PluginConfig;
     } catch (error: any) {
       logger.error("❌ Configuration validation failed", "ConfigManager", {
         error: error.message,
-        issues: error.issues || [],
       });
       throw new Error(`Configuration validation failed: ${error.message}`);
     }
@@ -672,9 +707,11 @@ class FileConfigSource implements ConfigurationSource {
 
 // Configuration Plugin Context Type
 export interface ConfigPluginContext {
-  config: PluginConfig;
-  getConfig: () => PluginConfig;
-  getSection: <K extends keyof PluginConfig>(section: K) => PluginConfig[K];
+  config: Partial<PluginConfig>;
+  getConfig: () => Partial<PluginConfig>;
+  getSection: <K extends keyof PluginConfig>(
+    section: K,
+  ) => PluginConfig[K] | undefined;
   updateSection: <K extends keyof PluginConfig>(
     section: K,
     updates: Partial<PluginConfig[K]>,
@@ -758,10 +795,11 @@ export const configPlugin = new Elysia({ name: "config" })
       });
 
       // Return safe defaults for graceful degradation
-      const safeDefaults: PluginConfig = {
+      const safeDefaults: Partial<PluginConfig> = {
         version: "1.0.0",
         environment: "development",
         lastModified: new Date().toISOString(),
+        encrypted: false,
         server: {
           port: 3008,
           host: "0.0.0.0",
@@ -887,7 +925,7 @@ export const configPlugin = new Elysia({ name: "config" })
   .onStop(() => {
     logger.info("🛑 Configuration Plugin stopped", "ConfigPlugin");
   })
-  .as('scoped'); // Critical fix: Enable context propagation across routes
+  .as("scoped"); // Critical fix: Enable context propagation across routes
 
 // Export legacy instance for backward compatibility (deprecated)
 // @deprecated Use configPlugin instead

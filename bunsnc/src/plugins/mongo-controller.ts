@@ -37,14 +37,32 @@ export interface MongoService {
   // Core CRUD operations
   findOne<T = any>(table: string, query: any): Promise<T | null>;
   find<T = any>(table: string, query?: any, options?: any): Promise<T[]>;
-  insertOne<T = any>(table: string, document: T): Promise<{ insertedId: string }>;
-  updateOne<T = any>(table: string, filter: any, update: any): Promise<{ modifiedCount: number }>;
+  insertOne<T = any>(
+    table: string,
+    document: T,
+  ): Promise<{ insertedId: string }>;
+  updateOne<T = any>(
+    table: string,
+    filter: any,
+    update: any,
+  ): Promise<{ modifiedCount: number }>;
   deleteOne(table: string, filter: any): Promise<{ deletedCount: number }>;
-  upsert<T = any>(table: string, filter: any, document: T): Promise<{ upsertedId?: string; modifiedCount: number }>;
+  upsert<T = any>(
+    table: string,
+    filter: any,
+    document: T,
+  ): Promise<{ upsertedId?: string; modifiedCount: number }>;
 
   // Batch operations
-  insertMany<T = any>(table: string, documents: T[]): Promise<{ insertedCount: number }>;
-  updateMany(table: string, filter: any, update: any): Promise<{ modifiedCount: number }>;
+  insertMany<T = any>(
+    table: string,
+    documents: T[],
+  ): Promise<{ insertedCount: number }>;
+  updateMany(
+    table: string,
+    filter: any,
+    update: any,
+  ): Promise<{ modifiedCount: number }>;
   deleteMany(table: string, filter: any): Promise<{ deletedCount: number }>;
 
   // Utility operations
@@ -84,8 +102,8 @@ class MongoDBService implements MongoService {
         heartbeatFrequencyMS: 10000,
         maxPoolSize: 10,
         minPoolSize: 2,
-        ...config.options
-      }
+        ...config.options,
+      },
     };
   }
 
@@ -99,7 +117,7 @@ class MongoDBService implements MongoService {
       logger.info("🔌 Connecting to MongoDB...", "MongoController", {
         host: this.config.host,
         port: this.config.port,
-        database: this.config.database
+        database: this.config.database,
       });
 
       this.client = new MongoClient(connectionString, this.config.options);
@@ -114,9 +132,8 @@ class MongoDBService implements MongoService {
 
       logger.info("✅ MongoDB connected successfully", "MongoController", {
         database: this.config.database,
-        collections: await this.getCollectionNames()
+        collections: await this.getCollectionNames(),
       });
-
     } catch (error: any) {
       await this.handleConnectionError(error);
     }
@@ -144,12 +161,20 @@ class MongoDBService implements MongoService {
       const result = await collection.findOne(query);
       return result as T;
     } catch (error: any) {
-      logger.error(`❌ MongoDB findOne failed for table ${table}`, "MongoController", { error: error.message });
+      logger.error(
+        `❌ MongoDB findOne failed for table ${table}`,
+        "MongoController",
+        { error: error.message },
+      );
       return null;
     }
   }
 
-  async find<T = any>(table: string, query: any = {}, options: any = {}): Promise<T[]> {
+  async find<T = any>(
+    table: string,
+    query: any = {},
+    options: any = {},
+  ): Promise<T[]> {
     try {
       this.ensureConnection();
       const collection = this.getCollection(table);
@@ -157,96 +182,154 @@ class MongoDBService implements MongoService {
       const results = await cursor.toArray();
       return results as T[];
     } catch (error: any) {
-      logger.error(`❌ MongoDB find failed for table ${table}`, "MongoController", { error: error.message });
+      logger.error(
+        `❌ MongoDB find failed for table ${table}`,
+        "MongoController",
+        { error: error.message },
+      );
       return [];
     }
   }
 
-  async insertOne<T = any>(table: string, document: T): Promise<{ insertedId: string }> {
+  async insertOne<T = any>(
+    table: string,
+    document: T,
+  ): Promise<{ insertedId: string }> {
     try {
       this.ensureConnection();
       const collection = this.getCollection(table);
       const result = await collection.insertOne(document as any);
       return { insertedId: result.insertedId.toString() };
     } catch (error: any) {
-      logger.error(`❌ MongoDB insertOne failed for table ${table}`, "MongoController", { error: error.message });
+      logger.error(
+        `❌ MongoDB insertOne failed for table ${table}`,
+        "MongoController",
+        { error: error.message },
+      );
       throw error;
     }
   }
 
-  async updateOne<T = any>(table: string, filter: any, update: any): Promise<{ modifiedCount: number }> {
+  async updateOne<T = any>(
+    table: string,
+    filter: any,
+    update: any,
+  ): Promise<{ modifiedCount: number }> {
     try {
       this.ensureConnection();
       const collection = this.getCollection(table);
       const result = await collection.updateOne(filter, { $set: update });
       return { modifiedCount: result.modifiedCount };
     } catch (error: any) {
-      logger.error(`❌ MongoDB updateOne failed for table ${table}`, "MongoController", { error: error.message });
+      logger.error(
+        `❌ MongoDB updateOne failed for table ${table}`,
+        "MongoController",
+        { error: error.message },
+      );
       throw error;
     }
   }
 
-  async deleteOne(table: string, filter: any): Promise<{ deletedCount: number }> {
+  async deleteOne(
+    table: string,
+    filter: any,
+  ): Promise<{ deletedCount: number }> {
     try {
       this.ensureConnection();
       const collection = this.getCollection(table);
       const result = await collection.deleteOne(filter);
       return { deletedCount: result.deletedCount };
     } catch (error: any) {
-      logger.error(`❌ MongoDB deleteOne failed for table ${table}`, "MongoController", { error: error.message });
+      logger.error(
+        `❌ MongoDB deleteOne failed for table ${table}`,
+        "MongoController",
+        { error: error.message },
+      );
       throw error;
     }
   }
 
-  async upsert<T = any>(table: string, filter: any, document: T): Promise<{ upsertedId?: string; modifiedCount: number }> {
+  async upsert<T = any>(
+    table: string,
+    filter: any,
+    document: T,
+  ): Promise<{ upsertedId?: string; modifiedCount: number }> {
     try {
       this.ensureConnection();
       const collection = this.getCollection(table);
-      const result = await collection.replaceOne(filter, document as any, { upsert: true });
+      const result = await collection.replaceOne(filter, document as any, {
+        upsert: true,
+      });
       return {
         upsertedId: result.upsertedId?.toString(),
-        modifiedCount: result.modifiedCount
+        modifiedCount: result.modifiedCount,
       };
     } catch (error: any) {
-      logger.error(`❌ MongoDB upsert failed for table ${table}`, "MongoController", { error: error.message });
+      logger.error(
+        `❌ MongoDB upsert failed for table ${table}`,
+        "MongoController",
+        { error: error.message },
+      );
       throw error;
     }
   }
 
   // Batch Operations
 
-  async insertMany<T = any>(table: string, documents: T[]): Promise<{ insertedCount: number }> {
+  async insertMany<T = any>(
+    table: string,
+    documents: T[],
+  ): Promise<{ insertedCount: number }> {
     try {
       this.ensureConnection();
       const collection = this.getCollection(table);
       const result = await collection.insertMany(documents as any[]);
       return { insertedCount: result.insertedCount };
     } catch (error: any) {
-      logger.error(`❌ MongoDB insertMany failed for table ${table}`, "MongoController", { error: error.message });
+      logger.error(
+        `❌ MongoDB insertMany failed for table ${table}`,
+        "MongoController",
+        { error: error.message },
+      );
       throw error;
     }
   }
 
-  async updateMany(table: string, filter: any, update: any): Promise<{ modifiedCount: number }> {
+  async updateMany(
+    table: string,
+    filter: any,
+    update: any,
+  ): Promise<{ modifiedCount: number }> {
     try {
       this.ensureConnection();
       const collection = this.getCollection(table);
       const result = await collection.updateMany(filter, { $set: update });
       return { modifiedCount: result.modifiedCount };
     } catch (error: any) {
-      logger.error(`❌ MongoDB updateMany failed for table ${table}`, "MongoController", { error: error.message });
+      logger.error(
+        `❌ MongoDB updateMany failed for table ${table}`,
+        "MongoController",
+        { error: error.message },
+      );
       throw error;
     }
   }
 
-  async deleteMany(table: string, filter: any): Promise<{ deletedCount: number }> {
+  async deleteMany(
+    table: string,
+    filter: any,
+  ): Promise<{ deletedCount: number }> {
     try {
       this.ensureConnection();
       const collection = this.getCollection(table);
       const result = await collection.deleteMany(filter);
       return { deletedCount: result.deletedCount };
     } catch (error: any) {
-      logger.error(`❌ MongoDB deleteMany failed for table ${table}`, "MongoController", { error: error.message });
+      logger.error(
+        `❌ MongoDB deleteMany failed for table ${table}`,
+        "MongoController",
+        { error: error.message },
+      );
       throw error;
     }
   }
@@ -259,18 +342,30 @@ class MongoDBService implements MongoService {
       const collection = this.getCollection(table);
       return await collection.countDocuments(query);
     } catch (error: any) {
-      logger.error(`❌ MongoDB count failed for table ${table}`, "MongoController", { error: error.message });
+      logger.error(
+        `❌ MongoDB count failed for table ${table}`,
+        "MongoController",
+        { error: error.message },
+      );
       return 0;
     }
   }
 
-  async distinct(table: string, field: string, query: any = {}): Promise<any[]> {
+  async distinct(
+    table: string,
+    field: string,
+    query: any = {},
+  ): Promise<any[]> {
     try {
       this.ensureConnection();
       const collection = this.getCollection(table);
       return await collection.distinct(field, query);
     } catch (error: any) {
-      logger.error(`❌ MongoDB distinct failed for table ${table}`, "MongoController", { error: error.message });
+      logger.error(
+        `❌ MongoDB distinct failed for table ${table}`,
+        "MongoController",
+        { error: error.message },
+      );
       return [];
     }
   }
@@ -280,9 +375,13 @@ class MongoDBService implements MongoService {
       this.ensureConnection();
       const collection = this.getCollection(table);
       const cursor = collection.aggregate(pipeline);
-      return await cursor.toArray() as T[];
+      return (await cursor.toArray()) as T[];
     } catch (error: any) {
-      logger.error(`❌ MongoDB aggregate failed for table ${table}`, "MongoController", { error: error.message });
+      logger.error(
+        `❌ MongoDB aggregate failed for table ${table}`,
+        "MongoController",
+        { error: error.message },
+      );
       return [];
     }
   }
@@ -297,7 +396,9 @@ class MongoDBService implements MongoService {
       await this.database.admin().ping();
       return true;
     } catch (error: any) {
-      logger.warn("⚠️ MongoDB health check failed", "MongoController", { error: error.message });
+      logger.warn("⚠️ MongoDB health check failed", "MongoController", {
+        error: error.message,
+      });
       return false;
     }
   }
@@ -317,15 +418,17 @@ class MongoDBService implements MongoService {
           dataSize: stats.dataSize,
           storageSize: stats.storageSize,
           indexes: stats.indexes,
-          objects: stats.objects
-        }
+          objects: stats.objects,
+        },
       };
     } catch (error: any) {
-      logger.error("❌ MongoDB stats failed", "MongoController", { error: error.message });
+      logger.error("❌ MongoDB stats failed", "MongoController", {
+        error: error.message,
+      });
       return {
         connected: this.isConnected,
         database: this.config.database,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -359,7 +462,7 @@ class MongoDBService implements MongoService {
     try {
       if (!this.database) return [];
       const collections = await this.database.listCollections().toArray();
-      return collections.map(c => c.name);
+      return collections.map((c) => c.name);
     } catch (error: any) {
       return [];
     }
@@ -369,17 +472,23 @@ class MongoDBService implements MongoService {
     logger.error("❌ MongoDB connection failed", "MongoController", {
       error: error.message,
       retries: this.connectionRetries,
-      maxRetries: this.maxRetries
+      maxRetries: this.maxRetries,
     });
 
     if (this.connectionRetries < this.maxRetries) {
       this.connectionRetries++;
-      logger.info(`🔄 Retrying MongoDB connection in ${this.retryDelay}ms... (${this.connectionRetries}/${this.maxRetries})`, "MongoController");
+      logger.info(
+        `🔄 Retrying MongoDB connection in ${this.retryDelay}ms... (${this.connectionRetries}/${this.maxRetries})`,
+        "MongoController",
+      );
 
-      await new Promise(resolve => setTimeout(resolve, this.retryDelay));
+      await new Promise((resolve) => setTimeout(resolve, this.retryDelay));
       await this.initialize();
     } else {
-      logger.warn("⚠️ MongoDB connection failed after max retries - running in fallback mode", "MongoController");
+      logger.warn(
+        "⚠️ MongoDB connection failed after max retries - running in fallback mode",
+        "MongoController",
+      );
       this.isConnected = false;
     }
   }
@@ -413,7 +522,7 @@ export const mongoController = new Elysia({ name: "mongo" })
 
       logger.info("✅ MongoDB Controller ready", "MongoController", {
         connected: mongoService.isConnected,
-        database: mongoConfig.database
+        database: mongoConfig.database,
       });
 
       return {
@@ -433,13 +542,16 @@ export const mongoController = new Elysia({ name: "mongo" })
         distinct: mongoService.distinct.bind(mongoService),
         aggregate: mongoService.aggregate.bind(mongoService),
         mongoHealthCheck: mongoService.healthCheck.bind(mongoService),
-        mongoStats: mongoService.getStats.bind(mongoService)
+        mongoStats: mongoService.getStats.bind(mongoService),
       };
-
     } catch (error: any) {
-      logger.error("❌ MongoDB Controller initialization failed", "MongoController", {
-        error: error.message
-      });
+      logger.error(
+        "❌ MongoDB Controller initialization failed",
+        "MongoController",
+        {
+          error: error.message,
+        },
+      );
 
       // Return fallback service that doesn't crash the application
       const fallbackService: MongoService = {
@@ -459,7 +571,10 @@ export const mongoController = new Elysia({ name: "mongo" })
         distinct: async () => [],
         aggregate: async () => [],
         healthCheck: async () => false,
-        getStats: async () => ({ connected: false, error: "Connection failed" })
+        getStats: async () => ({
+          connected: false,
+          error: "Connection failed",
+        }),
       };
 
       return {
@@ -478,7 +593,7 @@ export const mongoController = new Elysia({ name: "mongo" })
         distinct: fallbackService.distinct,
         aggregate: fallbackService.aggregate,
         mongoHealthCheck: fallbackService.healthCheck,
-        mongoStats: fallbackService.getStats
+        mongoStats: fallbackService.getStats,
       };
     }
   })
@@ -488,26 +603,26 @@ export const mongoController = new Elysia({ name: "mongo" })
       logger.info("🛑 MongoDB Controller stopped", "MongoController");
     }
   })
-  .as('global'); // Global scope for database access across all routes
+  .as("global"); // Global scope for database access across all routes
 
 // MongoDB Controller Context Type
 export interface MongoControllerContext {
   mongo: MongoService;
   mongoService: MongoService;
-  findOne: MongoService['findOne'];
-  find: MongoService['find'];
-  insertOne: MongoService['insertOne'];
-  updateOne: MongoService['updateOne'];
-  deleteOne: MongoService['deleteOne'];
-  upsert: MongoService['upsert'];
-  insertMany: MongoService['insertMany'];
-  updateMany: MongoService['updateMany'];
-  deleteMany: MongoService['deleteMany'];
-  count: MongoService['count'];
-  distinct: MongoService['distinct'];
-  aggregate: MongoService['aggregate'];
-  mongoHealthCheck: MongoService['healthCheck'];
-  mongoStats: MongoService['getStats'];
+  findOne: MongoService["findOne"];
+  find: MongoService["find"];
+  insertOne: MongoService["insertOne"];
+  updateOne: MongoService["updateOne"];
+  deleteOne: MongoService["deleteOne"];
+  upsert: MongoService["upsert"];
+  insertMany: MongoService["insertMany"];
+  updateMany: MongoService["updateMany"];
+  deleteMany: MongoService["deleteMany"];
+  count: MongoService["count"];
+  distinct: MongoService["distinct"];
+  aggregate: MongoService["aggregate"];
+  mongoHealthCheck: MongoService["healthCheck"];
+  mongoStats: MongoService["getStats"];
 }
 
 export default mongoController;

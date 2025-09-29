@@ -23,6 +23,8 @@ import { mongoController } from "./mongo-controller";
 import { cacheController } from "./cache-controller";
 import { syncController } from "./sync-controller";
 import { healthController } from "./health-controller";
+import { apiControllerPlugin } from "./api-controller";
+import { ticketControllerPlugin } from "./ticket-controller";
 
 // Service availability tracking
 export interface ServiceStatus {
@@ -31,6 +33,8 @@ export interface ServiceStatus {
   cache: boolean;
   sync: boolean;
   health: boolean;
+  api: boolean;
+  ticket: boolean;
 }
 
 // Service locator configuration
@@ -52,7 +56,9 @@ export class ServiceRegistry {
     mongo: false,
     cache: false,
     sync: false,
-    health: false
+    health: false,
+    api: false,
+    ticket: false,
   };
   private startTime = Date.now();
 
@@ -101,7 +107,7 @@ export class ServiceRegistry {
       registeredServices: Array.from(this.services.keys()),
       serviceStatus: this.serviceStatus,
       uptime: Date.now() - this.startTime,
-      totalServices: this.services.size
+      totalServices: this.services.size,
     };
   }
 
@@ -115,7 +121,9 @@ export class ServiceRegistry {
       mongo: false,
       cache: false,
       sync: false,
-      health: false
+      health: false,
+      api: false,
+      ticket: false,
     };
   }
 
@@ -141,216 +149,381 @@ export const globalServiceRegistry = new ServiceRegistry();
  * 3. cacheController (global) - Redis cache and streams
  * 4. syncController (scoped) - ServiceNow synchronization
  * 5. healthController (scoped) - System monitoring
+ * 6. apiControllerPlugin (scoped) - REST API endpoints
+ * 7. ticketControllerPlugin (scoped) - Ticket management operations
  */
 export const serviceLocator = new Elysia({ name: "service-locator" })
   .onStart(async () => {
-    logger.info("🏗️ Service Locator initializing - composing specialized controllers", "ServiceLocator");
+    logger.info(
+      "🏗️ Service Locator initializing - composing specialized controllers",
+      "ServiceLocator",
+    );
   })
   // Phase 1: Core Infrastructure Services (Global scope)
-  .use(configPlugin)        // Configuration - scoped for wide availability
-  .use(mongoController)     // MongoDB - global for database access
-  .use(cacheController)     // Redis Cache - global for caching
+  .use(configPlugin) // Configuration - scoped for wide availability
+  .use(mongoController) // MongoDB - global for database access
+  .use(cacheController) // Redis Cache - global for caching
 
   // Phase 2: Business Logic Services (Scoped scope)
-  .use(syncController)      // ServiceNow Sync - scoped for composition
-  .use(healthController)    // Health Monitoring - scoped for monitoring
+  .use(syncController) // ServiceNow Sync - scoped for composition
+  .use(healthController) // Health Monitoring - scoped for monitoring
+  .use(apiControllerPlugin) // API Controller - scoped for REST endpoints
+  .use(ticketControllerPlugin) // Ticket Controller - scoped for ticket operations
 
   // Phase 3: Service Registration and Context Creation
-  .derive(async ({
-    config,
-    mongoService,
-    cacheService,
-    syncService,
-    healthService
-  }) => {
-    try {
-      logger.info("🔗 Service Locator composing services...", "ServiceLocator");
+  .derive(
+    async ({
+      config,
+      mongoService,
+      cacheService,
+      syncService,
+      healthService,
+      apiController,
+      ticketController,
+    }) => {
+      try {
+        logger.info(
+          "🔗 Service Locator composing services...",
+          "ServiceLocator",
+        );
 
-      // Register all services in the global registry
-      if (config) {
-        globalServiceRegistry.register('config', config);
-      }
-      if (mongoService) {
-        globalServiceRegistry.register('mongo', mongoService);
-      }
-      if (cacheService) {
-        globalServiceRegistry.register('cache', cacheService);
-      }
-      if (syncService) {
-        globalServiceRegistry.register('sync', syncService);
-      }
-      if (healthService) {
-        globalServiceRegistry.register('health', healthService);
-      }
-
-      // Get service availability status
-      const serviceStatus = globalServiceRegistry.getServiceStatus();
-      const availableServices = Object.entries(serviceStatus)
-        .filter(([_, available]) => available)
-        .map(([name]) => name);
-
-      logger.info("✅ Service Locator ready", "ServiceLocator", {
-        availableServices,
-        totalServices: availableServices.length,
-        serviceStatus
-      });
-
-      // Return unified service interface following Elysia patterns
-      return {
-        // Service Registry Access
-        services: globalServiceRegistry,
-        serviceRegistry: globalServiceRegistry,
-        serviceStatus,
-
-        // Direct Service Access (with null safety)
-        config: config || null,
-        mongo: mongoService || null,
-        cache: cacheService || null,
-        sync: syncService || null,
-        health: healthService || null,
-
-        // Convenience Methods - Configuration
-        getConfig: config?.getConfig || (() => ({})),
-        getSection: config?.getSection || (() => null),
-        updateSection: config?.updateSection || (async () => false),
-
-        // Convenience Methods - Database
-        findOne: mongoService?.findOne || (async () => null),
-        find: mongoService?.find || (async () => []),
-        insertOne: mongoService?.insertOne || (async () => ({ insertedId: "fallback" })),
-        updateOne: mongoService?.updateOne || (async () => ({ modifiedCount: 0 })),
-        deleteOne: mongoService?.deleteOne || (async () => ({ deletedCount: 0 })),
-        upsert: mongoService?.upsert || (async () => ({ modifiedCount: 0 })),
-
-        // Convenience Methods - Cache
-        cacheGet: cacheService?.get || (async () => null),
-        cacheSet: cacheService?.set || (async () => false),
-        cacheDel: cacheService?.del || (async () => false),
-        cacheHget: cacheService?.hget || (async () => null),
-        cacheHset: cacheService?.hset || (async () => false),
-        cacheXadd: cacheService?.xadd || (async () => "0-0"),
-        cachePublish: cacheService?.publish || (async () => 0),
-
-        // Convenience Methods - Sync
-        syncTable: syncService?.syncTable || (async () => ({
-          table: '',
-          success: false,
-          processed: 0,
-          inserted: 0,
-          updated: 0,
-          deleted: 0,
-          errors: ['Service not available'],
-          duration: 0,
-          timestamp: new Date().toISOString(),
-          strategy: 'fallback',
-          batchSize: 0
-        })),
-        startAutoSync: syncService?.startAutoSync || (async () => false),
-        stopAutoSync: syncService?.stopAutoSync || (async () => false),
-        getSyncStats: syncService?.getSyncStats || (async () => []),
-
-        // Convenience Methods - Health
-        checkSystemHealth: healthService?.checkSystemHealth || (async () => ({
-          status: 'unknown' as any,
-          timestamp: new Date().toISOString(),
-          uptime: 0,
-          services: [],
-          metrics: {} as any,
-          alerts: [],
-          version: '1.0.0'
-        })),
-        checkServiceHealth: healthService?.checkServiceHealth || (async () => ({
-          service: '',
-          status: 'unknown' as any,
-          responseTime: 0,
-          timestamp: new Date().toISOString(),
-          error: 'Service not available'
-        })),
-        isHealthy: healthService?.isHealthy || (async () => false),
-        getSystemMetrics: healthService?.getSystemMetrics || (async () => ({} as any)),
-
-        // Health Check - Service Locator Level
-        healthCheck: async (): Promise<boolean> => {
-          try {
-            const status = globalServiceRegistry.getServiceStatus();
-            const criticalServices = ['config', 'mongo', 'cache'];
-
-            // Check if critical services are available
-            const criticalAvailable = criticalServices.every(service => status[service as keyof ServiceStatus]);
-
-            // Additional health checks for available services
-            const mongoHealthy = mongoService ? await mongoService.healthCheck() : true;
-            const cacheHealthy = cacheService ? await cacheService.healthCheck() : true;
-            const syncHealthy = syncService ? await syncService.healthCheck() : true;
-            const healthHealthy = healthService ? await healthService.isHealthy() : true;
-
-            return criticalAvailable && mongoHealthy && cacheHealthy && syncHealthy && healthHealthy;
-          } catch (error: any) {
-            logger.error("❌ Service Locator health check failed", "ServiceLocator", {
-              error: error.message
-            });
-            return false;
-          }
-        },
-
-        // Statistics and Diagnostics
-        getStats: async (): Promise<any> => {
-          try {
-            const registryStats = globalServiceRegistry.getStats();
-            const mongoStats = mongoService ? await mongoService.getStats() : null;
-            const cacheStats = cacheService ? await cacheService.getStats() : null;
-            const syncStats = syncService ? await syncService.getStats() : null;
-            const healthStats = healthService ? await healthService.getStats() : null;
-
-            return {
-              serviceLocator: registryStats,
-              services: {
-                mongo: mongoStats,
-                cache: cacheStats,
-                sync: syncStats,
-                health: healthStats
-              }
-            };
-          } catch (error: any) {
-            return {
-              error: error.message,
-              serviceLocator: globalServiceRegistry.getStats()
-            };
-          }
+        // Register all services in the global registry
+        if (config) {
+          globalServiceRegistry.register("config", config);
         }
-      };
+        if (mongoService) {
+          globalServiceRegistry.register("mongo", mongoService);
+        }
+        if (cacheService) {
+          globalServiceRegistry.register("cache", cacheService);
+        }
+        if (syncService) {
+          globalServiceRegistry.register("sync", syncService);
+        }
+        if (healthService) {
+          globalServiceRegistry.register("health", healthService);
+        }
+        if (apiController) {
+          globalServiceRegistry.register("api", apiController);
+        }
+        if (ticketController) {
+          globalServiceRegistry.register("ticket", ticketController);
+        }
 
-    } catch (error: any) {
-      logger.error("❌ Service Locator composition failed", "ServiceLocator", {
-        error: error.message
-      });
+        // Get service availability status
+        const serviceStatus = globalServiceRegistry.getServiceStatus();
+        const availableServices = Object.entries(serviceStatus)
+          .filter(([_, available]) => available)
+          .map(([name]) => name);
 
-      // Return minimal fallback interface
-      return {
-        services: globalServiceRegistry,
-        serviceRegistry: globalServiceRegistry,
-        serviceStatus: {
-          config: false,
-          mongo: false,
-          cache: false,
-          sync: false,
-          health: false
-        },
-        config: null,
-        mongo: null,
-        cache: null,
-        sync: null,
-        health: null,
-        healthCheck: async () => false,
-        getStats: async () => ({ error: "Service composition failed" })
-      };
-    }
-  })
+        logger.info("✅ Service Locator ready", "ServiceLocator", {
+          availableServices,
+          totalServices: availableServices.length,
+          serviceStatus,
+        });
+
+        // Return unified service interface following Elysia patterns
+        return {
+          // Service Registry Access
+          services: globalServiceRegistry,
+          serviceRegistry: globalServiceRegistry,
+          serviceStatus,
+
+          // Direct Service Access (with null safety)
+          config: config || null,
+          mongo: mongoService || null,
+          cache: cacheService || null,
+          sync: syncService || null,
+          health: healthService || null,
+          api: apiController || null,
+          ticket: ticketController || null,
+
+          // Convenience Methods - Configuration
+          getConfig: config?.getConfig || (() => ({})),
+          getSection: config?.getSection || (() => null),
+          updateSection: config?.updateSection || (async () => false),
+
+          // Convenience Methods - Database
+          findOne: mongoService?.findOne || (async () => null),
+          find: mongoService?.find || (async () => []),
+          insertOne:
+            mongoService?.insertOne ||
+            (async () => ({ insertedId: "fallback" })),
+          updateOne:
+            mongoService?.updateOne || (async () => ({ modifiedCount: 0 })),
+          deleteOne:
+            mongoService?.deleteOne || (async () => ({ deletedCount: 0 })),
+          upsert: mongoService?.upsert || (async () => ({ modifiedCount: 0 })),
+
+          // Convenience Methods - Cache
+          cacheGet: cacheService?.get || (async () => null),
+          cacheSet: cacheService?.set || (async () => false),
+          cacheDel: cacheService?.del || (async () => false),
+          cacheHget: cacheService?.hget || (async () => null),
+          cacheHset: cacheService?.hset || (async () => false),
+          cacheXadd: cacheService?.xadd || (async () => "0-0"),
+          cachePublish: cacheService?.publish || (async () => 0),
+
+          // Convenience Methods - Sync
+          syncTable:
+            syncService?.syncTable ||
+            (async () => ({
+              table: "",
+              success: false,
+              processed: 0,
+              inserted: 0,
+              updated: 0,
+              deleted: 0,
+              errors: ["Service not available"],
+              duration: 0,
+              timestamp: new Date().toISOString(),
+              strategy: "fallback",
+              batchSize: 0,
+            })),
+          startAutoSync: syncService?.startAutoSync || (async () => false),
+          stopAutoSync: syncService?.stopAutoSync || (async () => false),
+          getSyncStats: syncService?.getSyncStats || (async () => []),
+
+          // Convenience Methods - Health
+          checkSystemHealth:
+            healthService?.checkSystemHealth ||
+            (async () => ({
+              status: "unknown" as any,
+              timestamp: new Date().toISOString(),
+              uptime: 0,
+              services: [],
+              metrics: {} as any,
+              alerts: [],
+              version: "1.0.0",
+            })),
+          checkServiceHealth:
+            healthService?.checkServiceHealth ||
+            (async () => ({
+              service: "",
+              status: "unknown" as any,
+              responseTime: 0,
+              timestamp: new Date().toISOString(),
+              error: "Service not available",
+            })),
+          isHealthy: healthService?.isHealthy || (async () => false),
+          getSystemMetrics:
+            healthService?.getSystemMetrics || (async () => ({}) as any),
+
+          // Convenience Methods - API Controller
+          getIncidents:
+            apiController?.getIncidents ||
+            (async () => ({
+              incidents: [],
+              count: 0,
+              error: "API service unavailable",
+            })),
+          getProblems:
+            apiController?.getProblems ||
+            (async () => ({
+              problems: [],
+              count: 0,
+              error: "API service unavailable",
+            })),
+          getChanges:
+            apiController?.getChanges ||
+            (async () => ({
+              changes: [],
+              count: 0,
+              error: "API service unavailable",
+            })),
+          processToParquet:
+            apiController?.processToParquet ||
+            (async () => ({
+              success: false,
+              error: "API service unavailable",
+            })),
+          executePipeline:
+            apiController?.executePipeline ||
+            (async () => ({
+              success: false,
+              error: "API service unavailable",
+            })),
+          getDashboardAnalytics:
+            apiController?.getDashboardAnalytics ||
+            (async () => ({
+              html: "<div>Service unavailable</div>",
+              data: {},
+            })),
+          syncCurrentMonthTickets:
+            apiController?.syncCurrentMonthTickets ||
+            (async () => ({
+              success: false,
+              error: "API service unavailable",
+            })),
+          getMongoDBStats:
+            apiController?.getMongoDBStats ||
+            (async () => ({
+              success: false,
+              error: "API service unavailable",
+            })),
+          getTargetGroups:
+            apiController?.getTargetGroups ||
+            (async () => ({
+              success: false,
+              groups: [],
+              error: "API service unavailable",
+            })),
+          getProcessingStatus:
+            apiController?.getProcessingStatus ||
+            (async () => "<div>Service unavailable</div>"),
+
+          // Convenience Methods - Ticket Controller
+          getTicketDetails:
+            ticketController?.getTicketDetails ||
+            (async () => {
+              throw new Error("Ticket service unavailable");
+            }),
+          getEnhancedModal:
+            ticketController?.getEnhancedModal ||
+            (async () => "<div>Ticket service unavailable</div>"),
+          getLazyLoadTickets:
+            ticketController?.getLazyLoadTickets || (async () => []),
+          getTicketCount: ticketController?.getTicketCount || (async () => 0),
+          getStatusLabel:
+            ticketController?.getStatusLabel || ((state: string) => "Unknown"),
+          getPriorityLabel:
+            ticketController?.getPriorityLabel ||
+            ((priority: string) => "Unknown"),
+          ticketHealthCheck:
+            ticketController?.ticketHealthCheck || (async () => false),
+          getTicketStats:
+            ticketController?.getTicketStats ||
+            (async () => ({ error: "Service unavailable" })),
+
+          // Health Check - Service Locator Level
+          healthCheck: async (): Promise<boolean> => {
+            try {
+              const status = globalServiceRegistry.getServiceStatus();
+              const criticalServices = ["config", "mongo", "cache"];
+
+              // Check if critical services are available
+              const criticalAvailable = criticalServices.every(
+                (service) => status[service as keyof ServiceStatus],
+              );
+
+              // Additional health checks for available services
+              const mongoHealthy = mongoService
+                ? await mongoService.healthCheck()
+                : true;
+              const cacheHealthy = cacheService
+                ? await cacheService.healthCheck()
+                : true;
+              const syncHealthy = syncService
+                ? await syncService.healthCheck()
+                : true;
+              const healthHealthy = healthService
+                ? await healthService.isHealthy()
+                : true;
+              const ticketHealthy = ticketController
+                ? await ticketController.ticketHealthCheck()
+                : true;
+
+              return (
+                criticalAvailable &&
+                mongoHealthy &&
+                cacheHealthy &&
+                syncHealthy &&
+                healthHealthy &&
+                ticketHealthy
+              );
+            } catch (error: any) {
+              logger.error(
+                "❌ Service Locator health check failed",
+                "ServiceLocator",
+                {
+                  error: error.message,
+                },
+              );
+              return false;
+            }
+          },
+
+          // Statistics and Diagnostics
+          getStats: async (): Promise<any> => {
+            try {
+              const registryStats = globalServiceRegistry.getStats();
+              const mongoStats = mongoService
+                ? await mongoService.getStats()
+                : null;
+              const cacheStats = cacheService
+                ? await cacheService.getStats()
+                : null;
+              const syncStats = syncService
+                ? await syncService.getStats()
+                : null;
+              const healthStats = healthService
+                ? await healthService.getStats()
+                : null;
+              const ticketStats = ticketController
+                ? await ticketController.getTicketStats()
+                : null;
+
+              return {
+                serviceLocator: registryStats,
+                services: {
+                  mongo: mongoStats,
+                  cache: cacheStats,
+                  sync: syncStats,
+                  health: healthStats,
+                  ticket: ticketStats,
+                },
+              };
+            } catch (error: any) {
+              return {
+                error: error.message,
+                serviceLocator: globalServiceRegistry.getStats(),
+              };
+            }
+          },
+        };
+      } catch (error: any) {
+        logger.error(
+          "❌ Service Locator composition failed",
+          "ServiceLocator",
+          {
+            error: error.message,
+          },
+        );
+
+        // Return minimal fallback interface
+        return {
+          services: globalServiceRegistry,
+          serviceRegistry: globalServiceRegistry,
+          serviceStatus: {
+            config: false,
+            mongo: false,
+            cache: false,
+            sync: false,
+            health: false,
+            api: false,
+            ticket: false,
+          },
+          config: null,
+          mongo: null,
+          cache: null,
+          sync: null,
+          health: null,
+          api: null,
+          ticket: null,
+          healthCheck: async () => false,
+          getStats: async () => ({ error: "Service composition failed" }),
+        };
+      }
+    },
+  )
   .onStop(async () => {
-    logger.info("🛑 Service Locator stopping - clearing service registry", "ServiceLocator");
+    logger.info(
+      "🛑 Service Locator stopping - clearing service registry",
+      "ServiceLocator",
+    );
     globalServiceRegistry.clear();
   })
-  .as('global'); // Global scope to make services available everywhere
+  .as("global"); // Global scope to make services available everywhere
 
 // Service Locator Context Type
 export interface ServiceLocatorContext {
@@ -365,6 +538,8 @@ export interface ServiceLocatorContext {
   cache: any;
   sync: any;
   health: any;
+  api: any;
+  ticket: any;
 
   // Configuration Methods
   getConfig: () => any;
@@ -375,9 +550,17 @@ export interface ServiceLocatorContext {
   findOne: (table: string, query: any) => Promise<any>;
   find: (table: string, query?: any, options?: any) => Promise<any[]>;
   insertOne: (table: string, document: any) => Promise<{ insertedId: string }>;
-  updateOne: (table: string, filter: any, update: any) => Promise<{ modifiedCount: number }>;
+  updateOne: (
+    table: string,
+    filter: any,
+    update: any,
+  ) => Promise<{ modifiedCount: number }>;
   deleteOne: (table: string, filter: any) => Promise<{ deletedCount: number }>;
-  upsert: (table: string, filter: any, document: any) => Promise<{ upsertedId?: string; modifiedCount: number }>;
+  upsert: (
+    table: string,
+    filter: any,
+    document: any,
+  ) => Promise<{ upsertedId?: string; modifiedCount: number }>;
 
   // Cache Methods
   cacheGet: (key: string) => Promise<any>;
@@ -403,6 +586,37 @@ export interface ServiceLocatorContext {
   // Service Locator Methods
   healthCheck: () => Promise<boolean>;
   getStats: () => Promise<any>;
+
+  // API Controller Methods
+  getIncidents: () => Promise<any>;
+  getProblems: () => Promise<any>;
+  getChanges: () => Promise<any>;
+  processToParquet: (tableName: string) => Promise<any>;
+  executePipeline: (pipelineType: string) => Promise<any>;
+  getDashboardAnalytics: () => Promise<any>;
+  syncCurrentMonthTickets: () => Promise<any>;
+  getMongoDBStats: () => Promise<any>;
+  getTargetGroups: () => Promise<any>;
+  getProcessingStatus: () => Promise<string>;
+
+  // Ticket Controller Methods
+  getTicketDetails: (sysId: string, table: string) => Promise<any>;
+  getEnhancedModal: (sysId: string, table: string) => Promise<string>;
+  getLazyLoadTickets: (
+    type: string,
+    state: string,
+    group?: string,
+    page?: number,
+  ) => Promise<any[]>;
+  getTicketCount: (
+    type: string,
+    state: string,
+    group?: string,
+  ) => Promise<number>;
+  getStatusLabel: (state: string) => string;
+  getPriorityLabel: (priority: string) => string;
+  ticketHealthCheck: () => Promise<boolean>;
+  getTicketStats: () => Promise<any>;
 }
 
 /**

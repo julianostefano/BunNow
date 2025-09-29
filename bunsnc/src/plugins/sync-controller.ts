@@ -27,7 +27,7 @@ export interface SyncConfig {
   enableDeltaSync?: boolean;
   enableRealTimeUpdates?: boolean;
   tables?: string[];
-  syncStrategy?: 'full' | 'delta' | 'incremental';
+  syncStrategy?: "full" | "delta" | "incremental";
   parallelTables?: number;
   timeoutMs?: number;
 }
@@ -43,7 +43,7 @@ export interface SyncStats {
   duration: number;
   startTime: string;
   endTime: string;
-  status: 'success' | 'partial' | 'failed';
+  status: "success" | "partial" | "failed";
 }
 
 // Sync Result Interface
@@ -80,7 +80,10 @@ export interface SyncService {
 
   // Manual sync operations
   syncTable(table: string, options?: Partial<SyncConfig>): Promise<SyncResult>;
-  syncTables(tables: string[], options?: Partial<SyncConfig>): Promise<SyncResult[]>;
+  syncTables(
+    tables: string[],
+    options?: Partial<SyncConfig>,
+  ): Promise<SyncResult[]>;
   syncAll(options?: Partial<SyncConfig>): Promise<SyncResult[]>;
 
   // Auto-sync operations
@@ -137,11 +140,11 @@ class ServiceNowSyncService implements SyncService {
       retryDelay: config.retryDelay || 2000,
       enableDeltaSync: config.enableDeltaSync || true,
       enableRealTimeUpdates: config.enableRealTimeUpdates || true,
-      tables: config.tables || ['incident', 'change_task', 'sc_task'],
-      syncStrategy: config.syncStrategy || 'delta',
+      tables: config.tables || ["incident", "change_task", "sc_task"],
+      syncStrategy: config.syncStrategy || "delta",
       parallelTables: config.parallelTables || 3,
       timeoutMs: config.timeoutMs || 300000, // 5 minutes
-      ...config
+      ...config,
     };
 
     this.autoSyncStatus = {
@@ -152,7 +155,7 @@ class ServiceNowSyncService implements SyncService {
       nextSync: null,
       totalSyncs: 0,
       errors: 0,
-      uptime: Date.now()
+      uptime: Date.now(),
     };
 
     // Inject dependencies
@@ -169,7 +172,7 @@ class ServiceNowSyncService implements SyncService {
       logger.info("🔄 Sync Service initializing...", "SyncController", {
         strategy: this.config.syncStrategy,
         tables: this.config.tables,
-        interval: this.config.syncInterval
+        interval: this.config.syncInterval,
       });
 
       // Initialize sync history cache
@@ -191,12 +194,11 @@ class ServiceNowSyncService implements SyncService {
       logger.info("✅ Sync Service ready", "SyncController", {
         tables: this.config.tables?.length,
         deltaSyncEnabled: this.deltaSyncEnabled.size,
-        realTimeEnabled: this.config.enableRealTimeUpdates
+        realTimeEnabled: this.config.enableRealTimeUpdates,
       });
-
     } catch (error: any) {
       logger.error("❌ Sync Service initialization failed", "SyncController", {
-        error: error.message
+        error: error.message,
       });
       throw error;
     }
@@ -217,7 +219,10 @@ class ServiceNowSyncService implements SyncService {
 
   // Manual Sync Operations
 
-  async syncTable(table: string, options: Partial<SyncConfig> = {}): Promise<SyncResult> {
+  async syncTable(
+    table: string,
+    options: Partial<SyncConfig> = {},
+  ): Promise<SyncResult> {
     const startTime = Date.now();
     const timestamp = new Date().toISOString();
 
@@ -231,7 +236,7 @@ class ServiceNowSyncService implements SyncService {
     try {
       logger.info(`🔄 Starting sync for table: ${table}`, "SyncController", {
         strategy: options.syncStrategy || this.config.syncStrategy,
-        batchSize: options.batchSize || this.config.batchSize
+        batchSize: options.batchSize || this.config.batchSize,
       });
 
       const result = await this.performTableSync(table, options);
@@ -247,7 +252,11 @@ class ServiceNowSyncService implements SyncService {
         duration: result.duration,
         startTime: timestamp,
         endTime: new Date().toISOString(),
-        status: result.success ? 'success' : (result.processed > 0 ? 'partial' : 'failed')
+        status: result.success
+          ? "success"
+          : result.processed > 0
+            ? "partial"
+            : "failed",
       };
 
       await this.storeSyncStats(table, stats);
@@ -255,15 +264,14 @@ class ServiceNowSyncService implements SyncService {
       logger.info(`✅ Sync completed for table: ${table}`, "SyncController", {
         processed: result.processed,
         duration: result.duration,
-        status: stats.status
+        status: stats.status,
       });
 
       return result;
-
     } catch (error: any) {
       logger.error(`❌ Sync failed for table: ${table}`, "SyncController", {
         error: error.message,
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       });
 
       return {
@@ -277,59 +285,73 @@ class ServiceNowSyncService implements SyncService {
         duration: Date.now() - startTime,
         timestamp,
         strategy: options.syncStrategy || this.config.syncStrategy!,
-        batchSize: options.batchSize || this.config.batchSize!
+        batchSize: options.batchSize || this.config.batchSize!,
       };
-
     } finally {
       this.activeSyncs.delete(table);
     }
   }
 
-  async syncTables(tables: string[], options: Partial<SyncConfig> = {}): Promise<SyncResult[]> {
-    const parallelLimit = options.parallelTables || this.config.parallelTables || 3;
+  async syncTables(
+    tables: string[],
+    options: Partial<SyncConfig> = {},
+  ): Promise<SyncResult[]> {
+    const parallelLimit =
+      options.parallelTables || this.config.parallelTables || 3;
     const results: SyncResult[] = [];
 
-    logger.info(`🔄 Starting sync for ${tables.length} tables`, "SyncController", {
-      tables,
-      parallelLimit,
-      strategy: options.syncStrategy || this.config.syncStrategy
-    });
+    logger.info(
+      `🔄 Starting sync for ${tables.length} tables`,
+      "SyncController",
+      {
+        tables,
+        parallelLimit,
+        strategy: options.syncStrategy || this.config.syncStrategy,
+      },
+    );
 
     // Process tables in batches to control concurrency
     for (let i = 0; i < tables.length; i += parallelLimit) {
       const batch = tables.slice(i, i + parallelLimit);
-      const batchPromises = batch.map(table => this.syncTable(table, options));
+      const batchPromises = batch.map((table) =>
+        this.syncTable(table, options),
+      );
 
       try {
         const batchResults = await Promise.allSettled(batchPromises);
 
         for (const result of batchResults) {
-          if (result.status === 'fulfilled') {
+          if (result.status === "fulfilled") {
             results.push(result.value);
           } else {
             logger.error("❌ Table sync failed in batch", "SyncController", {
-              error: result.reason
+              error: result.reason,
             });
           }
         }
       } catch (error: any) {
         logger.error("❌ Batch sync failed", "SyncController", {
           error: error.message,
-          batch
+          batch,
         });
       }
     }
 
-    logger.info(`✅ Completed sync for ${results.length}/${tables.length} tables`, "SyncController", {
-      successful: results.filter(r => r.success).length,
-      failed: results.filter(r => !r.success).length
-    });
+    logger.info(
+      `✅ Completed sync for ${results.length}/${tables.length} tables`,
+      "SyncController",
+      {
+        successful: results.filter((r) => r.success).length,
+        failed: results.filter((r) => !r.success).length,
+      },
+    );
 
     return results;
   }
 
   async syncAll(options: Partial<SyncConfig> = {}): Promise<SyncResult[]> {
-    const tables = options.tables || this.config.tables || ['incident', 'change_task', 'sc_task'];
+    const tables = options.tables ||
+      this.config.tables || ["incident", "change_task", "sc_task"];
     return await this.syncTables(tables, options);
   }
 
@@ -350,55 +372,63 @@ class ServiceNowSyncService implements SyncService {
       this.autoSyncTimer = setInterval(async () => {
         try {
           this.autoSyncStatus.lastSync = new Date().toISOString();
-          this.autoSyncStatus.nextSync = new Date(Date.now() + this.config.syncInterval!).toISOString();
+          this.autoSyncStatus.nextSync = new Date(
+            Date.now() + this.config.syncInterval!,
+          ).toISOString();
 
           logger.info("🔄 Auto-sync cycle starting", "SyncController", {
             tables: this.config.tables,
-            cycle: this.autoSyncStatus.totalSyncs + 1
+            cycle: this.autoSyncStatus.totalSyncs + 1,
           });
 
           const results = await this.syncAll(this.config);
-          const errors = results.filter(r => !r.success).length;
+          const errors = results.filter((r) => !r.success).length;
 
           this.autoSyncStatus.totalSyncs++;
           this.autoSyncStatus.errors += errors;
 
           if (errors > 0) {
-            logger.warn(`⚠️ Auto-sync cycle completed with ${errors} errors`, "SyncController");
+            logger.warn(
+              `⚠️ Auto-sync cycle completed with ${errors} errors`,
+              "SyncController",
+            );
           } else {
-            logger.info("✅ Auto-sync cycle completed successfully", "SyncController");
+            logger.info(
+              "✅ Auto-sync cycle completed successfully",
+              "SyncController",
+            );
           }
 
           // Publish sync completion event
           if (this.cacheService) {
-            await this.cacheService.publish('sync:completed', {
+            await this.cacheService.publish("sync:completed", {
               timestamp: new Date().toISOString(),
               results,
-              totalSyncs: this.autoSyncStatus.totalSyncs
+              totalSyncs: this.autoSyncStatus.totalSyncs,
             });
           }
-
         } catch (error: any) {
           this.autoSyncStatus.errors++;
           logger.error("❌ Auto-sync cycle failed", "SyncController", {
-            error: error.message
+            error: error.message,
           });
         }
       }, this.config.syncInterval);
 
       this.autoSyncStatus.isRunning = true;
-      this.autoSyncStatus.nextSync = new Date(Date.now() + this.config.syncInterval!).toISOString();
+      this.autoSyncStatus.nextSync = new Date(
+        Date.now() + this.config.syncInterval!,
+      ).toISOString();
 
       logger.info("✅ Auto-sync started", "SyncController", {
         interval: this.config.syncInterval,
-        tables: this.config.tables
+        tables: this.config.tables,
       });
 
       return true;
-
     } catch (error: any) {
       logger.error("❌ Failed to start auto-sync", "SyncController", {
-        error: error.message
+        error: error.message,
       });
       return false;
     }
@@ -418,7 +448,7 @@ class ServiceNowSyncService implements SyncService {
       return true;
     } catch (error: any) {
       logger.error("❌ Failed to stop auto-sync", "SyncController", {
-        error: error.message
+        error: error.message,
       });
       return false;
     }
@@ -443,15 +473,25 @@ class ServiceNowSyncService implements SyncService {
       // Store delta sync marker in cache
       if (this.cacheService) {
         await this.cacheService.set(`delta:${table}:enabled`, true);
-        await this.cacheService.set(`delta:${table}:last_sync`, new Date().toISOString());
+        await this.cacheService.set(
+          `delta:${table}:last_sync`,
+          new Date().toISOString(),
+        );
       }
 
-      logger.info(`✅ Delta sync enabled for table: ${table}`, "SyncController");
+      logger.info(
+        `✅ Delta sync enabled for table: ${table}`,
+        "SyncController",
+      );
       return true;
     } catch (error: any) {
-      logger.error(`❌ Failed to enable delta sync for table: ${table}`, "SyncController", {
-        error: error.message
-      });
+      logger.error(
+        `❌ Failed to enable delta sync for table: ${table}`,
+        "SyncController",
+        {
+          error: error.message,
+        },
+      );
       return false;
     }
   }
@@ -466,12 +506,19 @@ class ServiceNowSyncService implements SyncService {
         await this.cacheService.del(`delta:${table}:last_sync`);
       }
 
-      logger.info(`🛑 Delta sync disabled for table: ${table}`, "SyncController");
+      logger.info(
+        `🛑 Delta sync disabled for table: ${table}`,
+        "SyncController",
+      );
       return true;
     } catch (error: any) {
-      logger.error(`❌ Failed to disable delta sync for table: ${table}`, "SyncController", {
-        error: error.message
-      });
+      logger.error(
+        `❌ Failed to disable delta sync for table: ${table}`,
+        "SyncController",
+        {
+          error: error.message,
+        },
+      );
       return false;
     }
   }
@@ -489,14 +536,14 @@ class ServiceNowSyncService implements SyncService {
         table,
         enabled,
         lastSync,
-        strategy: enabled ? 'delta' : 'full'
+        strategy: enabled ? "delta" : "full",
       };
     } catch (error: any) {
       return {
         table,
         enabled: false,
         lastSync: null,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -506,7 +553,10 @@ class ServiceNowSyncService implements SyncService {
   async startRealTimeSync(tables: string[]): Promise<boolean> {
     try {
       if (!this.cacheService) {
-        logger.warn("⚠️ Real-time sync requires cache service", "SyncController");
+        logger.warn(
+          "⚠️ Real-time sync requires cache service",
+          "SyncController",
+        );
         return false;
       }
 
@@ -518,9 +568,9 @@ class ServiceNowSyncService implements SyncService {
         this.realTimeProcessor = setInterval(async () => {
           try {
             const updates = await this.cacheService.xread(
-              { [streamName]: '$' },
+              { [streamName]: "$" },
               1, // count
-              1000 // block 1 second
+              1000, // block 1 second
             );
 
             for (const update of updates) {
@@ -528,10 +578,14 @@ class ServiceNowSyncService implements SyncService {
             }
           } catch (error: any) {
             // Ignore timeout errors in real-time processing
-            if (!error.message.includes('timeout')) {
-              logger.error("❌ Real-time sync processing error", "SyncController", {
-                error: error.message
-              });
+            if (!error.message.includes("timeout")) {
+              logger.error(
+                "❌ Real-time sync processing error",
+                "SyncController",
+                {
+                  error: error.message,
+                },
+              );
             }
           }
         }, 5000); // Check every 5 seconds
@@ -539,10 +593,9 @@ class ServiceNowSyncService implements SyncService {
 
       logger.info("✅ Real-time sync started", "SyncController", { tables });
       return true;
-
     } catch (error: any) {
       logger.error("❌ Failed to start real-time sync", "SyncController", {
-        error: error.message
+        error: error.message,
       });
       return false;
     }
@@ -559,7 +612,7 @@ class ServiceNowSyncService implements SyncService {
       return true;
     } catch (error: any) {
       logger.error("❌ Failed to stop real-time sync", "SyncController", {
-        error: error.message
+        error: error.message,
       });
       return false;
     }
@@ -572,30 +625,36 @@ class ServiceNowSyncService implements SyncService {
 
       // Process update based on action type
       switch (action) {
-        case 'create':
+        case "create":
           if (this.mongoService) {
             await this.mongoService.insertOne(table, record);
           }
           break;
-        case 'update':
+        case "update":
           if (this.mongoService) {
-            await this.mongoService.updateOne(table, { sys_id: record.sys_id }, record);
+            await this.mongoService.updateOne(
+              table,
+              { sys_id: record.sys_id },
+              record,
+            );
           }
           break;
-        case 'delete':
+        case "delete":
           if (this.mongoService) {
             await this.mongoService.deleteOne(table, { sys_id: record.sys_id });
           }
           break;
       }
 
-      logger.debug(`🔄 Real-time update processed: ${table}:${action}`, "SyncController");
+      logger.debug(
+        `🔄 Real-time update processed: ${table}:${action}`,
+        "SyncController",
+      );
       return true;
-
     } catch (error: any) {
       logger.error("❌ Real-time update processing failed", "SyncController", {
         error: error.message,
-        update
+        update,
       });
       return false;
     }
@@ -614,10 +673,13 @@ class ServiceNowSyncService implements SyncService {
         allStats.push(...stats);
       }
 
-      return allStats.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+      return allStats.sort(
+        (a, b) =>
+          new Date(b.startTime).getTime() - new Date(a.startTime).getTime(),
+      );
     } catch (error: any) {
       logger.error("❌ Failed to get sync stats", "SyncController", {
-        error: error.message
+        error: error.message,
       });
       return [];
     }
@@ -628,9 +690,13 @@ class ServiceNowSyncService implements SyncService {
       const history = this.syncHistory.get(table) || [];
       return history.slice(0, limit);
     } catch (error: any) {
-      logger.error(`❌ Failed to get sync history for table: ${table}`, "SyncController", {
-        error: error.message
-      });
+      logger.error(
+        `❌ Failed to get sync history for table: ${table}`,
+        "SyncController",
+        {
+          error: error.message,
+        },
+      );
       return [];
     }
   }
@@ -643,11 +709,14 @@ class ServiceNowSyncService implements SyncService {
         this.syncHistory.clear();
       }
 
-      logger.info(`✅ Sync history cleared${table ? ` for table: ${table}` : ''}`, "SyncController");
+      logger.info(
+        `✅ Sync history cleared${table ? ` for table: ${table}` : ""}`,
+        "SyncController",
+      );
       return true;
     } catch (error: any) {
       logger.error("❌ Failed to clear sync history", "SyncController", {
-        error: error.message
+        error: error.message,
       });
       return false;
     }
@@ -662,13 +731,17 @@ class ServiceNowSyncService implements SyncService {
   async healthCheck(): Promise<boolean> {
     try {
       // Check if all dependencies are available
-      const mongoHealthy = this.mongoService ? await this.mongoService.healthCheck() : false;
-      const cacheHealthy = this.cacheService ? await this.cacheService.healthCheck() : false;
+      const mongoHealthy = this.mongoService
+        ? await this.mongoService.healthCheck()
+        : false;
+      const cacheHealthy = this.cacheService
+        ? await this.cacheService.healthCheck()
+        : false;
 
       return this.isInitialized && mongoHealthy && cacheHealthy;
     } catch (error: any) {
       logger.warn("⚠️ Sync service health check failed", "SyncController", {
-        error: error.message
+        error: error.message,
       });
       return false;
     }
@@ -690,20 +763,23 @@ class ServiceNowSyncService implements SyncService {
           syncInterval: this.config.syncInterval,
           batchSize: this.config.batchSize,
           syncStrategy: this.config.syncStrategy,
-          tables: this.config.tables
-        }
+          tables: this.config.tables,
+        },
       };
     } catch (error: any) {
       return {
         initialized: this.isInitialized,
-        error: error.message
+        error: error.message,
       };
     }
   }
 
   // Private Helper Methods
 
-  private async performTableSync(table: string, options: Partial<SyncConfig>): Promise<SyncResult> {
+  private async performTableSync(
+    table: string,
+    options: Partial<SyncConfig>,
+  ): Promise<SyncResult> {
     const startTime = Date.now();
     const config = { ...this.config, ...options };
 
@@ -714,7 +790,9 @@ class ServiceNowSyncService implements SyncService {
     const deleted = processed - inserted - updated;
 
     // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 500));
+    await new Promise((resolve) =>
+      setTimeout(resolve, Math.random() * 2000 + 500),
+    );
 
     return {
       table,
@@ -727,7 +805,7 @@ class ServiceNowSyncService implements SyncService {
       duration: Date.now() - startTime,
       timestamp: new Date().toISOString(),
       strategy: config.syncStrategy!,
-      batchSize: config.batchSize!
+      batchSize: config.batchSize!,
     };
   }
 
@@ -751,7 +829,7 @@ class ServiceNowSyncService implements SyncService {
       }
     } catch (error: any) {
       logger.error("❌ Failed to store sync stats", "SyncController", {
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -768,7 +846,7 @@ class ServiceNowSyncService implements SyncService {
       }
     } catch (error: any) {
       logger.warn("⚠️ Failed to load sync history", "SyncController", {
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -789,16 +867,16 @@ export const syncController = new Elysia({ name: "sync" })
       batchSize: config?.sync?.batchSize || 100,
       enableDeltaSync: config?.sync?.enableDeltaSync !== false,
       enableRealTimeUpdates: config?.sync?.enableRealTimeUpdates !== false,
-      tables: config?.sync?.tables || ['incident', 'change_task', 'sc_task'],
-      syncStrategy: config?.sync?.strategy || 'delta',
-      parallelTables: config?.sync?.parallelTables || 3
+      tables: config?.sync?.tables || ["incident", "change_task", "sc_task"],
+      syncStrategy: config?.sync?.strategy || "delta",
+      parallelTables: config?.sync?.parallelTables || 3,
     };
 
     // Create sync service instance with dependencies
     const syncService = new ServiceNowSyncService(syncConfig, {
       mongoService,
       cacheService,
-      serviceNowService: null // Will be injected when available
+      serviceNowService: null, // Will be injected when available
     });
 
     try {
@@ -808,7 +886,7 @@ export const syncController = new Elysia({ name: "sync" })
       logger.info("✅ Sync Controller ready", "SyncController", {
         tables: syncConfig.tables?.length,
         interval: syncConfig.syncInterval,
-        strategy: syncConfig.syncStrategy
+        strategy: syncConfig.syncStrategy,
       });
 
       return {
@@ -832,13 +910,16 @@ export const syncController = new Elysia({ name: "sync" })
         clearSyncHistory: syncService.clearSyncHistory.bind(syncService),
         getAutoSyncStatus: syncService.getAutoSyncStatus.bind(syncService),
         syncHealthCheck: syncService.healthCheck.bind(syncService),
-        syncStats: syncService.getStats.bind(syncService)
+        syncStats: syncService.getStats.bind(syncService),
       };
-
     } catch (error: any) {
-      logger.error("❌ Sync Controller initialization failed", "SyncController", {
-        error: error.message
-      });
+      logger.error(
+        "❌ Sync Controller initialization failed",
+        "SyncController",
+        {
+          error: error.message,
+        },
+      );
 
       // Return fallback service that doesn't crash the application
       const fallbackService: SyncService = {
@@ -851,20 +932,20 @@ export const syncController = new Elysia({ name: "sync" })
           nextSync: null,
           totalSyncs: 0,
           errors: 0,
-          uptime: Date.now()
+          uptime: Date.now(),
         },
         syncTable: async () => ({
-          table: '',
+          table: "",
           success: false,
           processed: 0,
           inserted: 0,
           updated: 0,
           deleted: 0,
-          errors: ['Service not available'],
+          errors: ["Service not available"],
           duration: 0,
           timestamp: new Date().toISOString(),
-          strategy: 'fallback',
-          batchSize: 0
+          strategy: "fallback",
+          batchSize: 0,
         }),
         syncTables: async () => [],
         syncAll: async () => [],
@@ -874,7 +955,10 @@ export const syncController = new Elysia({ name: "sync" })
         resumeAutoSync: async () => false,
         enableDeltaSync: async () => false,
         disableDeltaSync: async () => false,
-        getDeltaSyncStatus: async () => ({ enabled: false, error: 'Service not available' }),
+        getDeltaSyncStatus: async () => ({
+          enabled: false,
+          error: "Service not available",
+        }),
         startRealTimeSync: async () => false,
         stopRealTimeSync: async () => false,
         processRealTimeUpdate: async () => false,
@@ -889,10 +973,13 @@ export const syncController = new Elysia({ name: "sync" })
           nextSync: null,
           totalSyncs: 0,
           errors: 0,
-          uptime: Date.now()
+          uptime: Date.now(),
         }),
         healthCheck: async () => false,
-        getStats: async () => ({ initialized: false, error: 'Service not available' })
+        getStats: async () => ({
+          initialized: false,
+          error: "Service not available",
+        }),
       };
 
       return {
@@ -915,7 +1002,7 @@ export const syncController = new Elysia({ name: "sync" })
         clearSyncHistory: fallbackService.clearSyncHistory,
         getAutoSyncStatus: fallbackService.getAutoSyncStatus,
         syncHealthCheck: fallbackService.healthCheck,
-        syncStats: fallbackService.getStats
+        syncStats: fallbackService.getStats,
       };
     }
   })
@@ -925,30 +1012,30 @@ export const syncController = new Elysia({ name: "sync" })
       logger.info("🛑 Sync Controller stopped", "SyncController");
     }
   })
-  .as('scoped'); // Scoped for service composition
+  .as("scoped"); // Scoped for service composition
 
 // Sync Controller Context Type
 export interface SyncControllerContext {
   sync: SyncService;
   syncService: SyncService;
-  syncTable: SyncService['syncTable'];
-  syncTables: SyncService['syncTables'];
-  syncAll: SyncService['syncAll'];
-  startAutoSync: SyncService['startAutoSync'];
-  stopAutoSync: SyncService['stopAutoSync'];
-  pauseAutoSync: SyncService['pauseAutoSync'];
-  resumeAutoSync: SyncService['resumeAutoSync'];
-  enableDeltaSync: SyncService['enableDeltaSync'];
-  disableDeltaSync: SyncService['disableDeltaSync'];
-  getDeltaSyncStatus: SyncService['getDeltaSyncStatus'];
-  startRealTimeSync: SyncService['startRealTimeSync'];
-  stopRealTimeSync: SyncService['stopRealTimeSync'];
-  getSyncStats: SyncService['getSyncStats'];
-  getSyncHistory: SyncService['getSyncHistory'];
-  clearSyncHistory: SyncService['clearSyncHistory'];
-  getAutoSyncStatus: SyncService['getAutoSyncStatus'];
-  syncHealthCheck: SyncService['healthCheck'];
-  syncStats: SyncService['getStats'];
+  syncTable: SyncService["syncTable"];
+  syncTables: SyncService["syncTables"];
+  syncAll: SyncService["syncAll"];
+  startAutoSync: SyncService["startAutoSync"];
+  stopAutoSync: SyncService["stopAutoSync"];
+  pauseAutoSync: SyncService["pauseAutoSync"];
+  resumeAutoSync: SyncService["resumeAutoSync"];
+  enableDeltaSync: SyncService["enableDeltaSync"];
+  disableDeltaSync: SyncService["disableDeltaSync"];
+  getDeltaSyncStatus: SyncService["getDeltaSyncStatus"];
+  startRealTimeSync: SyncService["startRealTimeSync"];
+  stopRealTimeSync: SyncService["stopRealTimeSync"];
+  getSyncStats: SyncService["getSyncStats"];
+  getSyncHistory: SyncService["getSyncHistory"];
+  clearSyncHistory: SyncService["clearSyncHistory"];
+  getAutoSyncStatus: SyncService["getAutoSyncStatus"];
+  syncHealthCheck: SyncService["healthCheck"];
+  syncStats: SyncService["getStats"];
 }
 
 export default syncController;

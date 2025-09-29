@@ -27,15 +27,22 @@ describe("Service Locator v5.0.0 Architecture Tests", () => {
 
   describe("Service Locator Integration", () => {
     test("should integrate service locator with all specialized controllers", async () => {
-      const testApp = app.get("/locator-test", ({ services, serviceStatus }) => {
-        return {
-          hasServiceRegistry: !!services,
-          serviceStatus,
-          registeredServices: services ? services.getStats().registeredServices : []
-        };
-      });
+      const testApp = app.get(
+        "/locator-test",
+        ({ services, serviceStatus }) => {
+          return {
+            hasServiceRegistry: !!services,
+            serviceStatus,
+            registeredServices: services
+              ? services.getStats().registeredServices
+              : [],
+          };
+        },
+      );
 
-      const response = await testApp.handle(new Request("http://localhost/locator-test"));
+      const response = await testApp.handle(
+        new Request("http://localhost/locator-test"),
+      );
       const result = await response.json();
 
       expect(result).toBeDefined();
@@ -46,30 +53,29 @@ describe("Service Locator v5.0.0 Architecture Tests", () => {
     });
 
     test("should provide access to all specialized controllers", async () => {
-      const testApp = app.get("/controllers-test", ({
-        config,
-        mongo,
-        cache,
-        sync,
-        health
-      }) => {
-        return {
-          hasConfig: !!config,
-          hasMongo: !!mongo,
-          hasCache: !!cache,
-          hasSync: !!sync,
-          hasHealth: !!health,
-          controllersAvailable: [
-            config ? 'config' : null,
-            mongo ? 'mongo' : null,
-            cache ? 'cache' : null,
-            sync ? 'sync' : null,
-            health ? 'health' : null
-          ].filter(Boolean)
-        };
-      });
+      const testApp = app.get(
+        "/controllers-test",
+        ({ config, mongo, cache, sync, health }) => {
+          return {
+            hasConfig: !!config,
+            hasMongo: !!mongo,
+            hasCache: !!cache,
+            hasSync: !!sync,
+            hasHealth: !!health,
+            controllersAvailable: [
+              config ? "config" : null,
+              mongo ? "mongo" : null,
+              cache ? "cache" : null,
+              sync ? "sync" : null,
+              health ? "health" : null,
+            ].filter(Boolean),
+          };
+        },
+      );
 
-      const response = await testApp.handle(new Request("http://localhost/controllers-test"));
+      const response = await testApp.handle(
+        new Request("http://localhost/controllers-test"),
+      );
       const result = await response.json();
 
       expect(result).toBeDefined();
@@ -81,23 +87,22 @@ describe("Service Locator v5.0.0 Architecture Tests", () => {
     });
 
     test("should provide unified service interface", async () => {
-      const testApp = app.get("/unified-test", ({
-        getConfig,
-        findOne,
-        cacheGet,
-        syncTable,
-        checkSystemHealth
-      }) => {
-        return {
-          hasGetConfig: typeof getConfig === 'function',
-          hasFindOne: typeof findOne === 'function',
-          hasCacheGet: typeof cacheGet === 'function',
-          hasSyncTable: typeof syncTable === 'function',
-          hasCheckSystemHealth: typeof checkSystemHealth === 'function'
-        };
-      });
+      const testApp = app.get(
+        "/unified-test",
+        ({ getConfig, findOne, cacheGet, syncTable, checkSystemHealth }) => {
+          return {
+            hasGetConfig: typeof getConfig === "function",
+            hasFindOne: typeof findOne === "function",
+            hasCacheGet: typeof cacheGet === "function",
+            hasSyncTable: typeof syncTable === "function",
+            hasCheckSystemHealth: typeof checkSystemHealth === "function",
+          };
+        },
+      );
 
-      const response = await testApp.handle(new Request("http://localhost/unified-test"));
+      const response = await testApp.handle(
+        new Request("http://localhost/unified-test"),
+      );
       const result = await response.json();
 
       expect(result).toBeDefined();
@@ -111,26 +116,31 @@ describe("Service Locator v5.0.0 Architecture Tests", () => {
 
   describe("Specialized Controllers Functionality", () => {
     test("should handle configuration operations", async () => {
-      const testApp = app.get("/config-test", async ({ getConfig, getSection }) => {
-        try {
-          const config = getConfig();
-          const serverSection = getSection ? getSection('server') : null;
+      const testApp = app.get(
+        "/config-test",
+        async ({ getConfig, getSection }) => {
+          try {
+            const config = getConfig();
+            const serverSection = getSection ? getSection("server") : null;
 
-          return {
-            success: true,
-            hasConfig: !!config,
-            hasServerSection: !!serverSection,
-            configType: typeof config
-          };
-        } catch (error) {
-          return {
-            success: false,
-            error: (error as Error).message
-          };
-        }
-      });
+            return {
+              success: true,
+              hasConfig: !!config,
+              hasServerSection: !!serverSection,
+              configType: typeof config,
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: (error as Error).message,
+            };
+          }
+        },
+      );
 
-      const response = await testApp.handle(new Request("http://localhost/config-test"));
+      const response = await testApp.handle(
+        new Request("http://localhost/config-test"),
+      );
       const result = await response.json();
 
       expect(result).toBeDefined();
@@ -140,33 +150,36 @@ describe("Service Locator v5.0.0 Architecture Tests", () => {
     });
 
     test("should handle database operations gracefully", async () => {
-      const testApp = app.post("/mongo-test", async ({ findOne, insertOne }) => {
-        try {
-          // Test find operation
-          const existing = await findOne('test_table', { test: true });
+      const testApp = app.post(
+        "/mongo-test",
+        async ({ findOne, insertOne }) => {
+          try {
+            // Test find operation
+            const existing = await findOne("test_table", { test: true });
 
-          // Test insert operation
-          const insertResult = await insertOne('test_table', {
-            test: true,
-            timestamp: new Date().toISOString()
-          });
+            // Test insert operation
+            const insertResult = await insertOne("test_table", {
+              test: true,
+              timestamp: new Date().toISOString(),
+            });
 
-          return {
-            success: true,
-            findResult: existing,
-            insertResult,
-            hasInsertedId: !!insertResult.insertedId
-          };
-        } catch (error) {
-          return {
-            success: false,
-            error: (error as Error).message
-          };
-        }
-      });
+            return {
+              success: true,
+              findResult: existing,
+              insertResult,
+              hasInsertedId: !!insertResult.insertedId,
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: (error as Error).message,
+            };
+          }
+        },
+      );
 
       const response = await testApp.handle(
-        new Request("http://localhost/mongo-test", { method: "POST" })
+        new Request("http://localhost/mongo-test", { method: "POST" }),
       );
       const result = await response.json();
 
@@ -180,33 +193,37 @@ describe("Service Locator v5.0.0 Architecture Tests", () => {
     });
 
     test("should handle cache operations gracefully", async () => {
-      const testApp = app.post("/cache-test", async ({ cacheSet, cacheGet, cacheDel }) => {
-        try {
-          const testKey = `test:${Date.now()}`;
-          const testValue = { message: "test", timestamp: Date.now() };
+      const testApp = app.post(
+        "/cache-test",
+        async ({ cacheSet, cacheGet, cacheDel }) => {
+          try {
+            const testKey = `test:${Date.now()}`;
+            const testValue = { message: "test", timestamp: Date.now() };
 
-          // Test cache operations
-          const setResult = await cacheSet(testKey, testValue, 60);
-          const getValue = await cacheGet(testKey);
-          const delResult = await cacheDel(testKey);
+            // Test cache operations
+            const setResult = await cacheSet(testKey, testValue, 60);
+            const getValue = await cacheGet(testKey);
+            const delResult = await cacheDel(testKey);
 
-          return {
-            success: true,
-            setResult,
-            getValue,
-            delResult,
-            valueMatches: JSON.stringify(getValue) === JSON.stringify(testValue)
-          };
-        } catch (error) {
-          return {
-            success: false,
-            error: (error as Error).message
-          };
-        }
-      });
+            return {
+              success: true,
+              setResult,
+              getValue,
+              delResult,
+              valueMatches:
+                JSON.stringify(getValue) === JSON.stringify(testValue),
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: (error as Error).message,
+            };
+          }
+        },
+      );
 
       const response = await testApp.handle(
-        new Request("http://localhost/cache-test", { method: "POST" })
+        new Request("http://localhost/cache-test", { method: "POST" }),
       );
       const result = await response.json();
 
@@ -216,31 +233,34 @@ describe("Service Locator v5.0.0 Architecture Tests", () => {
     });
 
     test("should handle sync operations gracefully", async () => {
-      const testApp = app.post("/sync-test", async ({ syncTable, getSyncStats }) => {
-        try {
-          // Test sync operation
-          const syncResult = await syncTable('incident', { batchSize: 5 });
+      const testApp = app.post(
+        "/sync-test",
+        async ({ syncTable, getSyncStats }) => {
+          try {
+            // Test sync operation
+            const syncResult = await syncTable("incident", { batchSize: 5 });
 
-          // Test get stats
-          const stats = await getSyncStats('incident');
+            // Test get stats
+            const stats = await getSyncStats("incident");
 
-          return {
-            success: true,
-            syncResult,
-            stats,
-            hasSyncResult: !!syncResult,
-            statsIsArray: Array.isArray(stats)
-          };
-        } catch (error) {
-          return {
-            success: false,
-            error: (error as Error).message
-          };
-        }
-      });
+            return {
+              success: true,
+              syncResult,
+              stats,
+              hasSyncResult: !!syncResult,
+              statsIsArray: Array.isArray(stats),
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: (error as Error).message,
+            };
+          }
+        },
+      );
 
       const response = await testApp.handle(
-        new Request("http://localhost/sync-test", { method: "POST" })
+        new Request("http://localhost/sync-test", { method: "POST" }),
       );
       const result = await response.json();
 
@@ -254,37 +274,42 @@ describe("Service Locator v5.0.0 Architecture Tests", () => {
     });
 
     test("should handle health monitoring operations", async () => {
-      const testApp = app.get("/health-test", async ({
-        checkSystemHealth,
-        checkServiceHealth,
-        isHealthy,
-        getSystemMetrics
-      }) => {
-        try {
-          // Test health operations
-          const systemHealth = await checkSystemHealth();
-          const mongoHealth = await checkServiceHealth('mongodb');
-          const isSystemHealthy = await isHealthy();
-          const metrics = await getSystemMetrics();
+      const testApp = app.get(
+        "/health-test",
+        async ({
+          checkSystemHealth,
+          checkServiceHealth,
+          isHealthy,
+          getSystemMetrics,
+        }) => {
+          try {
+            // Test health operations
+            const systemHealth = await checkSystemHealth();
+            const mongoHealth = await checkServiceHealth("mongodb");
+            const isSystemHealthy = await isHealthy();
+            const metrics = await getSystemMetrics();
 
-          return {
-            success: true,
-            systemHealth,
-            mongoHealth,
-            isSystemHealthy,
-            metrics,
-            hasSystemHealth: !!systemHealth,
-            hasMetrics: !!metrics
-          };
-        } catch (error) {
-          return {
-            success: false,
-            error: (error as Error).message
-          };
-        }
-      });
+            return {
+              success: true,
+              systemHealth,
+              mongoHealth,
+              isSystemHealthy,
+              metrics,
+              hasSystemHealth: !!systemHealth,
+              hasMetrics: !!metrics,
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: (error as Error).message,
+            };
+          }
+        },
+      );
 
-      const response = await testApp.handle(new Request("http://localhost/health-test"));
+      const response = await testApp.handle(
+        new Request("http://localhost/health-test"),
+      );
       const result = await response.json();
 
       expect(result).toBeDefined();
@@ -300,29 +325,31 @@ describe("Service Locator v5.0.0 Architecture Tests", () => {
 
   describe("Error Handling and Graceful Degradation", () => {
     test("should handle service unavailability gracefully", async () => {
-      const testApp = app.get("/degradation-test", async ({
-        healthCheck,
-        getStats
-      }) => {
-        try {
-          const isHealthy = await healthCheck();
-          const stats = await getStats();
+      const testApp = app.get(
+        "/degradation-test",
+        async ({ healthCheck, getStats }) => {
+          try {
+            const isHealthy = await healthCheck();
+            const stats = await getStats();
 
-          return {
-            success: true,
-            isHealthy,
-            stats,
-            hasStats: !!stats
-          };
-        } catch (error) {
-          return {
-            success: false,
-            error: (error as Error).message
-          };
-        }
-      });
+            return {
+              success: true,
+              isHealthy,
+              stats,
+              hasStats: !!stats,
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: (error as Error).message,
+            };
+          }
+        },
+      );
 
-      const response = await testApp.handle(new Request("http://localhost/degradation-test"));
+      const response = await testApp.handle(
+        new Request("http://localhost/degradation-test"),
+      );
       const result = await response.json();
 
       expect(result).toBeDefined();
@@ -339,24 +366,24 @@ describe("Service Locator v5.0.0 Architecture Tests", () => {
       const testApp = app.post("/error-test", async ({ syncTable }) => {
         try {
           // Test with invalid parameters to trigger error handling
-          const result = await syncTable('invalid_table_name_that_should_fail');
+          const result = await syncTable("invalid_table_name_that_should_fail");
 
           return {
             success: true,
             result,
-            errorHandled: true
+            errorHandled: true,
           };
         } catch (error) {
           return {
             success: false,
             error: (error as Error).message,
-            errorCaught: true
+            errorCaught: true,
           };
         }
       });
 
       const response = await testApp.handle(
-        new Request("http://localhost/error-test", { method: "POST" })
+        new Request("http://localhost/error-test", { method: "POST" }),
       );
       const result = await response.json();
 
@@ -373,39 +400,37 @@ describe("Service Locator v5.0.0 Architecture Tests", () => {
 
   describe("Performance and Concurrency", () => {
     test("should handle multiple concurrent service requests", async () => {
-      const testApp = app.get("/concurrent/:id", async ({
-        params,
-        getConfig,
-        isHealthy,
-        cacheGet
-      }) => {
-        try {
-          // Simulate concurrent operations
-          const [config, healthy, cached] = await Promise.all([
-            Promise.resolve(getConfig()),
-            isHealthy(),
-            cacheGet(`test:${params.id}`)
-          ]);
+      const testApp = app.get(
+        "/concurrent/:id",
+        async ({ params, getConfig, isHealthy, cacheGet }) => {
+          try {
+            // Simulate concurrent operations
+            const [config, healthy, cached] = await Promise.all([
+              Promise.resolve(getConfig()),
+              isHealthy(),
+              cacheGet(`test:${params.id}`),
+            ]);
 
-          return {
-            id: params.id,
-            success: true,
-            hasConfig: !!config,
-            isHealthy: healthy,
-            cachedValue: cached
-          };
-        } catch (error) {
-          return {
-            id: params.id,
-            success: false,
-            error: (error as Error).message
-          };
-        }
-      });
+            return {
+              id: params.id,
+              success: true,
+              hasConfig: !!config,
+              isHealthy: healthy,
+              cachedValue: cached,
+            };
+          } catch (error) {
+            return {
+              id: params.id,
+              success: false,
+              error: (error as Error).message,
+            };
+          }
+        },
+      );
 
       // Create 5 concurrent requests
       const requests = Array.from({ length: 5 }, (_, i) =>
-        testApp.handle(new Request(`http://localhost/concurrent/${i}`))
+        testApp.handle(new Request(`http://localhost/concurrent/${i}`)),
       );
 
       const responses = await Promise.allSettled(requests);
@@ -414,7 +439,9 @@ describe("Service Locator v5.0.0 Architecture Tests", () => {
       expect(responses.length).toBe(5);
 
       // Most should succeed
-      const successful = responses.filter(r => r.status === "fulfilled").length;
+      const successful = responses.filter(
+        (r) => r.status === "fulfilled",
+      ).length;
       expect(successful).toBeGreaterThan(0);
 
       // Check response structure for successful requests
@@ -441,11 +468,13 @@ describe("Service Locator v5.0.0 Architecture Tests", () => {
           success: true,
           statsConsistent: JSON.stringify(stats1) === JSON.stringify(stats2),
           statusConsistent: JSON.stringify(status1) === JSON.stringify(status2),
-          registeredServices: stats1.registeredServices
+          registeredServices: stats1.registeredServices,
         };
       });
 
-      const response = await testApp.handle(new Request("http://localhost/consistency-test"));
+      const response = await testApp.handle(
+        new Request("http://localhost/consistency-test"),
+      );
       const result = await response.json();
 
       expect(result).toBeDefined();
@@ -464,11 +493,13 @@ describe("Service Locator v5.0.0 Architecture Tests", () => {
           return {
             initialized: !!services,
             stats: services ? services.getStats() : null,
-            serviceStatus
+            serviceStatus,
           };
         });
 
-      const response = await lifecycleApp.handle(new Request("http://localhost/lifecycle"));
+      const response = await lifecycleApp.handle(
+        new Request("http://localhost/lifecycle"),
+      );
       const result = await response.json();
 
       expect(result.initialized).toBe(true);
@@ -485,17 +516,19 @@ describe("Service Locator v5.0.0 Architecture Tests", () => {
             success: true,
             stats,
             hasServiceLocatorStats: !!stats.serviceLocator,
-            hasServicesStats: !!stats.services
+            hasServicesStats: !!stats.services,
           };
         } catch (error) {
           return {
             success: false,
-            error: (error as Error).message
+            error: (error as Error).message,
           };
         }
       });
 
-      const response = await testApp.handle(new Request("http://localhost/stats-test"));
+      const response = await testApp.handle(
+        new Request("http://localhost/stats-test"),
+      );
       const result = await response.json();
 
       expect(result).toBeDefined();
@@ -529,16 +562,18 @@ describe("v5.0.0 Architecture Compliance", () => {
         totalServices,
         followsOneControllerOneInstance: uniqueServices === totalServices,
         compliance: {
-          configService: registeredServices.includes('config'),
-          mongoService: registeredServices.includes('mongo'),
-          cacheService: registeredServices.includes('cache'),
-          syncService: registeredServices.includes('sync'),
-          healthService: registeredServices.includes('health')
-        }
+          configService: registeredServices.includes("config"),
+          mongoService: registeredServices.includes("mongo"),
+          cacheService: registeredServices.includes("cache"),
+          syncService: registeredServices.includes("sync"),
+          healthService: registeredServices.includes("health"),
+        },
       };
     });
 
-    const response = await testApp.handle(new Request("http://localhost/architecture-test"));
+    const response = await testApp.handle(
+      new Request("http://localhost/architecture-test"),
+    );
     const result = await response.json();
 
     expect(result).toBeDefined();
@@ -552,29 +587,34 @@ describe("v5.0.0 Architecture Compliance", () => {
   test("should demonstrate improved architecture over mega-plugin", async () => {
     const app = new Elysia().use(serviceLocator);
 
-    const testApp = app.get("/improvement-test", ({ services, serviceStatus }) => {
-      const stats = services.getStats();
+    const testApp = app.get(
+      "/improvement-test",
+      ({ services, serviceStatus }) => {
+        const stats = services.getStats();
 
-      return {
-        architecture: "specialized-controllers",
-        version: "v5.0.0",
-        principle: "1-controller-1-instance",
-        benefits: {
-          separationOfConcerns: true,
-          testability: true,
-          maintainability: true,
-          gracefulDegradation: true,
-          dependencyInjection: true
-        },
-        services: {
-          total: stats.registeredServices.length,
-          available: Object.values(serviceStatus).filter(Boolean).length,
-          status: serviceStatus
-        }
-      };
-    });
+        return {
+          architecture: "specialized-controllers",
+          version: "v5.0.0",
+          principle: "1-controller-1-instance",
+          benefits: {
+            separationOfConcerns: true,
+            testability: true,
+            maintainability: true,
+            gracefulDegradation: true,
+            dependencyInjection: true,
+          },
+          services: {
+            total: stats.registeredServices.length,
+            available: Object.values(serviceStatus).filter(Boolean).length,
+            status: serviceStatus,
+          },
+        };
+      },
+    );
 
-    const response = await testApp.handle(new Request("http://localhost/improvement-test"));
+    const response = await testApp.handle(
+      new Request("http://localhost/improvement-test"),
+    );
     const result = await response.json();
 
     expect(result).toBeDefined();

@@ -21,10 +21,10 @@ import os from "os";
 
 // Health Status Enum
 export enum HealthStatus {
-  HEALTHY = 'healthy',
-  DEGRADED = 'degraded',
-  UNHEALTHY = 'unhealthy',
-  UNKNOWN = 'unknown'
+  HEALTHY = "healthy",
+  DEGRADED = "degraded",
+  UNHEALTHY = "unhealthy",
+  UNKNOWN = "unknown",
 }
 
 // Health Check Result Interface
@@ -84,7 +84,7 @@ export interface SystemMetrics {
 // Health Alert Interface
 export interface HealthAlert {
   id: string;
-  level: 'info' | 'warning' | 'error' | 'critical';
+  level: "info" | "warning" | "error" | "critical";
   service: string;
   message: string;
   timestamp: string;
@@ -129,12 +129,15 @@ export interface HealthService {
   collectMetrics(): Promise<void>;
 
   // Health history
-  getHealthHistory(service?: string, limit?: number): Promise<HealthCheckResult[]>;
+  getHealthHistory(
+    service?: string,
+    limit?: number,
+  ): Promise<HealthCheckResult[]>;
   clearHealthHistory(service?: string): Promise<boolean>;
 
   // Alerts management
   getActiveAlerts(): Promise<HealthAlert[]>;
-  createAlert(alert: Omit<HealthAlert, 'id' | 'timestamp'>): Promise<string>;
+  createAlert(alert: Omit<HealthAlert, "id" | "timestamp">): Promise<string>;
   resolveAlert(alertId: string): Promise<boolean>;
   clearAlerts(): Promise<boolean>;
 
@@ -180,12 +183,12 @@ class SystemHealthService implements HealthService {
         memoryUsage: config.alertThresholds?.memoryUsage || 85,
         diskUsage: config.alertThresholds?.diskUsage || 90,
         responseTime: config.alertThresholds?.responseTime || 5000,
-        ...config.alertThresholds
+        ...config.alertThresholds,
       },
       enableMetrics: config.enableMetrics !== false,
       enableAlerts: config.enableAlerts !== false,
       enableHistory: config.enableHistory !== false,
-      ...config
+      ...config,
     };
 
     // Inject dependencies
@@ -203,7 +206,7 @@ class SystemHealthService implements HealthService {
       logger.info("🩺 Health Service initializing...", "HealthController", {
         checkInterval: this.config.checkInterval,
         enableMetrics: this.config.enableMetrics,
-        enableAlerts: this.config.enableAlerts
+        enableAlerts: this.config.enableAlerts,
       });
 
       // Load health history from cache
@@ -216,14 +219,17 @@ class SystemHealthService implements HealthService {
 
       this.isInitialized = true;
       logger.info("✅ Health Service ready", "HealthController", {
-        services: ['mongo', 'cache', 'sync'],
-        alertThresholds: this.config.alertThresholds
+        services: ["mongo", "cache", "sync"],
+        alertThresholds: this.config.alertThresholds,
       });
-
     } catch (error: any) {
-      logger.error("❌ Health Service initialization failed", "HealthController", {
-        error: error.message
-      });
+      logger.error(
+        "❌ Health Service initialization failed",
+        "HealthController",
+        {
+          error: error.message,
+        },
+      );
       throw error;
     }
   }
@@ -266,25 +272,24 @@ class SystemHealthService implements HealthService {
         services,
         metrics,
         alerts,
-        version: process.env.npm_package_version || '1.0.0'
+        version: process.env.npm_package_version || "1.0.0",
       };
 
       // Store in history if enabled
       if (this.config.enableHistory) {
-        await this.storeHealthCheck('system', {
-          service: 'system',
+        await this.storeHealthCheck("system", {
+          service: "system",
           status,
           responseTime: 0,
           timestamp,
-          details: summary
+          details: summary,
         });
       }
 
       return summary;
-
     } catch (error: any) {
       logger.error("❌ System health check failed", "HealthController", {
-        error: error.message
+        error: error.message,
       });
 
       return {
@@ -294,7 +299,7 @@ class SystemHealthService implements HealthService {
         services: [],
         metrics: await this.getSystemMetrics(),
         alerts: [],
-        version: '1.0.0'
+        version: "1.0.0",
       };
     }
   }
@@ -305,16 +310,16 @@ class SystemHealthService implements HealthService {
 
     try {
       switch (service.toLowerCase()) {
-        case 'mongodb':
-        case 'mongo':
+        case "mongodb":
+        case "mongo":
           return await this.checkMongoDB();
-        case 'redis':
-        case 'cache':
+        case "redis":
+        case "cache":
           return await this.checkRedis();
-        case 'servicenow':
-        case 'snow':
+        case "servicenow":
+        case "snow":
           return await this.checkServiceNow();
-        case 'sync':
+        case "sync":
           return await this.checkSyncService();
         default:
           return {
@@ -322,7 +327,7 @@ class SystemHealthService implements HealthService {
             status: HealthStatus.UNKNOWN,
             responseTime: Date.now() - startTime,
             timestamp,
-            error: `Unknown service: ${service}`
+            error: `Unknown service: ${service}`,
           };
       }
     } catch (error: any) {
@@ -331,19 +336,19 @@ class SystemHealthService implements HealthService {
         status: HealthStatus.UNHEALTHY,
         responseTime: Date.now() - startTime,
         timestamp,
-        error: error.message
+        error: error.message,
       };
     }
   }
 
   async checkAllServices(): Promise<HealthCheckResult[]> {
-    const services = ['mongodb', 'redis', 'sync'];
-    const checks = services.map(service => this.checkServiceHealth(service));
+    const services = ["mongodb", "redis", "sync"];
+    const checks = services.map((service) => this.checkServiceHealth(service));
 
     try {
       const results = await Promise.allSettled(checks);
       return results.map((result, index) => {
-        if (result.status === 'fulfilled') {
+        if (result.status === "fulfilled") {
           return result.value;
         } else {
           return {
@@ -351,13 +356,13 @@ class SystemHealthService implements HealthService {
             status: HealthStatus.UNHEALTHY,
             responseTime: 0,
             timestamp: new Date().toISOString(),
-            error: result.reason?.message || 'Health check failed'
+            error: result.reason?.message || "Health check failed",
           };
         }
       });
     } catch (error: any) {
       logger.error("❌ Failed to check all services", "HealthController", {
-        error: error.message
+        error: error.message,
       });
       return [];
     }
@@ -372,11 +377,11 @@ class SystemHealthService implements HealthService {
     try {
       if (!this.mongoService) {
         return {
-          service: 'mongodb',
+          service: "mongodb",
           status: HealthStatus.UNKNOWN,
           responseTime: Date.now() - startTime,
           timestamp,
-          error: 'MongoDB service not available'
+          error: "MongoDB service not available",
         };
       }
 
@@ -386,32 +391,32 @@ class SystemHealthService implements HealthService {
       if (isHealthy) {
         const stats = await this.mongoService.getStats();
         return {
-          service: 'mongodb',
+          service: "mongodb",
           status: HealthStatus.HEALTHY,
           responseTime,
           timestamp,
           details: {
             connected: stats.connected,
             database: stats.database,
-            collections: stats.collections
-          }
+            collections: stats.collections,
+          },
         };
       } else {
         return {
-          service: 'mongodb',
+          service: "mongodb",
           status: HealthStatus.UNHEALTHY,
           responseTime,
           timestamp,
-          error: 'MongoDB health check failed'
+          error: "MongoDB health check failed",
         };
       }
     } catch (error: any) {
       return {
-        service: 'mongodb',
+        service: "mongodb",
         status: HealthStatus.UNHEALTHY,
         responseTime: Date.now() - startTime,
         timestamp,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -423,11 +428,11 @@ class SystemHealthService implements HealthService {
     try {
       if (!this.cacheService) {
         return {
-          service: 'redis',
+          service: "redis",
           status: HealthStatus.UNKNOWN,
           responseTime: Date.now() - startTime,
           timestamp,
-          error: 'Redis service not available'
+          error: "Redis service not available",
         };
       }
 
@@ -437,32 +442,32 @@ class SystemHealthService implements HealthService {
       if (isHealthy) {
         const stats = await this.cacheService.getStats();
         return {
-          service: 'redis',
+          service: "redis",
           status: HealthStatus.HEALTHY,
           responseTime,
           timestamp,
           details: {
             connected: stats.connected,
             database: stats.database,
-            dbSize: stats.dbSize
-          }
+            dbSize: stats.dbSize,
+          },
         };
       } else {
         return {
-          service: 'redis',
+          service: "redis",
           status: HealthStatus.UNHEALTHY,
           responseTime,
           timestamp,
-          error: 'Redis health check failed'
+          error: "Redis health check failed",
         };
       }
     } catch (error: any) {
       return {
-        service: 'redis',
+        service: "redis",
         status: HealthStatus.UNHEALTHY,
         responseTime: Date.now() - startTime,
         timestamp,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -474,33 +479,33 @@ class SystemHealthService implements HealthService {
     try {
       if (!this.serviceNowService) {
         return {
-          service: 'servicenow',
+          service: "servicenow",
           status: HealthStatus.UNKNOWN,
           responseTime: Date.now() - startTime,
           timestamp,
-          error: 'ServiceNow service not available'
+          error: "ServiceNow service not available",
         };
       }
 
       // Implement ServiceNow health check
       const responseTime = Date.now() - startTime;
       return {
-        service: 'servicenow',
+        service: "servicenow",
         status: HealthStatus.HEALTHY,
         responseTime,
         timestamp,
         details: {
           connected: true,
-          instance: 'iberdrola.service-now.com'
-        }
+          instance: "iberdrola.service-now.com",
+        },
       };
     } catch (error: any) {
       return {
-        service: 'servicenow',
+        service: "servicenow",
         status: HealthStatus.UNHEALTHY,
         responseTime: Date.now() - startTime,
         timestamp,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -512,11 +517,11 @@ class SystemHealthService implements HealthService {
     try {
       if (!this.syncService) {
         return {
-          service: 'sync',
+          service: "sync",
           status: HealthStatus.UNKNOWN,
           responseTime: Date.now() - startTime,
           timestamp,
-          error: 'Sync service not available'
+          error: "Sync service not available",
         };
       }
 
@@ -526,32 +531,32 @@ class SystemHealthService implements HealthService {
       if (isHealthy) {
         const stats = await this.syncService.getStats();
         return {
-          service: 'sync',
+          service: "sync",
           status: HealthStatus.HEALTHY,
           responseTime,
           timestamp,
           details: {
             initialized: stats.initialized,
             autoSyncRunning: stats.autoSync?.isRunning,
-            activeSyncs: stats.activeSyncs?.length || 0
-          }
+            activeSyncs: stats.activeSyncs?.length || 0,
+          },
         };
       } else {
         return {
-          service: 'sync',
+          service: "sync",
           status: HealthStatus.UNHEALTHY,
           responseTime,
           timestamp,
-          error: 'Sync service health check failed'
+          error: "Sync service health check failed",
         };
       }
     } catch (error: any) {
       return {
-        service: 'sync',
+        service: "sync",
         status: HealthStatus.UNHEALTHY,
         responseTime: Date.now() - startTime,
         timestamp,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -571,35 +576,35 @@ class SystemHealthService implements HealthService {
         cpu: {
           usage: await this.getCpuUsage(),
           loadAverage: loadAvg,
-          cores: os.cpus().length
+          cores: os.cpus().length,
         },
         memory: {
           total: totalMem,
           used: usedMem,
           free: freeMem,
-          usage: (usedMem / totalMem) * 100
+          usage: (usedMem / totalMem) * 100,
         },
         disk: {
           total: 0, // Would need additional library for disk stats
           used: 0,
           free: 0,
-          usage: 0
+          usage: 0,
         },
         network: {
           connections: 0, // Would need additional monitoring
           bytesIn: 0,
-          bytesOut: 0
+          bytesOut: 0,
         },
         process: {
           pid: process.pid,
           uptime: process.uptime(),
           memoryUsage,
-          cpuUsage
-        }
+          cpuUsage,
+        },
       };
     } catch (error: any) {
       logger.error("❌ Failed to get system metrics", "HealthController", {
-        error: error.message
+        error: error.message,
       });
       throw error;
     }
@@ -608,21 +613,25 @@ class SystemHealthService implements HealthService {
   async getServiceMetrics(service: string): Promise<any> {
     try {
       switch (service.toLowerCase()) {
-        case 'mongodb':
-        case 'mongo':
+        case "mongodb":
+        case "mongo":
           return this.mongoService ? await this.mongoService.getStats() : null;
-        case 'redis':
-        case 'cache':
+        case "redis":
+        case "cache":
           return this.cacheService ? await this.cacheService.getStats() : null;
-        case 'sync':
+        case "sync":
           return this.syncService ? await this.syncService.getStats() : null;
         default:
           return null;
       }
     } catch (error: any) {
-      logger.error(`❌ Failed to get metrics for service: ${service}`, "HealthController", {
-        error: error.message
-      });
+      logger.error(
+        `❌ Failed to get metrics for service: ${service}`,
+        "HealthController",
+        {
+          error: error.message,
+        },
+      );
       return null;
     }
   }
@@ -646,18 +655,21 @@ class SystemHealthService implements HealthService {
 
       // Store in cache for persistence
       if (this.cacheService) {
-        await this.cacheService.set('health:metrics:latest', metrics, 300); // 5 minutes TTL
+        await this.cacheService.set("health:metrics:latest", metrics, 300); // 5 minutes TTL
       }
     } catch (error: any) {
       logger.error("❌ Failed to collect metrics", "HealthController", {
-        error: error.message
+        error: error.message,
       });
     }
   }
 
   // Health History
 
-  async getHealthHistory(service?: string, limit = 50): Promise<HealthCheckResult[]> {
+  async getHealthHistory(
+    service?: string,
+    limit = 50,
+  ): Promise<HealthCheckResult[]> {
     try {
       if (service) {
         const history = this.healthHistory.get(service) || [];
@@ -670,11 +682,14 @@ class SystemHealthService implements HealthService {
       }
 
       return allHistory
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .sort(
+          (a, b) =>
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+        )
         .slice(0, limit);
     } catch (error: any) {
       logger.error("❌ Failed to get health history", "HealthController", {
-        error: error.message
+        error: error.message,
       });
       return [];
     }
@@ -688,11 +703,14 @@ class SystemHealthService implements HealthService {
         this.healthHistory.clear();
       }
 
-      logger.info(`✅ Health history cleared${service ? ` for service: ${service}` : ''}`, "HealthController");
+      logger.info(
+        `✅ Health history cleared${service ? ` for service: ${service}` : ""}`,
+        "HealthController",
+      );
       return true;
     } catch (error: any) {
       logger.error("❌ Failed to clear health history", "HealthController", {
-        error: error.message
+        error: error.message,
       });
       return false;
     }
@@ -701,10 +719,14 @@ class SystemHealthService implements HealthService {
   // Alerts Management
 
   async getActiveAlerts(): Promise<HealthAlert[]> {
-    return Array.from(this.activeAlerts.values()).filter(alert => !alert.resolved);
+    return Array.from(this.activeAlerts.values()).filter(
+      (alert) => !alert.resolved,
+    );
   }
 
-  async createAlert(alert: Omit<HealthAlert, 'id' | 'timestamp'>): Promise<string> {
+  async createAlert(
+    alert: Omit<HealthAlert, "id" | "timestamp">,
+  ): Promise<string> {
     try {
       const id = `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const timestamp = new Date().toISOString();
@@ -712,20 +734,24 @@ class SystemHealthService implements HealthService {
       const newAlert: HealthAlert = {
         id,
         timestamp,
-        ...alert
+        ...alert,
       };
 
       this.activeAlerts.set(id, newAlert);
 
-      logger.warn(`⚠️ Health alert created: ${alert.message}`, "HealthController", {
-        level: alert.level,
-        service: alert.service
-      });
+      logger.warn(
+        `⚠️ Health alert created: ${alert.message}`,
+        "HealthController",
+        {
+          level: alert.level,
+          service: alert.service,
+        },
+      );
 
       return id;
     } catch (error: any) {
       logger.error("❌ Failed to create alert", "HealthController", {
-        error: error.message
+        error: error.message,
       });
       throw error;
     }
@@ -742,7 +768,7 @@ class SystemHealthService implements HealthService {
       return false;
     } catch (error: any) {
       logger.error("❌ Failed to resolve alert", "HealthController", {
-        error: error.message
+        error: error.message,
       });
       return false;
     }
@@ -755,7 +781,7 @@ class SystemHealthService implements HealthService {
       return true;
     } catch (error: any) {
       logger.error("❌ Failed to clear alerts", "HealthController", {
-        error: error.message
+        error: error.message,
       });
       return false;
     }
@@ -766,11 +792,15 @@ class SystemHealthService implements HealthService {
   async updateConfig(config: Partial<HealthConfig>): Promise<boolean> {
     try {
       this.config = { ...this.config, ...config };
-      logger.info("✅ Health configuration updated", "HealthController", config);
+      logger.info(
+        "✅ Health configuration updated",
+        "HealthController",
+        config,
+      );
       return true;
     } catch (error: any) {
       logger.error("❌ Failed to update configuration", "HealthController", {
-        error: error.message
+        error: error.message,
       });
       return false;
     }
@@ -794,26 +824,33 @@ class SystemHealthService implements HealthService {
 
           // Periodic health check
           const healthSummary = await this.checkSystemHealth();
-          logger.debug("🩺 Health monitoring cycle completed", "HealthController", {
-            status: healthSummary.status,
-            services: healthSummary.services.length
-          });
-
+          logger.debug(
+            "🩺 Health monitoring cycle completed",
+            "HealthController",
+            {
+              status: healthSummary.status,
+              services: healthSummary.services.length,
+            },
+          );
         } catch (error: any) {
-          logger.error("❌ Health monitoring cycle failed", "HealthController", {
-            error: error.message
-          });
+          logger.error(
+            "❌ Health monitoring cycle failed",
+            "HealthController",
+            {
+              error: error.message,
+            },
+          );
         }
       }, this.config.checkInterval);
 
       logger.info("✅ Health monitoring started", "HealthController", {
-        interval: this.config.checkInterval
+        interval: this.config.checkInterval,
       });
 
       return true;
     } catch (error: any) {
       logger.error("❌ Failed to start health monitoring", "HealthController", {
-        error: error.message
+        error: error.message,
       });
       return false;
     }
@@ -830,7 +867,7 @@ class SystemHealthService implements HealthService {
       return true;
     } catch (error: any) {
       logger.error("❌ Failed to stop health monitoring", "HealthController", {
-        error: error.message
+        error: error.message,
       });
       return false;
     }
@@ -860,14 +897,17 @@ class SystemHealthService implements HealthService {
         config: this.config,
         history: {
           servicesTracked: Array.from(this.healthHistory.keys()),
-          totalHealthChecks: Array.from(this.healthHistory.values()).reduce((sum, history) => sum + history.length, 0),
-          metricsCollected: this.metricsHistory.length
-        }
+          totalHealthChecks: Array.from(this.healthHistory.values()).reduce(
+            (sum, history) => sum + history.length,
+            0,
+          ),
+          metricsCollected: this.metricsHistory.length,
+        },
       };
     } catch (error: any) {
       return {
         error: error.message,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     }
   }
@@ -878,14 +918,19 @@ class SystemHealthService implements HealthService {
         initialized: this.isInitialized,
         uptime: Date.now() - this.startTime,
         monitoringActive: !!this.monitoringTimer,
-        healthHistorySize: Array.from(this.healthHistory.values()).reduce((sum, history) => sum + history.length, 0),
-        activeAlertsCount: Array.from(this.activeAlerts.values()).filter(alert => !alert.resolved).length,
-        config: this.config
+        healthHistorySize: Array.from(this.healthHistory.values()).reduce(
+          (sum, history) => sum + history.length,
+          0,
+        ),
+        activeAlertsCount: Array.from(this.activeAlerts.values()).filter(
+          (alert) => !alert.resolved,
+        ).length,
+        config: this.config,
       };
     } catch (error: any) {
       return {
         initialized: this.isInitialized,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -904,12 +949,20 @@ class SystemHealthService implements HealthService {
     });
   }
 
-  private determineOverallStatus(services: HealthCheckResult[], metrics: SystemMetrics): HealthStatus {
-    const unhealthyServices = services.filter(s => s.status === HealthStatus.UNHEALTHY);
-    const degradedServices = services.filter(s => s.status === HealthStatus.DEGRADED);
+  private determineOverallStatus(
+    services: HealthCheckResult[],
+    metrics: SystemMetrics,
+  ): HealthStatus {
+    const unhealthyServices = services.filter(
+      (s) => s.status === HealthStatus.UNHEALTHY,
+    );
+    const degradedServices = services.filter(
+      (s) => s.status === HealthStatus.DEGRADED,
+    );
 
     // Check metric thresholds
-    const memoryAlert = metrics.memory.usage > this.config.alertThresholds!.memoryUsage!;
+    const memoryAlert =
+      metrics.memory.usage > this.config.alertThresholds!.memoryUsage!;
     const cpuAlert = metrics.cpu.usage > this.config.alertThresholds!.cpuUsage!;
 
     if (unhealthyServices.length > 0 || memoryAlert || cpuAlert) {
@@ -929,27 +982,36 @@ class SystemHealthService implements HealthService {
     // CPU usage alert
     if (metrics.cpu.usage > alertThresholds!.cpuUsage!) {
       await this.createAlert({
-        level: 'warning',
-        service: 'system',
+        level: "warning",
+        service: "system",
         message: `High CPU usage: ${metrics.cpu.usage.toFixed(1)}%`,
         resolved: false,
-        metadata: { cpuUsage: metrics.cpu.usage, threshold: alertThresholds!.cpuUsage }
+        metadata: {
+          cpuUsage: metrics.cpu.usage,
+          threshold: alertThresholds!.cpuUsage,
+        },
       });
     }
 
     // Memory usage alert
     if (metrics.memory.usage > alertThresholds!.memoryUsage!) {
       await this.createAlert({
-        level: 'warning',
-        service: 'system',
+        level: "warning",
+        service: "system",
         message: `High memory usage: ${metrics.memory.usage.toFixed(1)}%`,
         resolved: false,
-        metadata: { memoryUsage: metrics.memory.usage, threshold: alertThresholds!.memoryUsage }
+        metadata: {
+          memoryUsage: metrics.memory.usage,
+          threshold: alertThresholds!.memoryUsage,
+        },
       });
     }
   }
 
-  private async storeHealthCheck(service: string, result: HealthCheckResult): Promise<void> {
+  private async storeHealthCheck(
+    service: string,
+    result: HealthCheckResult,
+  ): Promise<void> {
     if (!this.healthHistory.has(service)) {
       this.healthHistory.set(service, []);
     }
@@ -972,16 +1034,18 @@ class SystemHealthService implements HealthService {
     try {
       if (!this.cacheService) return;
 
-      const services = ['system', 'mongodb', 'redis', 'sync', 'servicenow'];
+      const services = ["system", "mongodb", "redis", "sync", "servicenow"];
       for (const service of services) {
-        const history = await this.cacheService.get(`health:history:${service}`);
+        const history = await this.cacheService.get(
+          `health:history:${service}`,
+        );
         if (history && Array.isArray(history)) {
           this.healthHistory.set(service, history);
         }
       }
     } catch (error: any) {
       logger.warn("⚠️ Failed to load health history", "HealthController", {
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -995,7 +1059,7 @@ class SystemHealthService implements HealthService {
       }
     } catch (error: any) {
       logger.warn("⚠️ Failed to save health history", "HealthController", {
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -1019,11 +1083,11 @@ export const healthController = new Elysia({ name: "health" })
         memoryUsage: config?.health?.alertThresholds?.memoryUsage || 85,
         diskUsage: config?.health?.alertThresholds?.diskUsage || 90,
         responseTime: config?.health?.alertThresholds?.responseTime || 5000,
-        ...config?.health?.alertThresholds
+        ...config?.health?.alertThresholds,
       },
       enableMetrics: config?.health?.enableMetrics !== false,
       enableAlerts: config?.health?.enableAlerts !== false,
-      enableHistory: config?.health?.enableHistory !== false
+      enableHistory: config?.health?.enableHistory !== false,
     };
 
     // Create health service instance with dependencies
@@ -1031,7 +1095,7 @@ export const healthController = new Elysia({ name: "health" })
       mongoService,
       cacheService,
       syncService,
-      serviceNowService: null // Will be injected when available
+      serviceNowService: null, // Will be injected when available
     });
 
     try {
@@ -1041,7 +1105,7 @@ export const healthController = new Elysia({ name: "health" })
       logger.info("✅ Health Controller ready", "HealthController", {
         checkInterval: healthConfig.checkInterval,
         metricsEnabled: healthConfig.enableMetrics,
-        alertsEnabled: healthConfig.enableAlerts
+        alertsEnabled: healthConfig.enableAlerts,
       });
 
       return {
@@ -1049,25 +1113,30 @@ export const healthController = new Elysia({ name: "health" })
         healthService,
         // Expose individual methods for convenience
         checkSystemHealth: healthService.checkSystemHealth.bind(healthService),
-        checkServiceHealth: healthService.checkServiceHealth.bind(healthService),
+        checkServiceHealth:
+          healthService.checkServiceHealth.bind(healthService),
         checkAllServices: healthService.checkAllServices.bind(healthService),
         getSystemMetrics: healthService.getSystemMetrics.bind(healthService),
         getServiceMetrics: healthService.getServiceMetrics.bind(healthService),
         getHealthHistory: healthService.getHealthHistory.bind(healthService),
-        clearHealthHistory: healthService.clearHealthHistory.bind(healthService),
+        clearHealthHistory:
+          healthService.clearHealthHistory.bind(healthService),
         getActiveAlerts: healthService.getActiveAlerts.bind(healthService),
         createAlert: healthService.createAlert.bind(healthService),
         resolveAlert: healthService.resolveAlert.bind(healthService),
         clearAlerts: healthService.clearAlerts.bind(healthService),
         isHealthy: healthService.isHealthy.bind(healthService),
         getDiagnostics: healthService.getDiagnostics.bind(healthService),
-        healthStats: healthService.getStats.bind(healthService)
+        healthStats: healthService.getStats.bind(healthService),
       };
-
     } catch (error: any) {
-      logger.error("❌ Health Controller initialization failed", "HealthController", {
-        error: error.message
-      });
+      logger.error(
+        "❌ Health Controller initialization failed",
+        "HealthController",
+        {
+          error: error.message,
+        },
+      );
 
       // Return fallback service that doesn't crash the application
       const fallbackService: HealthService = {
@@ -1083,36 +1152,66 @@ export const healthController = new Elysia({ name: "health" })
             memory: { total: 0, used: 0, free: 0, usage: 0 },
             disk: { total: 0, used: 0, free: 0, usage: 0 },
             network: { connections: 0, bytesIn: 0, bytesOut: 0 },
-            process: { pid: 0, uptime: 0, memoryUsage: {} as any, cpuUsage: {} as any }
+            process: {
+              pid: 0,
+              uptime: 0,
+              memoryUsage: {} as any,
+              cpuUsage: {} as any,
+            },
           },
           alerts: [],
-          version: '1.0.0'
+          version: "1.0.0",
         }),
         checkServiceHealth: async () => ({
-          service: '',
+          service: "",
           status: HealthStatus.UNKNOWN,
           responseTime: 0,
           timestamp: new Date().toISOString(),
-          error: 'Service not available'
+          error: "Service not available",
         }),
         checkAllServices: async () => [],
-        checkMongoDB: async () => ({ service: 'mongodb', status: HealthStatus.UNKNOWN, responseTime: 0, timestamp: new Date().toISOString() }),
-        checkRedis: async () => ({ service: 'redis', status: HealthStatus.UNKNOWN, responseTime: 0, timestamp: new Date().toISOString() }),
-        checkServiceNow: async () => ({ service: 'servicenow', status: HealthStatus.UNKNOWN, responseTime: 0, timestamp: new Date().toISOString() }),
-        checkSyncService: async () => ({ service: 'sync', status: HealthStatus.UNKNOWN, responseTime: 0, timestamp: new Date().toISOString() }),
+        checkMongoDB: async () => ({
+          service: "mongodb",
+          status: HealthStatus.UNKNOWN,
+          responseTime: 0,
+          timestamp: new Date().toISOString(),
+        }),
+        checkRedis: async () => ({
+          service: "redis",
+          status: HealthStatus.UNKNOWN,
+          responseTime: 0,
+          timestamp: new Date().toISOString(),
+        }),
+        checkServiceNow: async () => ({
+          service: "servicenow",
+          status: HealthStatus.UNKNOWN,
+          responseTime: 0,
+          timestamp: new Date().toISOString(),
+        }),
+        checkSyncService: async () => ({
+          service: "sync",
+          status: HealthStatus.UNKNOWN,
+          responseTime: 0,
+          timestamp: new Date().toISOString(),
+        }),
         getSystemMetrics: async () => ({
           cpu: { usage: 0, loadAverage: [], cores: 0 },
           memory: { total: 0, used: 0, free: 0, usage: 0 },
           disk: { total: 0, used: 0, free: 0, usage: 0 },
           network: { connections: 0, bytesIn: 0, bytesOut: 0 },
-          process: { pid: 0, uptime: 0, memoryUsage: {} as any, cpuUsage: {} as any }
+          process: {
+            pid: 0,
+            uptime: 0,
+            memoryUsage: {} as any,
+            cpuUsage: {} as any,
+          },
         }),
         getServiceMetrics: async () => null,
         collectMetrics: async () => {},
         getHealthHistory: async () => [],
         clearHealthHistory: async () => false,
         getActiveAlerts: async () => [],
-        createAlert: async () => '',
+        createAlert: async () => "",
         resolveAlert: async () => false,
         clearAlerts: async () => false,
         updateConfig: async () => false,
@@ -1120,8 +1219,11 @@ export const healthController = new Elysia({ name: "health" })
         startHealthMonitoring: async () => false,
         stopHealthMonitoring: async () => false,
         isHealthy: async () => false,
-        getDiagnostics: async () => ({ error: 'Service not available' }),
-        getStats: async () => ({ initialized: false, error: 'Service not available' })
+        getDiagnostics: async () => ({ error: "Service not available" }),
+        getStats: async () => ({
+          initialized: false,
+          error: "Service not available",
+        }),
       };
 
       return {
@@ -1140,7 +1242,7 @@ export const healthController = new Elysia({ name: "health" })
         clearAlerts: fallbackService.clearAlerts,
         isHealthy: fallbackService.isHealthy,
         getDiagnostics: fallbackService.getDiagnostics,
-        healthStats: fallbackService.getStats
+        healthStats: fallbackService.getStats,
       };
     }
   })
@@ -1150,26 +1252,26 @@ export const healthController = new Elysia({ name: "health" })
       logger.info("🛑 Health Controller stopped", "HealthController");
     }
   })
-  .as('scoped'); // Scoped for service composition
+  .as("scoped"); // Scoped for service composition
 
 // Health Controller Context Type
 export interface HealthControllerContext {
   health: HealthService;
   healthService: HealthService;
-  checkSystemHealth: HealthService['checkSystemHealth'];
-  checkServiceHealth: HealthService['checkServiceHealth'];
-  checkAllServices: HealthService['checkAllServices'];
-  getSystemMetrics: HealthService['getSystemMetrics'];
-  getServiceMetrics: HealthService['getServiceMetrics'];
-  getHealthHistory: HealthService['getHealthHistory'];
-  clearHealthHistory: HealthService['clearHealthHistory'];
-  getActiveAlerts: HealthService['getActiveAlerts'];
-  createAlert: HealthService['createAlert'];
-  resolveAlert: HealthService['resolveAlert'];
-  clearAlerts: HealthService['clearAlerts'];
-  isHealthy: HealthService['isHealthy'];
-  getDiagnostics: HealthService['getDiagnostics'];
-  healthStats: HealthService['getStats'];
+  checkSystemHealth: HealthService["checkSystemHealth"];
+  checkServiceHealth: HealthService["checkServiceHealth"];
+  checkAllServices: HealthService["checkAllServices"];
+  getSystemMetrics: HealthService["getSystemMetrics"];
+  getServiceMetrics: HealthService["getServiceMetrics"];
+  getHealthHistory: HealthService["getHealthHistory"];
+  clearHealthHistory: HealthService["clearHealthHistory"];
+  getActiveAlerts: HealthService["getActiveAlerts"];
+  createAlert: HealthService["createAlert"];
+  resolveAlert: HealthService["resolveAlert"];
+  clearAlerts: HealthService["clearAlerts"];
+  isHealthy: HealthService["isHealthy"];
+  getDiagnostics: HealthService["getDiagnostics"];
+  healthStats: HealthService["getStats"];
 }
 
 export default healthController;
