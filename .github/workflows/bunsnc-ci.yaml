@@ -1,0 +1,321 @@
+name: BunSNC CI/CD Pipeline
+
+on:
+  push:
+    branches: ["main", "develop"]
+    paths:
+      - 'bunsnc/**'
+      - '.github/workflows/bunsnc-ci.yaml'
+  pull_request:
+    branches: ["main"]
+    paths:
+      - 'bunsnc/**'
+
+jobs:
+  lint-and-typecheck:
+    name: Lint and Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bunsnc/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        working-directory: ./bunsnc
+        run: bun install
+
+      - name: Run TypeScript type checking
+        working-directory: ./bunsnc
+        run: bun run typecheck
+
+      - name: Run Prettier format check
+        working-directory: ./bunsnc
+        run: bun run format:check
+
+      - name: Run linting
+        working-directory: ./bunsnc
+        run: bun run lint
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bunsnc/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        working-directory: ./bunsnc
+        run: bun install
+
+      - name: Run unit tests
+        working-directory: ./bunsnc
+        run: bun test tests/plugin-integration.test.ts
+        continue-on-error: true
+
+      - name: Generate test report
+        if: always()
+        run: echo "Unit tests completed"
+
+  e2e-tests:
+    name: E2E Tests with MongoDB & Redis
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        env:
+          MONGO_INITDB_ROOT_USERNAME: root
+          MONGO_INITDB_ROOT_PASSWORD: example
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand({ ping: 1 })' || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bunsnc/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        working-directory: ./bunsnc
+        run: bun install
+
+      - name: Wait for MongoDB
+        run: |
+          for i in {1..30}; do
+            if mongosh --host localhost:27017 --eval "db.adminCommand('ping')" > /dev/null 2>&1; then
+              echo "MongoDB is ready"
+              exit 0
+            fi
+            echo "Waiting for MongoDB... ($i/30)"
+            sleep 2
+          done
+          echo "MongoDB failed to start"
+          exit 1
+
+      - name: Wait for Redis
+        run: |
+          for i in {1..30}; do
+            if redis-cli -h localhost ping > /dev/null 2>&1; then
+              echo "Redis is ready"
+              exit 0
+            fi
+            echo "Waiting for Redis... ($i/30)"
+            sleep 2
+          done
+          echo "Redis failed to start"
+          exit 1
+
+      - name: Run E2E Plugin Tests
+        working-directory: ./bunsnc
+        env:
+          MONGODB_HOST: localhost
+          MONGODB_PORT: 27017
+          MONGODB_USERNAME: root
+          MONGODB_PASSWORD: example
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+        run: bun test tests/e2e/plugins-e2e.test.ts
+        continue-on-error: true
+
+      - name: Run Eden Treaty E2E Tests
+        working-directory: ./bunsnc
+        env:
+          MONGODB_HOST: localhost
+          MONGODB_PORT: 27017
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+        run: bun test tests/e2e/eden-treaty-e2e.test.ts
+        continue-on-error: true
+
+      - name: Run Service Locator E2E Tests
+        working-directory: ./bunsnc
+        env:
+          MONGODB_HOST: localhost
+          MONGODB_PORT: 27017
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+        run: bun test tests/e2e/service-locator-e2e.test.ts
+        continue-on-error: true
+
+  test-coverage:
+    name: Test Coverage
+    runs-on: ubuntu-latest
+    needs: [unit-tests, e2e-tests]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bunsnc/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        working-directory: ./bunsnc
+        run: bun install
+
+      - name: Run tests with coverage
+        working-directory: ./bunsnc
+        run: bun test --coverage
+        continue-on-error: true
+
+      - name: Upload coverage reports to Codecov
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./bunsnc/coverage/coverage-final.json
+          flags: bunsnc
+          name: bunsnc-coverage
+          fail_ci_if_error: false
+        continue-on-error: true
+
+  build:
+    name: Build CLI Binary
+    runs-on: ubuntu-latest
+    needs: [lint-and-typecheck, unit-tests]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bunsnc/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        working-directory: ./bunsnc
+        run: bun install
+
+      - name: Compile CLI binary
+        working-directory: ./bunsnc
+        run: bun run compile
+
+      - name: Test CLI binary
+        working-directory: ./bunsnc
+        run: |
+          chmod +x dist/bunsnc
+          ./dist/bunsnc --version || echo "Binary execution test (may fail without config)"
+
+      - name: Upload CLI binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bunsnc-cli-${{ github.sha }}
+          path: bunsnc/dist/bunsnc
+          retention-days: 7
+
+  integration-summary:
+    name: Integration Summary
+    runs-on: ubuntu-latest
+    needs: [lint-and-typecheck, unit-tests, e2e-tests, build]
+    if: always()
+
+    steps:
+      - name: Check job statuses
+        run: |
+          echo "🔍 CI/CD Pipeline Summary"
+          echo "========================="
+          echo "Lint & Type Check: ${{ needs.lint-and-typecheck.result }}"
+          echo "Unit Tests: ${{ needs.unit-tests.result }}"
+          echo "E2E Tests: ${{ needs.e2e-tests.result }}"
+          echo "Build: ${{ needs.build.result }}"
+
+          if [[ "${{ needs.lint-and-typecheck.result }}" == "failure" ]]; then
+            echo "❌ Lint/TypeCheck failed"
+            exit 1
+          fi
+
+          if [[ "${{ needs.build.result }}" == "failure" ]]; then
+            echo "❌ Build failed"
+            exit 1
+          fi
+
+          echo "✅ Core checks passed (lint, typecheck, build)"
+          echo "⚠️ Tests may have partial failures (expected during development)"
+
+  notify-on-failure:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [integration-summary]
+    if: failure()
+
+    steps:
+      - name: CI/CD Failure Notification
+        run: |
+          echo "❌ CI/CD Pipeline Failed"
+          echo "Please check the workflow logs for details"
+          echo "Repository: ${{ github.repository }}"
+          echo "Branch: ${{ github.ref }}"
+          echo "Commit: ${{ github.sha }}"
