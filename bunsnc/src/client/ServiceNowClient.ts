@@ -101,6 +101,59 @@ export class ServiceNowClient implements IServiceNowClient {
   private cacheEnabled: boolean = true;
   private clientId: string;
 
+  /**
+   * Factory method to create ServiceNowClient with username/password credentials
+   * @param instanceUrl - ServiceNow instance URL
+   * @param username - ServiceNow username
+   * @param password - ServiceNow password
+   * @param options - Optional configuration
+   * @returns ServiceNowClient instance
+   */
+  static createWithCredentials(
+    instanceUrl: string,
+    username: string,
+    password: string,
+    options: {
+      validateConnection?: boolean;
+      enableCache?: boolean;
+    } = {},
+  ): ServiceNowClient {
+    // Validate inputs
+    if (!instanceUrl || typeof instanceUrl !== "string") {
+      throw new Error(
+        `[ServiceNowClient.createWithCredentials] instanceUrl must be a non-empty string, received: ${typeof instanceUrl}`,
+      );
+    }
+    if (!username || typeof username !== "string") {
+      throw new Error(
+        `[ServiceNowClient.createWithCredentials] username must be a non-empty string, received: ${typeof username}`,
+      );
+    }
+    if (!password || typeof password !== "string") {
+      throw new Error(
+        `[ServiceNowClient.createWithCredentials] password must be a non-empty string, received: ${typeof password}`,
+      );
+    }
+
+    // Create Basic auth token
+    const base64Creds = Buffer.from(`${username}:${password}`).toString(
+      "base64",
+    );
+    const authToken = `Basic ${base64Creds}`;
+
+    logger.info(
+      "Creating ServiceNowClient with username/password credentials",
+      "ServiceNowClient",
+      {
+        instanceUrl,
+        username,
+        authType: "Basic",
+      },
+    );
+
+    return new ServiceNowClient(instanceUrl, authToken, options);
+  }
+
   constructor(
     instanceUrl: string,
     authToken: string,
@@ -109,10 +162,23 @@ export class ServiceNowClient implements IServiceNowClient {
       enableCache?: boolean;
     } = {},
   ) {
+    // ✅ TYPE GUARDS: Validate parameters before any operations
+    if (!instanceUrl || typeof instanceUrl !== "string") {
+      throw new Error(
+        `[ServiceNowClient] instanceUrl must be a non-empty string, received: ${typeof instanceUrl} (${instanceUrl})`,
+      );
+    }
+
+    if (!authToken || typeof authToken !== "string") {
+      throw new Error(
+        `[ServiceNowClient] authToken must be a non-empty string, received: ${typeof authToken}`,
+      );
+    }
+
     // Generate unique client ID for logging
     this.clientId = `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Normalize instance URL
+    // NOW SAFE: Normalize instance URL
     this.instance = instanceUrl.endsWith("/")
       ? instanceUrl.slice(0, -1)
       : instanceUrl;

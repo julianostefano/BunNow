@@ -9,11 +9,15 @@ import { ServiceNowClient } from "../../../client/ServiceNowClient";
 const app = new Elysia({ prefix: "/api/v1/analytics" })
   .get("/dashboard", async () => {
     try {
-      const client = new ServiceNowClient(
+      // ✅ FIX v5.4.4: Use factory method with credentials
+      const client = ServiceNowClient.createWithCredentials(
         process.env.SERVICENOW_INSTANCE_URL ||
           "https://dev12345.service-now.com",
         process.env.SERVICENOW_USERNAME || "admin",
         process.env.SERVICENOW_PASSWORD || "admin",
+        {
+          enableCache: true,
+        },
       );
 
       // Get overview statistics
@@ -329,11 +333,14 @@ const app = new Elysia({ prefix: "/api/v1/analytics" })
         const type = params.type; // incidents, problems, changes
         const days = parseInt(query.days as string) || 30;
 
-        const client = new ServiceNowClient(
+        const client = ServiceNowClient.createWithCredentials(
           process.env.SERVICENOW_INSTANCE_URL ||
             "https://dev12345.service-now.com",
           process.env.SERVICENOW_USERNAME || "admin",
           process.env.SERVICENOW_PASSWORD || "admin",
+          {
+            enableCache: true,
+          },
         );
 
         const trendData = await generateTrendData(client, type, days);

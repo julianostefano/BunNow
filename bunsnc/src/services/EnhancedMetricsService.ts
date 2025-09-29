@@ -641,6 +641,30 @@ export class EnhancedMetricsService {
         0,
       );
 
+      // Calculate real average response time from results
+      const totalResponseTime = results
+        .filter((r: TicketSLAStatus) => r.response_sla)
+        .reduce(
+          (sum: number, r: TicketSLAStatus) =>
+            sum + (r.response_sla?.actual_hours || 0),
+          0,
+        );
+      const responseTickets = results.filter(
+        (r: TicketSLAStatus) => r.response_sla,
+      ).length;
+
+      // Calculate real average resolution time from results
+      const totalResolutionTime = results
+        .filter((r: TicketSLAStatus) => r.resolution_sla)
+        .reduce(
+          (sum: number, r: TicketSLAStatus) =>
+            sum + (r.resolution_sla?.actual_hours || 0),
+          0,
+        );
+      const resolutionTickets = results.filter(
+        (r: TicketSLAStatus) => r.resolution_sla,
+      ).length;
+
       return {
         priority,
         total_tickets: total,
@@ -649,24 +673,301 @@ export class EnhancedMetricsService {
         compliance_percentage:
           total > 0 ? Math.round((compliant / total) * 10000) / 100 : 0,
         penalty_percentage: Math.round(totalPenalty * 100) / 100,
-        average_response_time: 0, // TODO: Calculate from results
-        average_resolution_time: 0, // TODO: Calculate from results
+        average_response_time:
+          responseTickets > 0
+            ? Math.round((totalResponseTime / responseTickets) * 100) / 100
+            : 0,
+        average_resolution_time:
+          resolutionTickets > 0
+            ? Math.round((totalResolutionTime / resolutionTickets) * 100) / 100
+            : 0,
       };
     });
   }
 
+  /**
+   * Calculate real compliance trend based on MongoDB ticket data
+   * Groups tickets by day and calculates compliance percentage
+   * @param days - Number of days to analyze
+   * @returns Array of compliance percentages (0-100) for each day
+   */
   private async getComplianceTrend(days: number): Promise<number[]> {
-    // TODO: Implement trend calculation
-    return Array.from({ length: days }, () => Math.random() * 100);
+    try {
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+
+      const collection = this.mongoClient
+        .db()
+        .collection<MongoTicketDocument>("tickets");
+
+      // Aggregation pipeline to calculate daily compliance
+      const pipeline = [
+        {
+          $match: {
+            created_at: { $gte: startDate, $lte: endDate },
+          },
+        },
+        {
+          $project: {
+            day: {
+              $dateToString: { format: "%Y-%m-%d", date: "$created_at" },
+            },
+            sys_id_prefix: 1,
+            data: 1,
+          },
+        },
+        {
+          $group: {
+            _id: "$day",
+            total: { $sum: 1 },
+            tickets: { $push: "$$ROOT" },
+          },
+        },
+        {
+          $sort: { _id: 1 },
+        },
+      ];
+
+      const results = await collection.aggregate(pipeline).toArray();
+
+      // Calculate compliance for each day
+      const complianceTrend = await Promise.all(
+        results.map(async (dayData: any) => {
+          let compliantCount = 0;
+
+          for (const ticket of dayData.tickets) {
+            // Determine ticket type from sys_id_prefix
+            let ticketType: TicketType;
+            if (ticket.sys_id_prefix === "INC") {
+              ticketType = TicketType.INCIDENT;
+            } else if (ticket.sys_id_prefix === "CTASK") {
+              ticketType = TicketType.CTASK;
+            } else if (ticket.sys_id_prefix === "SCTASK") {
+              ticketType = TicketType.SCTASK;
+            } else {
+              continue; // Skip unknown ticket types
+            }
+
+            const ticketData = this.extractTicketDataFromDocument(
+              ticket,
+              ticketType,
+            );
+
+            if (ticketData) {
+              const slaStatus = await this.calculateTicketSLA(
+                ticketData,
+                ticketType,
+              );
+              if (
+                slaStatus.response_compliant &&
+                slaStatus.resolution_compliant
+              ) {
+                compliantCount++;
+              }
+            }
+          }
+
+          return dayData.total > 0
+            ? Math.round((compliantCount / dayData.total) * 100)
+            : 0;
+        }),
+      );
+
+      // Fill missing days with 0
+      const trendMap = new Map<string, number>();
+      results.forEach((r: any, idx: number) => {
+        trendMap.set(r._id, complianceTrend[idx]);
+      });
+
+      const fullTrend: number[] = [];
+      for (let i = days - 1; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split("T")[0];
+        fullTrend.push(trendMap.get(dateStr) || 0);
+      }
+
+      return fullTrend;
+    } catch (error: unknown) {
+      logger.error(
+        "[EnhancedMetricsService] Error calculating compliance trend:",
+        error,
+      );
+      return Array.from({ length: days }, () => 0);
+    }
   }
 
+  /**
+   * Calculate real penalty trend based on MongoDB SLA data
+   * Groups tickets by day and calculates total penalty percentage
+   * @param days - Number of days to analyze
+   * @returns Array of penalty percentages for each day
+   */
   private async getPenaltyTrend(days: number): Promise<number[]> {
-    // TODO: Implement penalty trend calculation
-    return Array.from({ length: days }, () => Math.random() * 5);
+    try {
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+
+      const collection = this.mongoClient
+        .db()
+        .collection<MongoTicketDocument>("tickets");
+
+      // Aggregation pipeline to calculate daily penalties
+      const pipeline = [
+        {
+          $match: {
+            created_at: { $gte: startDate, $lte: endDate },
+          },
+        },
+        {
+          $project: {
+            day: {
+              $dateToString: { format: "%Y-%m-%d", date: "$created_at" },
+            },
+            sys_id_prefix: 1,
+            data: 1,
+          },
+        },
+        {
+          $group: {
+            _id: "$day",
+            tickets: { $push: "$$ROOT" },
+          },
+        },
+        {
+          $sort: { _id: 1 },
+        },
+      ];
+
+      const results = await collection.aggregate(pipeline).toArray();
+
+      // Calculate penalties for each day
+      const penaltyTrend = await Promise.all(
+        results.map(async (dayData: any) => {
+          let totalPenalty = 0;
+
+          for (const ticket of dayData.tickets) {
+            // Determine ticket type from sys_id_prefix
+            let ticketType: TicketType;
+            if (ticket.sys_id_prefix === "INC") {
+              ticketType = TicketType.INCIDENT;
+            } else if (ticket.sys_id_prefix === "CTASK") {
+              ticketType = TicketType.CTASK;
+            } else if (ticket.sys_id_prefix === "SCTASK") {
+              ticketType = TicketType.SCTASK;
+            } else {
+              continue; // Skip unknown ticket types
+            }
+
+            const ticketData = this.extractTicketDataFromDocument(
+              ticket,
+              ticketType,
+            );
+
+            if (ticketData) {
+              const slaStatus = await this.calculateTicketSLA(
+                ticketData,
+                ticketType,
+              );
+              totalPenalty += slaStatus.total_penalty_percentage;
+            }
+          }
+
+          return Math.round(totalPenalty * 100) / 100;
+        }),
+      );
+
+      // Fill missing days with 0
+      const trendMap = new Map<string, number>();
+      results.forEach((r: any, idx: number) => {
+        trendMap.set(r._id, penaltyTrend[idx]);
+      });
+
+      const fullTrend: number[] = [];
+      for (let i = days - 1; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split("T")[0];
+        fullTrend.push(trendMap.get(dateStr) || 0);
+      }
+
+      return fullTrend;
+    } catch (error: unknown) {
+      logger.error(
+        "[EnhancedMetricsService] Error calculating penalty trend:",
+        error,
+      );
+      return Array.from({ length: days }, () => 0);
+    }
   }
 
+  /**
+   * Calculate real volume trend based on MongoDB ticket data
+   * Groups tickets by day and counts total tickets
+   * @param days - Number of days to analyze
+   * @returns Array of ticket counts for each day
+   */
   private async getVolumeTrend(days: number): Promise<number[]> {
-    // TODO: Implement volume trend calculation
-    return Array.from({ length: days }, () => Math.floor(Math.random() * 100));
+    try {
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+
+      const collection = this.mongoClient
+        .db()
+        .collection<MongoTicketDocument>("tickets");
+
+      // Aggregation pipeline to count daily tickets
+      const pipeline = [
+        {
+          $match: {
+            created_at: { $gte: startDate, $lte: endDate },
+          },
+        },
+        {
+          $project: {
+            day: {
+              $dateToString: { format: "%Y-%m-%d", date: "$created_at" },
+            },
+          },
+        },
+        {
+          $group: {
+            _id: "$day",
+            count: { $sum: 1 },
+          },
+        },
+        {
+          $sort: { _id: 1 },
+        },
+      ];
+
+      const results = await collection.aggregate(pipeline).toArray();
+
+      // Create map of day -> count
+      const volumeMap = new Map<string, number>();
+      results.forEach((r: any) => {
+        volumeMap.set(r._id, r.count);
+      });
+
+      // Fill all days (including those with 0 tickets)
+      const fullTrend: number[] = [];
+      for (let i = days - 1; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split("T")[0];
+        fullTrend.push(volumeMap.get(dateStr) || 0);
+      }
+
+      return fullTrend;
+    } catch (error: unknown) {
+      logger.error(
+        "[EnhancedMetricsService] Error calculating volume trend:",
+        error,
+      );
+      return Array.from({ length: days }, () => 0);
+    }
   }
 }

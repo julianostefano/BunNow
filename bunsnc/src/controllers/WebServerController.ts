@@ -82,10 +82,16 @@ export class WebServerController {
   private initializeClients(): void {
     console.log(" Initializing ServiceNow clients...");
 
-    this.serviceNowClient = new ServiceNowClient(
+    // ✅ FIX v5.4.4: Use factory method with credentials instead of direct constructor
+    // This properly formats Basic auth token from username/password
+    this.serviceNowClient = ServiceNowClient.createWithCredentials(
       this.config.serviceNow.instanceUrl,
       this.config.serviceNow.username,
       this.config.serviceNow.password,
+      {
+        validateConnection: false, // Skip validation during startup for faster boot
+        enableCache: true,
+      },
     );
 
     this.redisStreamManager = new RedisStreamManager({
@@ -100,51 +106,119 @@ export class WebServerController {
     console.log(" ServiceNow clients initialized");
   }
 
+  /**
+   * Initialize enhanced services with timeout protection (Elysia Best Practice)
+   * Prevents indefinite blocking during startup
+   * @public
+   */
   public async initializeEnhancedServices(): Promise<void> {
-    console.log(" Initializing enhanced services...");
+    console.log("[INIT-1/6] 🚀 Starting enhanced services initialization...");
 
+    // Initialize service references as undefined (graceful degradation)
+    this.enhancedTicketStorageService = undefined;
+    this.ticketRepository = undefined;
+    this.hybridDataService = undefined;
+    this.slaTrackingService = undefined;
+
+    // MongoDB initialization with 10s timeout
     try {
-      await dataService.initialize();
-      await mongoCollectionManager.initializeCollections();
+      console.log("[INIT-2/6] Initializing MongoDB connection...");
+      await Promise.race([
+        dataService.initialize(),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("MongoDB init timeout (10s)")),
+            10000,
+          ),
+        ),
+      ]);
+      console.log("[INIT-2/6] ✅ MongoDB connection established");
 
+      console.log("[INIT-3/6] Initializing MongoDB collections...");
+      await Promise.race([
+        mongoCollectionManager.initializeCollections(),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("MongoDB collections timeout (10s)")),
+            10000,
+          ),
+        ),
+      ]);
+      console.log("[INIT-3/6] ✅ MongoDB collections ready");
+
+      // Only assign services if MongoDB initialization succeeded
       this.enhancedTicketStorageService = dataService;
-      console.log(" MongoDB service initialized for enhanced features");
-
       this.ticketRepository = new TicketRepository();
-      console.log(" Ticket Repository initialized");
-
       this.hybridDataService = dataService;
-      console.log(" Hybrid Data Service with sync capabilities initialized");
-
       this.slaTrackingService = consolidatedServiceNowService;
-      console.log(" SLA Tracking Service initialized");
 
-      this.startBackgroundServices();
+      console.log(
+        "[INIT-3/6] ✅ Enhanced services configured (Repository, HybridData, SLA)",
+      );
     } catch (error: unknown) {
       console.warn(
-        " MongoDB service not available, enhanced features will be limited:",
-        error,
+        "[INIT-3/6] ⚠️ MongoDB initialization failed, enhanced features disabled:",
+        error instanceof Error ? error.message : error,
+      );
+      console.warn(
+        "[INIT-3/6] ⚠️ Services will run in degraded mode (auto-sync disabled)",
       );
     }
 
+    // Redis Streams initialization with 5s timeout
     try {
+      console.log("[INIT-4/6] Initializing Redis Streams...");
       this.redisStreams = new ServiceNowStreams();
-      await this.redisStreams.initialize();
-      console.log(" Redis Streams initialized for real-time features");
+
+      await Promise.race([
+        this.redisStreams.initialize(),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("Redis Streams timeout (5s)")),
+            5000,
+          ),
+        ),
+      ]);
+      console.log("[INIT-4/6] ✅ Redis Streams initialized");
     } catch (error: unknown) {
-      console.warn(
-        " Redis Streams not available, real-time features will be limited:",
-        error,
+      console.error(
+        "[INIT-4/6] ⚠️ Redis Streams initialization failed, real-time features limited:",
+        error instanceof Error ? error.message : error,
       );
     }
+
+    // Background services (fire-and-forget, won't block)
+    try {
+      console.log("[INIT-5/6] Starting background services...");
+      await this.startBackgroundServices();
+      console.log("[INIT-5/6] ✅ Background services started");
+    } catch (error: unknown) {
+      console.error(
+        "[INIT-5/6] ⚠️ Background services failed to start:",
+        error instanceof Error ? error.message : error,
+      );
+    }
+
+    console.log("[INIT-6/6] ✅ Enhanced services initialization complete");
   }
 
-  private startBackgroundServices(): void {
+  /**
+   * Start background services using fire-and-forget pattern (Elysia Best Practice)
+   * Services start asynchronously without blocking server initialization
+   * @private
+   */
+  private async startBackgroundServices(): Promise<void> {
+    console.log(
+      "[BG-SERVICE-1/2] Starting background services (non-blocking)...",
+    );
+
     if (this.hybridDataService && this.slaTrackingService) {
-      try {
-        if (typeof this.hybridDataService.startAutoSync === "function") {
-          this.hybridDataService.startAutoSync({
-            syncInterval: 5 * 60 * 1000,
+      // Fire-and-forget pattern: Start auto-sync without awaiting
+      // This prevents blocking the server startup (Elysia Best Practice linha 694-704)
+      if (typeof this.hybridDataService.startAutoSync === "function") {
+        this.hybridDataService
+          .startAutoSync({
+            syncInterval: 5 * 60 * 1000, // 5 minutes
             batchSize: 50,
             maxRetries: 3,
             tables: ["incident", "change_task", "sc_task"],
@@ -152,32 +226,37 @@ export class WebServerController {
             enableRealTimeUpdates: true,
             enableSLMCollection: true,
             enableNotesCollection: true,
+          })
+          .catch((error: unknown) => {
+            console.error("[BG-SERVICE] Auto-sync error (will retry):", error);
           });
-          console.log("✅ Auto-sync enabled for enhanced features");
-        } else {
-          console.warn(
-            "⚠️ startAutoSync method not available, enhanced sync features disabled",
-          );
-        }
-      } catch (error: unknown) {
-        console.warn("⚠️ Failed to start auto-sync:", error);
+        console.log("[BG-SERVICE] ✅ Auto-sync started (background)");
+      } else {
+        console.warn(
+          "[BG-SERVICE] ⚠️ startAutoSync method not available, enhanced sync features disabled",
+        );
       }
 
-      try {
-        if (typeof this.slaTrackingService.start === "function") {
+      // Start SLA tracking service (also fire-and-forget)
+      if (typeof this.slaTrackingService.start === "function") {
+        try {
           this.slaTrackingService.start();
-          console.log("✅ SLA tracking service started");
-        } else {
-          console.warn(
-            "⚠️ SLA tracking start method not available, SLA features disabled",
-          );
+          console.log("[BG-SERVICE] ✅ SLA tracking service started");
+        } catch (error: unknown) {
+          console.warn("[BG-SERVICE] ⚠️ Failed to start SLA tracking:", error);
         }
-      } catch (error: unknown) {
-        console.warn("⚠️ Failed to start SLA tracking service:", error);
+      } else {
+        console.warn(
+          "[BG-SERVICE] ⚠️ SLA tracking start method not available, SLA features disabled",
+        );
       }
 
       console.log(
-        " Background services started (ConsolidatedDataService + SLA Tracking)",
+        "[BG-SERVICE-2/2] ✅ Background services initialized (running asynchronously)",
+      );
+    } else {
+      console.warn(
+        "[BG-SERVICE] ⚠️ Services not available, enhanced features disabled",
       );
     }
   }
@@ -323,18 +402,46 @@ export class WebServerController {
     return this.app;
   }
 
+  /**
+   * Start the web server with proper initialization sequence
+   * Follows Elysia Best Practices for async plugin initialization
+   * @public
+   */
   public async start(): Promise<void> {
     try {
+      console.log("[SERVER-START-1/3] 🚀 Initializing enhanced services...");
       await this.initializeEnhancedServices();
+      console.log("[SERVER-START-1/3] ✅ Services initialized successfully");
 
+      console.log(
+        `[SERVER-START-2/3] 🌐 Starting Elysia server on port ${this.config.port}...`,
+      );
       await this.app.listen(this.config.port);
       console.log(
-        ` ServiceNow Web Interface running on port ${this.config.port}`,
+        `[SERVER-START-2/3] ✅ Elysia server listening on port ${this.config.port}`,
       );
-      console.log(` Dashboard: http://localhost:${this.config.port}`);
-      console.log(` API Docs: http://localhost:${this.config.port}/swagger`);
+
+      console.log("[SERVER-START-3/3] ✅ ========================");
+      console.log(`[SERVER-START-3/3] ✅ ServiceNow Web Interface READY`);
+      console.log(
+        `[SERVER-START-3/3] ✅ Dashboard: http://localhost:${this.config.port}`,
+      );
+      console.log(
+        `[SERVER-START-3/3] ✅ API Docs: http://localhost:${this.config.port}/swagger`,
+      );
+      console.log(
+        `[SERVER-START-3/3] ✅ Health Check: http://localhost:${this.config.port}/health`,
+      );
+      console.log("[SERVER-START-3/3] ✅ ========================");
     } catch (error: unknown) {
-      console.error("Failed to start web server:", error);
+      console.error(
+        "[SERVER-START-ERROR] ❌ Failed to start web server:",
+        error,
+      );
+      console.error(
+        "[SERVER-START-ERROR] ❌ Stack:",
+        error instanceof Error ? error.stack : "No stack trace",
+      );
       throw error;
     }
   }

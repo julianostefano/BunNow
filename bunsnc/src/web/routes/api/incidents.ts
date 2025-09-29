@@ -64,11 +64,14 @@ const app = new Elysia({ prefix: "/api/incidents" })
     "/",
     async ({ query }) => {
       try {
-        const client = new ServiceNowClient(
+        const client = ServiceNowClient.createWithCredentials(
           process.env.SERVICENOW_INSTANCE_URL ||
             "https://dev12345.service-now.com",
           process.env.SERVICENOW_USERNAME || "admin",
           process.env.SERVICENOW_PASSWORD || "admin",
+          {
+            enableCache: true,
+          },
         );
 
         const gr = client.getGlideRecord("incident");
@@ -154,11 +157,14 @@ const app = new Elysia({ prefix: "/api/incidents" })
 
   .get("/:id", async ({ params }) => {
     try {
-      const client = new ServiceNowClient(
+      const client = ServiceNowClient.createWithCredentials(
         process.env.SERVICENOW_INSTANCE_URL ||
           "https://dev12345.service-now.com",
         process.env.SERVICENOW_USERNAME || "admin",
         process.env.SERVICENOW_PASSWORD || "admin",
+          {
+            enableCache: true,
+          },
       );
 
       const gr = client.getGlideRecord("incident");
@@ -256,11 +262,14 @@ const app = new Elysia({ prefix: "/api/incidents" })
     "/stats/summary",
     async ({ enhancedMetricsService, contractualViolationService }) => {
       try {
-        const client = new ServiceNowClient(
+        const client = ServiceNowClient.createWithCredentials(
           process.env.SERVICENOW_INSTANCE_URL ||
             "https://dev12345.service-now.com",
           process.env.SERVICENOW_USERNAME || "admin",
           process.env.SERVICENOW_PASSWORD || "admin",
+          {
+            enableCache: true,
+          },
         );
 
         // Get active incidents count
@@ -419,11 +428,14 @@ const app = new Elysia({ prefix: "/api/incidents" })
     "/trends/hourly",
     async ({ query }) => {
       try {
-        const client = new ServiceNowClient(
+        const client = ServiceNowClient.createWithCredentials(
           process.env.SERVICENOW_INSTANCE_URL ||
             "https://dev12345.service-now.com",
           process.env.SERVICENOW_USERNAME || "admin",
           process.env.SERVICENOW_PASSWORD || "admin",
+          {
+            enableCache: true,
+          },
         );
 
         const days = parseInt(query.days as string) || 7;
