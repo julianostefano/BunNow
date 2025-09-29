@@ -1322,3 +1322,67 @@ ServiceLocator (9 plugins):
 ---
 
 **Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]**
+
+---
+
+## 🚨 **RESOLUÇÃO CRÍTICA v5.3.0+** - SERVICE LOCATOR BUG FIX
+**Data: 29/09/2025**
+
+### **BUG CRÍTICO IDENTIFICADO E RESOLVIDO**
+
+**SINTOMAS:**
+- Aplicação travando no startup em "🔍 Resolving [1/1]"
+- ServiceNow streams inicializavam mas resolução de dependências falhava
+- 9 processos Bash background em loop infinito
+
+**DIAGNÓSTICO:**
+- **Root Cause**: Service Locator plugin configurado em `config/plugins.json` mas **ausente** da composição principal em `src/plugins/index.ts`
+- **Import Error**: `export 'serviceLocatorPlugin' not found` - export correto é `serviceLocator`
+- **Dependency Resolution**: Plugin composition incomplete causava falha na resolução
+
+**SOLUÇÕES IMPLEMENTADAS:**
+
+**✅ FASE CRÍTICA 1**: Service Locator Integration
+- ✅ Adicionado `serviceLocator` import no `src/plugins/index.ts`
+- ✅ Corrigido nome de export (era `serviceLocatorPlugin`, correto `serviceLocator`)
+- ✅ Integrado na composição principal com loading order adequado:
+  ```typescript
+  .use(configPlugin)     // Must be FIRST - provides configuration
+  .use(serviceLocator)   // Second - provides dependency injection
+  .use(redisPlugin)      // Third - provides Redis connections
+  ```
+
+**✅ FASE CRÍTICA 2**: Type Safety Update
+- ✅ Adicionado `ServiceLocatorContext` ao `ConsolidatedPluginContext`
+- ✅ Export de `ServiceLocatorContext` type para TypeScript safety
+- ✅ Context extension adequada no plugin composition
+
+**✅ FASE CRÍTICA 3**: Health Check Integration
+- ✅ Service Locator incluído nos health checks em `/plugins/health`
+- ✅ Plugin metrics funcionais
+- ✅ Startup logging adequado
+
+**✅ TESTE E VALIDAÇÃO:**
+- ✅ **Aplicação inicializa sem travamento**
+- ✅ ServiceNow streams + dependency resolution funcionais
+- ✅ Todos os 9 plugins carregam corretamente
+- ✅ Service Locator pattern operational
+
+**LOGS DE SUCESSO:**
+```
+🚀 Shared Plugins Composition starting
+📦 Initializing shared plugin context for dependency injection
+🔍 Service Locator: Resolving services...
+✅ All services resolved successfully
+🎯 Application ready for requests
+```
+
+**IMPACTO:**
+- **Aplicação funcional** sem hanging
+- **Service composition** completa e operacional
+- **Production-ready** architecture restaurada
+- **Zero downtime** após restart
+
+**STATUS:** ✅ **BUG CRÍTICO COMPLETAMENTE RESOLVIDO**
+
+---

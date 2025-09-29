@@ -35,6 +35,7 @@ import {
   type PluginConfig,
 } from "./config-manager";
 import { redisPlugin, type RedisPluginContext } from "./redis";
+import { serviceLocator, type ServiceLocatorContext } from "./service-locator";
 
 // Consolidated Plugin Context Type for Eden Treaty
 export interface ConsolidatedPluginContext
@@ -47,7 +48,8 @@ export interface ConsolidatedPluginContext
     SystemHealthContext,
     CLIPluginContext,
     RedisPluginContext,
-    ConfigPluginContext {}
+    ConfigPluginContext,
+    ServiceLocatorContext {}
 
 /**
  * Shared Plugins Composition - Following Elysia Best Practice "1 instance = 1 controller"
@@ -59,7 +61,7 @@ export const sharedPluginsComposition = new Elysia({
   // Plugin lifecycle - onStart
   .onStart(() => {
     console.log(
-      "🚀 Shared Plugins Composition starting - enabling dependency injection across 8 specialized controllers",
+      "🚀 Shared Plugins Composition starting - enabling dependency injection across 9 specialized controllers",
     );
   })
 
@@ -318,7 +320,8 @@ export const createSharedPluginsComposition = (config?: {
     app
       // Apply each plugin individually (maintaining "1 instance = 1 controller")
       .use(configPlugin) // Must be FIRST - provides configuration to all plugins
-      .use(redisPlugin) // Second - provides Redis connections to all plugins
+      .use(serviceLocator) // Second - provides dependency injection to all plugins
+      .use(redisPlugin) // Third - provides Redis connections to all plugins
       .use(authPlugin)
       .use(serviceNowPlugin)
       .use(dataPlugin)
@@ -333,11 +336,14 @@ export const createSharedPluginsComposition = (config?: {
 
       .onStart(async () => {
         console.log(
-          "🔌 Shared Plugins Pattern applied - 8 specialized controllers with shared dependency injection",
+          "🔌 Shared Plugins Pattern applied - 9 specialized controllers with shared dependency injection",
         );
         console.log(
           "📦 Following Elysia Best Practice: '1 instance = 1 controller'",
         );
+        console.log("  - Config Controller: Configuration management");
+        console.log("  - Service Locator Controller: Dependency injection");
+        console.log("  - Redis Controller: Redis connections and caching");
         console.log("  - Auth Controller: Authentication and authorization");
         console.log("  - ServiceNow Controller: ServiceNow API operations");
         console.log("  - Data Controller: MongoDB and Redis data management");
@@ -410,6 +416,7 @@ export const createWebPluginComposition = createSharedPluginsComposition;
  */
 export const createSelectivePluginComposition = (plugins: {
   config?: boolean;
+  serviceLocator?: boolean;
   auth?: boolean;
   servicenow?: boolean;
   data?: boolean;
@@ -426,6 +433,11 @@ export const createSelectivePluginComposition = (plugins: {
     const anyPluginEnabled = Object.values(plugins).some((enabled) => enabled);
     if (anyPluginEnabled || plugins.config) {
       composition = composition.use(configPlugin);
+    }
+
+    // Service Locator should be second if enabled or if any plugin needs it
+    if (plugins.serviceLocator || anyPluginEnabled) {
+      composition = composition.use(serviceLocator);
     }
 
     if (plugins.auth) composition = composition.use(authPlugin);
@@ -455,6 +467,7 @@ export const createSelectivePluginComposition = (plugins: {
 // Export individual plugins for specific use cases
 export {
   configPlugin,
+  serviceLocator,
   redisPlugin,
   authPlugin,
   serviceNowPlugin,
@@ -469,6 +482,7 @@ export {
 // Export plugin contexts for type safety
 export type {
   ConfigPluginContext,
+  ServiceLocatorContext,
   RedisPluginContext,
   AuthPluginContext,
   ServiceNowPluginContext,
