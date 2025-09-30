@@ -149,11 +149,17 @@ async function gracefulShutdown(signal: string) {
   );
 
   try {
-    // Shutdown persistence service
-    await dataService.shutdown();
-    console.log("🍃 MongoDB persistence shut down gracefully");
+    // Stop auto-sync service
+    dataService.stopAutoSync();
+    console.log("🍃 Auto-sync service stopped gracefully");
+
+    // Close MongoDB connection
+    if (dataService.client) {
+      await dataService.client.close();
+      console.log("🍃 MongoDB connection closed gracefully");
+    }
   } catch (error: unknown) {
-    console.error(" Error during MongoDB shutdown:", error);
+    console.error(" Error during shutdown:", error);
   }
 
   process.exit(0);

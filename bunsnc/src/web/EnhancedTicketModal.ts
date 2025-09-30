@@ -649,9 +649,41 @@ export class EnhancedTicketModalView {
           window.open(url, '_blank');
         }
         
-        function addNewNote(sysId, table) {
-          // TODO: Implement add note functionality
-          alert('Funcionalidade de adicionar nota será implementada em breve.');
+        async function addNewNote(sysId, table) {
+          // Create note input dialog
+          const noteText = prompt('Digite a nota (work note) para adicionar ao ticket:');
+
+          if (!noteText || noteText.trim() === '') {
+            return;
+          }
+
+          try {
+            const response = await fetch(\`/api/incident/add-note/\${sysId}\`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                note: noteText,
+                noteType: 'work_notes'  // Default to work_notes
+              })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+              alert('✅ Nota adicionada com sucesso!');
+              // Reload modal to show new note
+              if (window.openTicketModal) {
+                window.openTicketModal(sysId, table);
+              }
+            } else {
+              alert('❌ Erro ao adicionar nota: ' + (result.error || 'Erro desconhecido'));
+            }
+          } catch (error) {
+            console.error('Error adding note:', error);
+            alert('❌ Erro ao adicionar nota: ' + error.message);
+          }
         }
         
         // Keyboard shortcuts

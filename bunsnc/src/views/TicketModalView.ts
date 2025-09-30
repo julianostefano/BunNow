@@ -257,12 +257,40 @@ export class TicketModalView {
           alert('Funcionalidade de edicao em desenvolvimento');
         };
         
-        window.addNote = function(sysId, table) {
-          const note = prompt('Digite a nota para o ticket:');
-          if (note) {
-            console.log('Adicionando nota ao ticket:', sysId, table, note);
-            // TODO: Implementar adicao de nota
-            alert('Funcionalidade de nota em desenvolvimento');
+        window.addNote = async function(sysId, table) {
+          const note = prompt('Digite a nota (work note) para adicionar ao ticket:');
+
+          if (!note || note.trim() === '') {
+            return;
+          }
+
+          try {
+            const response = await fetch(\`/api/incident/add-note/\${sysId}\`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                note: note,
+                noteType: 'work_notes'
+              })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+              alert('✅ Nota adicionada com sucesso!');
+              // Close and reopen modal to refresh data
+              closeModal();
+              if (window.openTicketModal) {
+                setTimeout(() => window.openTicketModal(sysId, table), 300);
+              }
+            } else {
+              alert('❌ Erro ao adicionar nota: ' + (result.error || 'Erro desconhecido'));
+            }
+          } catch (error) {
+            console.error('Error adding note:', error);
+            alert('❌ Erro ao adicionar nota: ' + error.message);
           }
         };
         

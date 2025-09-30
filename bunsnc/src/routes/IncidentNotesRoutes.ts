@@ -270,6 +270,79 @@ export function createIncidentNotesRoutes(
           };
         }
       })
+
+      // POST endpoint to add a new note to an incident
+      .post(
+        "/add-note/:sysId",
+        async ({ params, body, set }) => {
+          try {
+            const { sysId } = params;
+            const { note, noteType = "work_notes" } = body;
+
+            console.log(
+              `📝 [API] Adding ${noteType} to incident: ${sysId}`,
+            );
+
+            if (!note || note.trim() === "") {
+              set.status = 400;
+              return {
+                success: false,
+                error: "Note content is required",
+              };
+            }
+
+            // Validate noteType
+            if (!["work_notes", "comments"].includes(noteType)) {
+              set.status = 400;
+              return {
+                success: false,
+                error: "Invalid note type. Must be 'work_notes' or 'comments'",
+              };
+            }
+
+            // Update incident with new note via PUT to incident table
+            const updateData: Record<string, string> = {};
+            updateData[noteType] = note;
+
+            const response = await serviceNowClient.updateRecord(
+              "incident",
+              sysId,
+              updateData,
+            );
+
+            if (response?.result) {
+              console.log(`✅ [API] Note added successfully to ${sysId}`);
+              return {
+                success: true,
+                message: "Note added successfully",
+                noteType,
+                sys_id: sysId,
+              };
+            } else {
+              set.status = 500;
+              return {
+                success: false,
+                error: "Failed to add note",
+              };
+            }
+          } catch (error: any) {
+            console.error(`❌ [API] Error adding note:`, error);
+            set.status = 500;
+            return {
+              success: false,
+              error: error.message || "Internal server error",
+            };
+          }
+        },
+        {
+          body: t.Object({
+            note: t.String({ minLength: 1, maxLength: 4000 }),
+            noteType: t.Optional(
+              t.Union([t.Literal("work_notes"), t.Literal("comments")]),
+            ),
+          }),
+        },
+      )
   );
 }
 
