@@ -34,7 +34,7 @@ export class EnhancedTicketModalView {
    */
   static generateModal(props: EnhancedModalProps): string {
     return `
-      <div id="ticket-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-professional">
+      <div id="ticket-modal" data-sys-id="${props.ticket.sys_id}" data-table="${props.ticket.table}" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-professional">
         <div class="bg-white rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-hidden">
           <!-- Modal Header -->
           ${this.generateModalHeader(props.ticket)}
@@ -166,92 +166,176 @@ export class EnhancedTicketModalView {
   private static generateDetailsTab(ticket: TicketData): string {
     return `
       <div class="space-y-6">
+        <!-- Short Description with Edit Mode -->
+        <div class="bg-white border border-gray-200 rounded-lg p-4">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Descrição Curta</h3>
+
+          <!-- View Mode -->
+          <div class="view-mode-field">
+            <p class="text-gray-900">${ticket.short_description || "Sem descrição"}</p>
+          </div>
+
+          <!-- Edit Mode (Hidden by default) -->
+          <div class="edit-mode-field hidden">
+            <input
+              type="text"
+              id="edit-short-description"
+              data-field="short_description"
+              data-original-value="${ticket.short_description || ""}"
+              value="${ticket.short_description || ""}"
+              maxlength="160"
+              class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+              oninput="updateCharCounter('short-description', this.value, 160)"
+            />
+            <p class="text-xs text-gray-500 mt-1">
+              <span id="short-description-counter">0</span>/160 caracteres
+            </p>
+          </div>
+        </div>
+
+        <!-- Priority, State, Urgency, Impact Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- Informações Básicas -->
+          <!-- Priority -->
           <div class="bg-white border border-gray-200 rounded-lg p-4">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              Informações Básicas
-            </h3>
-            
-            <div class="space-y-3">
-              <div class="flex justify-between">
-                <span class="font-medium text-gray-700">Número:</span>
-                <span class="text-gray-900">${ticket.number}</span>
-              </div>
-              
-              <div class="flex justify-between">
-                <span class="font-medium text-gray-700">Estado:</span>
-                <span class="px-2 py-1 text-xs font-medium bg-${this.getStateColor(ticket.state)}-100 text-${this.getStateColor(ticket.state)}-800 rounded">
-                  ${this.getStateText(ticket.state)}
-                </span>
-              </div>
-              
-              <div class="flex justify-between">
-                <span class="font-medium text-gray-700">Prioridade:</span>
-                <span class="px-2 py-1 text-xs font-medium bg-${this.getPriorityColor(ticket.priority)}-100 text-${this.getPriorityColor(ticket.priority)}-800 rounded">
-                  P${ticket.priority}
-                </span>
-              </div>
-              
-              <div class="flex justify-between">
-                <span class="font-medium text-gray-700">Criado:</span>
-                <span class="text-gray-900">${this.formatDateTime(ticket.sys_created_on)}</span>
-              </div>
-              
-              <div class="flex justify-between">
-                <span class="font-medium text-gray-700">Atualizado:</span>
-                <span class="text-gray-900">${this.formatDateTime(ticket.sys_updated_on)}</span>
-              </div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-3">Prioridade</h3>
+
+            <div class="view-mode-field">
+              <span class="px-3 py-1 text-sm font-medium bg-${this.getPriorityColor(ticket.priority)}-100 text-${this.getPriorityColor(ticket.priority)}-800 rounded-full">
+                P${ticket.priority}
+              </span>
+            </div>
+
+            <div class="edit-mode-field hidden">
+              <select
+                id="edit-priority"
+                data-field="priority"
+                data-original-value="${ticket.priority}"
+                class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="1" ${ticket.priority === "1" ? "selected" : ""}>P1 - Crítica</option>
+                <option value="2" ${ticket.priority === "2" ? "selected" : ""}>P2 - Alta</option>
+                <option value="3" ${ticket.priority === "3" ? "selected" : ""}>P3 - Moderada</option>
+                <option value="4" ${ticket.priority === "4" ? "selected" : ""}>P4 - Baixa</option>
+                <option value="5" ${ticket.priority === "5" ? "selected" : ""}>P5 - Planejamento</option>
+              </select>
             </div>
           </div>
-          
-          <!-- Atribuição -->
+
+          <!-- State -->
           <div class="bg-white border border-gray-200 rounded-lg p-4">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <svg class="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-              </svg>
-              Atribuição
-            </h3>
-            
-            <div class="space-y-3">
-              <div class="flex justify-between">
-                <span class="font-medium text-gray-700">Grupo:</span>
-                <span class="text-gray-900">${ticket.assignment_group?.display_value || "Não atribuído"}</span>
-              </div>
-              
-              <div class="flex justify-between">
-                <span class="font-medium text-gray-700">Atribuído a:</span>
-                <span class="text-gray-900">${ticket.assigned_to?.display_value || "Não atribuído"}</span>
-              </div>
-              
-              <div class="flex justify-between">
-                <span class="font-medium text-gray-700">Solicitante:</span>
-                <span class="text-gray-900">${ticket.caller_id?.display_value || "N/A"}</span>
-              </div>
-              
-              <div class="flex justify-between">
-                <span class="font-medium text-gray-700">Aberto por:</span>
-                <span class="text-gray-900">${ticket.opened_by?.display_value || "N/A"}</span>
-              </div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-3">Estado</h3>
+
+            <div class="view-mode-field">
+              <span class="px-3 py-1 text-sm font-medium bg-${this.getStateColor(ticket.state)}-100 text-${this.getStateColor(ticket.state)}-800 rounded-full">
+                ${this.getStateText(ticket.state)}
+              </span>
+            </div>
+
+            <div class="edit-mode-field hidden">
+              <select
+                id="edit-state"
+                data-field="state"
+                data-original-value="${ticket.state}"
+                class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="1" ${ticket.state === "1" ? "selected" : ""}>Novo</option>
+                <option value="2" ${ticket.state === "2" ? "selected" : ""}>Em Andamento</option>
+                <option value="3" ${ticket.state === "3" ? "selected" : ""}>Em Espera</option>
+                <option value="6" ${ticket.state === "6" ? "selected" : ""}>Resolvido</option>
+                <option value="7" ${ticket.state === "7" ? "selected" : ""}>Fechado</option>
+              </select>
             </div>
           </div>
         </div>
-        
-        <!-- Descrição -->
+
+        <!-- Description (Long) -->
         <div class="bg-white border border-gray-200 rounded-lg p-4">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <svg class="w-5 h-5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Descrição Detalhada</h3>
+
+          <div class="view-mode-field">
+            <div class="bg-gray-50 p-4 rounded-md">
+              <p class="text-gray-900 whitespace-pre-wrap">${ticket.description || "Sem descrição disponível"}</p>
+            </div>
+          </div>
+
+          <div class="edit-mode-field hidden">
+            <textarea
+              id="edit-description"
+              data-field="description"
+              data-original-value="${ticket.description || ""}"
+              rows="6"
+              maxlength="4000"
+              class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+              oninput="updateCharCounter('description', this.value, 4000)"
+            >${ticket.description || ""}</textarea>
+            <p class="text-xs text-gray-500 mt-1">
+              <span id="description-counter">0</span>/4000 caracteres
+            </p>
+          </div>
+        </div>
+
+        <!-- Work Notes (Only in Edit Mode) -->
+        <div id="work-notes-section" class="edit-mode-field hidden bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <h3 class="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
             </svg>
-            Descrição
+            Notas de Trabalho (Opcional)
           </h3>
-          
-          <div class="bg-gray-50 p-4 rounded-md">
-            <p class="text-gray-900 whitespace-pre-wrap">${ticket.short_description || "Sem descrição disponível"}</p>
+
+          <textarea
+            id="edit-work-notes"
+            data-field="work_notes"
+            data-original-value=""
+            rows="4"
+            maxlength="4000"
+            placeholder="Adicione uma nota explicando as mudanças realizadas..."
+            class="w-full px-3 py-2 text-sm border border-yellow-300 rounded focus:ring-2 focus:ring-yellow-500"
+            oninput="updateCharCounter('work-notes', this.value, 4000)"
+          ></textarea>
+          <p class="text-xs text-gray-600 mt-2">
+            <span id="work-notes-counter">0</span>/4000 caracteres
+            <br>
+            💡 Esta nota será registrada no histórico do ticket como trabalho realizado.
+          </p>
+        </div>
+
+        <!-- Read-only Fields -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <h3 class="text-sm font-semibold text-gray-700 mb-3">Informações do Sistema</h3>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-600">Número:</span>
+                <span class="font-medium">${ticket.number}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">Criado:</span>
+                <span class="font-medium">${this.formatDateTime(ticket.sys_created_on)}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">Atualizado:</span>
+                <span class="font-medium">${this.formatDateTime(ticket.sys_updated_on)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <h3 class="text-sm font-semibold text-gray-700 mb-3">Atribuição</h3>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-600">Grupo:</span>
+                <span class="font-medium">${ticket.assignment_group?.display_value || "Não atribuído"}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">Atribuído a:</span>
+                <span class="font-medium">${ticket.assigned_to?.display_value || "Não atribuído"}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">Solicitante:</span>
+                <span class="font-medium">${ticket.caller_id?.display_value || "N/A"}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -568,17 +652,55 @@ export class EnhancedTicketModalView {
             <span class="text-xs">Tempo real ativo</span>
           </div>
         </div>
-        
-        <div class="flex items-center space-x-3">
-          <button onclick="openServiceNow('${ticket.sys_id}', '${ticket.table}')" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+
+        <!-- View Mode Buttons -->
+        <div id="view-mode-buttons" class="flex items-center space-x-3">
+          <button
+            onclick="toggleEditMode()"
+            class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+            </svg>
+            Editar Ticket
+          </button>
+
+          <button
+            onclick="openServiceNow('${ticket.sys_id}', '${ticket.table}')"
+            class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
             </svg>
             Abrir no ServiceNow
           </button>
-          
-          <button onclick="closeModal()" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gray-600 border border-transparent rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+
+          <button
+            onclick="closeModal()"
+            class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gray-600 border border-transparent rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+          >
             Fechar
+          </button>
+        </div>
+
+        <!-- Edit Mode Buttons (Hidden by default) -->
+        <div id="edit-mode-buttons" class="hidden flex items-center space-x-3">
+          <button
+            onclick="saveTicketChanges()"
+            id="save-ticket-btn"
+            class="inline-flex items-center px-6 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span id="save-btn-text">Salvar Alterações</span>
+          </button>
+
+          <button
+            onclick="cancelEdit()"
+            class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+          >
+            Cancelar
           </button>
         </div>
       </div>
@@ -710,12 +832,45 @@ export class EnhancedTicketModalView {
           background: #94a3b8;
         }
         
+        /* Edit Mode Styles */
+        .view-mode-field {
+          display: block;
+        }
+
+        .edit-mode-field {
+          display: none;
+        }
+
+        body.edit-mode .view-mode-field {
+          display: none;
+        }
+
+        body.edit-mode .edit-mode-field {
+          display: block;
+        }
+
+        #view-mode-buttons {
+          display: flex;
+        }
+
+        #edit-mode-buttons {
+          display: none;
+        }
+
+        body.edit-mode #view-mode-buttons {
+          display: none;
+        }
+
+        body.edit-mode #edit-mode-buttons {
+          display: flex;
+        }
+
         /* Responsive design */
         @media (max-width: 768px) {
           .modal-professional .max-w-6xl {
             max-width: calc(100vw - 2rem);
           }
-          
+
           .grid-cols-2 {
             grid-template-columns: 1fr;
           }
@@ -761,7 +916,98 @@ export class EnhancedTicketModalView {
           const url = \`\${baseUrl}/nav_to.do?uri=\${table}.do?sys_id=\${sysId}\`;
           window.open(url, '_blank');
         }
-        
+
+        // Edit Mode Functions
+        function toggleEditMode() {
+          document.body.classList.add('edit-mode');
+          // Initialize character counters
+          updateCharCounter('short-description', document.getElementById('edit-short-description').value, 160);
+          updateCharCounter('description', document.getElementById('edit-description').value, 4000);
+        }
+
+        function cancelEdit() {
+          // Restore original values
+          document.querySelectorAll('[data-original-value]').forEach(field => {
+            const originalValue = field.getAttribute('data-original-value');
+            if (field.tagName === 'INPUT' || field.tagName === 'TEXTAREA') {
+              field.value = originalValue;
+            } else if (field.tagName === 'SELECT') {
+              field.value = originalValue;
+            }
+          });
+
+          document.body.classList.remove('edit-mode');
+        }
+
+        function updateCharCounter(fieldId, value, maxLength) {
+          const counter = document.getElementById(fieldId + '-counter');
+          if (counter) {
+            counter.textContent = value.length;
+            counter.style.color = value.length >= maxLength * 0.9 ? '#ef4444' : '#6b7280';
+          }
+        }
+
+        async function saveTicketChanges() {
+          const saveBtn = document.getElementById('save-ticket-btn');
+          const saveBtnText = document.getElementById('save-btn-text');
+
+          // Disable button
+          saveBtn.disabled = true;
+          saveBtnText.textContent = 'Salvando...';
+
+          try {
+            // Collect changed fields
+            const changes = {};
+            document.querySelectorAll('[data-field][data-original-value]').forEach(field => {
+              const fieldName = field.getAttribute('data-field');
+              const originalValue = field.getAttribute('data-original-value');
+              const currentValue = field.value;
+
+              if (currentValue !== originalValue && currentValue.trim() !== '') {
+                changes[fieldName] = currentValue;
+              }
+            });
+
+            if (Object.keys(changes).length === 0) {
+              alert('Nenhuma alteração detectada.');
+              saveBtn.disabled = false;
+              saveBtnText.textContent = 'Salvar Alterações';
+              return;
+            }
+
+            // Get ticket info from URL or data attributes
+            const modal = document.getElementById('ticket-modal');
+            const table = modal.getAttribute('data-table') || 'incident';
+            const sysId = modal.getAttribute('data-sys-id');
+
+            // Send PUT request
+            const response = await fetch(\`/modal/ticket/\${table}/\${sysId}\`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(changes),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+              alert('✅ Ticket atualizado com sucesso!');
+              // Reload modal
+              window.location.reload();
+            } else {
+              alert('❌ Erro ao atualizar ticket: ' + (result.error || 'Erro desconhecido'));
+              saveBtn.disabled = false;
+              saveBtnText.textContent = 'Salvar Alterações';
+            }
+          } catch (error) {
+            console.error('Error saving ticket:', error);
+            alert('❌ Erro ao salvar alterações: ' + error.message);
+            saveBtn.disabled = false;
+            saveBtnText.textContent = 'Salvar Alterações';
+          }
+        }
+
         async function addNewNote(sysId, table) {
           // Create note input dialog
           const noteText = prompt('Digite a nota (work note) para adicionar ao ticket:');
