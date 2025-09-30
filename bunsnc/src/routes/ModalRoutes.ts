@@ -9,6 +9,8 @@ import { EnhancedTicketModalView } from "../web/EnhancedTicketModal";
 import { serviceNowStreams } from "../config/redis-streams";
 import { logger } from "../utils/Logger";
 import { systemService } from "../services/SystemService";
+import type { HistoryResponse, UpdateTicketResponse } from "../types/TicketTypes";
+import { UpdateTicketSchema } from "../types/TicketTypes";
 
 export const createModalRoutes = () => {
   return (
@@ -37,12 +39,28 @@ export const createModalRoutes = () => {
               return { error: "Ticket not found" };
             }
 
+            // Fetch ticket history from API
+            let historyData: HistoryResponse["history"] = [];
+            try {
+              const historyUrl = `${process.env.BASE_URL || "http://localhost:3000"}/api/incident/history/${params.sysId}`;
+              const historyResponse = await fetch(historyUrl);
+              if (historyResponse.ok) {
+                const historyResult: HistoryResponse = await historyResponse.json();
+                historyData = historyResult.history || [];
+                logger.info(`📜 Fetched ${historyData.length} history entries for ${params.sysId}`);
+              } else {
+                logger.warn(`⚠️ Failed to fetch history for ${params.sysId}: ${historyResponse.status}`);
+              }
+            } catch (error: unknown) {
+              logger.error(`❌ Error fetching history for ${params.sysId}:`, error);
+            }
+
             // Generate modal HTML
             const modalHtml = EnhancedTicketModalView.generateModal({
               ticket: ticket,
               slaData: ticket.slms || [],
               notes: ticket.notes || [],
-              history: [], // TODO: Implement history
+              history: historyData,
               showRealTime: query.realtime !== "false",
             });
 
@@ -100,6 +118,22 @@ export const createModalRoutes = () => {
               return { error: "Ticket not found" };
             }
 
+            // Fetch ticket history from API
+            let historyData: HistoryResponse["history"] = [];
+            try {
+              const historyUrl = `${process.env.BASE_URL || "http://localhost:3000"}/api/incident/history/${params.sysId}`;
+              const historyResponse = await fetch(historyUrl);
+              if (historyResponse.ok) {
+                const historyResult: HistoryResponse = await historyResponse.json();
+                historyData = historyResult.history || [];
+                logger.info(`📜 Fetched ${historyData.length} history entries for ${params.sysId}`);
+              } else {
+                logger.warn(`⚠️ Failed to fetch history for ${params.sysId}: ${historyResponse.status}`);
+              }
+            } catch (error: unknown) {
+              logger.error(`❌ Error fetching history for ${params.sysId}:`, error);
+            }
+
             await systemService.recordMetric({
               operation: "modal_data",
               endpoint: `/modal/data/${params.table}/${params.sysId}`,
@@ -112,7 +146,7 @@ export const createModalRoutes = () => {
                 ticket: ticket,
                 slaData: ticket.slms || [],
                 notes: ticket.notes || [],
-                history: [], // TODO: Implement history
+                history: historyData,
                 lastUpdate: new Date().toISOString(),
               },
             };
@@ -135,6 +169,87 @@ export const createModalRoutes = () => {
               includeNotes: t.Optional(t.String()),
             }),
           ),
+        },
+      )
+
+      // Update ticket endpoint (PUT)
+      .put(
+        "/ticket/:table/:sysId",
+        async ({ params, body, set }) => {
+          const startTime = Date.now();
+
+          try {
+            logger.info(
+              `🔧 Update request for ${params.table}/${params.sysId}`,
+            );
+            logger.debug("Update payload:", body);
+
+            // Get consolidated ServiceNow service
+            const consolidatedService = await import(
+              "../services/ConsolidatedServiceNowService"
+            );
+
+            // Perform update
+            const updateResult = await consolidatedService.default.update(
+              params.table,
+              params.sysId,
+              body,
+            );
+
+            if (!updateResult) {
+              set.status = 500;
+              return {
+                success: false,
+                sys_id: params.sysId,
+                updated_fields: [],
+                timestamp: new Date().toISOString(),
+                error: "Update failed - no result returned",
+              } satisfies UpdateTicketResponse;
+            }
+
+            // Get list of updated fields
+            const updatedFields = Object.keys(body);
+
+            // Record metrics
+            await systemService.recordMetric({
+              operation: "ticket_update",
+              endpoint: `/modal/ticket/${params.table}/${params.sysId}`,
+              response_time_ms: Date.now() - startTime,
+            });
+
+            logger.info(
+              `✅ Successfully updated ${params.table}/${params.sysId}: ${updatedFields.join(", ")}`,
+            );
+
+            return {
+              success: true,
+              sys_id: params.sysId,
+              updated_fields: updatedFields,
+              timestamp: new Date().toISOString(),
+            } satisfies UpdateTicketResponse;
+          } catch (error: unknown) {
+            logger.error(
+              `❌ Error updating ${params.table}/${params.sysId}:`,
+              error,
+            );
+
+            set.status = 500;
+            return {
+              success: false,
+              sys_id: params.sysId,
+              updated_fields: [],
+              timestamp: new Date().toISOString(),
+              error:
+                error instanceof Error ? error.message : "Unknown error",
+            } satisfies UpdateTicketResponse;
+          }
+        },
+        {
+          params: t.Object({
+            table: t.String(),
+            sysId: t.String(),
+          }),
+          body: UpdateTicketSchema,
         },
       )
 

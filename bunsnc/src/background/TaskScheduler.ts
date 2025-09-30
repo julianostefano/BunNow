@@ -51,6 +51,7 @@ export class TaskScheduler extends EventEmitter {
   private isRunning: boolean = false;
   private schedulerInterval?: Timer;
   private scheduledTasks: Map<string, ScheduledTask> = new Map();
+  private runningTaskIds: Set<string> = new Set(); // Track running scheduled tasks
 
   private readonly SCHEDULED_TASKS_KEY = "scheduler:tasks";
   private readonly SCHEDULE_LOCK_KEY = "scheduler:lock";
@@ -268,7 +269,7 @@ export class TaskScheduler extends EventEmitter {
       totalRuns,
       totalFails,
       nextRun: nextRuns[0],
-      runningTasks: 0, // TODO: Track running scheduled tasks
+      runningTasks: this.runningTaskIds.size, // Real count of running scheduled tasks
     };
   }
 
@@ -417,6 +418,9 @@ export class TaskScheduler extends EventEmitter {
   private async executeScheduledTask(
     scheduledTask: ScheduledTask,
   ): Promise<string> {
+    // Mark task as running
+    this.runningTaskIds.add(scheduledTask.id);
+
     try {
       // Create task for queue
       const queueTaskId = await this.taskQueue.addTask({
@@ -491,6 +495,9 @@ export class TaskScheduler extends EventEmitter {
       });
 
       throw error;
+    } finally {
+      // Always remove from running set when done (success or error)
+      this.runningTaskIds.delete(scheduledTask.id);
     }
   }
 

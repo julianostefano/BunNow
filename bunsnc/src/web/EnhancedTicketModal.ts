@@ -6,6 +6,7 @@
 
 import { TicketData } from "../services/ConsolidatedDataService";
 import { ServiceNowNote } from "../services/ConsolidatedServiceNowService";
+import type { HistoryEntry } from "../types/TicketTypes";
 
 export interface SLAData {
   sys_id: string;
@@ -23,7 +24,7 @@ export interface EnhancedModalProps {
   ticket: TicketData;
   slaData: SLAData[];
   notes: ServiceNowNote[];
-  history: any[];
+  history: HistoryEntry[];
   showRealTime?: boolean;
 }
 
@@ -427,19 +428,131 @@ export class EnhancedTicketModalView {
     `;
   }
 
-  private static generateHistoryTab(history: any[]): string {
+  private static generateHistoryTab(history: HistoryEntry[]): string {
+    if (!history || history.length === 0) {
+      return `
+        <div class="space-y-6">
+          <h2 class="text-xl font-bold text-gray-900">Histórico de Mudanças</h2>
+
+          <div class="text-center py-8">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">Nenhum histórico disponível</h3>
+            <p class="mt-1 text-sm text-gray-500">Não foram encontradas mudanças registradas para este ticket.</p>
+          </div>
+        </div>
+      `;
+    }
+
+    const timelineItems = history.map((entry) => this.generateHistoryTimelineItem(entry)).join("");
+
     return `
       <div class="space-y-6">
-        <h2 class="text-xl font-bold text-gray-900">Histórico de Mudanças</h2>
-        
-        <div class="text-center py-8">
-          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <h3 class="mt-2 text-sm font-medium text-gray-900">Histórico em desenvolvimento</h3>
-          <p class="mt-1 text-sm text-gray-500">Esta funcionalidade será implementada em breve.</p>
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-bold text-gray-900">Histórico de Mudanças</h2>
+          <span class="text-sm text-gray-500">${history.length} mudanças registradas</span>
+        </div>
+
+        <div class="flow-root">
+          <ul role="list" class="-mb-8">
+            ${timelineItems}
+          </ul>
         </div>
       </div>
+    `;
+  }
+
+  private static generateHistoryTimelineItem(entry: HistoryEntry): string {
+    const fieldLabel = this.getFieldLabel(entry.fieldname);
+    const changeIcon = this.getChangeIcon(entry.fieldname);
+    const formattedTime = this.formatDateTime(entry.sys_created_on);
+    const userDisplay = entry.sys_created_by || "Sistema";
+
+    return `
+      <li>
+        <div class="relative pb-8">
+          <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+          <div class="relative flex space-x-3">
+            <div>
+              <span class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center ring-8 ring-white">
+                ${changeIcon}
+              </span>
+            </div>
+            <div class="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
+              <div class="flex-1">
+                <p class="text-sm font-medium text-gray-900">
+                  ${fieldLabel}
+                </p>
+                <div class="mt-2 space-y-1">
+                  ${entry.oldvalue ? `
+                    <div class="flex items-start space-x-2">
+                      <span class="text-xs text-gray-500 font-medium">De:</span>
+                      <span class="text-xs text-gray-700 line-through">${this.escapeHtml(entry.oldvalue)}</span>
+                    </div>
+                  ` : ""}
+                  <div class="flex items-start space-x-2">
+                    <span class="text-xs text-gray-500 font-medium">Para:</span>
+                    <span class="text-xs text-gray-900 font-semibold">${this.escapeHtml(entry.newvalue)}</span>
+                  </div>
+                </div>
+                <div class="mt-2 flex items-center space-x-2 text-xs text-gray-500">
+                  <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                  </svg>
+                  <span>${userDisplay}</span>
+                </div>
+              </div>
+              <div class="whitespace-nowrap text-right text-sm text-gray-500">
+                <time datetime="${entry.sys_created_on}">${formattedTime}</time>
+              </div>
+            </div>
+          </div>
+        </div>
+      </li>
+    `;
+  }
+
+  private static getFieldLabel(fieldname: string): string {
+    const fieldLabels: Record<string, string> = {
+      state: "Estado",
+      priority: "Prioridade",
+      assigned_to: "Atribuído a",
+      assignment_group: "Grupo de Atribuição",
+      short_description: "Descrição Curta",
+      description: "Descrição",
+      work_notes: "Notas de Trabalho",
+      comments: "Comentários",
+      close_notes: "Notas de Fechamento",
+      resolution_code: "Código de Resolução",
+      impact: "Impacto",
+      urgency: "Urgência",
+      category: "Categoria",
+      subcategory: "Subcategoria",
+      caller_id: "Solicitante",
+      opened_at: "Aberto em",
+      resolved_at: "Resolvido em",
+      closed_at: "Fechado em",
+    };
+
+    return fieldLabels[fieldname] || fieldname;
+  }
+
+  private static getChangeIcon(fieldname: string): string {
+    const criticalFields = ["state", "priority", "assigned_to", "assignment_group"];
+
+    if (criticalFields.includes(fieldname)) {
+      return `
+        <svg class="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd" />
+        </svg>
+      `;
+    }
+
+    return `
+      <svg class="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+      </svg>
     `;
   }
 

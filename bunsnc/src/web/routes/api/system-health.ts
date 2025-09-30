@@ -3,11 +3,12 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import { serviceNowRateLimiter } from "../../services/ServiceNowRateLimit";
 import { serviceNowCircuitBreaker } from "../../services/CircuitBreaker";
 import { streamHandler } from "../../services/streaming/StreamHandler";
 import { neuralSearchService } from "../../services/NeuralSearchService";
+import { SystemService } from "../../../services/SystemService";
 import { logger } from "../../utils/Logger";
 
 export const systemHealthApiRoutes = new Elysia({ prefix: "/api/system" })
@@ -199,6 +200,40 @@ export const systemHealthApiRoutes = new Elysia({ prefix: "/api/system" })
       return {
         success: false,
         error: "Rate limiter status failed",
+        details: error instanceof Error ? error.message : String(error),
+      };
+    }
+  })
+
+  .get("/scheduler/status", async () => {
+    try {
+      const systemService = SystemService.getInstance();
+      const schedulerStats = await systemService.getSchedulerStats();
+
+      if (!schedulerStats) {
+        return {
+          success: false,
+          error: "Scheduler not registered or unavailable",
+          registered: false,
+        };
+      }
+
+      return {
+        success: true,
+        registered: true,
+        scheduler: {
+          ...schedulerStats,
+          nextRunFormatted: schedulerStats.nextRun
+            ? schedulerStats.nextRun.toISOString()
+            : null,
+        },
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error: unknown) {
+      logger.error("[SystemHealthAPI] Scheduler status failed:", error);
+      return {
+        success: false,
+        error: "Scheduler status failed",
         details: error instanceof Error ? error.message : String(error),
       };
     }

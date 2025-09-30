@@ -41,6 +41,16 @@ export interface SystemConfig {
   };
 }
 
+export interface SchedulerStats {
+  totalTasks: number;
+  enabledTasks: number;
+  disabledTasks: number;
+  totalRuns: number;
+  totalFails: number;
+  nextRun?: Date;
+  runningTasks: number;
+}
+
 export interface SystemHealth {
   status: "healthy" | "degraded" | "unhealthy";
   services: {
@@ -49,6 +59,7 @@ export interface SystemHealth {
     groups: boolean;
     transactions: boolean;
     legacy: boolean;
+    scheduler?: boolean;
   };
   metrics: {
     uptime: number;
@@ -56,6 +67,7 @@ export interface SystemHealth {
     active_tasks: number;
     total_groups: number;
     active_transactions: number;
+    scheduler?: SchedulerStats;
   };
   timestamp: string;
 }
@@ -138,6 +150,7 @@ export class SystemService extends EventEmitter {
   private groupManager: SystemGroupManager;
   private transactionManager: SystemTransactionManager;
   private legacyBridge: LegacyServiceBridge;
+  private schedulerStatsCallback?: () => Promise<SchedulerStats>; // Optional scheduler integration
   private config: SystemConfig;
   private isInitialized = false;
   private isRunning = false;
@@ -273,6 +286,30 @@ export class SystemService extends EventEmitter {
     } catch (error: unknown) {
       logger.error(" Failed to stop SystemService:", error);
       throw error;
+    }
+  }
+
+  /**
+   * Register TaskScheduler to expose its metrics
+   * @param getStats - Callback function that returns scheduler stats
+   */
+  registerScheduler(getStats: () => Promise<SchedulerStats>): void {
+    this.schedulerStatsCallback = getStats;
+    logger.info("✅ TaskScheduler registered with SystemService");
+  }
+
+  /**
+   * Get scheduler statistics if available
+   */
+  async getSchedulerStats(): Promise<SchedulerStats | null> {
+    if (!this.schedulerStatsCallback) {
+      return null;
+    }
+    try {
+      return await this.schedulerStatsCallback();
+    } catch (error: unknown) {
+      logger.error("❌ Failed to get scheduler stats:", error);
+      return null;
     }
   }
 
@@ -416,6 +453,7 @@ export class SystemService extends EventEmitter {
 
       const memUsage = this.getMemoryUsage();
       const taskStats = await this.getTaskStats();
+      const schedulerStats = await this.getSchedulerStats();
 
       const allHealthy =
         perfHealth && taskHealth && groupHealth && transHealth && legacyHealth;
@@ -429,6 +467,7 @@ export class SystemService extends EventEmitter {
           groups: groupHealth,
           transactions: transHealth,
           legacy: legacyHealth,
+          scheduler: schedulerStats !== null,
         },
         metrics: {
           uptime: Math.floor(process.uptime()),
@@ -437,6 +476,7 @@ export class SystemService extends EventEmitter {
           total_groups: await this.groupManager.getGroupCount(),
           active_transactions:
             await this.transactionManager.getActiveTransactionCount(),
+          scheduler: schedulerStats || undefined,
         },
         timestamp: new Date().toISOString(),
       };
