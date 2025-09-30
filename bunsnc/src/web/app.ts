@@ -90,6 +90,86 @@ const config: WebServerConfig = {
   },
 };
 
+// 🛡️ PHASE 2: Validate config immediately after creation
+console.log("🔍 [Config Validation] Validating configuration values...");
+console.log(`🔍 [Config Validation] ServiceNow instanceUrl:`);
+console.log(`   - Type: ${typeof config.serviceNow.instanceUrl}`);
+console.log(`   - Value: "${config.serviceNow.instanceUrl}"`);
+console.log(`   - Length: ${config.serviceNow.instanceUrl?.length}`);
+console.log(`🔍 [Config Validation] ServiceNow username:`);
+console.log(`   - Type: ${typeof config.serviceNow.username}`);
+console.log(`   - Value: "${config.serviceNow.username}"`);
+console.log(`   - Length: ${config.serviceNow.username?.length}`);
+console.log(`🔍 [Config Validation] ServiceNow password:`);
+console.log(`   - Type: ${typeof config.serviceNow.password}`);
+console.log(`   - Length: ${config.serviceNow.password?.length}`);
+
+// Validate ServiceNow config
+if (
+  config.serviceNow.instanceUrl === undefined ||
+  config.serviceNow.instanceUrl === null
+) {
+  throw new Error(
+    `[Config Validation] SERVICENOW_INSTANCE_URL is ${config.serviceNow.instanceUrl}. Check your .env file.`,
+  );
+}
+
+if (typeof config.serviceNow.instanceUrl !== "string") {
+  throw new Error(
+    `[Config Validation] SERVICENOW_INSTANCE_URL must be a string, received: ${typeof config.serviceNow.instanceUrl}. Value: ${JSON.stringify(config.serviceNow.instanceUrl)}`,
+  );
+}
+
+if (config.serviceNow.instanceUrl.trim() === "") {
+  throw new Error(
+    `[Config Validation] SERVICENOW_INSTANCE_URL cannot be empty. Check your .env file.`,
+  );
+}
+
+if (
+  config.serviceNow.username === undefined ||
+  config.serviceNow.username === null
+) {
+  throw new Error(
+    `[Config Validation] SERVICENOW_USERNAME is ${config.serviceNow.username}. Check your .env file.`,
+  );
+}
+
+if (typeof config.serviceNow.username !== "string") {
+  throw new Error(
+    `[Config Validation] SERVICENOW_USERNAME must be a string, received: ${typeof config.serviceNow.username}`,
+  );
+}
+
+if (config.serviceNow.username.trim() === "") {
+  throw new Error(
+    `[Config Validation] SERVICENOW_USERNAME cannot be empty. Check your .env file.`,
+  );
+}
+
+if (
+  config.serviceNow.password === undefined ||
+  config.serviceNow.password === null
+) {
+  throw new Error(
+    `[Config Validation] SERVICENOW_PASSWORD is ${config.serviceNow.password}. Check your .env file.`,
+  );
+}
+
+if (typeof config.serviceNow.password !== "string") {
+  throw new Error(
+    `[Config Validation] SERVICENOW_PASSWORD must be a string, received: ${typeof config.serviceNow.password}`,
+  );
+}
+
+if (config.serviceNow.password.trim() === "") {
+  throw new Error(
+    `[Config Validation] SERVICENOW_PASSWORD cannot be empty. Check your .env file.`,
+  );
+}
+
+console.log("✅ [Config Validation] All ServiceNow config values are valid!");
+
 async function startWebInterface() {
   try {
     console.log(" Starting ServiceNow Web Interface...");

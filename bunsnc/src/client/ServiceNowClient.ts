@@ -118,6 +118,12 @@ export class ServiceNowClient implements IServiceNowClient {
       enableCache?: boolean;
     } = {},
   ): ServiceNowClient {
+    // 🔍 DEBUG: Log parameters antes de validar
+    console.log("[ServiceNowClient.createWithCredentials] Parameters:");
+    console.log(`  - instanceUrl type: ${typeof instanceUrl}, value: "${instanceUrl}"`);
+    console.log(`  - username type: ${typeof username}, value: "${username}"`);
+    console.log(`  - password type: ${typeof password}, length: ${password?.length}`);
+
     // Validate inputs
     if (!instanceUrl || typeof instanceUrl !== "string") {
       throw new Error(
@@ -162,16 +168,40 @@ export class ServiceNowClient implements IServiceNowClient {
       enableCache?: boolean;
     } = {},
   ) {
-    // ✅ TYPE GUARDS: Validate parameters before any operations
-    if (!instanceUrl || typeof instanceUrl !== "string") {
+    // 🛡️ ULTRA DEFENSIVE: Validate FIRST, before ANY operations
+    if (instanceUrl === undefined || instanceUrl === null) {
       throw new Error(
-        `[ServiceNowClient] instanceUrl must be a non-empty string, received: ${typeof instanceUrl} (${instanceUrl})`,
+        `[ServiceNowClient] instanceUrl is ${instanceUrl}. This indicates a configuration error or missing environment variable.`,
       );
     }
 
-    if (!authToken || typeof authToken !== "string") {
+    if (typeof instanceUrl !== "string") {
       throw new Error(
-        `[ServiceNowClient] authToken must be a non-empty string, received: ${typeof authToken}`,
+        `[ServiceNowClient] instanceUrl must be a string, received: ${typeof instanceUrl}. Value: ${JSON.stringify(instanceUrl)}`,
+      );
+    }
+
+    if (instanceUrl.trim() === "") {
+      throw new Error(
+        `[ServiceNowClient] instanceUrl cannot be empty string`,
+      );
+    }
+
+    if (authToken === undefined || authToken === null) {
+      throw new Error(
+        `[ServiceNowClient] authToken is ${authToken}. This indicates a configuration error or missing environment variable.`,
+      );
+    }
+
+    if (typeof authToken !== "string") {
+      throw new Error(
+        `[ServiceNowClient] authToken must be a string, received: ${typeof authToken}`,
+      );
+    }
+
+    if (authToken.trim() === "") {
+      throw new Error(
+        `[ServiceNowClient] authToken cannot be empty string`,
       );
     }
 
