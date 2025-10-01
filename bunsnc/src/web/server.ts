@@ -94,19 +94,30 @@ export class ServiceNowWebServer {
   private setupRoutes(): void {
     const app = this.webServerController.setupServer();
 
+    console.log("[PLUGIN-LOAD] 🔌 Starting plugin composition loading...");
     app
       .use(
-        createWebPluginComposition({
-          enableHealthChecks: true,
-          enableMetrics: true,
-          pluginConfig: {
-            serviceNow: this.webServerController.getConfig().serviceNow,
-            redis: this.webServerController.getConfig().redis,
-            mongodb: this.webServerController.getConfig().mongodb,
-          },
-        }),
+        (() => {
+          console.log("[PLUGIN-LOAD] Loading createWebPluginComposition...");
+          const composition = createWebPluginComposition({
+            enableHealthChecks: true,
+            enableMetrics: true,
+            pluginConfig: {
+              serviceNow: this.webServerController.getConfig().serviceNow,
+              redis: this.webServerController.getConfig().redis,
+              mongodb: this.webServerController.getConfig().mongodb,
+            },
+          });
+          console.log("[PLUGIN-LOAD] ✅ createWebPluginComposition loaded");
+          return composition;
+        })(),
       )
-      .use(authRoutes)
+      .use((() => {
+        console.log("[PLUGIN-LOAD] Loading authRoutes...");
+        const routes = authRoutes;
+        console.log("[PLUGIN-LOAD] ✅ authRoutes loaded");
+        return routes;
+      })())
       .use(htmxDashboardClean)
       .use(htmxDashboardEnhanced)
       .use(waitingAnalysisHtmx)

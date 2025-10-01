@@ -627,8 +627,9 @@ export const dataServicePlugin = new Elysia({ name: "data-service" }).derive(
       // Create new instance (NO SINGLETON)
       const dataService = new PluginDataService(dataConfig);
 
-      // Initialize the service
-      await dataService.initialize();
+      // ✅ NOTE: MongoDB initialization moved to app.ts to ensure ServiceNowStreams is available first
+      // MongoDB will be initialized manually after server starts
+      // await dataService.initialize();
 
       // Return plugin context with bound methods (spread to top level)
       return {

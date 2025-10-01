@@ -216,8 +216,9 @@ export class WebServerController {
       // Fire-and-forget pattern: Start auto-sync without awaiting
       // This prevents blocking the server startup (Elysia Best Practice linha 694-704)
       if (typeof this.hybridDataService.startAutoSync === "function") {
-        this.hybridDataService
-          .startAutoSync({
+        try {
+          // ✅ FIX: startAutoSync() returns void, not Promise - no .catch() needed
+          this.hybridDataService.startAutoSync({
             syncInterval: 5 * 60 * 1000, // 5 minutes
             batchSize: 50,
             maxRetries: 3,
@@ -226,11 +227,11 @@ export class WebServerController {
             enableRealTimeUpdates: true,
             enableSLMCollection: true,
             enableNotesCollection: true,
-          })
-          .catch((error: unknown) => {
-            console.error("[BG-SERVICE] Auto-sync error (will retry):", error);
           });
-        console.log("[BG-SERVICE] ✅ Auto-sync started (background)");
+          console.log("[BG-SERVICE] ✅ Auto-sync started (background)");
+        } catch (error: unknown) {
+          console.error("[BG-SERVICE] ⚠️ Auto-sync initialization error:", error);
+        }
       } else {
         console.warn(
           "[BG-SERVICE] ⚠️ startAutoSync method not available, enhanced sync features disabled",

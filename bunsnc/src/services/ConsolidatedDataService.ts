@@ -161,29 +161,85 @@ class MongoDBManager extends EventEmitter {
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
 
-    try {
-      logger.info(" [DataService] Initializing MongoDB connection...");
+    const maxRetries = 3;
+    let attempt = 0;
 
-      this.client = new MongoClient(this.config.connectionString, {
-        maxPoolSize: this.config.options?.maxPoolSize || 10,
-        serverSelectionTimeoutMS:
-          this.config.options?.serverSelectionTimeoutMS || 5000,
-        socketTimeoutMS: this.config.options?.socketTimeoutMS || 45000,
-      });
+    while (attempt < maxRetries) {
+      try {
+        attempt++;
+        logger.info(
+          `🔌 [MongoDBManager] Starting connection attempt ${attempt}/${maxRetries}...`,
+        );
+        logger.info(
+          `   Host: ${this.config.host}:${this.config.port}`,
+        );
+        logger.info(
+          `   Database: ${this.config.databaseName || "bunsnc"}`,
+        );
+        logger.info(
+          `   User: ${this.config.username}`,
+        );
 
-      await this.client.connect();
-      this.db = this.client.db(this.config.databaseName || "bunsnc");
+        const connectionOptions = {
+          maxPoolSize: this.config.options?.maxPoolSize || 10,
+          serverSelectionTimeoutMS:
+            this.config.options?.serverSelectionTimeoutMS || 10000, // Increased from 5000ms
+          socketTimeoutMS: this.config.options?.socketTimeoutMS || 45000,
+        };
 
-      // Initialize collections
-      await this.setupCollections();
-      await this.createIndexes();
+        logger.info(
+          `   Timeouts: serverSelection=${connectionOptions.serverSelectionTimeoutMS}ms, socket=${connectionOptions.socketTimeoutMS}ms`,
+        );
 
-      this.isInitialized = true;
-      logger.info(" [DataService] MongoDB initialized successfully");
-      this.emit("initialized");
-    } catch (error: unknown) {
-      logger.error(" [DataService] MongoDB initialization failed:", error);
-      throw error;
+        this.client = new MongoClient(
+          this.config.connectionString,
+          connectionOptions,
+        );
+
+        logger.info("🔌 [MongoDBManager] Attempting to connect...");
+        await this.client.connect();
+        logger.info("✅ [MongoDBManager] Connected successfully!");
+
+        this.db = this.client.db(this.config.databaseName || "bunsnc");
+        logger.info(
+          `✅ [MongoDBManager] Database '${this.config.databaseName || "bunsnc"}' selected`,
+        );
+
+        logger.info("📦 [MongoDBManager] Setting up collections...");
+        await this.setupCollections();
+        logger.info("✅ [MongoDBManager] Collections setup complete");
+
+        logger.info("🔍 [MongoDBManager] Creating indexes...");
+        await this.createIndexes();
+        logger.info("✅ [MongoDBManager] Indexes created successfully");
+
+        this.isInitialized = true;
+        logger.info("✅ [MongoDBManager] Initialization complete");
+        this.emit("initialized");
+        return;
+      } catch (error: unknown) {
+        logger.error(
+          `❌ [MongoDBManager] Connection attempt ${attempt}/${maxRetries} failed:`,
+          error,
+        );
+        logger.error(
+          `   Connection string: mongodb://${this.config.username}@${this.config.host}:${this.config.port}/${this.config.databaseName}`,
+        );
+
+        if (attempt >= maxRetries) {
+          logger.error(
+            `❌ [MongoDBManager] All ${maxRetries} connection attempts failed. MongoDB is REQUIRED for this application.`,
+          );
+          throw error;
+        }
+
+        // Exponential backoff: 2s, 4s, 8s
+        const backoffMs = Math.pow(2, attempt) * 1000;
+        logger.info(
+          `⏳ [MongoDBManager] Retrying in ${backoffMs / 1000}s...`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
+      }
     }
   }
 
@@ -535,7 +591,10 @@ export class ConsolidatedDataService extends EventEmitter {
     });
   }
 
-  async initialize(serviceNowClient: ServiceNowAuthClient): Promise<void> {
+  async initialize(
+    serviceNowClient: ServiceNowAuthClient,
+    existingStreams?: ServiceNowStreams,
+  ): Promise<void> {
     if (this.isInitialized) return;
 
     try {
@@ -547,13 +606,21 @@ export class ConsolidatedDataService extends EventEmitter {
       // Initialize Enhanced Ticket Storage Service (self-reference for this singleton)
       this.ticketStorageService = this;
 
-      // Initialize ServiceNow Streams
-      this.serviceNowStreams = new ServiceNowStreams({
-        host: this.config.redis.host,
-        port: this.config.redis.port,
-        password: this.config.redis.password,
-      });
-      await this.serviceNowStreams.initialize();
+      // ✅ Fix: Use existing ServiceNowStreams instance to avoid duplication
+      if (existingStreams) {
+        logger.info(
+          " [DataService] Reusing existing ServiceNow Streams instance",
+        );
+        this.serviceNowStreams = existingStreams;
+      } else {
+        logger.info(" [DataService] Creating new ServiceNow Streams instance");
+        this.serviceNowStreams = new ServiceNowStreams({
+          host: this.config.redis.host,
+          port: this.config.redis.port,
+          password: this.config.redis.password,
+        });
+        await this.serviceNowStreams.initialize();
+      }
 
       // Start sync interval if configured
       if (this.config.sync.syncInterval) {

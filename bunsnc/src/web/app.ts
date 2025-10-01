@@ -190,16 +190,19 @@ async function startWebInterface() {
     );
     console.log(`   - OpenTelemetry Service: BunSNC v1.0.0`);
 
-    // Initialize MongoDB persistence
+    // ✅ Create server first
+    const server = new ServiceNowWebServer(config);
+    await server.start();
+
+    // Initialize MongoDB persistence AFTER server starts (to get ServiceNowStreams)
     console.log("🍃 Initializing MongoDB persistence...");
-    // Import auth client for data service initialization
     const { serviceNowAuthClient } = await import(
       "../services/ServiceNowAuthClient"
     );
-    await dataService.initialize(serviceNowAuthClient);
-
-    const server = new ServiceNowWebServer(config);
-    await server.start();
+    const redisStreams = server
+      .getWebServerController()
+      .getRedisStreams();
+    await dataService.initialize(serviceNowAuthClient, redisStreams);
 
     console.log("");
     console.log(" ServiceNow Web Interface started successfully!");
