@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BunSNC Dashboard v2.0 - Mockup Interativo</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Trading Dashboard Theme with Glassmorphism */
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #141b2d;
+            --bg-tertiary: #1e2740;
+            --accent-green: #00ff88;
+            --accent-red: #ff3366;
+            --accent-blue: #00d4ff;
+            --accent-yellow: #ffd600;
+            --text-primary: #e0e6ed;
+            --text-secondary: #8b92a0;
+            --border-color: rgba(45, 53, 72, 0.5);
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0e1a 0%, #1a1f35 50%, #0a0e1a 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            color: var(--text-primary);
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        /* Glassmorphism Base */
+        .glass {
+            background: rgba(20, 27, 45, 0.7);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .glass-strong {
+            background: rgba(20, 27, 45, 0.85);
+            backdrop-filter: blur(30px) saturate(200%);
+            -webkit-backdrop-filter: blur(30px) saturate(200%);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .glass-light {
+            background: rgba(30, 39, 64, 0.4);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* HTMX Transitions */
+        .htmx-swapping {
+            opacity: 0;
+            transition: opacity 200ms ease-out;
+        }
+
+        .htmx-settling {
+            opacity: 1;
+        }
+
+        /* Sidebar Slide Animation */
+        .sidebar {
+            transform: translateX(-100%);
+            transition: transform 300ms ease-out;
+        }
+
+        .sidebar.show {
+            transform: translateX(0);
+        }
+
+        /* Search Accordion */
+        .search-accordion {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 300ms ease-in-out;
+            background: rgba(10, 14, 26, 0.95);
+            backdrop-filter: blur(10px);
+        }
+
+        .search-accordion.expanded {
+            max-height: 400px;
+        }
+
+        /* Ticker Scroll Animation */
+        @keyframes ticker-scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .ticker-content {
+            animation: ticker-scroll 30s linear infinite;
+            will-change: transform;
+        }
+
+        .ticker-content:hover {
+            animation-play-state: paused;
+        }
+
+        /* Glow Effects */
+        .glow-green {
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .glow-red {
+            box-shadow: 0 0 20px rgba(255, 51, 102, 0.3);
+        }
+
+        .glow-blue {
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+
+        /* Card Hover Effect */
+        .metric-card {
+            transition: all 300ms ease;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-blue);
+            box-shadow: 0 8px 24px rgba(0, 212, 255, 0.2);
+        }
+
+        /* Pulse Animation for Updates */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .updating {
+            animation: pulse 1s ease-in-out;
+        }
+
+        /* Backdrop Blur Overlay */
+        .backdrop-blur {
+            backdrop-filter: blur(8px);
+            background: rgba(10, 14, 26, 0.7);
+        }
+
+        /* Virtual Scroll Table */
+        .ticket-row {
+            transition: background 150ms ease;
+        }
+
+        .ticket-row:hover {
+            background: var(--bg-tertiary);
+        }
+
+        /* Loading Skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-tertiary) 50%, var(--bg-secondary) 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s ease-in-out infinite;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Trend Arrows */
+        .trend-up { color: var(--accent-green); }
+        .trend-down { color: var(--accent-red); }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header -->
+    <header class="glass-strong fixed top-0 left-0 right-0 z-50 border-b">
+        <div class="flex items-center justify-between px-6 py-4">
+            <!-- Hamburger Menu -->
+            <button
+                onclick="document.getElementById('sidebar').classList.toggle('show'); document.getElementById('overlay').classList.toggle('hidden')"
+                class="text-2xl hover:text-blue-400 transition-colors">
+                ☰
+            </button>
+
+            <!-- Logo -->
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center glow-blue" style="background: var(--accent-blue);">
+                    <svg class="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 3.5a1.5 1.5 0 013 0V4a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-.5a1.5 1.5 0 000 3h.5a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-.5a1.5 1.5 0 00-3 0v.5a1 1 0 01-1 1H6a1 1 0 01-1-1v-3a1 1 0 00-1-1h-.5a1.5 1.5 0 010-3H4a1 1 0 001-1V6a1 1 0 011-1h3a1 1 0 001-1v-.5z" />
+                    </svg>
+                </div>
+                <h1 class="text-xl font-bold">BunSNC Dashboard</h1>
+            </div>
+
+            <!-- Search Trigger -->
+            <button
+                onclick="document.getElementById('searchAccordion').classList.toggle('expanded')"
+                class="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-opacity-20 transition-all"
+                style="background: var(--bg-tertiary);">
+                <span class="text-lg">🔍</span>
+                <span class="hidden md:inline">Search</span>
+                <kbd class="hidden md:inline px-2 py-1 text-xs rounded" style="background: var(--bg-primary);">Ctrl+K</kbd>
+            </button>
+
+            <!-- User Menu -->
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background: var(--accent-green);">
+                    <span class="text-black font-bold">JS</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Accordion -->
+        <div id="searchAccordion" class="search-accordion">
+            <div class="px-6 py-4">
+                <input
+                    type="text"
+                    placeholder="Buscar tickets, grupos, usuários..."
+                    class="w-full px-4 py-3 rounded-lg outline-none focus:ring-2 transition-all"
+                    style="background: var(--bg-primary); border: 1px solid var(--border-color);"
+                    hx-get="/api/search"
+                    hx-trigger="keyup changed delay:300ms"
+                    hx-target="#searchResults">
+                <div id="searchResults" class="mt-2"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar glass-strong fixed left-0 top-0 bottom-0 w-64 z-40 border-r">
+        <div class="p-6 pt-24">
+            <!-- Navigation Menu -->
+            <nav class="space-y-2">
+                <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-opacity-10 transition-all" style="background: var(--accent-blue); background-opacity: 0.1;">
+                    <span>📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-opacity-10 transition-all" style="color: var(--text-secondary);">
+                    <span>🎫</span>
+                    <span>Tickets</span>
+                </a>
+                <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-opacity-10 transition-all" style="color: var(--text-secondary);">
+                    <span>📈</span>
+                    <span>Reports</span>
+                </a>
+                <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-opacity-10 transition-all" style="color: var(--text-secondary);">
+                    <span>⚙️</span>
+                    <span>Settings</span>
+                </a>
+            </nav>
+
+            <!-- Quick Stats -->
+            <div class="mt-8 p-4 rounded-lg" style="background: var(--bg-tertiary);">
+                <h3 class="text-sm font-semibold mb-3" style="color: var(--text-secondary);">Quick Stats</h3>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span>Open Tickets</span>
+                        <span class="font-bold trend-up">42 ↑</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>SLA Compliance</span>
+                        <span class="font-bold trend-up">94.3%</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Avg Response</span>
+                        <span class="font-bold">2.4h</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Overlay -->
+    <div id="overlay" class="hidden fixed inset-0 z-30 backdrop-blur" onclick="document.getElementById('sidebar').classList.remove('show'); this.classList.add('hidden')"></div>
+
+    <!-- Main Content -->
+    <main class="pt-24 px-6 pb-6">
+
+        <!-- Ticker Panel (Bolsa de Valores Style) -->
+        <div class="mb-6 rounded-lg overflow-hidden glow-blue glass">
+            <div class="flex overflow-hidden">
+                <div class="ticker-content flex gap-8 py-4 px-6 whitespace-nowrap">
+                    <!-- Metric 1 -->
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm" style="color: var(--text-secondary);">INCIDENTS</span>
+                        <span class="text-2xl font-bold">42</span>
+                        <span class="text-sm trend-up">↑ 5.2%</span>
+                    </div>
+                    <!-- Metric 2 -->
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm" style="color: var(--text-secondary);">C.TASKS</span>
+                        <span class="text-2xl font-bold">18</span>
+                        <span class="text-sm trend-down">↓ 2.1%</span>
+                    </div>
+                    <!-- Metric 3 -->
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm" style="color: var(--text-secondary);">SC.TASKS</span>
+                        <span class="text-2xl font-bold">31</span>
+                        <span class="text-sm trend-up">↑ 12%</span>
+                    </div>
+                    <!-- Metric 4 -->
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm" style="color: var(--text-secondary);">SLA</span>
+                        <span class="text-2xl font-bold">94.3%</span>
+                        <span class="text-sm trend-up">↑ 1.5%</span>
+                    </div>
+                    <!-- Metric 5 -->
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm" style="color: var(--text-secondary);">AVG TIME</span>
+                        <span class="text-2xl font-bold">2.4h</span>
+                        <span class="text-sm trend-down">↓ 0.3h</span>
+                    </div>
+                    <!-- Duplicate for seamless loop -->
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm" style="color: var(--text-secondary);">INCIDENTS</span>
+                        <span class="text-2xl font-bold">42</span>
+                        <span class="text-sm trend-up">↑ 5.2%</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm" style="color: var(--text-secondary);">C.TASKS</span>
+                        <span class="text-2xl font-bold">18</span>
+                        <span class="text-sm trend-down">↓ 2.1%</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm" style="color: var(--text-secondary);">SC.TASKS</span>
+                        <span class="text-2xl font-bold">31</span>
+                        <span class="text-sm trend-up">↑ 12%</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm" style="color: var(--text-secondary);">SLA</span>
+                        <span class="text-2xl font-bold">94.3%</span>
+                        <span class="text-sm trend-up">↑ 1.5%</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm" style="color: var(--text-secondary);">AVG TIME</span>
+                        <span class="text-2xl font-bold">2.4h</span>
+                        <span class="text-sm trend-down">↓ 0.3h</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metric Cards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+
+            <!-- Card 1 -->
+            <div class="metric-card glass rounded-lg p-6 cursor-pointer" hx-get="/api/metrics/incidents" hx-trigger="click" hx-target="#detailModal">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-semibold" style="color: var(--text-secondary);">Active Incidents</h3>
+                    <span class="text-2xl">🔥</span>
+                </div>
+                <div class="text-3xl font-bold mb-2">42</div>
+                <div class="flex items-center gap-2 text-sm">
+                    <span class="trend-up">↑ 5.2%</span>
+                    <span style="color: var(--text-secondary);">vs last week</span>
+                </div>
+                <!-- Mini Sparkline -->
+                <div class="mt-4 h-12 flex items-end gap-1">
+                    <div class="w-2 rounded-t" style="height: 30%; background: var(--accent-green);"></div>
+                    <div class="w-2 rounded-t" style="height: 50%; background: var(--accent-green);"></div>
+                    <div class="w-2 rounded-t" style="height: 40%; background: var(--accent-green);"></div>
+                    <div class="w-2 rounded-t" style="height: 70%; background: var(--accent-yellow);"></div>
+                    <div class="w-2 rounded-t" style="height: 85%; background: var(--accent-red);"></div>
+                    <div class="w-2 rounded-t" style="height: 100%; background: var(--accent-red);"></div>
+                </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="metric-card glass rounded-lg p-6 cursor-pointer">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-semibold" style="color: var(--text-secondary);">SLA Compliance</h3>
+                    <span class="text-2xl">✅</span>
+                </div>
+                <div class="text-3xl font-bold mb-2">94.3%</div>
+                <div class="flex items-center gap-2 text-sm">
+                    <span class="trend-up">↑ 1.5%</span>
+                    <span style="color: var(--text-secondary);">Target: 95%</span>
+                </div>
+                <div class="mt-4 h-12 flex items-end gap-1">
+                    <div class="w-2 rounded-t" style="height: 80%; background: var(--accent-green);"></div>
+                    <div class="w-2 rounded-t" style="height: 85%; background: var(--accent-green);"></div>
+                    <div class="w-2 rounded-t" style="height: 88%; background: var(--accent-green);"></div>
+                    <div class="w-2 rounded-t" style="height: 90%; background: var(--accent-green);"></div>
+                    <div class="w-2 rounded-t" style="height: 92%; background: var(--accent-green);"></div>
+                    <div class="w-2 rounded-t" style="height: 94%; background: var(--accent-green);"></div>
+                </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="metric-card glass rounded-lg p-6 cursor-pointer">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-semibold" style="color: var(--text-secondary);">Avg Resolution Time</h3>
+                    <span class="text-2xl">⏱️</span>
+                </div>
+                <div class="text-3xl font-bold mb-2">2.4h</div>
+                <div class="flex items-center gap-2 text-sm">
+                    <span class="trend-down">↓ 0.3h</span>
+                    <span style="color: var(--text-secondary);">improvement</span>
+                </div>
+                <div class="mt-4 h-12 flex items-end gap-1">
+                    <div class="w-2 rounded-t" style="height: 60%; background: var(--accent-yellow);"></div>
+                    <div class="w-2 rounded-t" style="height: 55%; background: var(--accent-yellow);"></div>
+                    <div class="w-2 rounded-t" style="height: 50%; background: var(--accent-green);"></div>
+                    <div class="w-2 rounded-t" style="height: 45%; background: var(--accent-green);"></div>
+                    <div class="w-2 rounded-t" style="height: 42%; background: var(--accent-green);"></div>
+                    <div class="w-2 rounded-t" style="height: 40%; background: var(--accent-green);"></div>
+                </div>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="metric-card glass rounded-lg p-6 cursor-pointer">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-semibold" style="color: var(--text-secondary);">Quick Actions</h3>
+                    <span class="text-2xl">⚡</span>
+                </div>
+                <div class="space-y-2">
+                    <button class="w-full px-4 py-2 rounded text-sm font-semibold hover:brightness-110 transition-all" style="background: var(--accent-blue);">
+                        New Incident
+                    </button>
+                    <button class="w-full px-4 py-2 rounded text-sm font-semibold hover:brightness-110 transition-all" style="background: var(--accent-green);">
+                        Assign Tickets
+                    </button>
+                    <button class="w-full px-4 py-2 rounded text-sm font-semibold hover:brightness-110 transition-all" style="background: var(--accent-yellow); color: #000;">
+                        View Reports
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Tickets Table -->
+        <div class="glass rounded-lg overflow-hidden">
+            <div class="p-6 border-b" style="border-color: var(--border-color);">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold">Recent Tickets</h2>
+                    <div class="flex gap-2">
+                        <select class="px-4 py-2 rounded-lg outline-none" style="background: var(--bg-tertiary); border: 1px solid var(--border-color);">
+                            <option>All Types</option>
+                            <option>Incidents</option>
+                            <option>Change Tasks</option>
+                            <option>SC Tasks</option>
+                        </select>
+                        <button class="px-4 py-2 rounded-lg hover:brightness-110 transition-all" style="background: var(--accent-blue);">
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Header -->
+            <div class="grid grid-cols-6 gap-4 px-6 py-3 text-sm font-semibold border-b" style="color: var(--text-secondary); border-color: var(--border-color);">
+                <div>Number</div>
+                <div>Priority</div>
+                <div>Assignment Group</div>
+                <div>Status</div>
+                <div>Created</div>
+                <div>Actions</div>
+            </div>
+
+            <!-- Table Rows (HTMX lazy load) -->
+            <div id="ticketList"
+                 hx-get="/api/tickets?limit=50"
+                 hx-trigger="load"
+                 hx-swap="innerHTML"
+                 class="divide-y"
+                 style="border-color: var(--border-color);">
+                <!-- Loading Skeleton -->
+                <div class="skeleton grid grid-cols-6 gap-4 px-6 py-4">
+                    <div class="h-4 rounded" style="background: var(--bg-tertiary);"></div>
+                    <div class="h-4 rounded" style="background: var(--bg-tertiary);"></div>
+                    <div class="h-4 rounded" style="background: var(--bg-tertiary);"></div>
+                    <div class="h-4 rounded" style="background: var(--bg-tertiary);"></div>
+                    <div class="h-4 rounded" style="background: var(--bg-tertiary);"></div>
+                    <div class="h-4 rounded" style="background: var(--bg-tertiary);"></div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal Placeholder -->
+    <div id="detailModal"></div>
+
+    <script>
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                document.getElementById('searchAccordion').classList.toggle('expanded');
+            }
+            if (e.key === 'Escape') {
+                document.getElementById('searchAccordion').classList.remove('expanded');
+                document.getElementById('sidebar').classList.remove('show');
+                document.getElementById('overlay').classList.add('hidden');
+            }
+        });
+
+        // Simular atualização em tempo real
+        setInterval(() => {
+            const ticker = document.querySelector('.ticker-content');
+            if (ticker) {
+                ticker.classList.add('updating');
+                setTimeout(() => ticker.classList.remove('updating'), 1000);
+            }
+        }, 5000);
+    </script>
+
+</body>
+</html>

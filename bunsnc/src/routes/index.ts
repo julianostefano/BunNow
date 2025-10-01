@@ -120,28 +120,38 @@ export async function createMainApp(): Promise<Elysia> {
     console.warn(" Server will continue without system monitoring");
   }
 
-  // Add HTMX Dashboard routes FIRST (before main app routes)
+  // Add NEW UI Dashboard v2.0 (Corporate Clean Design)
+  try {
+    const { default: uiApp } = await import("../web/ui/index");
+    mainApp.use(uiApp);
+    console.log("✨ BunSNC Dashboard v2.0 added at /ui (Corporate Clean Design)");
+  } catch (error: unknown) {
+    console.error("⚠️ Failed to add UI Dashboard v2.0:", error);
+    console.warn("⚠️ Server will continue without UI v2.0");
+  }
+
+  // Add Legacy HTMX Dashboard routes (keeping for backward compatibility)
   try {
     const { htmxDashboardClean } = await import("../web/htmx-dashboard-clean");
     mainApp.use(htmxDashboardClean);
-    console.log("🎨 HTMX Dashboard UI routes added at /clean");
+    console.log("📊 Legacy HTMX Dashboard added at /clean");
   } catch (error: unknown) {
-    console.error("⚠️ Failed to add HTMX dashboard routes:", error);
-    console.warn("⚠️ Server will continue without dashboard UI");
+    console.error("⚠️ Failed to add legacy dashboard:", error);
+    console.warn("⚠️ Server will continue without legacy dashboard");
   }
 
-  // Add root redirect to dashboard using HTML meta refresh (more compatible)
+  // Add root redirect to NEW dashboard v2.0
   mainApp.get("/", ({ set }) => {
     set.headers["content-type"] = "text/html; charset=utf-8";
     return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0; url=/clean">
+  <meta http-equiv="refresh" content="0; url=/ui">
   <title>Redirecionando...</title>
 </head>
 <body>
-  <p>Redirecionando para o dashboard... <a href="/clean">Clique aqui</a> se não for redirecionado automaticamente.</p>
+  <p>Redirecionando para o dashboard... <a href="/ui">Clique aqui</a> se não for redirecionado automaticamente.</p>
 </body>
 </html>`;
   });
