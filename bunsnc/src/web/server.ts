@@ -110,11 +110,8 @@ export class ServiceNowWebServer {
       .use(htmxDashboardClean)
       .use(htmxDashboardEnhanced)
       .use(waitingAnalysisHtmx)
-      .use(
-        createTicketActionsRoutes(
-          this.webServerController.getServiceNowAuthClient(),
-        ),
-      )
+      // ✅ Fix: createTicketActionsRoutes() requires NO parameters - uses consolidatedServiceNowService internally
+      .use(createTicketActionsRoutes())
       .use(
         createTicketListRoutes(
           this.webServerController.getServiceNowAuthClient(),

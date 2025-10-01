@@ -19,6 +19,7 @@ import {
 import { safeDisplay, safeGet, safeFormatDate } from "../utils/serialization";
 import { ConsolidatedServiceNowService } from "../services/ConsolidatedServiceNowService";
 import { enhancedTicketStorageService } from "../services";
+import { HybridTicketService } from "../services/HybridTicketService";
 
 // Helper function to initialize services safely
 async function initializeServices() {
