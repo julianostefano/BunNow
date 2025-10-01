@@ -120,6 +120,32 @@ export async function createMainApp(): Promise<Elysia> {
     console.warn(" Server will continue without system monitoring");
   }
 
+  // Add HTMX Dashboard routes FIRST (before main app routes)
+  try {
+    const { htmxDashboardClean } = await import("../web/htmx-dashboard-clean");
+    mainApp.use(htmxDashboardClean);
+    console.log("🎨 HTMX Dashboard UI routes added at /clean");
+  } catch (error: unknown) {
+    console.error("⚠️ Failed to add HTMX dashboard routes:", error);
+    console.warn("⚠️ Server will continue without dashboard UI");
+  }
+
+  // Add root redirect to dashboard using HTML meta refresh (more compatible)
+  mainApp.get("/", ({ set }) => {
+    set.headers["content-type"] = "text/html; charset=utf-8";
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="refresh" content="0; url=/clean">
+  <title>Redirecionando...</title>
+</head>
+<body>
+  <p>Redirecionando para o dashboard... <a href="/clean">Clique aqui</a> se não for redirecionado automaticamente.</p>
+</body>
+</html>`;
+  });
+
   // Add main application routes with error handling
   try {
     const appRoutes = await createApp();
@@ -303,6 +329,10 @@ export async function createMainApp(): Promise<Elysia> {
   // Initialize deferred cache warming after server is ready
   setImmediate(async () => {
     try {
+      console.warn("⚠️ [Cache Warmup] ServiceNow queries may timeout after 61s");
+      console.warn("⚠️ This is expected and does not affect main functionality");
+      console.warn("⚠️ See docs/progresso*61s* for details");
+
       const { serviceNowAuthClient } = await import(
         "../services/ServiceNowAuthClient"
       );
