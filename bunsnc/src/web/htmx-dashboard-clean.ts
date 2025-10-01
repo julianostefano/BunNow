@@ -6,7 +6,7 @@
 import { Elysia, t } from "elysia";
 import { html } from "@elysiajs/html";
 import { htmx } from "@gtramontina.com/elysia-htmx";
-import { serviceNowAuthClient } from "../services/ServiceNowAuthClient";
+import { ServiceNowAuthClient } from "../services/ServiceNowAuthClient";
 
 // Temporarily commenting out problematic imports to isolate circular dependency issue
 // import { HybridTicketService } from '../services/HybridTicketService';
@@ -264,7 +264,12 @@ function stateToNumeric(namedState: string): string {
 export const htmxDashboardClean = new Elysia({ prefix: "/clean" })
   .use(html())
   .use(htmx())
-  .decorate("serviceNowAuthClient", serviceNowAuthClient)
+  .derive(() => {
+    // Create fresh ServiceNowAuthClient instance for each request
+    // This avoids singleton initialization issues with empty env vars
+    const serviceNowAuthClient = new ServiceNowAuthClient();
+    return { serviceNowAuthClient };
+  })
   // Global error handler to prevent "_r_r is not defined" Elysia bug
   .onError({ as: "global" }, (context) => {
     const { code, error, set } = context;

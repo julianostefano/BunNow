@@ -287,7 +287,7 @@ const app = new Elysia({ prefix: "/api/incidents" })
         // Get incidents created today
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const todayGr = client.getGlideRecord("incident");
+        const todayGr = serviceNowClient.getGlideRecord("incident");
         todayGr.addQuery(
           "sys_created_on",
           ">=",
@@ -311,7 +311,7 @@ const app = new Elysia({ prefix: "/api/incidents" })
         }
 
         // Get incidents resolved today
-        const resolvedTodayGr = client.getGlideRecord("incident");
+        const resolvedTodayGr = serviceNowClient.getGlideRecord("incident");
         resolvedTodayGr.addQuery(
           "resolved_at",
           ">=",
@@ -326,7 +326,7 @@ const app = new Elysia({ prefix: "/api/incidents" })
         const priorityDistribution: Record<string, number> = {};
 
         for (const priority of priorities) {
-          const priorityGr = client.getGlideRecord("incident");
+          const priorityGr = serviceNowClient.getGlideRecord("incident");
           priorityGr.addQuery("priority", priority);
           priorityGr.addQuery("state", "!=", "6");
           priorityGr.addQuery("state", "!=", "7");
