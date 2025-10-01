@@ -121,8 +121,10 @@ export class ServiceNowClient implements IServiceNowClient {
     // 🔍 DEBUG: Log parameters antes de validar
     console.log("[ServiceNowClient.createWithCredentials] Parameters:");
     console.log(`  - instanceUrl type: ${typeof instanceUrl}, value: "${instanceUrl}"`);
+    console.log(`  - Raw process.env.SERVICENOW_INSTANCE_URL: "${process.env.SERVICENOW_INSTANCE_URL}"`);
     console.log(`  - username type: ${typeof username}, value: "${username}"`);
     console.log(`  - password type: ${typeof password}, length: ${password?.length}`);
+    console.trace("[ServiceNowClient.createWithCredentials] Stack trace:");
 
     // Validate inputs
     if (!instanceUrl || typeof instanceUrl !== "string") {

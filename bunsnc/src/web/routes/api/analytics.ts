@@ -7,24 +7,38 @@ import { Elysia, t } from "elysia";
 import { ServiceNowClient } from "../../../client/ServiceNowClient";
 
 const app = new Elysia({ prefix: "/api/v1/analytics" })
-  .get("/dashboard", async () => {
-    try {
-      // ✅ FIX v5.4.4: Use factory method with credentials
-      const client = ServiceNowClient.createWithCredentials(
-        process.env.SERVICENOW_INSTANCE_URL ||
-          "https://dev12345.service-now.com",
-        process.env.SERVICENOW_USERNAME || "admin",
-        process.env.SERVICENOW_PASSWORD || "admin",
-        {
-          enableCache: true,
-        },
-      );
+  .derive(async () => {
+    // ✅ Validate and create ServiceNow client ONCE at startup
+    const instanceUrl = process.env.SERVICENOW_INSTANCE_URL;
+    const username = process.env.SERVICENOW_USERNAME;
+    const password = process.env.SERVICENOW_PASSWORD;
 
-      // Get overview statistics
-      const stats = await getOverviewStats(client);
+    console.log("[analytics.ts] Creating ServiceNowClient via .derive():");
+    console.log(`  - instanceUrl: "${instanceUrl}"`);
+    console.log(`  - username: "${username}"`);
+
+    if (!instanceUrl || !username || !password) {
+      console.error("[analytics.ts] Missing ServiceNow credentials in env vars");
+      throw new Error("ServiceNow credentials not configured. Check .env file.");
+    }
+
+    const serviceNowClient = ServiceNowClient.createWithCredentials(
+      instanceUrl,
+      username,
+      password,
+      { enableCache: true },
+    );
+
+    return { serviceNowClient };
+  })
+
+  .get("/dashboard", async ({ serviceNowClient }) => {  // ✅ Use injected client
+    try {
+      // Get overview statistics (using injected client)
+      const stats = await getOverviewStats(serviceNowClient);  // ✅ Use injected client
 
       // Generate chart data
-      const chartData = await generateChartData(client);
+      const chartData = await generateChartData(serviceNowClient);  // ✅ Use injected client
 
       // Get processing metrics
       const processingMetrics = getProcessingMetrics();
@@ -328,22 +342,12 @@ const app = new Elysia({ prefix: "/api/v1/analytics" })
 
   .get(
     "/trends/:type",
-    async ({ params, query }) => {
+    async ({ params, query, serviceNowClient }) => {  // ✅ Use injected client
       try {
         const type = params.type; // incidents, problems, changes
         const days = parseInt(query.days as string) || 30;
 
-        const client = ServiceNowClient.createWithCredentials(
-          process.env.SERVICENOW_INSTANCE_URL ||
-            "https://dev12345.service-now.com",
-          process.env.SERVICENOW_USERNAME || "admin",
-          process.env.SERVICENOW_PASSWORD || "admin",
-          {
-            enableCache: true,
-          },
-        );
-
-        const trendData = await generateTrendData(client, type, days);
+        const trendData = await generateTrendData(serviceNowClient, type, days);  // ✅ Use injected client
 
         return {
           success: true,
