@@ -34,9 +34,9 @@ export async function createMainApp(): Promise<Elysia> {
       enableMetrics: true,
       pluginConfig: {
         serviceNow: {
-          instanceUrl: process.env.SNC_INSTANCE_URL,
-          username: process.env.SNC_USERNAME,
-          password: process.env.SNC_PASSWORD,
+          instanceUrl: process.env.SERVICENOW_INSTANCE_URL,
+          username: process.env.SERVICENOW_USERNAME,
+          password: process.env.SERVICENOW_PASSWORD,
         },
         redis: {
           host: process.env.REDIS_HOST || "localhost",
@@ -161,15 +161,19 @@ export async function createMainApp(): Promise<Elysia> {
     console.warn(" Server will continue without SSE/Modal functionality");
   }
 
-  // Add real-time endpoints with error handling
-  try {
-    const realtimeRoutes = getRealtimeRoutes();
-    mainApp.use(realtimeRoutes);
-    console.log(" Real-time endpoints added");
-  } catch (error: unknown) {
-    console.error(" Failed to add real-time endpoints:", error);
-    console.warn(" Server will continue without real-time functionality");
-  }
+  // ⚠️ TEMPORÁRIO: Real-time routes desabilitadas - getRealtimeRoutes() não retorna Elysia instance
+  // TODO: Refatorar NotificationManager.getElysiaRoutes() para retornar Elysia instance válida
+  // Causa: getRealtimeRoutes() retorna Promise<{websocket, sse}> em vez de Elysia instance
+  // Violação: Elysia Best Practice "1 instance = 1 controller" (ELYSIA_BEST_PRACTICES.md:31)
+  // try {
+  //   const realtimeRoutes = getRealtimeRoutes();
+  //   mainApp.use(realtimeRoutes);
+  //   console.log(" Real-time endpoints added");
+  // } catch (error: unknown) {
+  //   console.error(" Failed to add real-time endpoints:", error);
+  //   console.warn(" Server will continue without real-time functionality");
+  // }
+  console.warn("⚠️  Real-time NotificationManager routes temporarily disabled - requires refactor to Elysia instance");
 
   // Background sync management endpoints (deprecated - moved to ConsolidatedDataService)
   mainApp.group("/sync", (app) =>
