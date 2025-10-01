@@ -297,6 +297,34 @@ export class ServiceNowStreams {
   }
 
   /**
+   * Subscribe to ticket changes for SSE (Server-Sent Events)
+   * Wrapper around subscribe() with identifier for better tracking
+   *
+   * @param callback - Function to call when a change occurs
+   * @param identifier - Unique identifier for this subscription (e.g., 'modal-{sysId}')
+   *
+   * @example
+   * serviceNowStreams.subscribeToChanges((change) => {
+   *   if (change.sys_id === ticketId) {
+   *     // Send SSE update to client
+   *     controller.enqueue(JSON.stringify(change));
+   *   }
+   * }, `modal-${ticketId}`);
+   */
+  subscribeToChanges(
+    callback: (change: ServiceNowChange) => void,
+    identifier: string,
+  ): void {
+    this.subscribe(`ticket-updates:${identifier}`, async (change) => {
+      callback(change);
+    });
+    logger.info(
+      `📡 Subscribed to ticket changes: ${identifier}`,
+      "ServiceNowStreams",
+    );
+  }
+
+  /**
    * Start consuming messages from the stream
    */
   async startConsumer(): Promise<void> {

@@ -163,7 +163,11 @@ export class EnhancedTicketModalView {
     `;
   }
 
-  private static generateDetailsTab(ticket: TicketData): string {
+  /**
+   * Generate details tab content (public for HTMX refresh)
+   * Used by ModalRoutes refresh endpoint for partial updates
+   */
+  public static generateDetailsTab(ticket: TicketData): string {
     return `
       <div class="space-y-6">
         <!-- Short Description with Edit Mode -->
@@ -342,7 +346,11 @@ export class EnhancedTicketModalView {
     `;
   }
 
-  private static generateSLATab(slaData: SLAData[]): string {
+  /**
+   * Generate SLA tab content (public for HTMX refresh)
+   * Used by ModalRoutes refresh endpoint for partial updates
+   */
+  public static generateSLATab(slaData: SLAData[]): string {
     if (!slaData || slaData.length === 0) {
       return `
         <div class="text-center py-8">
@@ -448,7 +456,11 @@ export class EnhancedTicketModalView {
     `;
   }
 
-  private static generateNotesTab(
+  /**
+   * Generate notes tab content (public for HTMX refresh)
+   * Used by ModalRoutes refresh endpoint for partial updates
+   */
+  public static generateNotesTab(
     notes: ServiceNowNote[],
     ticket: TicketData,
   ): string {

@@ -6,11 +6,12 @@
 import { Elysia, t } from "elysia";
 import { dataService } from "../services/ConsolidatedDataService";
 import { EnhancedTicketModalView } from "../web/EnhancedTicketModal";
-import { serviceNowStreams } from "../config/redis-streams";
+import { serviceNowStreams, ServiceNowChange } from "../config/redis-streams";
 import { logger } from "../utils/Logger";
 import { systemService } from "../services/SystemService";
 import type { HistoryResponse, UpdateTicketResponse } from "../types/TicketTypes";
 import { UpdateTicketSchema } from "../types/TicketTypes";
+import { consolidatedServiceNowService } from "../services/ConsolidatedServiceNowService";
 
 export const createModalRoutes = () => {
   return (
@@ -25,14 +26,9 @@ export const createModalRoutes = () => {
             logger.info(`📋 Loading modal for ${params.table}/${params.sysId}`);
 
             // Get ticket details with SLA and notes
-            const ticket = await dataService.getTicketDetails(
-              params.sysId,
-              params.table,
-              {
-                includeSLMs: true,
-                includeNotes: true,
-              },
-            );
+            const ticket = await dataService.getTicket(params.sysId, {
+              forceServiceNow: false,
+            });
 
             if (!ticket) {
               set.status = 404;
@@ -45,14 +41,17 @@ export const createModalRoutes = () => {
               const historyUrl = `${process.env.BASE_URL || "http://localhost:3000"}/api/incident/history/${params.sysId}`;
               const historyResponse = await fetch(historyUrl);
               if (historyResponse.ok) {
-                const historyResult: HistoryResponse = await historyResponse.json();
+                const historyResult = (await historyResponse.json()) as HistoryResponse;
                 historyData = historyResult.history || [];
                 logger.info(`📜 Fetched ${historyData.length} history entries for ${params.sysId}`);
               } else {
                 logger.warn(`⚠️ Failed to fetch history for ${params.sysId}: ${historyResponse.status}`);
               }
             } catch (error: unknown) {
-              logger.error(`❌ Error fetching history for ${params.sysId}:`, error);
+              logger.error(
+                `❌ Error fetching history for ${params.sysId}:`,
+                error instanceof Error ? error : new Error(String(error)),
+              );
             }
 
             // Generate modal HTML
@@ -64,7 +63,7 @@ export const createModalRoutes = () => {
               showRealTime: query.realtime !== "false",
             });
 
-            await systemService.recordMetric({
+            await systemService.recordPerformanceMetric({
               operation: "modal_load",
               endpoint: `/modal/ticket/${params.table}/${params.sysId}`,
               response_time_ms: Date.now() - startTime,
@@ -75,7 +74,7 @@ export const createModalRoutes = () => {
           } catch (error: unknown) {
             logger.error(
               ` Error loading modal for ${params.table}/${params.sysId}:`,
-              error,
+              error instanceof Error ? error : new Error(String(error)),
             );
             set.status = 500;
             return { error: "Internal server error" };
@@ -105,14 +104,9 @@ export const createModalRoutes = () => {
               ` Loading modal data for ${params.table}/${params.sysId}`,
             );
 
-            const ticket = await dataService.getTicketDetails(
-              params.sysId,
-              params.table,
-              {
-                includeSLMs: query.includeSLA === "true",
-                includeNotes: query.includeNotes === "true",
-              },
-            );
+            const ticket = await dataService.getTicket(params.sysId, {
+              forceServiceNow: false,
+            });
 
             if (!ticket) {
               return { error: "Ticket not found" };
@@ -124,17 +118,20 @@ export const createModalRoutes = () => {
               const historyUrl = `${process.env.BASE_URL || "http://localhost:3000"}/api/incident/history/${params.sysId}`;
               const historyResponse = await fetch(historyUrl);
               if (historyResponse.ok) {
-                const historyResult: HistoryResponse = await historyResponse.json();
+                const historyResult = (await historyResponse.json()) as HistoryResponse;
                 historyData = historyResult.history || [];
                 logger.info(`📜 Fetched ${historyData.length} history entries for ${params.sysId}`);
               } else {
                 logger.warn(`⚠️ Failed to fetch history for ${params.sysId}: ${historyResponse.status}`);
               }
             } catch (error: unknown) {
-              logger.error(`❌ Error fetching history for ${params.sysId}:`, error);
+              logger.error(
+                `❌ Error fetching history for ${params.sysId}:`,
+                error instanceof Error ? error : new Error(String(error)),
+              );
             }
 
-            await systemService.recordMetric({
+            await systemService.recordPerformanceMetric({
               operation: "modal_data",
               endpoint: `/modal/data/${params.table}/${params.sysId}`,
               response_time_ms: Date.now() - startTime,
@@ -153,7 +150,7 @@ export const createModalRoutes = () => {
           } catch (error: unknown) {
             logger.error(
               ` Error loading modal data for ${params.table}/${params.sysId}:`,
-              error,
+              error instanceof Error ? error : new Error(String(error)),
             );
             return { error: "Internal server error" };
           }
@@ -182,18 +179,13 @@ export const createModalRoutes = () => {
             logger.info(
               `🔧 Update request for ${params.table}/${params.sysId}`,
             );
-            logger.debug("Update payload:", body);
+            logger.debug("Update payload:", JSON.stringify(body));
 
-            // Get consolidated ServiceNow service
-            const consolidatedService = await import(
-              "../services/ConsolidatedServiceNowService"
-            );
-
-            // Perform update
-            const updateResult = await consolidatedService.default.update(
+            // Perform update using consolidated ServiceNow service
+            const updateResult = await consolidatedServiceNowService.update(
               params.table,
               params.sysId,
-              body,
+              body as Record<string, unknown>,
             );
 
             if (!updateResult) {
@@ -211,7 +203,7 @@ export const createModalRoutes = () => {
             const updatedFields = Object.keys(body);
 
             // Record metrics
-            await systemService.recordMetric({
+            await systemService.recordPerformanceMetric({
               operation: "ticket_update",
               endpoint: `/modal/ticket/${params.table}/${params.sysId}`,
               response_time_ms: Date.now() - startTime,
@@ -230,7 +222,7 @@ export const createModalRoutes = () => {
           } catch (error: unknown) {
             logger.error(
               `❌ Error updating ${params.table}/${params.sysId}:`,
-              error,
+              error instanceof Error ? error : new Error(String(error)),
             );
 
             set.status = 500;
@@ -262,15 +254,9 @@ export const createModalRoutes = () => {
               ` Refreshing ${params.section} for ${params.table}/${params.sysId}`,
             );
 
-            const ticket = await dataService.getTicketDetails(
-              params.sysId,
-              params.table,
-              {
-                forceServiceNow: true, // Force fresh data
-                includeSLMs: params.section === "sla",
-                includeNotes: params.section === "notes",
-              },
-            );
+            const ticket = await dataService.getTicket(params.sysId, {
+              forceServiceNow: true, // Force fresh data
+            });
 
             if (!ticket) {
               set.status = 404;
@@ -283,22 +269,22 @@ export const createModalRoutes = () => {
             switch (params.section) {
               case "header":
                 // Return updated header content
-                sectionHtml = this.generateHeaderUpdate(ticket);
+                sectionHtml = generateHeaderUpdate(ticket);
                 break;
 
               case "details":
                 // Return updated details tab
-                sectionHtml = this.generateDetailsUpdate(ticket);
+                sectionHtml = generateDetailsUpdate(ticket);
                 break;
 
               case "sla":
                 // Return updated SLA tab
-                sectionHtml = this.generateSLAUpdate(ticket.slms || []);
+                sectionHtml = generateSLAUpdate(ticket.slms || []);
                 break;
 
               case "notes":
                 // Return updated notes tab
-                sectionHtml = this.generateNotesUpdate(
+                sectionHtml = generateNotesUpdate(
                   ticket.notes || [],
                   ticket,
                 );
@@ -315,7 +301,7 @@ export const createModalRoutes = () => {
           } catch (error: unknown) {
             logger.error(
               ` Error refreshing ${params.section} for ${params.table}/${params.sysId}:`,
-              error,
+              error instanceof Error ? error : new Error(String(error)),
             );
             set.status = 500;
             set.headers["Content-Type"] = "text/html";
@@ -391,12 +377,15 @@ export const createSSERoutes = () => {
                           new TextEncoder().encode(updateMessage),
                         );
                       } catch (error: unknown) {
-                        logger.error("SSE heartbeat error:", error);
+                        logger.error(
+                          "SSE heartbeat error:",
+                          error instanceof Error ? error : new Error(String(error)),
+                        );
                       }
                     }, 30000); // Heartbeat every 30 seconds
 
                     // Listen for actual ticket updates from Redis Streams
-                    serviceNowStreams.subscribeToChanges((change) => {
+                    serviceNowStreams.subscribeToChanges((change: ServiceNowChange) => {
                       if (change.sys_id === params.sysId && isConnected) {
                         const updateMessage = `data: ${JSON.stringify({
                           type: "ticket-updated",
@@ -415,7 +404,10 @@ export const createSSERoutes = () => {
                       }
                     }, `modal-${params.sysId}`);
                   } catch (error: unknown) {
-                    logger.error("Error setting up SSE subscription:", error);
+                    logger.error(
+                      "Error setting up SSE subscription:",
+                      error instanceof Error ? error : new Error(String(error)),
+                    );
                   }
                 };
 
@@ -430,9 +422,12 @@ export const createSSERoutes = () => {
               },
             });
 
-            return new Response(stream, { headers: set.headers });
+            return new Response(stream, { headers: set.headers as Record<string, string> });
           } catch (error: unknown) {
-            logger.error(` Error setting up SSE for ${params.sysId}:`, error);
+            logger.error(
+              ` Error setting up SSE for ${params.sysId}:`,
+              error instanceof Error ? error : new Error(String(error)),
+            );
             set.status = 500;
             return { error: "Failed to establish SSE connection" };
           }
@@ -479,7 +474,10 @@ export const createSSERoutes = () => {
 
                   controller.enqueue(new TextEncoder().encode(message));
                 } catch (error: unknown) {
-                  logger.error("Performance SSE error:", error);
+                  logger.error(
+                    "Performance SSE error:",
+                    error instanceof Error ? error : new Error(String(error)),
+                  );
                 }
               }, 5000); // Update every 5 seconds
 
@@ -499,9 +497,12 @@ export const createSSERoutes = () => {
             },
           });
 
-          return new Response(stream, { headers: set.headers });
+          return new Response(stream, { headers: set.headers as Record<string, string> });
         } catch (error: unknown) {
-          logger.error(" Error setting up performance SSE:", error);
+          logger.error(
+            " Error setting up performance SSE:",
+            error instanceof Error ? error : new Error(String(error)),
+          );
           set.status = 500;
           return { error: "Failed to establish performance SSE connection" };
         }
