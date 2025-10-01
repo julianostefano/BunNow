@@ -474,16 +474,21 @@ export class NotificationManager extends EventEmitter {
   }
 
   /**
-   * Get Elysia routes for WebSocket and SSE
+   * Get WebSocket Elysia routes
+   * Follows Elysia Best Practice: "1 instance = 1 controller"
+   * @returns Elysia instance with WebSocket endpoints
    */
-  getElysiaRoutes() {
-    const wsRoute = this.webSocketServer.createElysiaRoute();
-    const sseRoutes = this.sseManager.createElysiaRoutes();
+  getWebSocketRoutes() {
+    return this.webSocketServer.createElysiaRoute();
+  }
 
-    return {
-      websocket: wsRoute,
-      sse: sseRoutes,
-    };
+  /**
+   * Get SSE Elysia routes
+   * Follows Elysia Best Practice: "1 instance = 1 controller"
+   * @returns Elysia instance with SSE endpoints
+   */
+  getSSERoutes() {
+    return this.sseManager.createElysiaRoutes();
   }
 
   /**

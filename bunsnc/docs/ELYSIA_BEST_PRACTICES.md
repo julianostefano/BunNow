@@ -735,6 +735,58 @@ const apiRoutes = new Elysia()
   .get('/tickets', ({ ticketService }) => ticketService.getAll());
 ```
 
+#### Real-time Routes Pattern (WebSocket + SSE)
+
+**❌ Anti-pattern: Object Wrapper**
+```typescript
+// Viola "1 instance = 1 controller" - empacota instâncias válidas
+class NotificationManager {
+  getElysiaRoutes() {
+    const wsRoute = this.webSocketServer.createElysiaRoute();  // Elysia instance
+    const sseRoutes = this.sseManager.createElysiaRoutes();    // Elysia instance
+
+    return {
+      websocket: wsRoute,   // ❌ Empacota em objeto plain
+      sse: sseRoutes        // ❌ Perde tipo Elysia
+    };
+  }
+}
+
+// ❌ Erro ao tentar usar
+const routes = await getRealtimeRoutes();  // Promise<{websocket, sse}>
+app.use(routes);  // TypeError: Invalid plugin type
+```
+
+**✅ Best Practice: Separate Controller Instances**
+```typescript
+// Cada controlador retorna sua própria instância Elysia
+class NotificationManager {
+  /**
+   * Get WebSocket Elysia routes
+   * Follows "1 instance = 1 controller" pattern
+   */
+  getWebSocketRoutes() {
+    return this.webSocketServer.createElysiaRoute();  // ✅ Retorna Elysia instance
+  }
+
+  /**
+   * Get SSE Elysia routes
+   * Follows "1 instance = 1 controller" pattern
+   */
+  getSSERoutes() {
+    return this.sseManager.createElysiaRoutes();  // ✅ Retorna Elysia instance
+  }
+}
+
+// ✅ Uso correto seguindo "1 instance = 1 controller"
+const wsRoutes = await getWebSocketRoutes();   // Elysia instance
+const sseRoutes = await getSSERoutes();        // Elysia instance
+
+app
+  .use(wsRoutes)   // ✅ 1 controller = WebSocket
+  .use(sseRoutes); // ✅ 1 controller = SSE
+```
+
 ---
 
 ## Lifecycle Hooks

@@ -161,19 +161,23 @@ export async function createMainApp(): Promise<Elysia> {
     console.warn(" Server will continue without SSE/Modal functionality");
   }
 
-  // ⚠️ TEMPORÁRIO: Real-time routes desabilitadas - getRealtimeRoutes() não retorna Elysia instance
-  // TODO: Refatorar NotificationManager.getElysiaRoutes() para retornar Elysia instance válida
-  // Causa: getRealtimeRoutes() retorna Promise<{websocket, sse}> em vez de Elysia instance
-  // Violação: Elysia Best Practice "1 instance = 1 controller" (ELYSIA_BEST_PRACTICES.md:31)
-  // try {
-  //   const realtimeRoutes = getRealtimeRoutes();
-  //   mainApp.use(realtimeRoutes);
-  //   console.log(" Real-time endpoints added");
-  // } catch (error: unknown) {
-  //   console.error(" Failed to add real-time endpoints:", error);
-  //   console.warn(" Server will continue without real-time functionality");
-  // }
-  console.warn("⚠️  Real-time NotificationManager routes temporarily disabled - requires refactor to Elysia instance");
+  // Real-time routes - WebSocket and SSE (Elysia Best Practice: "1 instance = 1 controller")
+  try {
+    const { getWebSocketRoutes, getSSERoutes } = await import(
+      "./notifications"
+    );
+
+    const wsRoutes = await getWebSocketRoutes(); // ✅ Returns Elysia instance
+    const sseRoutes = await getSSERoutes(); // ✅ Returns Elysia instance
+
+    mainApp.use(wsRoutes); // ✅ "1 instance = 1 controller"
+    mainApp.use(sseRoutes); // ✅ "1 instance = 1 controller"
+
+    console.log("🔌 Real-time endpoints added (WebSocket + SSE)");
+  } catch (error: unknown) {
+    console.error("⚠️ Failed to add real-time endpoints:", error);
+    console.warn("⚠️ Server will continue without real-time functionality");
+  }
 
   // Background sync management endpoints (deprecated - moved to ConsolidatedDataService)
   mainApp.group("/sync", (app) =>

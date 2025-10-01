@@ -400,13 +400,24 @@ export function createNotificationRoutes(): Elysia {
   return app;
 }
 
-// Function to integrate WebSocket and SSE routes
-export async function getRealtimeRoutes(): Promise<{
-  websocket: unknown;
-  sse: unknown;
-}> {
+/**
+ * Get WebSocket real-time routes
+ * Follows Elysia Best Practice: "1 instance = 1 controller"
+ * @returns Elysia instance with WebSocket endpoints
+ */
+export async function getWebSocketRoutes() {
   const manager = await getNotificationManager();
-  return manager.getElysiaRoutes();
+  return manager.getWebSocketRoutes();
+}
+
+/**
+ * Get SSE real-time routes
+ * Follows Elysia Best Practice: "1 instance = 1 controller"
+ * @returns Elysia instance with SSE endpoints
+ */
+export async function getSSERoutes() {
+  const manager = await getNotificationManager();
+  return manager.getSSERoutes();
 }
 
 // Export for cleanup on shutdown
