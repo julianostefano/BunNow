@@ -141,19 +141,9 @@ export async function createMainApp(): Promise<Elysia> {
   }
 
   // Add root redirect to NEW dashboard v2.0
-  mainApp.get("/", ({ set }) => {
-    set.headers["content-type"] = "text/html; charset=utf-8";
-    return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0; url=/ui">
-  <title>Redirecionando...</title>
-</head>
-<body>
-  <p>Redirecionando para o dashboard... <a href="/ui">Clique aqui</a> se não for redirecionado automaticamente.</p>
-</body>
-</html>`;
+  // FIX v5.5.14: Use Response object to avoid HEAD request TypeError (_res.headers.set)
+  mainApp.get("/", ({ redirect }) => {
+    return redirect("/ui", 302);
   });
 
   // Add main application routes with error handling
