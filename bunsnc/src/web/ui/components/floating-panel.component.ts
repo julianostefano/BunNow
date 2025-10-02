@@ -214,14 +214,16 @@ export function floatingPanelHTML(minimized: boolean = false): string {
         </div>
 
         <!-- SSE Connection for Real-time Updates -->
-        <div
+        <!-- FIX v5.5.16: Temporarily disabled due to ElysiaJS SSE bug (_r_r is not defined) -->
+        <!-- TODO: Re-enable after ElysiaJS update fixes SSE Response handling -->
+        <!-- <div
           hx-ext="sse"
           sse-connect="/api/streaming/metrics"
           sse-swap="metrics"
           hx-target="#panel-content"
           hx-swap="innerHTML"
           class="hidden"
-        ></div>
+        ></div> -->
       </div>
     </div>
 

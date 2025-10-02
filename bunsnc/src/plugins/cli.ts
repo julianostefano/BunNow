@@ -111,9 +111,10 @@ export const cliPlugin = new Elysia({
     const authClient = serviceNowAuthClient;
 
     // Initialize ServiceNow client
-    const instanceUrl = process.env.SNC_INSTANCE_URL || "";
-    const username = process.env.SNC_USERNAME || process.env.SERVICENOW_USERNAME || "";
-    const password = process.env.SNC_PASSWORD || process.env.SERVICENOW_PASSWORD || "";
+    // FIX v5.5.15: Use correct environment variables (SERVICENOW_* instead of SNC_*)
+    const instanceUrl = process.env.SERVICENOW_INSTANCE_URL || "";
+    const username = process.env.SERVICENOW_USERNAME || "";
+    const password = process.env.SERVICENOW_PASSWORD || "";
 
     // ✅ FIX v5.4.5: Use factory method instead of incorrect object constructor
     // ServiceNowClient constructor expects (instanceUrl, authToken, options)

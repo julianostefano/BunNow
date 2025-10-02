@@ -61,11 +61,10 @@ export async function createMainApp(): Promise<Elysia> {
     }),
   );
 
-  // Favicon endpoint - return 404 with proper CORS (must be before other routes)
+  // Favicon endpoint - return 204 No Content (FIX v5.5.16)
   mainApp.get("/favicon.ico", ({ set }) => {
-    set.status = 404;
-    set.headers["content-type"] = "text/plain";
-    return "Favicon not found";
+    set.status = 204;
+    return null;
   });
 
   // Background sync functionality consolidated into ConsolidatedDataService
@@ -130,20 +129,54 @@ export async function createMainApp(): Promise<Elysia> {
     console.warn("⚠️ Server will continue without UI v2.0");
   }
 
-  // Add Legacy HTMX Dashboard routes (keeping for backward compatibility)
-  try {
-    const { htmxDashboardClean } = await import("../web/htmx-dashboard-clean");
-    mainApp.use(htmxDashboardClean);
-    console.log("📊 Legacy HTMX Dashboard added at /clean");
-  } catch (error: unknown) {
-    console.error("⚠️ Failed to add legacy dashboard:", error);
-    console.warn("⚠️ Server will continue without legacy dashboard");
-  }
+  // FIX v5.5.15: Legacy HTMX Dashboard temporarily disabled
+  // Root cause: Top-level import of ServiceNowAuthClient causes context conflicts
+  // Will be re-enabled after refactoring to use Dependency Injection
+  // See docs/ELYSIA_BEST_PRACTICES.md - "Anti-pattern: Top-Level Service Initialization"
+  //
+  // // Add Legacy HTMX Dashboard routes (keeping for backward compatibility)
+  // try {
+  //   const { htmxDashboardClean } = await import("../web/htmx-dashboard-clean");
+  //   mainApp.use(htmxDashboardClean);
+  //   console.log("📊 Legacy HTMX Dashboard added at /clean");
+  // } catch (error: unknown) {
+  //   console.error("⚠️ Failed to add legacy dashboard:", error);
+  //   console.warn("⚠️ Server will continue without legacy dashboard");
+  // }
 
   // Add root redirect to NEW dashboard v2.0
   // FIX v5.5.14: Use Response object to avoid HEAD request TypeError (_res.headers.set)
-  mainApp.get("/", ({ redirect }) => {
-    return redirect("/ui", 302);
+  // FIX v5.5.15: Add fallback for when dashboard is unavailable
+  mainApp.get("/", ({ redirect, set }) => {
+    try {
+      return redirect("/ui", 302);
+    } catch (error) {
+      set.status = 503;
+      set.headers["content-type"] = "text/html; charset=utf-8";
+      return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BunSNC - Manutenção</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white">
+  <div class="min-h-screen flex items-center justify-center p-4">
+    <div class="text-center max-w-md">
+      <h1 class="text-3xl font-bold mb-4">Dashboard v2.0 em Manutenção</h1>
+      <p class="text-gray-400 mb-6">O novo dashboard está sendo corrigido. Por favor, tente novamente em breve.</p>
+      <div class="space-y-3">
+        <a href="/health" class="block bg-blue-500 hover:bg-blue-600 px-6 py-3 rounded-lg transition">
+          Verificar Status da API
+        </a>
+        <p class="text-sm text-gray-500">Erro: ${(error as Error).message}</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+    }
   });
 
   // Add main application routes with error handling

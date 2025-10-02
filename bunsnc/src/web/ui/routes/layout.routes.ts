@@ -5,7 +5,6 @@
 
 import { Elysia } from "elysia";
 import { html } from "@elysiajs/html";
-import { htmx } from "@gtramontina.com/elysia-htmx";
 
 /**
  * Base HTML Layout
@@ -24,9 +23,9 @@ function baseLayout(content: string) {
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/ui/styles/custom.css">
 
-  <!-- HTMX -->
-  <script src="https://unpkg.com/htmx.org@2.0.0"></script>
-  <script src="https://unpkg.com/htmx.org@2.0.0/dist/ext/sse.js"></script>
+  <!-- HTMX (local, instead of CDN) -->
+  <script src="/ui/js/htmx.min.js"></script>
+  <script src="/ui/js/htmx/ext/sse.js"></script>
 
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -62,7 +61,7 @@ function baseLayout(content: string) {
  * Main Dashboard Layout
  * Includes header, floating panel, search bar, and content area
  */
-function dashboardLayout(options: {
+export function dashboardLayout(options: {
   showPanel?: boolean;
   panelMinimized?: boolean;
 }) {
@@ -181,19 +180,30 @@ function dashboardLayout(options: {
 
 /**
  * Layout Routes
+ * NOTE: Root route "/" moved to uiApp in src/web/ui/index.ts to avoid route conflict
+ * See v5.5.15 fix for details
+ *
+ * FIX v5.5.15: Removed @gtramontina.com/elysia-htmx plugin
+ * Root cause: Plugin had initialization side-effects causing ServiceNowClient errors
+ * HTMX is client-side library - loaded via script tag in HTML
  */
 export const layoutRoutes = new Elysia()
   .use(html())
-  .use(htmx())
 
-  .get("/", () => {
-    return dashboardLayout({
-      showPanel: true,
-      panelMinimized: false,
-    });
+  // Serve static assets
+  .get("/styles/custom.css", () => {
+    return Bun.file("src/web/ui/styles/custom.css");
   })
 
-  .get("/styles/custom.css", () => {
-    // Serve custom CSS
-    return Bun.file("src/web/ui/styles/custom.css");
+  // Serve HTMX library locally (instead of CDN)
+  .get("/js/htmx.min.js", ({ set }) => {
+    set.headers["content-type"] = "application/javascript; charset=utf-8";
+    set.headers["cache-control"] = "public, max-age=31536000, immutable";
+    return Bun.file("node_modules/htmx.org/dist/htmx.min.js");
+  })
+
+  .get("/js/htmx/ext/sse.js", ({ set }) => {
+    set.headers["content-type"] = "application/javascript; charset=utf-8";
+    set.headers["cache-control"] = "public, max-age=31536000, immutable";
+    return Bun.file("node_modules/htmx.org/dist/ext/sse.js");
   });

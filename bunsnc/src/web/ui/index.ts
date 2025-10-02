@@ -13,11 +13,10 @@
 
 import { Elysia } from "elysia";
 import { html } from "@elysiajs/html";
-import { htmx } from "@gtramontina.com/elysia-htmx";
 import { cors } from "@elysiajs/cors";
 
 // Routes
-import { layoutRoutes } from "./routes/layout.routes";
+import { layoutRoutes, dashboardLayout } from "./routes/layout.routes";
 import { feedRoutes } from "./routes/feed.routes";
 
 // Components
@@ -27,13 +26,19 @@ import { searchBarRoutes } from "./components/search-bar.component";
 import { filterTabsRoutes } from "./components/filter-tabs.component";
 import { ticketModalRoutes } from "./components/ticket-modal.component";
 
+// Routes
+import { streamingMetricsRoutes } from "./routes/streaming-metrics.routes";
+
 /**
  * Main UI Application
  * Follows Elysia Best Practice: "1 instance = 1 controller"
+ *
+ * FIX v5.5.15: Removed @gtramontina.com/elysia-htmx plugin
+ * Root cause: Plugin had initialization side-effects causing ServiceNowClient errors
+ * HTMX is client-side library - loaded via CDN in HTML, no server plugin needed
  */
 export const uiApp = new Elysia({ prefix: "/ui" })
   .use(html())
-  .use(htmx())
   .use(
     cors({
       origin: true,
@@ -43,6 +48,15 @@ export const uiApp = new Elysia({ prefix: "/ui" })
     })
   )
 
+  // FIX v5.5.15: Root route for /ui/ (moved from layout.routes.ts to avoid conflict)
+  .get("/", ({ set }) => {
+    set.headers["content-type"] = "text/html; charset=utf-8";
+    return dashboardLayout({
+      showPanel: true,
+      panelMinimized: false,
+    });
+  })
+
   // Integrate all routes
   .use(layoutRoutes)
   .use(feedRoutes)
@@ -51,6 +65,8 @@ export const uiApp = new Elysia({ prefix: "/ui" })
   .use(searchBarRoutes)
   .use(filterTabsRoutes)
   .use(ticketModalRoutes)
+  // FIX v5.5.16: Add SSE metrics endpoint for floating panel real-time updates
+  .use(streamingMetricsRoutes)
 
   // Health check
   .get("/health", () => ({
