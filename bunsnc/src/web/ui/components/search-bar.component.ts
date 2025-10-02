@@ -250,7 +250,7 @@ export function searchBarHTML(): string {
 /**
  * Search Bar Routes
  */
-export const searchBarRoutes = new Elysia({ prefix: "/ui" })
+export const searchBarRoutes = new Elysia()
   .use(html())
 
   .get("/search-bar", () => {

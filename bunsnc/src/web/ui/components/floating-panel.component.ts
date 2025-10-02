@@ -244,7 +244,7 @@ export function floatingPanelHTML(minimized: boolean = false): string {
 /**
  * Panel Routes
  */
-export const floatingPanelRoutes = new Elysia({ prefix: "/ui" })
+export const floatingPanelRoutes = new Elysia()
   .use(html())
 
   .get("/panel", ({ query }) => {

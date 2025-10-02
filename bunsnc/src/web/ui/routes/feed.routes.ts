@@ -142,7 +142,7 @@ function getTimeAgo(date: Date): string {
 /**
  * Feed Routes
  */
-export const feedRoutes = new Elysia({ prefix: "/ui" })
+export const feedRoutes = new Elysia()
   .use(html())
 
   .get(

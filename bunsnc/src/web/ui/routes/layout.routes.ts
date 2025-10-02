@@ -182,7 +182,7 @@ function dashboardLayout(options: {
 /**
  * Layout Routes
  */
-export const layoutRoutes = new Elysia({ prefix: "/ui" })
+export const layoutRoutes = new Elysia()
   .use(html())
   .use(htmx())
 

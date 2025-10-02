@@ -207,7 +207,7 @@ export function hamburgerMenuHTML(): string {
 /**
  * Menu Routes
  */
-export const hamburgerMenuRoutes = new Elysia({ prefix: "/ui" })
+export const hamburgerMenuRoutes = new Elysia()
   .use(html())
 
   .get("/menu", () => {

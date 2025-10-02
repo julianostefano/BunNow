@@ -295,7 +295,7 @@ export function ticketModalHTML(ticket: TicketDetails): string {
 /**
  * Ticket Modal Routes
  */
-export const ticketModalRoutes = new Elysia({ prefix: "/ui" })
+export const ticketModalRoutes = new Elysia()
   .use(html())
 
   .get("/ticket/:id/:type", async ({ params }) => {

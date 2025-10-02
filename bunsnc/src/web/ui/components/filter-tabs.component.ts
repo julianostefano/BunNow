@@ -118,7 +118,7 @@ export function filterTabsHTML(activeType: string = 'all', activeStatus: string 
 /**
  * Filter Tabs Routes
  */
-export const filterTabsRoutes = new Elysia({ prefix: "/ui" })
+export const filterTabsRoutes = new Elysia()
   .use(html())
 
   .get("/filter-tabs", ({ query }) => {
