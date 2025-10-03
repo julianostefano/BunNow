@@ -60,7 +60,13 @@ export class UnifiedStreamingService extends StreamingCore {
   // === Stream Handler Methods ===
   /**
    * Create Elysia generator-based stream (Modern streaming)
-   * FIX v5.5.17: Using async generator to match StreamHandlers - Bun v1.2.21 limitation
+   * FIX v5.5.18: Bun v1.2.x Runtime Limitation Workaround
+   * Root cause: Bun v1.2.x does NOT support await in sync generators (function*)
+   * Solution: Use async function* with yield* delegation
+   * Reference: docs/ELYSIA_BEST_PRACTICES.md:404
+   *
+   * Note: yield* delegation IS allowed between async generators. The limitation
+   * is only when trying to use await in sync generators (function*).
    */
   async *createStream(
     clientId: string,

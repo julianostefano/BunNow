@@ -15,9 +15,13 @@ import { SystemService } from "../SystemService";
 export class StreamHandlers extends StreamingCore {
   /**
    * Create Elysia generator-based stream (Modern streaming)
-   * FIX v5.5.17: Using async generator (async function*) - Bun v1.2.21 limitation
-   * Root cause: Bun does not support await in sync generators (function*)
-   * Solution: Use async generators and avoid yield* delegation
+   * FIX v5.5.18: Bun v1.2.x Runtime Limitation Workaround
+   * Root cause: Bun v1.2.x does NOT support await in sync generators (function*)
+   * Solution: Use async function* (required for await support in Bun)
+   * Reference: docs/ELYSIA_BEST_PRACTICES.md:404 - "Evitar yield* delegation quando usando await"
+   *
+   * Note: ElysiaJS documentation shows function* as ideal, but Bun runtime requires
+   * async function* when using await. This is a known limitation.
    */
   async *createStream(
     clientId: string,
