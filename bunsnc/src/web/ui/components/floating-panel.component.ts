@@ -214,16 +214,18 @@ export function floatingPanelHTML(minimized: boolean = false): string {
         </div>
 
         <!-- SSE Connection for Real-time Updates -->
-        <!-- FIX v5.5.16: Temporarily disabled due to ElysiaJS SSE bug (_r_r is not defined) -->
-        <!-- TODO: Re-enable after ElysiaJS update fixes SSE Response handling -->
-        <!-- <div
+        <!-- FIX v5.5.17: Re-enabled using ElysiaJS Generator Pattern -->
+        <!-- Root cause: Was using ReadableStream + Response instead of generator + yield sse() -->
+        <!-- Solution: Refactored to ElysiaJS native SSE pattern (see streaming-metrics.routes.ts) -->
+        <!-- Reference: https://elysiajs.com/essential/handler.html#server-sent-events-sse -->
+        <div
           hx-ext="sse"
           sse-connect="/api/streaming/metrics"
           sse-swap="metrics"
           hx-target="#panel-content"
           hx-swap="innerHTML"
           class="hidden"
-        ></div> -->
+        ></div>
       </div>
     </div>
 

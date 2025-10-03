@@ -60,8 +60,9 @@ export class UnifiedStreamingService extends StreamingCore {
   // === Stream Handler Methods ===
   /**
    * Create Elysia generator-based stream (Modern streaming)
+   * FIX v5.5.17: Using async generator to match StreamHandlers - Bun v1.2.21 limitation
    */
-  *createStream(
+  async *createStream(
     clientId: string,
     streamType: StreamConnection["streamType"],
     options?: {

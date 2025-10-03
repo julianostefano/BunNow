@@ -10,12 +10,16 @@ import {
   UnifiedStreamEvent,
   TicketUpdateEvent,
 } from "./StreamingCore";
+import { SystemService } from "../SystemService";
 
 export class StreamHandlers extends StreamingCore {
   /**
    * Create Elysia generator-based stream (Modern streaming)
+   * FIX v5.5.17: Using async generator (async function*) - Bun v1.2.21 limitation
+   * Root cause: Bun does not support await in sync generators (function*)
+   * Solution: Use async generators and avoid yield* delegation
    */
-  *createStream(
+  async *createStream(
     clientId: string,
     streamType: StreamConnection["streamType"],
     options?: {
@@ -59,8 +63,289 @@ export class StreamHandlers extends StreamingCore {
         }
       }
 
-      // Handle different stream types
-      yield* this.handleStreamType(clientId, streamType, options);
+      // FIX v5.5.17: Inline switch - generators with await cannot use yield* delegation
+      // Root cause: JavaScript allows await in sync generators (function*) but yield* fails
+      // Solution: Handle all stream types inline instead of delegation
+      switch (streamType) {
+        case "dashboard-metrics": {
+          const intervalSeconds = options?.intervalSeconds || 5;
+          const systemService = SystemService.getInstance();
+
+          while (this.isConnectionAlive(clientId)) {
+            try {
+              const stats = await systemService.getPerformanceStats(1);
+              const memoryUsage = systemService.getMemoryUsage();
+
+              yield sse({
+                event: "metrics",
+                data: {
+                  type: "metrics-update",
+                  stats: stats,
+                  memory: memoryUsage,
+                  timestamp: new Date().toISOString(),
+                },
+                id: `metrics-${Date.now()}`,
+              });
+
+              await new Promise((resolve) =>
+                setTimeout(resolve, intervalSeconds * 1000),
+              );
+              this.updateConnectionPing(clientId);
+            } catch (error: unknown) {
+              console.error(
+                "❌ Error fetching dashboard metrics:",
+                error instanceof Error ? error.message : String(error),
+              );
+
+              yield sse({
+                event: "error",
+                data: {
+                  type: "error",
+                  error:
+                    error instanceof Error ? error.message : "Unknown error",
+                  timestamp: new Date().toISOString(),
+                },
+                id: `error-${Date.now()}`,
+              });
+
+              await new Promise((resolve) =>
+                setTimeout(resolve, intervalSeconds * 1000),
+              );
+            }
+          }
+          break;
+        }
+
+        case "ticket-updates": {
+          while (this.isConnectionAlive(clientId)) {
+            await new Promise((resolve) => setTimeout(resolve, 5000));
+
+            if (!this.isConnectionAlive(clientId)) break;
+
+            yield sse({
+              event: "heartbeat",
+              data: {
+                timestamp: new Date().toISOString(),
+                activeFilters: options?.filters,
+              },
+            });
+
+            this.updateConnectionPing(clientId);
+          }
+          break;
+        }
+
+        case "sync-progress": {
+          const operation = options?.operation || "sync-tickets";
+          const stages = [
+            "Initializing connection to ServiceNow",
+            "Fetching incident records",
+            "Processing incidents",
+            "Fetching change_task records",
+            "Processing change tasks",
+            "Fetching sc_task records",
+            "Processing service catalog tasks",
+            "Updating database indexes",
+            "Finalizing sync operation",
+          ];
+
+          for (let i = 0; i < stages.length; i++) {
+            if (!this.isConnectionAlive(clientId)) break;
+
+            const progress = Math.round(((i + 1) / stages.length) * 100);
+
+            yield sse({
+              event: "sync-progress",
+              data: {
+                operation,
+                currentStep: stages[i],
+                progress,
+                totalItems: stages.length,
+                processedItems: i + 1,
+                itemsPerSecond: 0.5,
+                estimatedTimeRemaining: (stages.length - i - 1) * 2,
+                errors: 0,
+                timestamp: new Date().toISOString(),
+              },
+              id: `sync-${i + 1}`,
+            });
+
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+            this.updateConnectionPing(clientId);
+          }
+
+          if (this.isConnectionAlive(clientId)) {
+            yield sse({
+              event: "sync-complete",
+              data: {
+                operation,
+                message: "Sync completed successfully",
+                timestamp: new Date().toISOString(),
+              },
+            });
+          }
+          break;
+        }
+
+        case "dashboard-stats": {
+          const intervalSeconds = options?.intervalSeconds || 30;
+
+          while (this.isConnectionAlive(clientId)) {
+            const stats = {
+              totalTickets: Math.floor(Math.random() * 1000) + 500,
+              activeTickets: Math.floor(Math.random() * 300) + 200,
+              resolvedToday: Math.floor(Math.random() * 50) + 10,
+              averageResolutionTime:
+                Math.round((Math.random() * 24 + 2) * 10) / 10,
+              ticketsByType: {
+                incidents: Math.floor(Math.random() * 200) + 100,
+                changeTasks: Math.floor(Math.random() * 100) + 50,
+                serviceCatalogTasks: Math.floor(Math.random() * 150) + 75,
+              },
+              criticalTickets: Math.floor(Math.random() * 25) + 5,
+              slaStats: {
+                totalActiveSLAs: Math.floor(Math.random() * 200) + 300,
+                breachedSLAs: Math.floor(Math.random() * 25) + 10,
+                slaWarnings: Math.floor(Math.random() * 40) + 20,
+                avgCompletionPercentage:
+                  Math.round((Math.random() * 20 + 75) * 10) / 10,
+              },
+              lastUpdate: new Date().toISOString(),
+            };
+
+            yield sse({
+              event: "dashboard-stats",
+              data: stats,
+              id: `stats-${Date.now()}`,
+            });
+
+            await new Promise((resolve) =>
+              setTimeout(resolve, intervalSeconds * 1000),
+            );
+            this.updateConnectionPing(clientId);
+          }
+          break;
+        }
+
+        case "sla-monitoring": {
+          let counter = 0;
+          while (this.isConnectionAlive(clientId)) {
+            await new Promise((resolve) => setTimeout(resolve, 8000));
+
+            if (!this.isConnectionAlive(clientId)) break;
+
+            counter++;
+            const eventTypes = ["sla-breach", "sla-warning", "sla-updated"];
+            const eventType = eventTypes[counter % eventTypes.length] as any;
+            const businessPercentage =
+              eventType === "sla-breach"
+                ? 110 + Math.random() * 20
+                : eventType === "sla-warning"
+                  ? 85 + Math.random() * 10
+                  : Math.random() * 100;
+
+            if (
+              options?.filters?.breachesOnly &&
+              eventType !== "sla-breach"
+            ) {
+              continue;
+            }
+
+            yield sse({
+              event: eventType,
+              data: {
+                ticketSysId: `sys_${Math.random().toString(36).substring(7)}`,
+                ticketNumber: `INC${String(counter).padStart(7, "0")}`,
+                slaName: "Resolution Time - Incident",
+                slaType: "incident" as const,
+                businessPercentage: Math.round(businessPercentage * 10) / 10,
+                hasBreached: eventType === "sla-breach",
+                stage: eventType === "sla-breach" ? "breached" : "active",
+                remainingTime:
+                  eventType !== "sla-breach"
+                    ? `${Math.floor(Math.random() * 24)}h ${Math.floor(Math.random() * 60)}m`
+                    : undefined,
+                breachTime:
+                  eventType === "sla-breach"
+                    ? new Date().toISOString()
+                    : undefined,
+                severity:
+                  eventType === "sla-breach"
+                    ? "critical"
+                    : ("medium" as any),
+                assignmentGroup: "IT Support Level 2",
+                timestamp: new Date().toISOString(),
+              },
+              id: `sla-${counter}`,
+            });
+
+            this.updateConnectionPing(clientId);
+          }
+          break;
+        }
+
+        case "test-progress": {
+          const testType = options?.testType || "endpoint-test";
+          const tables = [
+            "incident",
+            "change_task",
+            "sc_task",
+            "sys_user_group",
+          ];
+
+          for (let i = 0; i < tables.length; i++) {
+            if (!this.isConnectionAlive(clientId)) break;
+
+            const table = tables[i];
+            const progress = Math.round(((i + 1) / tables.length) * 100);
+
+            yield sse({
+              event: "test-progress",
+              data: {
+                operation: testType,
+                currentStep: `Testing ${table}`,
+                progress,
+                totalItems: tables.length,
+                processedItems: i + 1,
+                itemsPerSecond: 0.5,
+                estimatedTimeRemaining: (tables.length - i - 1) * 2,
+                errors: 0,
+                timestamp: new Date().toISOString(),
+              },
+            });
+
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+            this.updateConnectionPing(clientId);
+          }
+
+          if (this.isConnectionAlive(clientId)) {
+            yield sse({
+              event: "test-complete",
+              data: {
+                operation: testType,
+                message: "All tests completed successfully",
+                timestamp: new Date().toISOString(),
+              },
+            });
+          }
+          break;
+        }
+
+        default: {
+          // Generic stream handler
+          while (this.isConnectionAlive(clientId)) {
+            await new Promise((resolve) => setTimeout(resolve, 30000));
+
+            if (this.isConnectionAlive(clientId)) {
+              yield sse({
+                event: "heartbeat",
+                data: { timestamp: new Date().toISOString() },
+              });
+              this.updateConnectionPing(clientId);
+            }
+          }
+        }
+      }
     } finally {
       this.removeConnection(clientId);
       console.log(`📡 Stream closed for client: ${clientId}`);
@@ -119,273 +404,6 @@ export class StreamHandlers extends StreamingCore {
     });
   }
 
-  /**
-   * Handle specific stream type logic
-   */
-  private *handleStreamType(
-    clientId: string,
-    streamType: StreamConnection["streamType"],
-    options?: any,
-  ) {
-    switch (streamType) {
-      case "ticket-updates":
-        yield* this.handleTicketUpdatesStream(clientId, options?.filters);
-        break;
-      case "sync-progress":
-        yield* this.handleSyncProgressStream(clientId, options?.operation);
-        break;
-      case "dashboard-stats":
-        yield* this.handleDashboardStatsStream(
-          clientId,
-          options?.intervalSeconds || 30,
-        );
-        break;
-      case "sla-monitoring":
-        yield* this.handleSLAMonitoringStream(clientId, options?.filters);
-        break;
-      case "test-progress":
-        yield* this.handleTestProgressStream(clientId, options?.testType);
-        break;
-      default:
-        yield* this.handleGenericStream(clientId);
-    }
-  }
-
-  /**
-   * Generic stream handler
-   */
-  private async *handleGenericStream(clientId: string) {
-    while (this.isConnectionAlive(clientId)) {
-      await new Promise((resolve) => setTimeout(resolve, 30000));
-
-      if (this.isConnectionAlive(clientId)) {
-        yield sse({
-          event: "heartbeat",
-          data: { timestamp: new Date().toISOString() },
-        });
-        this.updateConnectionPing(clientId);
-      }
-    }
-  }
-
-  /**
-   * Ticket updates stream handler
-   */
-  private async *handleTicketUpdatesStream(clientId: string, filters?: any) {
-    // Wait for real-time events from Redis or periodic updates
-    while (this.isConnectionAlive(clientId)) {
-      await new Promise((resolve) => setTimeout(resolve, 5000));
-
-      if (!this.isConnectionAlive(clientId)) break;
-
-      // This would be replaced by real Redis stream events
-      // For now, keep connection alive with periodic heartbeat
-      yield sse({
-        event: "heartbeat",
-        data: {
-          timestamp: new Date().toISOString(),
-          activeFilters: filters,
-        },
-      });
-
-      this.updateConnectionPing(clientId);
-    }
-  }
-
-  /**
-   * Sync progress stream handler
-   */
-  private async *handleSyncProgressStream(
-    clientId: string,
-    operation: string = "sync-tickets",
-  ) {
-    const stages = [
-      "Initializing connection to ServiceNow",
-      "Fetching incident records",
-      "Processing incidents",
-      "Fetching change_task records",
-      "Processing change tasks",
-      "Fetching sc_task records",
-      "Processing service catalog tasks",
-      "Updating database indexes",
-      "Finalizing sync operation",
-    ];
-
-    for (let i = 0; i < stages.length; i++) {
-      if (!this.isConnectionAlive(clientId)) break;
-
-      const progress = Math.round(((i + 1) / stages.length) * 100);
-
-      yield sse({
-        event: "sync-progress",
-        data: {
-          operation,
-          currentStep: stages[i],
-          progress,
-          totalItems: stages.length,
-          processedItems: i + 1,
-          itemsPerSecond: 0.5,
-          estimatedTimeRemaining: (stages.length - i - 1) * 2,
-          errors: 0,
-          timestamp: new Date().toISOString(),
-        },
-        id: `sync-${i + 1}`,
-      });
-
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      this.updateConnectionPing(clientId);
-    }
-
-    if (this.isConnectionAlive(clientId)) {
-      yield sse({
-        event: "sync-complete",
-        data: {
-          operation,
-          message: "Sync completed successfully",
-          timestamp: new Date().toISOString(),
-        },
-      });
-    }
-  }
-
-  /**
-   * Dashboard stats stream handler
-   */
-  private async *handleDashboardStatsStream(
-    clientId: string,
-    intervalSeconds: number,
-  ) {
-    while (this.isConnectionAlive(clientId)) {
-      const stats = {
-        totalTickets: Math.floor(Math.random() * 1000) + 500,
-        activeTickets: Math.floor(Math.random() * 300) + 200,
-        resolvedToday: Math.floor(Math.random() * 50) + 10,
-        averageResolutionTime: Math.round((Math.random() * 24 + 2) * 10) / 10,
-        ticketsByType: {
-          incidents: Math.floor(Math.random() * 200) + 100,
-          changeTasks: Math.floor(Math.random() * 100) + 50,
-          serviceCatalogTasks: Math.floor(Math.random() * 150) + 75,
-        },
-        criticalTickets: Math.floor(Math.random() * 25) + 5,
-        slaStats: {
-          totalActiveSLAs: Math.floor(Math.random() * 200) + 300,
-          breachedSLAs: Math.floor(Math.random() * 25) + 10,
-          slaWarnings: Math.floor(Math.random() * 40) + 20,
-          avgCompletionPercentage:
-            Math.round((Math.random() * 20 + 75) * 10) / 10,
-        },
-        lastUpdate: new Date().toISOString(),
-      };
-
-      yield sse({
-        event: "dashboard-stats",
-        data: stats,
-        id: `stats-${Date.now()}`,
-      });
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, intervalSeconds * 1000),
-      );
-      this.updateConnectionPing(clientId);
-    }
-  }
-
-  /**
-   * SLA monitoring stream handler
-   */
-  private async *handleSLAMonitoringStream(clientId: string, filters?: any) {
-    let counter = 0;
-    while (this.isConnectionAlive(clientId)) {
-      await new Promise((resolve) => setTimeout(resolve, 8000));
-
-      if (!this.isConnectionAlive(clientId)) break;
-
-      counter++;
-      const eventTypes = ["sla-breach", "sla-warning", "sla-updated"];
-      const eventType = eventTypes[counter % eventTypes.length] as any;
-      const businessPercentage =
-        eventType === "sla-breach"
-          ? 110 + Math.random() * 20
-          : eventType === "sla-warning"
-            ? 85 + Math.random() * 10
-            : Math.random() * 100;
-
-      if (filters?.breachesOnly && eventType !== "sla-breach") {
-        continue;
-      }
-
-      yield sse({
-        event: eventType,
-        data: {
-          ticketSysId: `sys_${Math.random().toString(36).substring(7)}`,
-          ticketNumber: `INC${String(counter).padStart(7, "0")}`,
-          slaName: "Resolution Time - Incident",
-          slaType: "incident" as const,
-          businessPercentage: Math.round(businessPercentage * 10) / 10,
-          hasBreached: eventType === "sla-breach",
-          stage: eventType === "sla-breach" ? "breached" : "active",
-          remainingTime:
-            eventType !== "sla-breach"
-              ? `${Math.floor(Math.random() * 24)}h ${Math.floor(Math.random() * 60)}m`
-              : undefined,
-          breachTime:
-            eventType === "sla-breach" ? new Date().toISOString() : undefined,
-          severity: eventType === "sla-breach" ? "critical" : ("medium" as any),
-          assignmentGroup: "IT Support Level 2",
-          timestamp: new Date().toISOString(),
-        },
-        id: `sla-${counter}`,
-      });
-
-      this.updateConnectionPing(clientId);
-    }
-  }
-
-  /**
-   * Test progress stream handler
-   */
-  private async *handleTestProgressStream(
-    clientId: string,
-    testType: string = "endpoint-test",
-  ) {
-    const tables = ["incident", "change_task", "sc_task", "sys_user_group"];
-
-    for (let i = 0; i < tables.length; i++) {
-      if (!this.isConnectionAlive(clientId)) break;
-
-      const table = tables[i];
-      const progress = Math.round(((i + 1) / tables.length) * 100);
-
-      yield sse({
-        event: "test-progress",
-        data: {
-          operation: testType,
-          currentStep: `Testing ${table}`,
-          progress,
-          totalItems: tables.length,
-          processedItems: i + 1,
-          itemsPerSecond: 0.5,
-          estimatedTimeRemaining: (tables.length - i - 1) * 2,
-          errors: 0,
-          timestamp: new Date().toISOString(),
-        },
-      });
-
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      this.updateConnectionPing(clientId);
-    }
-
-    if (this.isConnectionAlive(clientId)) {
-      yield sse({
-        event: "test-complete",
-        data: {
-          operation: testType,
-          message: "All tests completed successfully",
-          timestamp: new Date().toISOString(),
-        },
-      });
-    }
-  }
 
   /**
    * Broadcast message to all connections monitoring a specific ticket

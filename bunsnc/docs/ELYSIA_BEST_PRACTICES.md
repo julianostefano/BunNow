@@ -338,16 +338,71 @@ app.get('/stream', function* () {
 });
 ```
 
-#### Server-Sent Events
+#### Server-Sent Events (SSE)
 ```typescript
-import { sse } from 'elysia/sse';
+import { sse } from 'elysia';
 
-app.get('/events', () =>
-  sse(() => {
-    return new EventSource('/events');
-  })
-);
+// ✅ Padrão correto: Generator síncrono (function*) com yield sse()
+app.get('/events', function* () {
+  // Send initial connection message
+  yield sse({
+    event: 'connected',
+    data: { message: 'Connected to SSE stream' }
+  });
+
+  // Continuous streaming with async operations
+  let counter = 0;
+  while (true) {
+    // ✅ await is ALLOWED in sync generators (JavaScript feature)
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    yield sse({
+      event: 'message',
+      data: { counter: ++counter, timestamp: Date.now() },
+      id: `msg-${counter}`
+    });
+  }
+});
+
+// ✅ Advanced SSE: Streaming with dynamic imports and services
+app.get('/metrics', function* () {
+  yield sse({ event: 'connected', data: { status: 'ready' } });
+
+  // ✅ await import() works in sync generators
+  const { metricsService } = await import('./services/metrics');
+
+  while (true) {
+    // ✅ await async service calls work in sync generators
+    const metrics = await metricsService.getMetrics();
+
+    yield sse({
+      event: 'metrics',
+      data: metrics,
+      id: `metrics-${Date.now()}`
+    });
+
+    await new Promise(r => setTimeout(r, 5000));
+  }
+});
+
+// ❌ Anti-pattern: Using async function* causes yield* delegation issues
+// async function* streamMetrics() {  // ❌ Avoid async generators
+//   yield sse({ ... });
+// }
+
+// ❌ Anti-pattern: Wrong import path
+// import { sse } from 'elysia/sse';  // ❌ Não existe
+
+// ❌ Anti-pattern: EventSource no servidor
+// new EventSource('/events');  // ❌ EventSource é client-side apenas
 ```
+
+**Lições Importantes sobre SSE no ElysiaJS:**
+1. Usar `import { sse } from 'elysia'` (não `elysia/sse`)
+2. Handlers devem ser generators síncronos `function*()` (não `async function*()`)
+3. `await` é PERMITIDO dentro de generators síncronos (feature moderna do JavaScript)
+4. Evitar `yield*` delegation quando usando `await` (causa incompatibilidades no Bun runtime)
+5. EventSource é CLIENT-SIDE apenas (usado no navegador para consumir SSE)
 
 #### File Responses
 ```typescript

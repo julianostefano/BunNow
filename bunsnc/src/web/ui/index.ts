@@ -26,9 +26,6 @@ import { searchBarRoutes } from "./components/search-bar.component";
 import { filterTabsRoutes } from "./components/filter-tabs.component";
 import { ticketModalRoutes } from "./components/ticket-modal.component";
 
-// Routes
-import { streamingMetricsRoutes } from "./routes/streaming-metrics.routes";
-
 /**
  * Main UI Application
  * Follows Elysia Best Practice: "1 instance = 1 controller"
@@ -65,8 +62,6 @@ export const uiApp = new Elysia({ prefix: "/ui" })
   .use(searchBarRoutes)
   .use(filterTabsRoutes)
   .use(ticketModalRoutes)
-  // FIX v5.5.16: Add SSE metrics endpoint for floating panel real-time updates
-  .use(streamingMetricsRoutes)
 
   // Health check
   .get("/health", () => ({

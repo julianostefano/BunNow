@@ -2,123 +2,66 @@
  * Streaming Metrics SSE Route - Real-time Performance Metrics
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  *
- * FIX v5.5.16: Created to resolve HTTP 500 infinite loop
- * Dashboard v2.0 floating panel needs SSE endpoint for real-time metrics
+ * FIX v5.5.17: Refactored to use ElysiaJS Delegation Pattern
+ * Root cause: Direct yield sse() in route caused "_res.headers.set" TypeError
+ * Solution: Use yield* delegation to UnifiedStreamingService.createStream()
+ * Reference: https://elysiajs.com/essential/handler.html#server-sent-events-sse
+ * Working Pattern: src/routes/SSERoutes.ts:30-40 (yield* delegation)
+ *
+ * Key Learning:
+ * - Routes use function*() with yield* to delegate
+ * - Services implement generators with yield sse()
+ * - Direct yield sse() in routes causes context initialization errors
  */
 
 import { Elysia } from "elysia";
-import { systemService } from "../../../services/SystemService";
 import { logger } from "../../../utils/Logger";
+import { StreamHandlers } from "../../../services/streaming/StreamHandlers";
 
 /**
- * SSE Metrics Route
- * Provides real-time performance metrics via Server-Sent Events
- * Similar to /events/performance from ModalRoutes.ts:443-509
+ * SSE Metrics Route using ElysiaJS Delegation Pattern
+ * Delegates to UnifiedStreamingService for "dashboard-metrics" stream type
+ *
+ * Benefits of Delegation Pattern:
+ * - ElysiaJS manages SSE context correctly
+ * - No "_res.headers.set" errors
+ * - Centralized stream management
+ * - Consistent with other SSE endpoints (SSERoutes.ts)
  */
+// FIX v5.5.17: Bun v1.2.21 limitation - cannot use yield* with async generators
+// Solution: Call StreamHandlers.createStream directly (no delegation)
+const streamHandlers = new StreamHandlers();
+
 export const streamingMetricsRoutes = new Elysia()
-  .get("/api/streaming/metrics", async ({ set }) => {
+  .get("/api/streaming/metrics", async function* ({ query }) {
+    const clientId = `dashboard-metrics-${Date.now()}`;
+    const intervalSeconds = parseInt(query.interval as string) || 5;
+
+    logger.info(
+      `📡 SSE metrics connection established for Dashboard v2.0 (client: ${clientId}, interval: ${intervalSeconds}s)`,
+    );
+
     try {
-      logger.info("📡 SSE metrics connection established for Dashboard v2.0");
-
-      // Set SSE headers
-      set.headers = {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Cache-Control",
-      };
-
-      let isConnected = true;
-
-      const stream = new ReadableStream({
-        start(controller) {
-          // Send initial connection message
-          const initialMessage = `data: ${JSON.stringify({
-            type: "metrics-connected",
-            message: "Dashboard v2.0 metrics stream connected",
-            timestamp: new Date().toISOString(),
-          })}\n\n`;
-
-          controller.enqueue(new TextEncoder().encode(initialMessage));
-
-          // Update metrics every 5 seconds
-          const intervalId = setInterval(async () => {
-            if (!isConnected) {
-              clearInterval(intervalId);
-              return;
-            }
-
-            try {
-              // Get performance stats from SystemService
-              const stats = await systemService.getPerformanceStats(1);
-              const memoryUsage = systemService.getMemoryUsage();
-
-              const message = `data: ${JSON.stringify({
-                type: "metrics-update",
-                stats: stats,
-                memory: memoryUsage,
-                timestamp: new Date().toISOString(),
-              })}\n\n`;
-
-              controller.enqueue(new TextEncoder().encode(message));
-
-              logger.debug("📊 Metrics update sent to Dashboard v2.0");
-            } catch (error: unknown) {
-              logger.error(
-                "❌ Metrics SSE error:",
-                error instanceof Error ? error : new Error(String(error))
-              );
-
-              // Send error event
-              const errorMessage = `data: ${JSON.stringify({
-                type: "error",
-                error: error instanceof Error ? error.message : "Unknown error",
-                timestamp: new Date().toISOString(),
-              })}\n\n`;
-
-              controller.enqueue(new TextEncoder().encode(errorMessage));
-            }
-          }, 5000); // Update every 5 seconds (same as ModalRoutes)
-
-          // Cleanup on disconnect
-          const cleanup = () => {
-            isConnected = false;
-            clearInterval(intervalId);
-            logger.info("📡 SSE metrics connection closed for Dashboard v2.0");
-          };
-
-          // Handle client disconnect
-          controller.enqueue = new Proxy(controller.enqueue, {
-            apply(target, thisArg, args) {
-              try {
-                return Reflect.apply(target, thisArg, args);
-              } catch (error) {
-                cleanup();
-                throw error;
-              }
-            },
-          });
-        },
-
-        cancel() {
-          isConnected = false;
-          logger.info("📡 SSE metrics stream cancelled by client");
-        },
-      });
-
-      return new Response(stream, {
-        headers: set.headers as Record<string, string>
-      });
-    } catch (error: unknown) {
-      logger.error(
-        "❌ Error setting up SSE metrics stream:",
-        error instanceof Error ? error : new Error(String(error))
+      // Direct call to StreamHandlers (no yield* delegation - Bun limitation)
+      for await (const event of streamHandlers.createStream(clientId, "dashboard-metrics", {
+        intervalSeconds,
+      })) {
+        yield event;
+      }
+    } finally {
+      logger.info(
+        `📡 SSE metrics connection closed for Dashboard v2.0 (client: ${clientId})`,
       );
-      set.status = 500;
-      return {
-        error: "Failed to establish SSE metrics connection",
-        details: error instanceof Error ? error.message : String(error)
-      };
     }
+  })
+
+  .get("/api/streaming/metrics/test", () => {
+    return {
+      status: "ok",
+      message: "SSE metrics endpoint is available",
+      endpoint: "/api/streaming/metrics",
+      pattern: "ElysiaJS Delegation Pattern (yield* unifiedStreamingService)",
+      streamType: "dashboard-metrics",
+      timestamp: new Date().toISOString(),
+    };
   });

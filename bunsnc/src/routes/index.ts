@@ -129,6 +129,20 @@ export async function createMainApp(): Promise<Elysia> {
     console.warn("⚠️ Server will continue without UI v2.0");
   }
 
+  // FIX v5.5.17: Add SSE streaming metrics endpoint directly to main app
+  // Reason: Route must be at /api/streaming/metrics (not /ui/api/streaming/metrics)
+  // Pattern: Following GroupRoutes.ts error handling for _r_r bug
+  try {
+    const { streamingMetricsRoutes } = await import(
+      "../web/ui/routes/streaming-metrics.routes"
+    );
+    mainApp.use(streamingMetricsRoutes);
+    console.log("📡 SSE streaming metrics endpoint added at /api/streaming/metrics");
+  } catch (error: unknown) {
+    console.error("⚠️ Failed to add SSE streaming metrics:", error);
+    console.warn("⚠️ Server will continue without real-time metrics streaming");
+  }
+
   // FIX v5.5.15: Legacy HTMX Dashboard temporarily disabled
   // Root cause: Top-level import of ServiceNowAuthClient causes context conflicts
   // Will be re-enabled after refactoring to use Dependency Injection
