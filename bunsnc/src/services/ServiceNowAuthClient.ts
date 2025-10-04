@@ -12,19 +12,39 @@ import { ServiceNowSLAService } from "./auth/ServiceNowSLAService";
 import { ServiceNowQueryService } from "./auth/ServiceNowQueryService";
 
 export class ServiceNowAuthClient {
-  private authCore: ServiceNowAuthCore;
-  private slaService: ServiceNowSLAService;
-  private queryService: ServiceNowQueryService;
+  private authCore?: ServiceNowAuthCore;
+  private slaService?: ServiceNowSLAService;
+  private queryService?: ServiceNowQueryService;
   private cacheWarmingInitialized = false;
 
+  // FIX v5.5.20: Use lazy loading to break circular dependency
+  // Services created on-demand instead of in constructor
   constructor() {
-    // Initialize all specialized services
-    this.authCore = new ServiceNowAuthCore();
-    this.slaService = new ServiceNowSLAService();
-    this.queryService = new ServiceNowQueryService();
-
-    console.log("ServiceNowAuthClient initialized with modular architecture");
+    console.log(
+      "ServiceNowAuthClient initialized with lazy loading (circular dependency fix)",
+    );
     console.log("⏳ Cache warming deferred until server is ready");
+  }
+
+  private getAuthCore(): ServiceNowAuthCore {
+    if (!this.authCore) {
+      this.authCore = new ServiceNowAuthCore();
+    }
+    return this.authCore;
+  }
+
+  private getSlaService(): ServiceNowSLAService {
+    if (!this.slaService) {
+      this.slaService = new ServiceNowSLAService();
+    }
+    return this.slaService;
+  }
+
+  private getQueryService(): ServiceNowQueryService {
+    if (!this.queryService) {
+      this.queryService = new ServiceNowQueryService();
+    }
+    return this.queryService;
   }
 
   /**
@@ -42,7 +62,7 @@ export class ServiceNowAuthClient {
 
     try {
       // Pre-warm cache for critical data after server startup
-      await this.queryService.preWarmCache();
+      await this.getQueryService().preWarmCache();
       console.log("✅ Deferred cache warming completed successfully");
     } catch (error) {
       console.warn("⚠️ Deferred cache warming failed:", error.message);
@@ -51,19 +71,19 @@ export class ServiceNowAuthClient {
 
   // === Authentication Methods ===
   public isAuthValid(): boolean {
-    return this.authCore.isAuthValid();
+    return this.getAuthCore().isAuthValid();
   }
 
   public getBaseUrl(): string {
-    return this.authCore.getBaseUrl();
+    return this.getAuthCore().getBaseUrl();
   }
 
   public getCache() {
-    return this.authCore.getCache();
+    return this.getAuthCore().getCache();
   }
 
   public getStreamManager() {
-    return this.authCore.getStreamManager();
+    return this.getAuthCore().getStreamManager();
   }
 
   // === Query Methods ===
@@ -72,7 +92,7 @@ export class ServiceNowAuthClient {
     method: string = "GET",
     params: Record<string, unknown> = {},
   ): Promise<ServiceNowQueryResult> {
-    return this.queryService.makeRequest(table, method, params);
+    return this.getQueryService().makeRequest(table, method, params);
   }
 
   async makeRequestPaginated(
@@ -88,7 +108,7 @@ export class ServiceNowAuthClient {
     currentPage: number;
     totalPages: number;
   }> {
-    return this.queryService.makeRequestPaginated(
+    return this.getQueryService().makeRequestPaginated(
       table,
       group,
       state,
@@ -100,19 +120,21 @@ export class ServiceNowAuthClient {
   async getWaitingIncidents(
     assignmentGroup: string,
   ): Promise<ServiceNowRecord[]> {
-    return this.queryService.getWaitingIncidents(assignmentGroup);
+    return this.getQueryService().getWaitingIncidents(assignmentGroup);
   }
 
   async getWaitingChangeTasks(
     assignmentGroup: string,
   ): Promise<ServiceNowRecord[]> {
-    return this.queryService.getWaitingChangeTasks(assignmentGroup);
+    return this.getQueryService().getWaitingChangeTasks(assignmentGroup);
   }
 
   async getWaitingServiceCatalogTasks(
     assignmentGroup: string,
   ): Promise<ServiceNowRecord[]> {
-    return this.queryService.getWaitingServiceCatalogTasks(assignmentGroup);
+    return this.getQueryService().getWaitingServiceCatalogTasks(
+      assignmentGroup,
+    );
   }
 
   async searchTickets(
@@ -120,7 +142,7 @@ export class ServiceNowAuthClient {
     tables: string[] = ["incident", "change_task", "sc_task"],
     limit: number = 50,
   ): Promise<ServiceNowRecord[]> {
-    return this.queryService.searchTickets(searchTerm, tables, limit);
+    return this.getQueryService().searchTickets(searchTerm, tables, limit);
   }
 
   // === SLA Methods ===
@@ -129,24 +151,24 @@ export class ServiceNowAuthClient {
     query: string,
     limit: number = 1,
   ): Promise<ServiceNowQueryResult> {
-    return this.slaService.makeRequestFullFields(table, query, limit);
+    return this.getSlaService().makeRequestFullFields(table, query, limit);
   }
 
   async getSLADataForTask(taskSysId: string): Promise<ServiceNowRecord[]> {
-    return this.slaService.getSLADataForTask(taskSysId);
+    return this.getSlaService().getSLADataForTask(taskSysId);
   }
 
   async getContractSLAData(
     company?: string,
     location?: string,
   ): Promise<ServiceNowRecord[]> {
-    return this.slaService.getContractSLAData(company, location);
+    return this.getSlaService().getContractSLAData(company, location);
   }
 
   async getTicketSLABreakdown(
     ticketSysId: string,
   ): Promise<ServiceNowRecord[]> {
-    return this.slaService.getTicketSLABreakdown(ticketSysId);
+    return this.getSlaService().getTicketSLABreakdown(ticketSysId);
   }
 
   async getSLAPerformanceMetrics(
@@ -154,7 +176,7 @@ export class ServiceNowAuthClient {
     endDate: string,
     slaType?: string,
   ): Promise<ServiceNowRecord[]> {
-    return this.slaService.getSLAPerformanceMetrics(
+    return this.getSlaService().getSLAPerformanceMetrics(
       startDate,
       endDate,
       slaType,
@@ -163,7 +185,7 @@ export class ServiceNowAuthClient {
 
   // === Legacy compatibility methods ===
   async preWarmCache(): Promise<void> {
-    return this.queryService.preWarmCache();
+    return this.getQueryService().preWarmCache();
   }
 
   // === Waiting Tickets Analysis Methods ===
@@ -263,8 +285,12 @@ export class ServiceNowAuthClient {
   }
 }
 
-// Create singleton instance for global use
-export const serviceNowAuthClient = new ServiceNowAuthClient();
+// FIX v5.5.19: Removed top-level instantiation to prevent startup hang
+// Root cause: new ServiceNowAuthClient() executes during import
+// Violates ElysiaJS best practice: Services should NOT be instantiated at module scope
+// Use ServiceNowAuthClient class directly with getInstance() pattern in handlers
+// See: docs/reports/ELYSIA_COMPLIANCE_REPORT_v5.5.19.md - CRITICAL-1
+// export const serviceNowAuthClient = new ServiceNowAuthClient();
 
 // Export types for compatibility
 export type { ServiceNowRecord, ServiceNowQueryResult };

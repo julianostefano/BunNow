@@ -7,7 +7,7 @@
  */
 
 import { Context } from "elysia";
-import { serviceNowAuthClient } from "../../services/ServiceNowAuthClient";
+import { serviceNowAuthClient } from "../../services";
 
 /**
  * Interface for system metrics

@@ -57,10 +57,29 @@ class PluginAttachmentController {
   private readonly uploadDir: string;
   private readonly maxFileSize: number = 50 * 1024 * 1024; // 50MB
   private readonly allowedExtensions: string[] = [
-    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
-    ".txt", ".csv", ".json", ".xml", ".log",
-    ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg",
-    ".zip", ".rar", ".7z", ".tar", ".gz"
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".xls",
+    ".xlsx",
+    ".ppt",
+    ".pptx",
+    ".txt",
+    ".csv",
+    ".json",
+    ".xml",
+    ".log",
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".gif",
+    ".bmp",
+    ".svg",
+    ".zip",
+    ".rar",
+    ".7z",
+    ".tar",
+    ".gz",
   ];
   private stats = {
     uploads: 0,
@@ -68,19 +87,22 @@ class PluginAttachmentController {
     deletes: 0,
     cacheHits: 0,
     totalSize: 0,
-    operationCount: 0
+    operationCount: 0,
   };
 
   constructor(
     private serviceLocator: any,
-    private config: any
+    private config: any,
   ) {
-    this.uploadDir = this.config?.uploadDir || process.env.ATTACHMENT_UPLOAD_DIR || "./uploads/attachments";
+    this.uploadDir =
+      this.config?.uploadDir ||
+      process.env.ATTACHMENT_UPLOAD_DIR ||
+      "./uploads/attachments";
     this.ensureUploadDirectory();
     logger.info("PluginAttachmentController initialized", "AttachmentPlugin", {
       uploadDir: this.uploadDir,
       maxFileSize: this.maxFileSize,
-      allowedExtensions: this.allowedExtensions.length
+      allowedExtensions: this.allowedExtensions.length,
     });
   }
 
@@ -96,11 +118,15 @@ class PluginAttachmentController {
   /**
    * Upload attachment to ServiceNow record
    */
-  async uploadAttachment(table: string, tableSysId: string, file: File): Promise<AttachmentOperationResult> {
+  async uploadAttachment(
+    table: string,
+    tableSysId: string,
+    file: File,
+  ): Promise<AttachmentOperationResult> {
     const operation = logger.operation("upload_attachment", table, tableSysId, {
       fileName: file.name,
       fileSize: file.size,
-      contentType: file.type
+      contentType: file.type,
     });
 
     try {
@@ -110,7 +136,7 @@ class PluginAttachmentController {
         return {
           success: false,
           error: validation.error,
-          code: "INVALID_FILE"
+          code: "INVALID_FILE",
         };
       }
 
@@ -134,13 +160,19 @@ class PluginAttachmentController {
           table_name: table,
           table_sys_id: tableSysId,
           size_bytes: file.size.toString(),
-          size_compressed: file.size.toString()
+          size_compressed: file.size.toString(),
         };
 
-        const attachmentRecord = await serviceNowService.createRecord("sys_attachment", attachmentData);
+        const attachmentRecord = await serviceNowService.createRecord(
+          "sys_attachment",
+          attachmentData,
+        );
 
         // Keep local copy with attachment sys_id for download
-        const permanentPath = path.join(this.uploadDir, `${attachmentRecord.sys_id}_${file.name}`);
+        const permanentPath = path.join(
+          this.uploadDir,
+          `${attachmentRecord.sys_id}_${file.name}`,
+        );
         await fs.rename(tempFilePath, permanentPath);
 
         const response: AttachmentRecord = {
@@ -151,7 +183,7 @@ class PluginAttachmentController {
           table_name: table,
           table_sys_id: tableSysId,
           download_link: `/api/attachments/${attachmentRecord.sys_id}/download`,
-          created_on: new Date().toISOString()
+          created_on: new Date().toISOString(),
         };
 
         // Update stats and invalidate cache
@@ -166,15 +198,14 @@ class PluginAttachmentController {
         operation.success("Attachment uploaded successfully", {
           attachmentId: attachmentRecord.sys_id,
           fileName: file.name,
-          fileSize: file.size
+          fileSize: file.size,
         });
 
         return {
           success: true,
           data: response,
-          message: "Attachment uploaded successfully"
+          message: "Attachment uploaded successfully",
         };
-
       } catch (serviceNowError) {
         // Clean up temp file on ServiceNow error
         await fs.unlink(tempFilePath).catch(() => {});
@@ -185,7 +216,7 @@ class PluginAttachmentController {
       return {
         success: false,
         error: error.message || "Upload failed",
-        code: "UPLOAD_ERROR"
+        code: "UPLOAD_ERROR",
       };
     }
   }
@@ -194,22 +225,34 @@ class PluginAttachmentController {
    * Download attachment file
    */
   async downloadAttachment(attachmentId: string): Promise<Response> {
-    const operation = logger.operation("download_attachment", undefined, attachmentId);
+    const operation = logger.operation(
+      "download_attachment",
+      undefined,
+      attachmentId,
+    );
 
     try {
       // Get attachment metadata from ServiceNow
       const serviceNowService = this.serviceLocator.services?.serviceNow;
       if (!serviceNowService) {
-        return new Response("ServiceNow service not available", { status: 503 });
+        return new Response("ServiceNow service not available", {
+          status: 503,
+        });
       }
 
-      const attachmentRecord = await serviceNowService.getRecord("sys_attachment", attachmentId);
+      const attachmentRecord = await serviceNowService.getRecord(
+        "sys_attachment",
+        attachmentId,
+      );
       if (!attachmentRecord) {
         return new Response("Attachment not found", { status: 404 });
       }
 
       // Try local file first
-      const localFilePath = path.join(this.uploadDir, `${attachmentId}_${attachmentRecord.file_name}`);
+      const localFilePath = path.join(
+        this.uploadDir,
+        `${attachmentId}_${attachmentRecord.file_name}`,
+      );
 
       try {
         await fs.access(localFilePath);
@@ -220,21 +263,23 @@ class PluginAttachmentController {
 
         operation.success("Attachment downloaded from local storage", {
           fileName: attachmentRecord.file_name,
-          size: fileBuffer.length
+          size: fileBuffer.length,
         });
 
         return new Response(fileBuffer, {
           headers: {
-            "Content-Type": attachmentRecord.content_type || "application/octet-stream",
+            "Content-Type":
+              attachmentRecord.content_type || "application/octet-stream",
             "Content-Disposition": `attachment; filename="${attachmentRecord.file_name}"`,
             "Content-Length": attachmentRecord.size_bytes || "0",
-            "X-Attachment-ID": attachmentId
-          }
+            "X-Attachment-ID": attachmentId,
+          },
         });
-
       } catch (localFileError) {
         // If local file not found, would typically fetch from ServiceNow
-        console.warn(`Local file not found for ${attachmentId}, would fetch from ServiceNow in production`);
+        console.warn(
+          `Local file not found for ${attachmentId}, would fetch from ServiceNow in production`,
+        );
 
         operation.warn("Local file not available", { attachmentId });
 
@@ -242,12 +287,12 @@ class PluginAttachmentController {
           JSON.stringify({
             success: false,
             error: "Attachment content not available locally",
-            code: "CONTENT_NOT_AVAILABLE"
+            code: "CONTENT_NOT_AVAILABLE",
           }),
           {
             status: 503,
-            headers: { "Content-Type": "application/json" }
-          }
+            headers: { "Content-Type": "application/json" },
+          },
         );
       }
     } catch (error: any) {
@@ -256,12 +301,12 @@ class PluginAttachmentController {
         JSON.stringify({
           success: false,
           error: error.message || "Download failed",
-          code: "DOWNLOAD_ERROR"
+          code: "DOWNLOAD_ERROR",
         }),
         {
           status: 500,
-          headers: { "Content-Type": "application/json" }
-        }
+          headers: { "Content-Type": "application/json" },
+        },
       );
     }
   }
@@ -269,7 +314,10 @@ class PluginAttachmentController {
   /**
    * List attachments for a ServiceNow record
    */
-  async listAttachments(table: string, tableSysId: string): Promise<AttachmentOperationResult> {
+  async listAttachments(
+    table: string,
+    tableSysId: string,
+  ): Promise<AttachmentOperationResult> {
     const operation = logger.operation("list_attachments", table, tableSysId);
 
     try {
@@ -280,13 +328,15 @@ class PluginAttachmentController {
         if (cached) {
           this.stats.cacheHits++;
           this.stats.operationCount++;
-          operation.success("Attachment list retrieved from cache", { count: cached.length });
+          operation.success("Attachment list retrieved from cache", {
+            count: cached.length,
+          });
           return {
             success: true,
             data: cached,
             count: cached.length,
             table_name: table,
-            table_sys_id: tableSysId
+            table_sys_id: tableSysId,
           };
         }
       }
@@ -299,7 +349,7 @@ class PluginAttachmentController {
       const attachments = await serviceNowService.queryRecords(
         "sys_attachment",
         `table_name=${table}^table_sys_id=${tableSysId}`,
-        { order: "sys_created_on DESC" }
+        { order: "sys_created_on DESC" },
       );
 
       const response = attachments.map((attachment: any) => ({
@@ -311,7 +361,7 @@ class PluginAttachmentController {
         table_sys_id: attachment.table_sys_id,
         download_link: `/api/attachments/${attachment.sys_id}/download`,
         created_on: attachment.sys_created_on,
-        created_by: attachment.sys_created_by
+        created_by: attachment.sys_created_by,
       }));
 
       // Cache the list
@@ -320,22 +370,23 @@ class PluginAttachmentController {
       }
 
       this.stats.operationCount++;
-      operation.success("Attachment list retrieved", { count: response.length });
+      operation.success("Attachment list retrieved", {
+        count: response.length,
+      });
 
       return {
         success: true,
         data: response,
         count: response.length,
         table_name: table,
-        table_sys_id: tableSysId
+        table_sys_id: tableSysId,
       };
-
     } catch (error: any) {
       operation.error("List attachments failed", error);
       return {
         success: false,
         error: error.message || "Failed to list attachments",
-        code: "LIST_ERROR"
+        code: "LIST_ERROR",
       };
     }
   }
@@ -343,8 +394,14 @@ class PluginAttachmentController {
   /**
    * Delete attachment from ServiceNow
    */
-  async deleteAttachment(attachmentId: string): Promise<AttachmentOperationResult> {
-    const operation = logger.operation("delete_attachment", undefined, attachmentId);
+  async deleteAttachment(
+    attachmentId: string,
+  ): Promise<AttachmentOperationResult> {
+    const operation = logger.operation(
+      "delete_attachment",
+      undefined,
+      attachmentId,
+    );
 
     try {
       const serviceNowService = this.serviceLocator.services?.serviceNow;
@@ -353,12 +410,15 @@ class PluginAttachmentController {
       }
 
       // Get attachment metadata before deletion
-      const attachmentRecord = await serviceNowService.getRecord("sys_attachment", attachmentId);
+      const attachmentRecord = await serviceNowService.getRecord(
+        "sys_attachment",
+        attachmentId,
+      );
       if (!attachmentRecord) {
         return {
           success: false,
           error: "Attachment not found",
-          code: "NOT_FOUND"
+          code: "NOT_FOUND",
         };
       }
 
@@ -366,7 +426,10 @@ class PluginAttachmentController {
       await serviceNowService.deleteRecord("sys_attachment", attachmentId);
 
       // Clean up local file
-      const localFilePath = path.join(this.uploadDir, `${attachmentId}_${attachmentRecord.file_name}`);
+      const localFilePath = path.join(
+        this.uploadDir,
+        `${attachmentId}_${attachmentRecord.file_name}`,
+      );
       try {
         await fs.unlink(localFilePath);
         console.log(`✓ Deleted local file: ${localFilePath}`);
@@ -385,22 +448,21 @@ class PluginAttachmentController {
 
       operation.success("Attachment deleted successfully", {
         attachmentId,
-        fileName: attachmentRecord.file_name
+        fileName: attachmentRecord.file_name,
       });
 
       return {
         success: true,
         message: "Attachment deleted successfully",
         attachment_id: attachmentId,
-        file_name: attachmentRecord.file_name
+        file_name: attachmentRecord.file_name,
       };
-
     } catch (error: any) {
       operation.error("Attachment deletion failed", error);
       return {
         success: false,
         error: error.message || "Delete failed",
-        code: "DELETE_ERROR"
+        code: "DELETE_ERROR",
       };
     }
   }
@@ -408,8 +470,14 @@ class PluginAttachmentController {
   /**
    * Get attachment metadata
    */
-  async getAttachmentInfo(attachmentId: string): Promise<AttachmentOperationResult> {
-    const operation = logger.operation("get_attachment_info", undefined, attachmentId);
+  async getAttachmentInfo(
+    attachmentId: string,
+  ): Promise<AttachmentOperationResult> {
+    const operation = logger.operation(
+      "get_attachment_info",
+      undefined,
+      attachmentId,
+    );
 
     try {
       // Check cache first
@@ -428,12 +496,15 @@ class PluginAttachmentController {
         throw new Error("ServiceNow service not available");
       }
 
-      const attachmentRecord = await serviceNowService.getRecord("sys_attachment", attachmentId);
+      const attachmentRecord = await serviceNowService.getRecord(
+        "sys_attachment",
+        attachmentId,
+      );
       if (!attachmentRecord) {
         return {
           success: false,
           error: "Attachment not found",
-          code: "NOT_FOUND"
+          code: "NOT_FOUND",
         };
       }
 
@@ -445,7 +516,7 @@ class PluginAttachmentController {
         table_name: attachmentRecord.table_name,
         table_sys_id: attachmentRecord.table_sys_id,
         download_link: `/api/attachments/${attachmentRecord.sys_id}/download`,
-        created_on: attachmentRecord.sys_created_on
+        created_on: attachmentRecord.sys_created_on,
       };
 
       // Cache the metadata
@@ -458,15 +529,14 @@ class PluginAttachmentController {
 
       return {
         success: true,
-        data: response
+        data: response,
       };
-
     } catch (error: any) {
       operation.error("Get attachment info failed", error);
       return {
         success: false,
         error: error.message || "Failed to get attachment info",
-        code: "INFO_ERROR"
+        code: "INFO_ERROR",
       };
     }
   }
@@ -474,7 +544,11 @@ class PluginAttachmentController {
   /**
    * Get storage statistics
    */
-  async getStorageStats(): Promise<{ success: boolean; data?: StorageStats; error?: string }> {
+  async getStorageStats(): Promise<{
+    success: boolean;
+    data?: StorageStats;
+    error?: string;
+  }> {
     try {
       const files = await fs.readdir(this.uploadDir);
       let totalSize = 0;
@@ -499,13 +573,13 @@ class PluginAttachmentController {
           total_size_mb: Math.round((totalSize / 1024 / 1024) * 100) / 100,
           upload_directory: this.uploadDir,
           max_file_size_mb: Math.round(this.maxFileSize / 1024 / 1024),
-          allowed_extensions: this.allowedExtensions
-        }
+          allowed_extensions: this.allowedExtensions,
+        },
       };
     } catch (error: any) {
       return {
         success: false,
-        error: error.message || "Failed to get storage stats"
+        error: error.message || "Failed to get storage stats",
       };
     }
   }
@@ -517,14 +591,20 @@ class PluginAttachmentController {
     return {
       ...this.stats,
       efficiency: {
-        cacheHitRatio: this.stats.operationCount > 0 ? this.stats.cacheHits / this.stats.operationCount : 0,
-        averageFileSize: this.stats.uploads > 0 ? this.stats.totalSize / this.stats.uploads : 0
+        cacheHitRatio:
+          this.stats.operationCount > 0
+            ? this.stats.cacheHits / this.stats.operationCount
+            : 0,
+        averageFileSize:
+          this.stats.uploads > 0
+            ? this.stats.totalSize / this.stats.uploads
+            : 0,
       },
       configuration: {
         uploadDir: this.uploadDir,
         maxFileSize: this.maxFileSize,
-        allowedExtensions: this.allowedExtensions.length
-      }
+        allowedExtensions: this.allowedExtensions.length,
+      },
     };
   }
 
@@ -536,7 +616,7 @@ class PluginAttachmentController {
     if (file.size > this.maxFileSize) {
       return {
         valid: false,
-        error: `File size exceeds maximum allowed size of ${Math.round(this.maxFileSize / 1024 / 1024)}MB`
+        error: `File size exceeds maximum allowed size of ${Math.round(this.maxFileSize / 1024 / 1024)}MB`,
       };
     }
 
@@ -545,7 +625,7 @@ class PluginAttachmentController {
     if (!this.allowedExtensions.includes(fileExtension)) {
       return {
         valid: false,
-        error: `File type not allowed. Allowed extensions: ${this.allowedExtensions.join(", ")}`
+        error: `File type not allowed. Allowed extensions: ${this.allowedExtensions.join(", ")}`,
       };
     }
 
@@ -553,7 +633,7 @@ class PluginAttachmentController {
     if (file.size === 0) {
       return {
         valid: false,
-        error: "Empty files are not allowed"
+        error: "Empty files are not allowed",
       };
     }
 
@@ -564,70 +644,109 @@ class PluginAttachmentController {
 // TypeBox validation schemas for attachment operations
 const AttachmentUploadSchema = t.Object({
   table_name: t.String({ minLength: 1, description: "ServiceNow table name" }),
-  table_sys_id: t.String({ minLength: 32, maxLength: 32, description: "Table record sys_id" }),
-  file: t.File({ description: "File to upload" })
+  table_sys_id: t.String({
+    minLength: 32,
+    maxLength: 32,
+    description: "Table record sys_id",
+  }),
+  file: t.File({ description: "File to upload" }),
 });
 
 const AttachmentParamsSchema = t.Object({
   table: t.String({ minLength: 1, description: "ServiceNow table name" }),
-  tableSysId: t.String({ minLength: 32, maxLength: 32, description: "Table record sys_id" })
+  tableSysId: t.String({
+    minLength: 32,
+    maxLength: 32,
+    description: "Table record sys_id",
+  }),
 });
 
 const AttachmentIdSchema = t.Object({
-  attachmentId: t.String({ minLength: 32, maxLength: 32, description: "Attachment sys_id" })
+  attachmentId: t.String({
+    minLength: 32,
+    maxLength: 32,
+    description: "Attachment sys_id",
+  }),
 });
 
 // Plugin context interface
 export interface AttachmentControllerPluginContext {
   attachmentController: PluginAttachmentController;
-  uploadAttachment: (table: string, tableSysId: string, file: File) => Promise<AttachmentOperationResult>;
+  uploadAttachment: (
+    table: string,
+    tableSysId: string,
+    file: File,
+  ) => Promise<AttachmentOperationResult>;
   downloadAttachment: (attachmentId: string) => Promise<Response>;
-  listAttachments: (table: string, tableSysId: string) => Promise<AttachmentOperationResult>;
-  deleteAttachment: (attachmentId: string) => Promise<AttachmentOperationResult>;
-  getAttachmentInfo: (attachmentId: string) => Promise<AttachmentOperationResult>;
-  getStorageStats: () => Promise<{ success: boolean; data?: StorageStats; error?: string }>;
+  listAttachments: (
+    table: string,
+    tableSysId: string,
+  ) => Promise<AttachmentOperationResult>;
+  deleteAttachment: (
+    attachmentId: string,
+  ) => Promise<AttachmentOperationResult>;
+  getAttachmentInfo: (
+    attachmentId: string,
+  ) => Promise<AttachmentOperationResult>;
+  getStorageStats: () => Promise<{
+    success: boolean;
+    data?: StorageStats;
+    error?: string;
+  }>;
   getOperationalStats: () => any;
 }
 
 // Elysia Plugin Definition
-export const attachmentControllerPlugin = new Elysia({ name: "attachment-controller" })
+export const attachmentControllerPlugin = new Elysia({
+  name: "attachment-controller",
+})
   .derive(async ({ config, services, ...serviceLocator }) => {
     const attachmentController = new PluginAttachmentController(
       { services, ...serviceLocator },
-      config
+      config,
     );
 
     return {
       attachmentController,
-      uploadAttachment: attachmentController.uploadAttachment.bind(attachmentController),
-      downloadAttachment: attachmentController.downloadAttachment.bind(attachmentController),
-      listAttachments: attachmentController.listAttachments.bind(attachmentController),
-      deleteAttachment: attachmentController.deleteAttachment.bind(attachmentController),
-      getAttachmentInfo: attachmentController.getAttachmentInfo.bind(attachmentController),
-      getStorageStats: attachmentController.getStorageStats.bind(attachmentController),
-      getOperationalStats: attachmentController.getOperationalStats.bind(attachmentController)
+      uploadAttachment:
+        attachmentController.uploadAttachment.bind(attachmentController),
+      downloadAttachment:
+        attachmentController.downloadAttachment.bind(attachmentController),
+      listAttachments:
+        attachmentController.listAttachments.bind(attachmentController),
+      deleteAttachment:
+        attachmentController.deleteAttachment.bind(attachmentController),
+      getAttachmentInfo:
+        attachmentController.getAttachmentInfo.bind(attachmentController),
+      getStorageStats:
+        attachmentController.getStorageStats.bind(attachmentController),
+      getOperationalStats:
+        attachmentController.getOperationalStats.bind(attachmentController),
     };
   })
   // Upload attachment to ServiceNow record
-  .post("/api/attachments/upload/:table/:tableSysId",
+  .post(
+    "/api/attachments/upload/:table/:tableSysId",
     async ({ params: { table, tableSysId }, body, uploadAttachment }) => {
       const { file } = body as { file: File };
       return await uploadAttachment(table, tableSysId, file);
     },
     {
       body: t.Object({
-        file: t.File({ description: "File to upload as attachment" })
+        file: t.File({ description: "File to upload as attachment" }),
       }),
       params: AttachmentParamsSchema,
       detail: {
         tags: ["Attachments"],
         summary: "Upload attachment to ServiceNow record",
-        description: "Upload a file as attachment to a specific ServiceNow table record"
-      }
-    }
+        description:
+          "Upload a file as attachment to a specific ServiceNow table record",
+      },
+    },
   )
   // List attachments for a record
-  .get("/api/attachments/list/:table/:tableSysId",
+  .get(
+    "/api/attachments/list/:table/:tableSysId",
     async ({ params: { table, tableSysId }, listAttachments }) => {
       return await listAttachments(table, tableSysId);
     },
@@ -636,12 +755,14 @@ export const attachmentControllerPlugin = new Elysia({ name: "attachment-control
       detail: {
         tags: ["Attachments"],
         summary: "List attachments for record",
-        description: "Get all attachments for a specific ServiceNow table record"
-      }
-    }
+        description:
+          "Get all attachments for a specific ServiceNow table record",
+      },
+    },
   )
   // Download attachment file
-  .get("/api/attachments/:attachmentId/download",
+  .get(
+    "/api/attachments/:attachmentId/download",
     async ({ params: { attachmentId }, downloadAttachment }) => {
       return await downloadAttachment(attachmentId);
     },
@@ -650,12 +771,13 @@ export const attachmentControllerPlugin = new Elysia({ name: "attachment-control
       detail: {
         tags: ["Attachments"],
         summary: "Download attachment file",
-        description: "Download the file content of a ServiceNow attachment"
-      }
-    }
+        description: "Download the file content of a ServiceNow attachment",
+      },
+    },
   )
   // Get attachment metadata
-  .get("/api/attachments/:attachmentId/info",
+  .get(
+    "/api/attachments/:attachmentId/info",
     async ({ params: { attachmentId }, getAttachmentInfo }) => {
       return await getAttachmentInfo(attachmentId);
     },
@@ -664,12 +786,13 @@ export const attachmentControllerPlugin = new Elysia({ name: "attachment-control
       detail: {
         tags: ["Attachments"],
         summary: "Get attachment metadata",
-        description: "Get metadata and information about a specific attachment"
-      }
-    }
+        description: "Get metadata and information about a specific attachment",
+      },
+    },
   )
   // Delete attachment
-  .delete("/api/attachments/:attachmentId",
+  .delete(
+    "/api/attachments/:attachmentId",
     async ({ params: { attachmentId }, deleteAttachment }) => {
       return await deleteAttachment(attachmentId);
     },
@@ -678,12 +801,13 @@ export const attachmentControllerPlugin = new Elysia({ name: "attachment-control
       detail: {
         tags: ["Attachments"],
         summary: "Delete attachment",
-        description: "Delete a ServiceNow attachment and its local file"
-      }
-    }
+        description: "Delete a ServiceNow attachment and its local file",
+      },
+    },
   )
   // Get storage statistics
-  .get("/api/attachments/storage/stats",
+  .get(
+    "/api/attachments/storage/stats",
     async ({ getStorageStats }) => {
       return await getStorageStats();
     },
@@ -691,24 +815,27 @@ export const attachmentControllerPlugin = new Elysia({ name: "attachment-control
       detail: {
         tags: ["Attachments"],
         summary: "Get storage statistics",
-        description: "Get statistics about attachment storage usage and configuration"
-      }
-    }
+        description:
+          "Get statistics about attachment storage usage and configuration",
+      },
+    },
   )
   // Get operational statistics
-  .get("/api/attachments/operational/stats",
+  .get(
+    "/api/attachments/operational/stats",
     async ({ getOperationalStats }) => {
       return {
         success: true,
-        data: getOperationalStats()
+        data: getOperationalStats(),
       };
     },
     {
       detail: {
         tags: ["Attachments"],
         summary: "Get operational statistics",
-        description: "Get operational statistics including cache hits, upload/download counts"
-      }
-    }
+        description:
+          "Get operational statistics including cache hits, upload/download counts",
+      },
+    },
   )
-  .as('scoped');
+  .as("scoped");

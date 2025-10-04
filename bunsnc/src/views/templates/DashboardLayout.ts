@@ -33,8 +33,8 @@ export function generateDashboardLayout(
         <title>${title}</title>
         
         <!-- HTMX Core -->
-        <script src="https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js"></script>
-        <script src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js" defer></script>
+        <script src="/ui/js/htmx.min.js/dist/htmx.min.js"></script>
+        <!-- AlpineJS removed - using HTMX only -->
         
         <!-- Local Scripts -->
         <script>

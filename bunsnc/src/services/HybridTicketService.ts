@@ -53,7 +53,9 @@ export class HybridTicketService {
   /**
    * Query tickets with pagination - ServiceNow only (MongoDB cache not implemented for queries)
    */
-  async queryTicketsPaginated(params: QueryPaginatedParams): Promise<PaginatedResult> {
+  async queryTicketsPaginated(
+    params: QueryPaginatedParams,
+  ): Promise<PaginatedResult> {
     const { table, group, state, page, limit } = params;
 
     try {
@@ -65,12 +67,15 @@ export class HybridTicketService {
         query += query ? `^state=${state}` : `state=${state}`;
       }
 
-      const serviceNowResult = await consolidatedServiceNowService.query(table, {
-        sysparm_query: query,
-        sysparm_limit: String(limit),
-        sysparm_offset: String((page - 1) * limit),
-        sysparm_display_value: "all",
-      });
+      const serviceNowResult = await consolidatedServiceNowService.query(
+        table,
+        {
+          sysparm_query: query,
+          sysparm_limit: String(limit),
+          sysparm_offset: String((page - 1) * limit),
+          sysparm_display_value: "all",
+        },
+      );
 
       const tickets = Array.isArray(serviceNowResult) ? serviceNowResult : [];
 
@@ -90,22 +95,34 @@ export class HybridTicketService {
   /**
    * Get ticket details by sys_id - MongoDB first, ServiceNow fallback
    */
-  async getTicketDetails(table: string, sysId: string): Promise<TicketData | null> {
+  async getTicketDetails(
+    table: string,
+    sysId: string,
+  ): Promise<TicketData | null> {
     try {
       // Try MongoDB first
-      const mongoTicket = await this.mongoService.getTicket(sysId, { forceServiceNow: false });
+      const mongoTicket = await this.mongoService.getTicket(sysId, {
+        forceServiceNow: false,
+      });
       if (mongoTicket) {
         return mongoTicket;
       }
     } catch (mongoError) {
-      console.warn("MongoDB getTicket failed, falling back to ServiceNow:", mongoError);
+      console.warn(
+        "MongoDB getTicket failed, falling back to ServiceNow:",
+        mongoError,
+      );
     }
 
     // Fallback to ServiceNow
     try {
-      const serviceNowTicket = await consolidatedServiceNowService.get(table, sysId, {
-        sysparm_display_value: "all",
-      });
+      const serviceNowTicket = await consolidatedServiceNowService.get(
+        table,
+        sysId,
+        {
+          sysparm_display_value: "all",
+        },
+      );
 
       return serviceNowTicket as TicketData;
     } catch (serviceNowError) {
@@ -125,7 +142,11 @@ export class HybridTicketService {
   ): Promise<any> {
     try {
       // Actions always go to ServiceNow
-      const result = await consolidatedServiceNowService.update(table, sysId, data);
+      const result = await consolidatedServiceNowService.update(
+        table,
+        sysId,
+        data,
+      );
       return result;
     } catch (error) {
       console.error("performAction failed:", error);

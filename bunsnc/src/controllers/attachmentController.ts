@@ -4,7 +4,7 @@
  */
 
 import { Context } from "elysia";
-import { consolidatedServiceNowService } from "../services/ConsolidatedServiceNowService";
+import { consolidatedServiceNowService } from "../services";
 import { promises as fs } from "fs";
 import path from "path";
 import crypto from "crypto";

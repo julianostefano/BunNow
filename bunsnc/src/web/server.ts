@@ -112,12 +112,14 @@ export class ServiceNowWebServer {
           return composition;
         })(),
       )
-      .use((() => {
-        console.log("[PLUGIN-LOAD] Loading authRoutes...");
-        const routes = authRoutes;
-        console.log("[PLUGIN-LOAD] ✅ authRoutes loaded");
-        return routes;
-      })())
+      .use(
+        (() => {
+          console.log("[PLUGIN-LOAD] Loading authRoutes...");
+          const routes = authRoutes;
+          console.log("[PLUGIN-LOAD] ✅ authRoutes loaded");
+          return routes;
+        })(),
+      )
       .use(htmxDashboardClean)
       .use(htmxDashboardEnhanced)
       .use(waitingAnalysisHtmx)

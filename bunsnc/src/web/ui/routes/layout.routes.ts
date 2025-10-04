@@ -5,6 +5,7 @@
 
 import { Elysia } from "elysia";
 import { html } from "@elysiajs/html";
+import { staticPlugin } from "@elysiajs/static";
 
 /**
  * Base HTML Layout
@@ -19,19 +20,19 @@ function baseLayout(content: string) {
   <meta name="description" content="BunSNC Dashboard - ServiceNow Integration">
   <title>BunSNC Dashboard</title>
 
-  <!-- Tailwind CSS v4 -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind CSS v4 (local build) -->
+  <link rel="stylesheet" href="/ui/styles/tailwind.css">
   <link rel="stylesheet" href="/ui/styles/custom.css">
 
-  <!-- HTMX (local, instead of CDN) -->
+  <!-- HTMX (local) -->
   <script src="/ui/js/htmx.min.js"></script>
   <script src="/ui/js/htmx/ext/sse.js"></script>
 
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Lucide Icons (local) -->
+  <script src="/ui/js/lucide.min.js"></script>
 
-  <!-- Chart.js (for panel graphics) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Chart.js (local) -->
+  <script src="/ui/js/chart.umd.js"></script>
 
   <style>
     /* Additional inline critical CSS */
@@ -113,15 +114,19 @@ export function dashboardLayout(options: {
       <!-- Main Content Area -->
       <main class="flex-1 pt-20 relative">
         <!-- Floating Panel (dynamic content) -->
-        ${showPanel ? `
-        <div id="floating-panel-container" class="${panelMinimized ? 'panel-minimized' : ''}">
+        ${
+          showPanel
+            ? `
+        <div id="floating-panel-container" class="${panelMinimized ? "panel-minimized" : ""}">
           <div
             hx-get="/ui/panel"
             hx-trigger="load"
             hx-swap="innerHTML"
           ></div>
         </div>
-        ` : ''}
+        `
+            : ""
+        }
 
         <!-- Search Bar (transparent, always below panel) -->
         <div id="search-bar-container">
@@ -186,24 +191,55 @@ export function dashboardLayout(options: {
  * FIX v5.5.15: Removed @gtramontina.com/elysia-htmx plugin
  * Root cause: Plugin had initialization side-effects causing ServiceNowClient errors
  * HTMX is client-side library - loaded via script tag in HTML
+ *
+ * FIX v5.5.19: Using @elysiajs/static plugin for serving assets (CDN elimination)
+ * Root cause: Bun.file() with set.headers causes transpilation issues
+ * Solution: Use official ElysiaJS static plugin following best practices
+ * Multiple plugin instances for each library to maintain clean URL structure
  */
 export const layoutRoutes = new Elysia()
   .use(html())
 
-  // Serve static assets
-  .get("/styles/custom.css", () => {
-    return Bun.file("src/web/ui/styles/custom.css");
-  })
+  // Serve UI styles from src/web/ui/styles → /styles/*
+  .use(
+    staticPlugin({
+      assets: "src/web/ui/styles",
+      prefix: "/styles",
+    }),
+  )
 
-  // Serve HTMX library locally (instead of CDN)
-  .get("/js/htmx.min.js", ({ set }) => {
-    set.headers["content-type"] = "application/javascript; charset=utf-8";
-    set.headers["cache-control"] = "public, max-age=31536000, immutable";
-    return Bun.file("node_modules/htmx.org/dist/htmx.min.js");
-  })
+  // Serve HTMX main library: node_modules/htmx.org/dist → /js/*
+  .use(
+    staticPlugin({
+      assets: "node_modules/htmx.org/dist",
+      prefix: "/js",
+      staticLimit: 31536000,
+    }),
+  )
 
-  .get("/js/htmx/ext/sse.js", ({ set }) => {
-    set.headers["content-type"] = "application/javascript; charset=utf-8";
-    set.headers["cache-control"] = "public, max-age=31536000, immutable";
-    return Bun.file("node_modules/htmx.org/dist/ext/sse.js");
-  });
+  // Serve HTMX extensions: node_modules/htmx.org/dist/ext → /js/htmx/ext/*
+  .use(
+    staticPlugin({
+      assets: "node_modules/htmx.org/dist/ext",
+      prefix: "/js/htmx/ext",
+      staticLimit: 31536000,
+    }),
+  )
+
+  // Serve Lucide Icons: node_modules/lucide/dist/umd → /js/*
+  .use(
+    staticPlugin({
+      assets: "node_modules/lucide/dist/umd",
+      prefix: "/js",
+      staticLimit: 31536000,
+    }),
+  )
+
+  // Serve Chart.js: node_modules/chart.js/dist → /js/*
+  .use(
+    staticPlugin({
+      assets: "node_modules/chart.js/dist",
+      prefix: "/js",
+      staticLimit: 31536000,
+    }),
+  );

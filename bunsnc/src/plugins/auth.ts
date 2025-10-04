@@ -13,14 +13,12 @@
  */
 
 import { Elysia } from "elysia";
-import {
+// FIX v5.5.20: Convert to type-only imports to avoid circular dependency during eager loading
+import type {
   ServiceNowAuthClient,
   ServiceNowRecord,
   ServiceNowQueryResult,
 } from "../services/ServiceNowAuthClient";
-import { ServiceNowAuthCore } from "../services/auth/ServiceNowAuthCore";
-import { ServiceNowSLAService } from "../services/auth/ServiceNowSLAService";
-import { ServiceNowQueryService } from "../services/auth/ServiceNowQueryService";
 
 // Types para Eden Treaty
 export interface AuthPluginContext {
@@ -70,8 +68,12 @@ export const authPlugin = new Elysia({
     );
   })
 
-  // Dependency Injection: Create auth client instance
-  .decorate("authClient", new ServiceNowAuthClient())
+  // FIX v5.5.20: Lazy loading via .derive() - ElysiaJS best practice
+  // ServiceNowAuthClient created on-demand per request (avoids circular dependency at module load)
+  .derive(() => {
+    const authClient = new ServiceNowAuthClient();
+    return { authClient };
+  })
 
   // Authentication validation method
   .decorate(

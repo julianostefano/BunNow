@@ -289,7 +289,7 @@ export const htmxDashboardClean = new Elysia({ prefix: "/clean" })
         <head>
             <meta charset="UTF-8">
             <title>404 - Página não encontrada</title>
-            <script src="https://cdn.tailwindcss.com"></script>
+            <script src="/ui/styles/tailwind.css"></script>
         </head>
         <body class="h-full bg-gray-900 text-white flex items-center justify-center">
             <div class="text-center">
@@ -314,7 +314,7 @@ export const htmxDashboardClean = new Elysia({ prefix: "/clean" })
       <head>
           <meta charset="UTF-8">
           <title>Erro - BunSNC Dashboard</title>
-          <script src="https://cdn.tailwindcss.com"></script>
+          <script src="/ui/styles/tailwind.css"></script>
       </head>
       <body class="bg-gray-900 text-white">
           <div class="min-h-screen flex items-center justify-center">
@@ -355,7 +355,7 @@ export const htmxDashboardClean = new Elysia({ prefix: "/clean" })
               <meta charset="UTF-8">
               <meta name="viewport" content="width=device-width, initial-scale=1.0">
               <title>BunSNC Dashboard - Service Unavailable</title>
-              <script src="https://cdn.tailwindcss.com"></script>
+              <script src="/ui/styles/tailwind.css"></script>
           </head>
           <body class="h-full bg-gray-100 flex items-center justify-center">
               <div class="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
@@ -948,7 +948,7 @@ export const htmxDashboardClean = new Elysia({ prefix: "/clean" })
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>BunSNC Dashboard - Error</title>
-            <script src="https://cdn.tailwindcss.com"></script>
+            <script src="/ui/styles/tailwind.css"></script>
         </head>
         <body class="h-full bg-gray-100 flex items-center justify-center">
             <div class="max-w-md w-full bg-white rounded-lg shadow-lg p-6">

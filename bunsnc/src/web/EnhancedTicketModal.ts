@@ -541,7 +541,9 @@ export class EnhancedTicketModalView {
       `;
     }
 
-    const timelineItems = history.map((entry) => this.generateHistoryTimelineItem(entry)).join("");
+    const timelineItems = history
+      .map((entry) => this.generateHistoryTimelineItem(entry))
+      .join("");
 
     return `
       <div class="space-y-6">
@@ -581,12 +583,16 @@ export class EnhancedTicketModalView {
                   ${fieldLabel}
                 </p>
                 <div class="mt-2 space-y-1">
-                  ${entry.oldvalue ? `
+                  ${
+                    entry.oldvalue
+                      ? `
                     <div class="flex items-start space-x-2">
                       <span class="text-xs text-gray-500 font-medium">De:</span>
                       <span class="text-xs text-gray-700 line-through">${this.escapeHtml(entry.oldvalue)}</span>
                     </div>
-                  ` : ""}
+                  `
+                      : ""
+                  }
                   <div class="flex items-start space-x-2">
                     <span class="text-xs text-gray-500 font-medium">Para:</span>
                     <span class="text-xs text-gray-900 font-semibold">${this.escapeHtml(entry.newvalue)}</span>
@@ -635,7 +641,12 @@ export class EnhancedTicketModalView {
   }
 
   private static getChangeIcon(fieldname: string): string {
-    const criticalFields = ["state", "priority", "assigned_to", "assignment_group"];
+    const criticalFields = [
+      "state",
+      "priority",
+      "assigned_to",
+      "assignment_group",
+    ];
 
     if (criticalFields.includes(fieldname)) {
       return `

@@ -15,9 +15,9 @@ const app = new Elysia().use(html()).get("/dashboard/incidents", () => {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Incidents Dashboard - ServiceNow Analytics</title>
     <link href="/public/styles.css" rel="stylesheet">
-    <script src="https://unpkg.com/htmx.org@1.9.10" defer></script>
-    <script src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js" defer></script>
-    <script src="https://unpkg.com/chart.js@4.4.0/dist/chart.min.js" defer></script>
+    <script src="/ui/js/htmx.min.js" defer></script>
+    <!-- AlpineJS removed - using HTMX only -->
+    <script src="/ui/js/chart.umd.js" defer></script>
 </head>
 <body class="h-full bg-gray-50 font-sans antialiased">
     <div id="app" x-data="incidentsDashboard()" class="min-h-screen flex flex-col">

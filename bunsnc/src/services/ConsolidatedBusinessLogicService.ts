@@ -840,6 +840,7 @@ export const createBusinessLogicService = (
   return ConsolidatedBusinessLogicService.getInstance(serviceNowClient, config);
 };
 
+// FIX v5.5.19: Removed top-level instantiation to prevent startup hang
 // Export singleton for global use (will be initialized by main service)
-export const businessLogicService =
-  ConsolidatedBusinessLogicService.getInstance();
+// export const businessLogicService =
+//   ConsolidatedBusinessLogicService.getInstance();

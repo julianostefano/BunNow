@@ -194,8 +194,8 @@ export class ModernWebServer {
           <html>
             <head>
               <title>ServiceNow Analytics</title>
-              <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-              <script src="https://cdn.tailwindcss.com"></script>
+              <script src="/ui/js/htmx.min.js"></script>
+              <script src="/ui/styles/tailwind.css"></script>
             </head>
             <body class="bg-gray-50">
               <div class="container mx-auto px-4 py-8">

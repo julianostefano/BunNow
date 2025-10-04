@@ -1,0 +1,10 @@
+/**
+ * Tailwind CSS Input - Base styles for build
+ * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom utilities and components will be included from tailwind.config.js */

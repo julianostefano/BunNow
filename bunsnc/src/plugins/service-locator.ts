@@ -223,7 +223,10 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
         }
         if (attachmentController) {
           globalServiceRegistry.register("attachment", attachmentController);
-        globalServiceRegistry.register("knowledgeGraph", knowledgeGraphController);
+          globalServiceRegistry.register(
+            "knowledgeGraph",
+            knowledgeGraphController,
+          );
         }
 
         // Get service availability status
@@ -419,11 +422,12 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
             (async () => ({
               success: false,
               error: "Attachment service unavailable",
-              code: "SERVICE_UNAVAILABLE"
+              code: "SERVICE_UNAVAILABLE",
             })),
           downloadAttachment:
             attachmentController?.downloadAttachment ||
-            (async () => new Response("Attachment service unavailable", { status: 503 })),
+            (async () =>
+              new Response("Attachment service unavailable", { status: 503 })),
           listAttachments:
             attachmentController?.listAttachments ||
             (async () => ({
@@ -431,27 +435,27 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
               data: [],
               count: 0,
               error: "Attachment service unavailable",
-              code: "SERVICE_UNAVAILABLE"
+              code: "SERVICE_UNAVAILABLE",
             })),
           deleteAttachment:
             attachmentController?.deleteAttachment ||
             (async () => ({
               success: false,
               error: "Attachment service unavailable",
-              code: "SERVICE_UNAVAILABLE"
+              code: "SERVICE_UNAVAILABLE",
             })),
           getAttachmentInfo:
             attachmentController?.getAttachmentInfo ||
             (async () => ({
               success: false,
               error: "Attachment service unavailable",
-              code: "SERVICE_UNAVAILABLE"
+              code: "SERVICE_UNAVAILABLE",
             })),
           getStorageStats:
             attachmentController?.getStorageStats ||
             (async () => ({
               success: false,
-              error: "Attachment service unavailable"
+              error: "Attachment service unavailable",
             })),
           getOperationalStats:
             attachmentController?.getOperationalStats ||
@@ -462,7 +466,7 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
               cacheHits: 0,
               totalSize: 0,
               operationCount: 0,
-              error: "Service unavailable"
+              error: "Service unavailable",
             })),
 
           // Convenience Methods - Knowledge Graph Controller
@@ -514,10 +518,15 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
                 ? await ticketController.ticketHealthCheck()
                 : true;
               const attachmentHealthy = attachmentController
-                ? await attachmentController.getStorageStats().then(stats => stats.success)
+                ? await attachmentController
+                    .getStorageStats()
+                    .then((stats) => stats.success)
                 : true;
               const knowledgeGraphHealthy = knowledgeGraphController
-                ? await knowledgeGraphController.getGraphAnalytics().then(() => true).catch(() => false)
+                ? await knowledgeGraphController
+                    .getGraphAnalytics()
+                    .then(() => true)
+                    .catch(() => false)
                 : true;
 
               return (
@@ -564,7 +573,7 @@ export const serviceLocator = new Elysia({ name: "service-locator" })
               const attachmentStats = attachmentController
                 ? {
                     operational: attachmentController.getOperationalStats(),
-                    storage: await attachmentController.getStorageStats()
+                    storage: await attachmentController.getStorageStats(),
                   }
                 : null;
 
@@ -731,7 +740,11 @@ export interface ServiceLocatorContext {
   getTicketStats: () => Promise<any>;
 
   // Attachment Controller Methods
-  uploadAttachment: (table: string, tableSysId: string, file: File) => Promise<any>;
+  uploadAttachment: (
+    table: string,
+    tableSysId: string,
+    file: File,
+  ) => Promise<any>;
   downloadAttachment: (attachmentId: string) => Promise<Response>;
   listAttachments: (table: string, tableSysId: string) => Promise<any>;
   deleteAttachment: (attachmentId: string) => Promise<any>;
@@ -740,7 +753,11 @@ export interface ServiceLocatorContext {
   getOperationalStats: () => any;
 
   // Knowledge Graph Controller Methods
-  addDocumentNode: (documentId: string, metadata: any, relationships: any[]) => Promise<any>;
+  addDocumentNode: (
+    documentId: string,
+    metadata: any,
+    relationships: any[],
+  ) => Promise<any>;
   queryKnowledgeGraph: (query: any) => Promise<any>;
   getGraphAnalytics: () => Promise<any>;
 }

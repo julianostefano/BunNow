@@ -6,7 +6,8 @@ peer = true
 
 [run]
 smol = true
+env-file = ".env"
 
-preload = [
-  "./src/instrumentation.ts"
-]
+# FIX v5.5.19: Removed preload to fix environment variable loading order
+# Instrumentation now imported explicitly in src/index.ts AFTER .env loads
+# Root cause: preload executes BEFORE env-file, causing undefined process.env values

@@ -15,7 +15,7 @@ import { html } from "@elysiajs/html";
 /**
  * Panel Content Types
  */
-type PanelContentType = 'metrics' | 'video' | 'chart' | 'llm' | 'alert';
+type PanelContentType = "metrics" | "video" | "chart" | "llm" | "alert";
 
 interface PanelContent {
   type: PanelContentType;
@@ -25,21 +25,40 @@ interface PanelContent {
 /**
  * Render Metrics Card
  */
-function renderMetricsCard(data: { label: string; value: string | number; change?: string; trend?: 'up' | 'down' | 'neutral' }) {
-  const trendIcon = data.trend === 'up' ? 'trending-up' : data.trend === 'down' ? 'trending-down' : 'minus';
-  const trendColor = data.trend === 'up' ? 'text-accent-success' : data.trend === 'down' ? 'text-accent-danger' : 'text-text-muted';
+function renderMetricsCard(data: {
+  label: string;
+  value: string | number;
+  change?: string;
+  trend?: "up" | "down" | "neutral";
+}) {
+  const trendIcon =
+    data.trend === "up"
+      ? "trending-up"
+      : data.trend === "down"
+        ? "trending-down"
+        : "minus";
+  const trendColor =
+    data.trend === "up"
+      ? "text-accent-success"
+      : data.trend === "down"
+        ? "text-accent-danger"
+        : "text-text-muted";
 
   return `
     <div class="flex items-center justify-between p-4 glass-card rounded-lg">
       <div>
         <p class="text-sm text-text-secondary">${data.label}</p>
         <p class="text-2xl font-bold text-text-primary mt-1">${data.value}</p>
-        ${data.change ? `
+        ${
+          data.change
+            ? `
           <div class="flex items-center gap-1 mt-1 ${trendColor}">
             <i data-lucide="${trendIcon}" class="w-4 h-4"></i>
             <span class="text-xs">${data.change}</span>
           </div>
-        ` : ''}
+        `
+            : ""
+        }
       </div>
     </div>
   `;
@@ -57,7 +76,7 @@ function renderVideo(videoUrl: string, poster?: string) {
         muted
         loop
         playsinline
-        ${poster ? `poster="${poster}"` : ''}
+        ${poster ? `poster="${poster}"` : ""}
       >
         <source src="${videoUrl}" type="video/mp4">
         Your browser does not support the video tag.
@@ -69,7 +88,11 @@ function renderVideo(videoUrl: string, poster?: string) {
 /**
  * Render Chart Placeholder
  */
-function renderChart(chartId: string, chartType: 'line' | 'bar' | 'doughnut', data: any) {
+function renderChart(
+  chartId: string,
+  chartType: "line" | "bar" | "doughnut",
+  data: any,
+) {
   return `
     <div class="p-4 glass-card rounded-lg">
       <canvas id="${chartId}" width="400" height="200"></canvas>
@@ -125,19 +148,22 @@ function renderLLMPrompt(promptId: string) {
 /**
  * Render Alert/Notification
  */
-function renderAlert(data: { type: 'info' | 'warning' | 'error' | 'success'; message: string }) {
+function renderAlert(data: {
+  type: "info" | "warning" | "error" | "success";
+  message: string;
+}) {
   const iconMap = {
-    info: 'info',
-    warning: 'alert-triangle',
-    error: 'x-circle',
-    success: 'check-circle-2'
+    info: "info",
+    warning: "alert-triangle",
+    error: "x-circle",
+    success: "check-circle-2",
   };
 
   const colorMap = {
-    info: 'badge-new',
-    warning: 'badge-waiting',
-    error: 'badge-critical',
-    success: 'badge-resolved'
+    info: "badge-new",
+    warning: "badge-waiting",
+    error: "badge-critical",
+    success: "badge-resolved",
   };
 
   return `
@@ -155,7 +181,7 @@ export function floatingPanelHTML(minimized: boolean = false): string {
   return `
     <div
       id="floating-panel"
-      class="fixed top-20 left-1/2 transform -translate-x-1/2 z-panel transition-all duration-300 ${minimized ? 'w-96' : 'w-[90%] max-w-6xl'}"
+      class="fixed top-20 left-1/2 transform -translate-x-1/2 z-panel transition-all duration-300 ${minimized ? "w-96" : "w-[90%] max-w-6xl"}"
     >
       <div class="glass-panel rounded-xl p-6 floating">
         <!-- Panel Header -->
@@ -183,31 +209,33 @@ export function floatingPanelHTML(minimized: boolean = false): string {
               onclick="document.getElementById('floating-panel').classList.toggle('panel-minimized')"
               aria-label="Toggle panel size"
             >
-              <i data-lucide="${minimized ? 'maximize-2' : 'minimize-2'}" class="w-4 h-4"></i>
+              <i data-lucide="${minimized ? "maximize-2" : "minimize-2"}" class="w-4 h-4"></i>
             </button>
           </div>
         </div>
 
         <!-- Panel Content -->
-        <div id="panel-content" class="${minimized ? 'hidden' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'}">
+        <div id="panel-content" class="${minimized ? "hidden" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"}">
           <!-- Real-time Metrics -->
-          ${renderMetricsCard({ label: 'Active Incidents', value: 42, change: '+5.2%', trend: 'up' })}
-          ${renderMetricsCard({ label: 'Avg Response Time', value: '2.4h', change: '-12%', trend: 'down' })}
-          ${renderMetricsCard({ label: 'SLA Compliance', value: '94.3%', change: '+1.5%', trend: 'up' })}
-          ${renderMetricsCard({ label: 'Open Tasks', value: 18, change: '0', trend: 'neutral' })}
+          ${renderMetricsCard({ label: "Active Incidents", value: 42, change: "+5.2%", trend: "up" })}
+          ${renderMetricsCard({ label: "Avg Response Time", value: "2.4h", change: "-12%", trend: "down" })}
+          ${renderMetricsCard({ label: "SLA Compliance", value: "94.3%", change: "+1.5%", trend: "up" })}
+          ${renderMetricsCard({ label: "Open Tasks", value: 18, change: "0", trend: "neutral" })}
 
           <!-- Optional: Video/Chart/LLM (uncomment to enable) -->
           <!--
           <div class="col-span-2">
-            ${renderChart('panel-chart-1', 'line', {
-              labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
-              datasets: [{
-                label: 'Incidents',
-                data: [12, 19, 15, 25, 22],
-                borderColor: '#3b82f6',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                tension: 0.4
-              }]
+            ${renderChart("panel-chart-1", "line", {
+              labels: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+              datasets: [
+                {
+                  label: "Incidents",
+                  data: [12, 19, 15, 25, 22],
+                  borderColor: "#3b82f6",
+                  backgroundColor: "rgba(59, 130, 246, 0.1)",
+                  tension: 0.4,
+                },
+              ],
             })}
           </div>
           -->
@@ -252,14 +280,16 @@ export const floatingPanelRoutes = new Elysia()
   .use(html())
 
   .get("/panel", ({ query }) => {
-    const minimized = query.minimized === 'true';
+    const minimized = query.minimized === "true";
     return floatingPanelHTML(minimized);
   })
 
   .get("/panel/metrics", async () => {
     // Fetch real-time metrics from API
     try {
-      const response = await fetch('http://localhost:3008/api/incidents/stats/summary');
+      const response = await fetch(
+        "http://localhost:3008/api/incidents/stats/summary",
+      );
       const data = await response.json();
 
       if (data.success) {
@@ -271,14 +301,14 @@ export const floatingPanelRoutes = new Elysia()
         };
       }
     } catch (error) {
-      console.error('Failed to fetch panel metrics:', error);
+      console.error("Failed to fetch panel metrics:", error);
     }
 
     // Fallback data
     return {
       active: 0,
       high_priority: 0,
-      avg_resolution_time: 'N/A',
+      avg_resolution_time: "N/A",
       sla_compliance: 0,
     };
   });

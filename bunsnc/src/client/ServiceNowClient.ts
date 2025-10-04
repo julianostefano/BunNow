@@ -120,10 +120,16 @@ export class ServiceNowClient implements IServiceNowClient {
   ): ServiceNowClient {
     // 🔍 DEBUG: Log parameters antes de validar
     console.log("[ServiceNowClient.createWithCredentials] Parameters:");
-    console.log(`  - instanceUrl type: ${typeof instanceUrl}, value: "${instanceUrl}"`);
-    console.log(`  - Raw process.env.SERVICENOW_INSTANCE_URL: "${process.env.SERVICENOW_INSTANCE_URL}"`);
+    console.log(
+      `  - instanceUrl type: ${typeof instanceUrl}, value: "${instanceUrl}"`,
+    );
+    console.log(
+      `  - Raw process.env.SERVICENOW_INSTANCE_URL: "${process.env.SERVICENOW_INSTANCE_URL}"`,
+    );
     console.log(`  - username type: ${typeof username}, value: "${username}"`);
-    console.log(`  - password type: ${typeof password}, length: ${password?.length}`);
+    console.log(
+      `  - password type: ${typeof password}, length: ${password?.length}`,
+    );
     console.trace("[ServiceNowClient.createWithCredentials] Stack trace:");
 
     // Validate inputs
@@ -184,9 +190,7 @@ export class ServiceNowClient implements IServiceNowClient {
     }
 
     if (instanceUrl.trim() === "") {
-      throw new Error(
-        `[ServiceNowClient] instanceUrl cannot be empty string`,
-      );
+      throw new Error(`[ServiceNowClient] instanceUrl cannot be empty string`);
     }
 
     if (authToken === undefined || authToken === null) {
@@ -202,9 +206,7 @@ export class ServiceNowClient implements IServiceNowClient {
     }
 
     if (authToken.trim() === "") {
-      throw new Error(
-        `[ServiceNowClient] authToken cannot be empty string`,
-      );
+      throw new Error(`[ServiceNowClient] authToken cannot be empty string`);
     }
 
     // Generate unique client ID for logging

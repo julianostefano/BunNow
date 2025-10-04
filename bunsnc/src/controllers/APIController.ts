@@ -6,7 +6,7 @@
 import { ServiceNowClient } from "../client/ServiceNowClient";
 import { ticketService } from "../services";
 import { WebServerConfig } from "./WebServerController";
-import { serviceNowBridgeService } from "../services/ServiceNowBridgeService";
+import { ServiceNowBridgeService } from "../services/ServiceNowBridgeService";
 
 // Response interfaces
 interface SyncResponse {
@@ -61,11 +61,13 @@ export class APIController {
   private serviceNowClient: ServiceNowClient;
   private ticketIntegrationService: typeof ticketService;
   private config: WebServerConfig;
+  private serviceNowBridgeService: ServiceNowBridgeService;
 
   constructor(serviceNowClient: ServiceNowClient, config: WebServerConfig) {
     this.serviceNowClient = serviceNowClient;
     this.ticketIntegrationService = ticketService;
     this.config = config;
+    this.serviceNowBridgeService = new ServiceNowBridgeService(); // FIX v5.5.19: Local instance
   }
 
   public async getIncidents() {
@@ -395,7 +397,7 @@ export class APIController {
       }
 
       // Fetch via Bridge Service
-      const bridgeResponse = await serviceNowBridgeService.queryTable(
+      const bridgeResponse = await this.serviceNowBridgeService.queryTable(
         ticketType,
         queryParams,
       );

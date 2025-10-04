@@ -9,7 +9,7 @@
 import { Elysia, t } from "elysia";
 import { html } from "@elysiajs/html";
 import { htmx } from "@gtramontina.com/elysia-htmx";
-import { serviceNowAuthClient } from "../services/ServiceNowAuthClient";
+import { serviceNowAuthClient } from "../services";
 
 // Import modular components following MVC architecture
 import { generateDashboardLayout } from "../views/templates/DashboardLayout";
@@ -80,7 +80,7 @@ export const htmxDashboardModular = new Elysia({ prefix: "/modular" })
       <head>
           <meta charset="UTF-8">
           <title>Erro - BunSNC Modular Dashboard</title>
-          <script src="https://cdn.tailwindcss.com"></script>
+          <script src="/ui/styles/tailwind.css"></script>
       </head>
       <body class="bg-gray-900 text-white">
           <div class="min-h-screen flex items-center justify-center">

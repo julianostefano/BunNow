@@ -8,40 +8,42 @@
 export {
   SystemService,
   createSystemService,
-  systemService,
+  // FIX v5.5.19: systemService instance removed from SystemService.ts
+  // Use SystemService.getInstance() inside handlers instead
+  // systemService,
 } from "./SystemService";
 
 // === 2. CONSOLIDATED SERVICENOW SERVICE - Complete ServiceNow Operations ===
+// FIX v5.5.19: consolidatedServiceNowService instance removed - now using lazy Proxy export below
 export {
   ConsolidatedServiceNowService,
-  consolidatedServiceNowService,
+  createConsolidatedServiceNowService,
 } from "./ConsolidatedServiceNowService";
 
 // === 3. CONSOLIDATED DATA SERVICE - Unified Data Management ===
+// FIX v5.5.19: dataService instance removed - now using lazy Proxy export below
 export {
   ConsolidatedDataService,
   createDataService,
-  dataService,
+  defaultDataServiceConfig,
 } from "./ConsolidatedDataService";
 
 // === 4. CONSOLIDATED BUSINESS LOGIC SERVICE - Business Rules Engine ===
+// FIX v5.5.19: businessLogicService instance removed - TODO: add lazy Proxy if needed
 export {
   ConsolidatedBusinessLogicService,
   createBusinessLogicService,
-  businessLogicService,
 } from "./ConsolidatedBusinessLogicService";
 
 // === 5. UNIFIED STREAMING SERVICE - Real-time Communication ===
-export {
-  UnifiedStreamingService,
-  unifiedStreamingService,
-} from "./UnifiedStreamingService";
+// FIX v5.5.19: unifiedStreamingService instance removed - TODO: add lazy Proxy if needed
+export { UnifiedStreamingService } from "./UnifiedStreamingService";
 
 // === ADDITIONAL EXPORTS ===
 
 // Auth Client (maintained for backward compatibility)
+// FIX v5.5.19: serviceNowAuthClient instance removed - now using lazy Proxy export below
 export { ServiceNowAuthClient } from "./ServiceNowAuthClient";
-export { serviceNowAuthClient } from "./ServiceNowAuthClient";
 
 // Rate Limiter (utility service)
 export {
@@ -57,6 +59,9 @@ export {
 
 // Synonym Service (query expansion and terminology mapping)
 export { SynonymService, synonymService } from "./SynonymService";
+
+// ServiceNow Bridge Service (proxy bridge to real ServiceNow)
+export { ServiceNowBridgeService } from "./ServiceNowBridgeService";
 
 // === TYPE EXPORTS ===
 export type {
@@ -92,18 +97,98 @@ export type {
 } from "./UnifiedStreamingService";
 
 // === LEGACY COMPATIBILITY ===
-// Re-export consolidated services with legacy names for smooth migration
-export { systemService as performanceMonitoringService } from "./SystemService";
-export { systemService as taskManager } from "./SystemService";
-export { systemService as groupService } from "./SystemService";
-export { consolidatedServiceNowService as attachmentService } from "./ConsolidatedServiceNowService";
-export { consolidatedServiceNowService as batchService } from "./ConsolidatedServiceNowService";
-export { consolidatedServiceNowService as serviceNowService } from "./ConsolidatedServiceNowService";
-export { serviceNowAuthClient as authService } from "./ServiceNowAuthClient";
-export { dataService as enhancedTicketStorageService } from "./ConsolidatedDataService";
-export { dataService as hybridDataService } from "./ConsolidatedDataService";
-export { businessLogicService as slaTrackingService } from "./ConsolidatedBusinessLogicService";
-export { consolidatedServiceNowService as ticketService } from "./ConsolidatedServiceNowService";
+// FIX v5.5.19: Export factories instead of instances to prevent startup hang
+// Root cause: Top-level service instantiations violate ElysiaJS best practices
+// See: docs/reports/ELYSIA_COMPLIANCE_REPORT_v5.5.19.md - CRITICAL-2
+
+// Export factory functions with legacy names for smooth migration
+export {
+  createConsolidatedServiceNowService as createAttachmentService,
+  createConsolidatedServiceNowService as createBatchService,
+  createConsolidatedServiceNowService as createServiceNowService,
+  createConsolidatedServiceNowService as createTicketService,
+} from "./ConsolidatedServiceNowService";
+
+// Export classes directly - consumers must instantiate
+export { ServiceNowAuthClient as AuthService } from "./ServiceNowAuthClient";
+
+// Export data service factory with legacy names
+// Note: defaultDataServiceConfig already exported in main DATA SERVICE section above
+
+// Export business logic service factory
+export { createBusinessLogicService as createSlaTrackingService } from "./ConsolidatedBusinessLogicService";
+
+// FIX v5.5.19: LAZY SINGLETON EXPORTS for backward compatibility
+// These provide lazy initialization - services created on first access, not during import
+// This maintains backward compatibility while preventing startup hang
+
+// Lazy dataService singleton
+let _dataServiceInstance: any = null;
+export const dataService = new Proxy({} as any, {
+  get(target, prop) {
+    if (!_dataServiceInstance) {
+      _dataServiceInstance = createDataService(defaultDataServiceConfig);
+    }
+    return _dataServiceInstance[prop];
+  },
+});
+
+// Lazy authService singleton
+let _authServiceInstance: any = null;
+export const serviceNowAuthClient = new Proxy({} as any, {
+  get(target, prop) {
+    if (!_authServiceInstance) {
+      _authServiceInstance = new ServiceNowAuthClient();
+    }
+    return _authServiceInstance[prop];
+  },
+});
+
+// Lazy consolidatedServiceNowService singleton
+let _consolidatedServiceNowInstance: any = null;
+export const consolidatedServiceNowService = new Proxy({} as any, {
+  get(target, prop) {
+    if (!_consolidatedServiceNowInstance) {
+      _consolidatedServiceNowInstance = createConsolidatedServiceNowService();
+    }
+    return _consolidatedServiceNowInstance[prop];
+  },
+});
+
+// Lazy unifiedStreamingService singleton
+let _unifiedStreamingInstance: any = null;
+export const unifiedStreamingService = new Proxy({} as any, {
+  get(target, prop) {
+    if (!_unifiedStreamingInstance) {
+      _unifiedStreamingInstance = UnifiedStreamingService.getInstance();
+    }
+    return _unifiedStreamingInstance[prop];
+  },
+});
+
+// FIX v5.5.20: ServiceNowBridgeService removed from barrel export
+// Root cause: Never was a top-level instantiation problem (not in 3 CRITICAL)
+// Consumers import class directly and instantiate locally via .derive()
+// See: plugins/client-integration.ts, modules/servicenow-proxy/index.ts
+
+// Re-export with legacy names
+export { consolidatedServiceNowService as attachmentService };
+export { consolidatedServiceNowService as batchService };
+export { consolidatedServiceNowService as serviceNowService };
+export { consolidatedServiceNowService as ticketService };
+export { serviceNowAuthClient as authService };
+export { dataService as enhancedTicketStorageService };
+export { dataService as hybridDataService };
+
+// REMOVED: Top-level service instance exports (commented in v5.5.19)
+// export { consolidatedServiceNowService as attachmentService } from "./ConsolidatedServiceNowService";
+// export { consolidatedServiceNowService as batchService } from "./ConsolidatedServiceNowService";
+// export { consolidatedServiceNowService as serviceNowService } from "./ConsolidatedServiceNowService";
+// export { serviceNowAuthClient as authService } from "./ServiceNowAuthClient";
+// export { dataService as enhancedTicketStorageService } from "./ConsolidatedDataService";
+// export { dataService as hybridDataService } from "./ConsolidatedDataService";
+// export { businessLogicService as slaTrackingService } from "./ConsolidatedBusinessLogicService";
+// export { consolidatedServiceNowService as ticketService } from "./ConsolidatedServiceNowService";
 
 /**
  * CONSOLIDATED ARCHITECTURE SUMMARY

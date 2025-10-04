@@ -17,21 +17,24 @@
 
 import { Elysia, sse } from "elysia";
 import { logger } from "../../../utils/Logger";
-import { SystemService } from "../../../services/SystemService";
+import { systemPlugin } from "../../../plugins/system";
 
 /**
- * SSE Metrics Route - Workaround for Bun v1.2.x Limitation
+ * SSE Metrics Route - Using SystemService Plugin Pattern
+ *
+ * FIX v5.5.21: SystemService Plugin Pattern (ElysiaJS Best Practice)
+ * Root cause: getInstance() without config returned undefined
+ * Solution: Use systemPlugin for proper dependency injection via .derive()
+ * Reference: ELYSIA_BEST_PRACTICES.md - "Plugin Dependency Injection"
  *
  * FIX v5.5.18: Bun Runtime Limitation Workaround
  * Root cause: Bun v1.2.x does NOT support await in sync generators (function*)
  * Solution: Use async function* with inline implementation (no yield* delegation)
  * Reference: ELYSIA_BEST_PRACTICES.md:404 - "Evitar yield* delegation quando usando await"
- *
- * Note: ElysiaJS documentation shows function* but Bun runtime requires async function*
- * when using await. Inline implementation avoids yield* delegation issues.
  */
 export const streamingMetricsRoutes = new Elysia()
-  .get("/api/streaming/metrics", async function* ({ query }) {
+  .use(systemPlugin) // ✅ Inject systemService via plugin
+  .get("/api/streaming/metrics", async function* ({ query, systemService }) {
     const clientId = `dashboard-metrics-${Date.now()}`;
     const intervalSeconds = parseInt(query.interval as string) || 5;
 
@@ -40,8 +43,7 @@ export const streamingMetricsRoutes = new Elysia()
     );
 
     try {
-      // ✅ Inline implementation (NO yield* delegation)
-      const systemService = SystemService.getInstance();
+      // ✅ Use systemService from context (injected via plugin)
 
       // Send initial connection message
       yield sse({

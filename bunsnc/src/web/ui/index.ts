@@ -42,7 +42,7 @@ export const uiApp = new Elysia({ prefix: "/ui" })
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
       credentials: true,
-    })
+    }),
   )
 
   // FIX v5.5.15: Root route for /ui/ (moved from layout.routes.ts to avoid conflict)

@@ -1,5 +1,5 @@
 import { RecordController } from "../controllers/recordController";
-import { consolidatedServiceNowService } from "../services/ConsolidatedServiceNowService";
+import { consolidatedServiceNowService } from "../services";
 import * as fs from "fs";
 
 // Mocks para ambiente de teste

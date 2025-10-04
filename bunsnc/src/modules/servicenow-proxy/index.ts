@@ -17,7 +17,7 @@
  */
 
 import { Elysia, t } from "elysia";
-import { serviceNowBridgeService } from "../../services/ServiceNowBridgeService";
+import { ServiceNowBridgeService } from "../../services/ServiceNowBridgeService";
 
 // Types para Eden Treaty
 export interface ServiceNowProxyRequest {
@@ -218,6 +218,12 @@ export const serviceNowProxyRoutes = new Elysia({
   .onStart(() => {
     console.log("🚀 ServiceNow Proxy Routes module started");
     console.log("📡 Self-referencing calls will be bridged to ServiceNow real");
+  })
+
+  // FIX v5.5.19: Lazy instantiation of ServiceNowBridgeService via .derive()
+  .derive(() => {
+    const serviceNowBridgeService = new ServiceNowBridgeService();
+    return { serviceNowBridgeService };
   })
 
   // Lifecycle Hook: beforeHandle (request logging + ID generation)

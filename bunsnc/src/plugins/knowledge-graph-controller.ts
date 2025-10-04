@@ -70,7 +70,11 @@ class PluginKnowledgeGraphController {
     documentId: string,
     metadata: any,
     relationships: EntityRelationship[],
-  ): Promise<{ success: boolean; message: string; processing_time_ms: number }> {
+  ): Promise<{
+    success: boolean;
+    message: string;
+    processing_time_ms: number;
+  }> {
     const startTime = performance.now();
 
     try {
@@ -99,11 +103,9 @@ class PluginKnowledgeGraphController {
       };
 
       const nodesCollection = db.collection("knowledge_graph_nodes");
-      await nodesCollection.replaceOne(
-        { node_id: documentId },
-        documentNode,
-        { upsert: true },
-      );
+      await nodesCollection.replaceOne({ node_id: documentId }, documentNode, {
+        upsert: true,
+      });
 
       // Process relationships asynchronously
       setImmediate(async () => {
@@ -116,7 +118,9 @@ class PluginKnowledgeGraphController {
       });
 
       const processingTime = Math.round(performance.now() - startTime);
-      console.log(`Knowledge graph node added: ${documentId} in ${processingTime}ms`);
+      console.log(
+        `Knowledge graph node added: ${documentId} in ${processingTime}ms`,
+      );
 
       return {
         success: true,
@@ -213,7 +217,9 @@ class PluginKnowledgeGraphController {
     }
   }
 
-  private calculateRelationshipStrength(relationship: EntityRelationship): number {
+  private calculateRelationshipStrength(
+    relationship: EntityRelationship,
+  ): number {
     const strengthMap: Record<string, number> = {
       depends: 0.9,
       connects: 0.8,
@@ -254,7 +260,10 @@ class PluginKnowledgeGraphController {
 
     if (entityLower.includes("database") || entityLower.includes("sql"))
       groups.push("Database");
-    if (entityLower.includes("server") || entityLower.includes("infrastructure"))
+    if (
+      entityLower.includes("server") ||
+      entityLower.includes("infrastructure")
+    )
       groups.push("Infrastructure");
     if (entityLower.includes("cloud") || entityLower.includes("aws"))
       groups.push("Cloud");
@@ -373,9 +382,11 @@ class PluginKnowledgeGraphController {
     const matchStage: any = {};
 
     if (document_id) {
-      const edges = await edgesCollection.find({
-        $or: [{ source: document_id }, { target: document_id }],
-      }).toArray();
+      const edges = await edgesCollection
+        .find({
+          $or: [{ source: document_id }, { target: document_id }],
+        })
+        .toArray();
 
       const relatedIds = edges.map((edge) =>
         edge.source === document_id ? edge.target : edge.source,
@@ -396,7 +407,8 @@ class PluginKnowledgeGraphController {
       };
     }
 
-    const documents = await nodesCollection.find(matchStage)
+    const documents = await nodesCollection
+      .find(matchStage)
       .sort({ connections: -1 })
       .limit(max_results)
       .toArray();
@@ -446,7 +458,9 @@ class PluginKnowledgeGraphController {
     };
   }
 
-  private async analyzeSupportCoverage(parameters: any): Promise<SupportGroupMap> {
+  private async analyzeSupportCoverage(
+    parameters: any,
+  ): Promise<SupportGroupMap> {
     const { mongo } = this.serviceLocator;
     const db = mongo.getDatabase();
     const nodesCollection = db.collection("knowledge_graph_nodes");
@@ -501,24 +515,30 @@ class PluginKnowledgeGraphController {
     };
   }
 
-  private async findKnowledgeClusters(parameters: any): Promise<KnowledgeCluster[]> {
+  private async findKnowledgeClusters(
+    parameters: any,
+  ): Promise<KnowledgeCluster[]> {
     const { mongo } = this.serviceLocator;
     const db = mongo.getDatabase();
     const clustersCollection = db.collection("knowledge_clusters");
 
-    const clusters = await clustersCollection.find(parameters)
+    const clusters = await clustersCollection
+      .find(parameters)
       .sort({ document_count: -1 })
       .toArray();
 
     return clusters;
   }
 
-  private async getExpertiseMapping(parameters: any): Promise<ExpertiseMapping[]> {
+  private async getExpertiseMapping(
+    parameters: any,
+  ): Promise<ExpertiseMapping[]> {
     const { mongo } = this.serviceLocator;
     const db = mongo.getDatabase();
     const expertiseCollection = db.collection("expertise_mapping");
 
-    const mapping = await expertiseCollection.find(parameters)
+    const mapping = await expertiseCollection
+      .find(parameters)
       .sort({ knowledge_depth: -1 })
       .toArray();
 
@@ -595,7 +615,8 @@ class PluginKnowledgeGraphController {
     let confidence = 0.7;
 
     if (results.total_found && results.total_found > 5) confidence += 0.2;
-    if (results.document_count && results.document_count > 10) confidence += 0.1;
+    if (results.document_count && results.document_count > 10)
+      confidence += 0.1;
 
     return Math.min(confidence, 0.95);
   }
@@ -669,10 +690,11 @@ class PluginKnowledgeGraphController {
     const db = mongo.getDatabase();
     const nodesCollection = db.collection("knowledge_graph_nodes");
 
-    const orphaned = await nodesCollection.find({
-      type: "document",
-      connections: { $lte: 1 },
-    })
+    const orphaned = await nodesCollection
+      .find({
+        type: "document",
+        connections: { $lte: 1 },
+      })
       .project({ node_id: 1 })
       .toArray();
 
@@ -719,14 +741,16 @@ const DocumentMetadataSchema = t.Object({
   file_size: t.Optional(t.Number()),
   creation_date: t.Optional(t.String()),
   last_modified: t.Optional(t.String()),
-  classification: t.Optional(t.Object({
-    technology: t.Optional(t.Array(t.String())),
-    support_groups: t.Optional(t.Array(t.String())),
-    document_type: t.Optional(t.String()),
-    criticality: t.Optional(t.String()),
-    complexity_score: t.Optional(t.Number()),
-    language: t.Optional(t.String()),
-  })),
+  classification: t.Optional(
+    t.Object({
+      technology: t.Optional(t.Array(t.String())),
+      support_groups: t.Optional(t.Array(t.String())),
+      document_type: t.Optional(t.String()),
+      criticality: t.Optional(t.String()),
+      complexity_score: t.Optional(t.Number()),
+      language: t.Optional(t.String()),
+    }),
+  ),
 });
 
 const KnowledgeGraphQuerySchema = t.Object({
@@ -745,78 +769,98 @@ const KnowledgeGraphQuerySchema = t.Object({
   }),
 });
 
-export const knowledgeGraphControllerPlugin = new Elysia({ name: "knowledge-graph-controller" })
+export const knowledgeGraphControllerPlugin = new Elysia({
+  name: "knowledge-graph-controller",
+})
   .derive(async ({ config, services, ...serviceLocator }) => {
     const knowledgeGraphController = new PluginKnowledgeGraphController(
       { services, ...serviceLocator },
-      config
+      config,
     );
 
     return {
       knowledgeGraphController,
-      addDocumentNode: knowledgeGraphController.addDocumentNode.bind(knowledgeGraphController),
-      queryKnowledgeGraph: knowledgeGraphController.queryKnowledgeGraph.bind(knowledgeGraphController),
-      getGraphAnalytics: knowledgeGraphController.getGraphAnalytics.bind(knowledgeGraphController),
+      addDocumentNode: knowledgeGraphController.addDocumentNode.bind(
+        knowledgeGraphController,
+      ),
+      queryKnowledgeGraph: knowledgeGraphController.queryKnowledgeGraph.bind(
+        knowledgeGraphController,
+      ),
+      getGraphAnalytics: knowledgeGraphController.getGraphAnalytics.bind(
+        knowledgeGraphController,
+      ),
     };
   })
 
   // Add document node to knowledge graph
-  .post("/api/knowledge-graph/nodes", async ({ body, addDocumentNode, set }) => {
-    try {
-      const { document_id, metadata, relationships } = body;
+  .post(
+    "/api/knowledge-graph/nodes",
+    async ({ body, addDocumentNode, set }) => {
+      try {
+        const { document_id, metadata, relationships } = body;
 
-      if (!document_id || !metadata) {
-        set.status = 400;
+        if (!document_id || !metadata) {
+          set.status = 400;
+          return {
+            success: false,
+            error: "Missing required fields: document_id, metadata",
+          };
+        }
+
+        const result = await addDocumentNode(
+          document_id,
+          metadata,
+          relationships || [],
+        );
+
+        if (!result.success) {
+          set.status = 500;
+          return result;
+        }
+
+        return result;
+      } catch (error: any) {
+        set.status = 500;
         return {
           success: false,
-          error: "Missing required fields: document_id, metadata"
+          error: `Failed to add document node: ${error.message}`,
         };
       }
-
-      const result = await addDocumentNode(document_id, metadata, relationships || []);
-
-      if (!result.success) {
-        set.status = 500;
-        return result;
-      }
-
-      return result;
-    } catch (error: any) {
-      set.status = 500;
-      return {
-        success: false,
-        error: `Failed to add document node: ${error.message}`
-      };
-    }
-  }, {
-    body: t.Object({
-      document_id: t.String(),
-      metadata: DocumentMetadataSchema,
-      relationships: t.Optional(t.Array(EntityRelationshipSchema)),
-    })
-  })
+    },
+    {
+      body: t.Object({
+        document_id: t.String(),
+        metadata: DocumentMetadataSchema,
+        relationships: t.Optional(t.Array(EntityRelationshipSchema)),
+      }),
+    },
+  )
 
   // Query knowledge graph
-  .post("/api/knowledge-graph/query", async ({ body, queryKnowledgeGraph, set }) => {
-    try {
-      const result = await queryKnowledgeGraph(body);
+  .post(
+    "/api/knowledge-graph/query",
+    async ({ body, queryKnowledgeGraph, set }) => {
+      try {
+        const result = await queryKnowledgeGraph(body);
 
-      if (!result.success) {
-        set.status = 500;
+        if (!result.success) {
+          set.status = 500;
+          return result;
+        }
+
         return result;
+      } catch (error: any) {
+        set.status = 500;
+        return {
+          success: false,
+          error: `Query failed: ${error.message}`,
+        };
       }
-
-      return result;
-    } catch (error: any) {
-      set.status = 500;
-      return {
-        success: false,
-        error: `Query failed: ${error.message}`
-      };
-    }
-  }, {
-    body: KnowledgeGraphQuerySchema
-  })
+    },
+    {
+      body: KnowledgeGraphQuerySchema,
+    },
+  )
 
   // Get graph analytics
   .get("/api/knowledge-graph/analytics", async ({ getGraphAnalytics, set }) => {
@@ -832,77 +876,89 @@ export const knowledgeGraphControllerPlugin = new Elysia({ name: "knowledge-grap
       set.status = 500;
       return {
         success: false,
-        error: `Analytics failed: ${error.message}`
+        error: `Analytics failed: ${error.message}`,
       };
     }
   })
 
   // Get knowledge clusters
-  .get("/api/knowledge-graph/clusters", async ({ query, knowledgeGraphController, set }) => {
-    try {
-      const parameters = {
-        technology: query.technology,
-        support_group: query.support_group,
-        expertise_level: query.expertise_level,
-      };
+  .get(
+    "/api/knowledge-graph/clusters",
+    async ({ query, knowledgeGraphController, set }) => {
+      try {
+        const parameters = {
+          technology: query.technology,
+          support_group: query.support_group,
+          expertise_level: query.expertise_level,
+        };
 
-      const clusters = await knowledgeGraphController.findKnowledgeClusters(parameters);
+        const clusters =
+          await knowledgeGraphController.findKnowledgeClusters(parameters);
 
-      return {
-        success: true,
-        data: {
-          clusters,
-          total_found: clusters.length,
-        },
-        timestamp: new Date().toISOString(),
-      };
-    } catch (error: any) {
-      set.status = 500;
-      return {
-        success: false,
-        error: `Failed to get clusters: ${error.message}`
-      };
-    }
-  }, {
-    query: t.Object({
-      technology: t.Optional(t.String()),
-      support_group: t.Optional(t.String()),
-      expertise_level: t.Optional(t.String()),
-    })
-  })
+        return {
+          success: true,
+          data: {
+            clusters,
+            total_found: clusters.length,
+          },
+          timestamp: new Date().toISOString(),
+        };
+      } catch (error: any) {
+        set.status = 500;
+        return {
+          success: false,
+          error: `Failed to get clusters: ${error.message}`,
+        };
+      }
+    },
+    {
+      query: t.Object({
+        technology: t.Optional(t.String()),
+        support_group: t.Optional(t.String()),
+        expertise_level: t.Optional(t.String()),
+      }),
+    },
+  )
 
   // Get expertise mapping
-  .get("/api/knowledge-graph/expertise", async ({ query, knowledgeGraphController, set }) => {
-    try {
-      const parameters = {
-        technology: query.technology,
-        support_group: query.support_group,
-        knowledge_depth: query.knowledge_depth ? parseFloat(query.knowledge_depth) : undefined,
-      };
+  .get(
+    "/api/knowledge-graph/expertise",
+    async ({ query, knowledgeGraphController, set }) => {
+      try {
+        const parameters = {
+          technology: query.technology,
+          support_group: query.support_group,
+          knowledge_depth: query.knowledge_depth
+            ? parseFloat(query.knowledge_depth)
+            : undefined,
+        };
 
-      const mapping = await knowledgeGraphController.getExpertiseMapping(parameters);
+        const mapping =
+          await knowledgeGraphController.getExpertiseMapping(parameters);
 
-      return {
-        success: true,
-        data: {
-          expertise_mapping: mapping,
-          total_found: mapping.length,
-        },
-        timestamp: new Date().toISOString(),
-      };
-    } catch (error: any) {
-      set.status = 500;
-      return {
-        success: false,
-        error: `Failed to get expertise mapping: ${error.message}`
-      };
-    }
-  }, {
-    query: t.Object({
-      technology: t.Optional(t.String()),
-      support_group: t.Optional(t.String()),
-      knowledge_depth: t.Optional(t.String()),
-    })
-  })
+        return {
+          success: true,
+          data: {
+            expertise_mapping: mapping,
+            total_found: mapping.length,
+          },
+          timestamp: new Date().toISOString(),
+        };
+      } catch (error: any) {
+        set.status = 500;
+        return {
+          success: false,
+          error: `Failed to get expertise mapping: ${error.message}`,
+        };
+      }
+    },
+    {
+      query: t.Object({
+        technology: t.Optional(t.String()),
+        support_group: t.Optional(t.String()),
+        knowledge_depth: t.Optional(t.String()),
+      }),
+    },
+  )
 
-  .as('scoped');
+  .as("scoped");

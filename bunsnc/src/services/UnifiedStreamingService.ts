@@ -186,5 +186,6 @@ export class UnifiedStreamingService extends StreamingCore {
   }
 }
 
+// FIX v5.5.19: Removed top-level instantiation to prevent startup hang
 // Export singleton instance for backward compatibility
-export const unifiedStreamingService = UnifiedStreamingService.getInstance();
+// export const unifiedStreamingService = UnifiedStreamingService.getInstance();

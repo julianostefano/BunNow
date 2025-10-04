@@ -173,7 +173,9 @@ console.log("✅ [Config Validation] All ServiceNow config values are valid!");
 async function startWebInterface() {
   try {
     // ✅ Validate environment variables BEFORE starting server
-    console.log("🔍 [Startup Validation] Checking ServiceNow environment variables...");
+    console.log(
+      "🔍 [Startup Validation] Checking ServiceNow environment variables...",
+    );
 
     const requiredEnvVars = {
       SERVICENOW_INSTANCE_URL: process.env.SERVICENOW_INSTANCE_URL,
@@ -186,15 +188,23 @@ async function startWebInterface() {
       .map(([key]) => key);
 
     if (missingVars.length > 0) {
-      console.error("❌ [Startup Validation] Missing required environment variables:");
-      missingVars.forEach(varName => {
+      console.error(
+        "❌ [Startup Validation] Missing required environment variables:",
+      );
+      missingVars.forEach((varName) => {
         console.error(`   - ${varName}: "${requiredEnvVars[varName]}"`);
       });
-      throw new Error(`Missing required environment variables: ${missingVars.join(", ")}`);
+      throw new Error(
+        `Missing required environment variables: ${missingVars.join(", ")}`,
+      );
     }
 
-    console.log("✅ [Startup Validation] All ServiceNow environment variables present");
-    console.log(`   - Instance URL: ${requiredEnvVars.SERVICENOW_INSTANCE_URL}`);
+    console.log(
+      "✅ [Startup Validation] All ServiceNow environment variables present",
+    );
+    console.log(
+      `   - Instance URL: ${requiredEnvVars.SERVICENOW_INSTANCE_URL}`,
+    );
     console.log(`   - Username: ${requiredEnvVars.SERVICENOW_USERNAME}`);
 
     console.log(" Starting ServiceNow Web Interface...");
@@ -224,9 +234,7 @@ async function startWebInterface() {
     const { serviceNowAuthClient } = await import(
       "../services/ServiceNowAuthClient"
     );
-    const redisStreams = server
-      .getWebServerController()
-      .getRedisStreams();
+    const redisStreams = server.getWebServerController().getRedisStreams();
     await dataService.initialize(serviceNowAuthClient, redisStreams);
 
     console.log("");

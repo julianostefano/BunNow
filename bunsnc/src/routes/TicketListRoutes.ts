@@ -13,20 +13,23 @@ import { Elysia, t } from "elysia";
 import { TicketController } from "../controllers/TicketController";
 import { TicketListView } from "../views/TicketListView";
 import { ErrorHandler } from "../utils/ErrorHandler";
-import { ServiceNowAuthClient } from "../services/ServiceNowAuthClient";
+import type { ServiceNowAuthClient } from "../services/ServiceNowAuthClient";
 
-export function createTicketListRoutes(serviceNowClient: ServiceNowAuthClient) {
+// FIX v5.5.20: Updated to use context instead of parameters (ElysiaJS best practices)
+export function createTicketListRoutes() {
   return (
     new Elysia({ prefix: "/tickets" })
       // Simple lazy load endpoint following Elysia patterns
       .get(
         "/lazy-load/:type/:state",
-        async ({ params, query, set }) => {
+        async ({ params, query, set, defaultServiceNowClient }) => {
           try {
             const { type, state } = params;
             const { group = "all", page = "1" } = query;
 
-            const ticketController = new TicketController(serviceNowClient);
+            const ticketController = new TicketController(
+              defaultServiceNowClient as ServiceNowAuthClient,
+            );
             const tickets = await ticketController.getLazyLoadTickets(
               type,
               state,

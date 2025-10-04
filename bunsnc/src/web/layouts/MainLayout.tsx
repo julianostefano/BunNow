@@ -93,11 +93,11 @@ export const MainLayout = ({
         <!-- CSS Imports -->
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="/public/styles/modern-glass.css">
-        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="/ui/styles/tailwind.css"></script>
 
         <!-- HTMX -->
-        <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-        <script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
+        <script src="/ui/js/htmx.min.js"></script>
+        <script src="/ui/js/htmx/ext/sse.js"></script>
 
         <!-- PWA Meta -->
         <meta name="theme-color" content="#667eea">

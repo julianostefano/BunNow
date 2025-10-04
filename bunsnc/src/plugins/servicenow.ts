@@ -13,15 +13,37 @@
  */
 
 import { Elysia } from "elysia";
-import {
-  ServiceNowBridgeService,
-  serviceNowBridgeService,
-} from "../services/ServiceNowBridgeService";
+import { ServiceNowBridgeService } from "../services/ServiceNowBridgeService";
 import type {
   BridgeResponse,
   BridgeRequestConfig,
 } from "../services/ServiceNowBridgeService";
 import type { ServiceNowRecord } from "../services/ServiceNowFetchClient";
+
+// FIX v5.5.19: Removed import of top-level serviceNowBridgeService instance
+// Now creating instance via .derive() for lazy instantiation
+
+// FIX v5.5.22: Add attachment/batch types
+export interface AttachmentUploadRequest {
+  table: string;
+  sysId: string;
+  file: any;
+  fileName: string;
+}
+
+export interface AttachmentInfo {
+  sys_id: string;
+  file_name: string;
+  size_bytes: string;
+  content_type: string;
+}
+
+export interface BatchOperation {
+  op: string;
+  table: string;
+  data?: Record<string, any>;
+  sysId?: string;
+}
 
 // Types para Eden Treaty
 export interface ServiceNowPluginContext {
@@ -50,6 +72,10 @@ export interface ServiceNowPluginContext {
     company?: string,
     location?: string,
   ) => Promise<BridgeResponse<ServiceNowRecord[]>>;
+  // FIX v5.5.22: Add attachment/batch operations
+  uploadAttachment: (request: AttachmentUploadRequest) => Promise<AttachmentInfo>;
+  downloadAttachment: (attachmentId: string) => Promise<Uint8Array>;
+  executeBatch: (operations: BatchOperation[]) => Promise<any[]>;
 }
 
 /**
@@ -76,8 +102,12 @@ export const serviceNowPlugin = new Elysia({
     console.log("🚀 ServiceNow Plugin starting - initializing bridge service");
   })
 
-  // Dependency Injection: Use shared bridge service instance
-  .decorate("serviceNowBridge", serviceNowBridgeService)
+  // FIX v5.5.19: Use .derive() instead of .decorate() for lazy instantiation
+  // Creates ServiceNowBridgeService instance on first request instead of during import
+  .derive(() => {
+    const serviceNowBridge = new ServiceNowBridgeService();
+    return { serviceNowBridge };
+  })
 
   // High-level query method - replaces HTTP calls in services
   .decorate(
@@ -202,6 +232,40 @@ export const serviceNowPlugin = new Elysia({
           result: [],
         };
       }
+    },
+  )
+
+  // FIX v5.5.22: Attachment operations - resolves circular dependency in routes/app.ts
+  .decorate(
+    "uploadAttachment",
+    async function (
+      request: AttachmentUploadRequest,
+    ): Promise<AttachmentInfo> {
+      // TEMPORARY: Use consolidatedServiceNowService from Lazy Proxy
+      // TODO: Move attachment logic to ServiceNowBridgeService in next phase
+      const { consolidatedServiceNowService } = await import("../services");
+      return await consolidatedServiceNowService.uploadAttachment(request);
+    },
+  )
+
+  .decorate(
+    "downloadAttachment",
+    async function (attachmentId: string): Promise<Uint8Array> {
+      // TEMPORARY: Use consolidatedServiceNowService from Lazy Proxy
+      // TODO: Move attachment logic to ServiceNowBridgeService in next phase
+      const { consolidatedServiceNowService } = await import("../services");
+      return await consolidatedServiceNowService.downloadAttachment(attachmentId);
+    },
+  )
+
+  // FIX v5.5.22: Batch operations - resolves circular dependency in routes/app.ts
+  .decorate(
+    "executeBatch",
+    async function (operations: BatchOperation[]): Promise<any[]> {
+      // TEMPORARY: Use consolidatedServiceNowService from Lazy Proxy
+      // TODO: Move batch logic to ServiceNowBridgeService in next phase
+      const { consolidatedServiceNowService } = await import("../services");
+      return await consolidatedServiceNowService.executeBatch(operations);
     },
   )
 

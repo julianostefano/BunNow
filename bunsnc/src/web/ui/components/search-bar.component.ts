@@ -18,7 +18,7 @@ import { html } from "@elysiajs/html";
  */
 interface SearchResult {
   id: string;
-  type: 'incident' | 'task' | 'ctask' | 'sctask';
+  type: "incident" | "task" | "ctask" | "sctask";
   number: string;
   title: string;
   status: string;
@@ -31,18 +31,18 @@ interface SearchResult {
  */
 function renderSearchResult(result: SearchResult): string {
   const typeIcons = {
-    incident: 'alert-circle',
-    task: 'check-square',
-    ctask: 'git-branch',
-    sctask: 'shopping-cart',
+    incident: "alert-circle",
+    task: "check-square",
+    ctask: "git-branch",
+    sctask: "shopping-cart",
   };
 
   const statusColors = {
-    new: 'badge-new',
-    in_progress: 'badge-progress',
-    resolved: 'badge-resolved',
-    closed: 'badge-closed',
-    waiting: 'badge-waiting',
+    new: "badge-new",
+    in_progress: "badge-progress",
+    resolved: "badge-resolved",
+    closed: "badge-closed",
+    waiting: "badge-waiting",
   };
 
   return `
@@ -62,11 +62,11 @@ function renderSearchResult(result: SearchResult): string {
       <div class="flex-1 text-left">
         <div class="flex items-center gap-2">
           <span class="font-mono text-sm text-accent-primary">${result.number}</span>
-          <span class="text-xs ${statusColors[result.status] || 'badge-new'} px-2 py-0.5 rounded">${result.status}</span>
-          ${result.priority ? `<span class="text-xs badge-critical px-2 py-0.5 rounded">P${result.priority}</span>` : ''}
+          <span class="text-xs ${statusColors[result.status] || "badge-new"} px-2 py-0.5 rounded">${result.status}</span>
+          ${result.priority ? `<span class="text-xs badge-critical px-2 py-0.5 rounded">P${result.priority}</span>` : ""}
         </div>
         <p class="text-sm text-text-primary mt-1 truncate">${result.title}</p>
-        ${result.assigned_to ? `<p class="text-xs text-text-muted mt-1">Assigned: ${result.assigned_to}</p>` : ''}
+        ${result.assigned_to ? `<p class="text-xs text-text-muted mt-1">Assigned: ${result.assigned_to}</p>` : ""}
       </div>
 
       <!-- Arrow -->
@@ -258,9 +258,9 @@ export const searchBarRoutes = new Elysia()
   })
 
   .get("/search-results", async ({ query }) => {
-    const searchQuery = query.search || '';
-    const type = query.type || '';
-    const status = query.status || '';
+    const searchQuery = query.search || "";
+    const type = query.type || "";
+    const status = query.status || "";
 
     if (!searchQuery.trim()) {
       return '<div class="p-4 text-center text-text-muted text-sm">Start typing to search...</div>';
@@ -269,29 +269,35 @@ export const searchBarRoutes = new Elysia()
     try {
       // Build query params
       const params = new URLSearchParams();
-      if (searchQuery) params.append('search', searchQuery);
-      if (type) params.append('type', type);
-      if (status) params.append('state', status);
+      if (searchQuery) params.append("search", searchQuery);
+      if (type) params.append("type", type);
+      if (status) params.append("state", status);
 
       // Fetch from search API
-      const response = await fetch(`http://localhost:3008/api/search?${params}`);
+      const response = await fetch(
+        `http://localhost:3008/api/search?${params}`,
+      );
       const data = await response.json();
 
       if (data.success && data.results && data.results.length > 0) {
-        return data.results.map(result => renderSearchResult({
-          id: result.sys_id,
-          type: result.table || 'incident',
-          number: result.number,
-          title: result.short_description || result.description,
-          status: result.state || 'new',
-          priority: result.priority,
-          assigned_to: result.assigned_to,
-        })).join('');
+        return data.results
+          .map((result) =>
+            renderSearchResult({
+              id: result.sys_id,
+              type: result.table || "incident",
+              number: result.number,
+              title: result.short_description || result.description,
+              status: result.state || "new",
+              priority: result.priority,
+              assigned_to: result.assigned_to,
+            }),
+          )
+          .join("");
       } else {
         return '<div class="p-4 text-center text-text-muted text-sm">No results found</div>';
       }
     } catch (error) {
-      console.error('Search error:', error);
+      console.error("Search error:", error);
       return '<div class="p-4 text-center text-accent-danger text-sm">Search failed. Please try again.</div>';
     }
   });

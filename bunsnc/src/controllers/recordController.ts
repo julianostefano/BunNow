@@ -2,7 +2,7 @@
  * Record controller with QueryBuilder integration
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
-import { consolidatedServiceNowService } from "../services/ConsolidatedServiceNowService";
+import { consolidatedServiceNowService } from "../services";
 import { QueryBuilder } from "../query/QueryBuilder";
 import type { QueryOptions, ServiceNowRecord } from "../types/servicenow";
 

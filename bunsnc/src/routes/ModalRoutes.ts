@@ -4,14 +4,18 @@
  */
 
 import { Elysia, t } from "elysia";
-import { dataService } from "../services/ConsolidatedDataService";
+// FIX v5.5.19: Import from services/index.ts to use lazy Proxy singleton
+import { dataService } from "../services";
 import { EnhancedTicketModalView } from "../web/EnhancedTicketModal";
 import { serviceNowStreams, ServiceNowChange } from "../config/redis-streams";
 import { logger } from "../utils/Logger";
-import { systemService } from "../services/SystemService";
-import type { HistoryResponse, UpdateTicketResponse } from "../types/TicketTypes";
+import { SystemService } from "../services/SystemService";
+import type {
+  HistoryResponse,
+  UpdateTicketResponse,
+} from "../types/TicketTypes";
 import { UpdateTicketSchema } from "../types/TicketTypes";
-import { consolidatedServiceNowService } from "../services/ConsolidatedServiceNowService";
+import { consolidatedServiceNowService } from "../services";
 
 export const createModalRoutes = () => {
   return (
@@ -21,6 +25,7 @@ export const createModalRoutes = () => {
         "/ticket/:table/:sysId",
         async ({ params, query, set }) => {
           const startTime = Date.now();
+          const systemService = SystemService.getInstance(); // FIX v5.5.19: getInstance inside handler
 
           try {
             logger.info(`📋 Loading modal for ${params.table}/${params.sysId}`);
@@ -41,11 +46,16 @@ export const createModalRoutes = () => {
               const historyUrl = `${process.env.BASE_URL || "http://localhost:3000"}/api/incident/history/${params.sysId}`;
               const historyResponse = await fetch(historyUrl);
               if (historyResponse.ok) {
-                const historyResult = (await historyResponse.json()) as HistoryResponse;
+                const historyResult =
+                  (await historyResponse.json()) as HistoryResponse;
                 historyData = historyResult.history || [];
-                logger.info(`📜 Fetched ${historyData.length} history entries for ${params.sysId}`);
+                logger.info(
+                  `📜 Fetched ${historyData.length} history entries for ${params.sysId}`,
+                );
               } else {
-                logger.warn(`⚠️ Failed to fetch history for ${params.sysId}: ${historyResponse.status}`);
+                logger.warn(
+                  `⚠️ Failed to fetch history for ${params.sysId}: ${historyResponse.status}`,
+                );
               }
             } catch (error: unknown) {
               logger.error(
@@ -98,6 +108,7 @@ export const createModalRoutes = () => {
         "/data/:table/:sysId",
         async ({ params, query }) => {
           const startTime = Date.now();
+          const systemService = SystemService.getInstance(); // FIX v5.5.19: getInstance inside handler
 
           try {
             logger.info(
@@ -118,11 +129,16 @@ export const createModalRoutes = () => {
               const historyUrl = `${process.env.BASE_URL || "http://localhost:3000"}/api/incident/history/${params.sysId}`;
               const historyResponse = await fetch(historyUrl);
               if (historyResponse.ok) {
-                const historyResult = (await historyResponse.json()) as HistoryResponse;
+                const historyResult =
+                  (await historyResponse.json()) as HistoryResponse;
                 historyData = historyResult.history || [];
-                logger.info(`📜 Fetched ${historyData.length} history entries for ${params.sysId}`);
+                logger.info(
+                  `📜 Fetched ${historyData.length} history entries for ${params.sysId}`,
+                );
               } else {
-                logger.warn(`⚠️ Failed to fetch history for ${params.sysId}: ${historyResponse.status}`);
+                logger.warn(
+                  `⚠️ Failed to fetch history for ${params.sysId}: ${historyResponse.status}`,
+                );
               }
             } catch (error: unknown) {
               logger.error(
@@ -174,6 +190,7 @@ export const createModalRoutes = () => {
         "/ticket/:table/:sysId",
         async ({ params, body, set }) => {
           const startTime = Date.now();
+          const systemService = SystemService.getInstance(); // FIX v5.5.19: getInstance inside handler
 
           try {
             logger.info(
@@ -231,8 +248,7 @@ export const createModalRoutes = () => {
               sys_id: params.sysId,
               updated_fields: [],
               timestamp: new Date().toISOString(),
-              error:
-                error instanceof Error ? error.message : "Unknown error",
+              error: error instanceof Error ? error.message : "Unknown error",
             } satisfies UpdateTicketResponse;
           }
         },
@@ -284,10 +300,7 @@ export const createModalRoutes = () => {
 
               case "notes":
                 // Return updated notes tab
-                sectionHtml = generateNotesUpdate(
-                  ticket.notes || [],
-                  ticket,
-                );
+                sectionHtml = generateNotesUpdate(ticket.notes || [], ticket);
                 break;
 
               default:
@@ -379,30 +392,35 @@ export const createSSERoutes = () => {
                       } catch (error: unknown) {
                         logger.error(
                           "SSE heartbeat error:",
-                          error instanceof Error ? error : new Error(String(error)),
+                          error instanceof Error
+                            ? error
+                            : new Error(String(error)),
                         );
                       }
                     }, 30000); // Heartbeat every 30 seconds
 
                     // Listen for actual ticket updates from Redis Streams
-                    serviceNowStreams.subscribeToChanges((change: ServiceNowChange) => {
-                      if (change.sys_id === params.sysId && isConnected) {
-                        const updateMessage = `data: ${JSON.stringify({
-                          type: "ticket-updated",
-                          change: change,
-                          timestamp: new Date().toISOString(),
-                          sys_id: params.sysId,
-                        })}\n\n`;
+                    serviceNowStreams.subscribeToChanges(
+                      (change: ServiceNowChange) => {
+                        if (change.sys_id === params.sysId && isConnected) {
+                          const updateMessage = `data: ${JSON.stringify({
+                            type: "ticket-updated",
+                            change: change,
+                            timestamp: new Date().toISOString(),
+                            sys_id: params.sysId,
+                          })}\n\n`;
 
-                        controller.enqueue(
-                          new TextEncoder().encode(updateMessage),
-                        );
-                        logger.info(
-                          `📡 SSE update sent for ${params.sysId}:`,
-                          change.action,
-                        );
-                      }
-                    }, `modal-${params.sysId}`);
+                          controller.enqueue(
+                            new TextEncoder().encode(updateMessage),
+                          );
+                          logger.info(
+                            `📡 SSE update sent for ${params.sysId}:`,
+                            change.action,
+                          );
+                        }
+                      },
+                      `modal-${params.sysId}`,
+                    );
                   } catch (error: unknown) {
                     logger.error(
                       "Error setting up SSE subscription:",
@@ -422,7 +440,9 @@ export const createSSERoutes = () => {
               },
             });
 
-            return new Response(stream, { headers: set.headers as Record<string, string> });
+            return new Response(stream, {
+              headers: set.headers as Record<string, string>,
+            });
           } catch (error: unknown) {
             logger.error(
               ` Error setting up SSE for ${params.sysId}:`,
@@ -441,6 +461,8 @@ export const createSSERoutes = () => {
 
       // Performance metrics SSE stream
       .get("/performance", async ({ set }) => {
+        const systemService = SystemService.getInstance(); // FIX v5.5.19: getInstance inside handler
+
         try {
           logger.info(" Performance monitoring SSE connection established");
 
@@ -497,7 +519,9 @@ export const createSSERoutes = () => {
             },
           });
 
-          return new Response(stream, { headers: set.headers as Record<string, string> });
+          return new Response(stream, {
+            headers: set.headers as Record<string, string>,
+          });
         } catch (error: unknown) {
           logger.error(
             " Error setting up performance SSE:",

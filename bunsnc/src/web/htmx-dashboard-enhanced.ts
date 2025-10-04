@@ -5,7 +5,7 @@
 
 import { Elysia } from "elysia";
 import { html } from "@elysiajs/html";
-import { serviceNowAuthClient } from "../services/ServiceNowAuthClient";
+import { serviceNowAuthClient } from "../services";
 import { ConsolidatedDataService } from "../services/ConsolidatedDataService";
 import { consolidatedServiceNowService } from "../services";
 import {
@@ -69,10 +69,10 @@ const htmxDashboardEnhanced = new Elysia({ prefix: "/enhanced" })
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>ServiceNow Enhanced Dashboard</title>
-          <script src="https://unpkg.com/htmx.org@2.0.0"></script>
-          <script src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
-          <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-          <script src="https://cdn.tailwindcss.com"></script>
+          <script src="/ui/js/htmx.min.js"></script>
+          <!-- AlpineJS removed - using HTMX only -->
+          <script src="/ui/js/lucide.min.js/dist/umd/lucide.js"></script>
+          <script src="/ui/styles/tailwind.css"></script>
           <script>
             tailwind.config = {
               theme: {
@@ -690,7 +690,7 @@ const htmxDashboardEnhanced = new Elysia({ prefix: "/enhanced" })
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>ServiceNow Dashboard - Service Unavailable</title>
-            <script src="https://cdn.tailwindcss.com"></script>
+            <script src="/ui/styles/tailwind.css"></script>
         </head>
         <body class="h-full bg-gray-100 flex items-center justify-center">
             <div class="max-w-md w-full bg-white rounded-lg shadow-lg p-6">

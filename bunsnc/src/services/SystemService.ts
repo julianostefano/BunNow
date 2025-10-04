@@ -555,5 +555,8 @@ export const createSystemService = (config: SystemConfig) => {
   return SystemService.getInstance(config);
 };
 
-// Export singleton for global use (will be initialized by main service)
-export const systemService = SystemService.getInstance();
+// FIX v5.5.19: Removed top-level initialization to prevent startup hang
+// Root cause: getInstance() without config causes cascading initialization
+// during import, violating ElysiaJS best practice
+// Use SystemService.getInstance() INSIDE handlers instead
+// export const systemService = SystemService.getInstance();

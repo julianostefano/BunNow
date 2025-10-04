@@ -5,7 +5,8 @@
  */
 
 import { Elysia } from "elysia";
-import { unifiedStreamingService } from "../services/UnifiedStreamingService";
+// FIX v5.5.19: Import from services/index.ts to use lazy Proxy singleton
+import { unifiedStreamingService } from "../services";
 import { ServiceNowStreams } from "../config/redis-streams";
 
 export const createSSERoutes = (redisStreams: ServiceNowStreams) => {

@@ -31,13 +31,16 @@ interface TicketCard {
  * Render Loading Skeleton
  */
 function renderLoadingSkeleton(count: number = 10): string {
-  return Array.from({ length: count }, (_, i) => `
+  return Array.from(
+    { length: count },
+    (_, i) => `
     <div class="glass-card p-4 rounded-lg skeleton">
       <div class="h-4 bg-white/10 rounded w-1/4 mb-2"></div>
       <div class="h-6 bg-white/10 rounded w-3/4 mb-2"></div>
       <div class="h-4 bg-white/10 rounded w-1/2"></div>
     </div>
-  `).join('');
+  `,
+  ).join("");
 }
 
 /**
@@ -45,34 +48,34 @@ function renderLoadingSkeleton(count: number = 10): string {
  */
 function renderTicketCard(ticket: TicketCard): string {
   const typeIcons = {
-    incident: 'alert-circle',
-    task: 'check-square',
-    ctask: 'git-branch',
-    sctask: 'shopping-cart',
+    incident: "alert-circle",
+    task: "check-square",
+    ctask: "git-branch",
+    sctask: "shopping-cart",
   };
 
   const statusColors = {
-    '1': 'badge-new',
-    '2': 'badge-progress',
-    '3': 'badge-waiting',
-    '6': 'badge-resolved',
-    '7': 'badge-closed',
+    "1": "badge-new",
+    "2": "badge-progress",
+    "3": "badge-waiting",
+    "6": "badge-resolved",
+    "7": "badge-closed",
   };
 
   const priorityColors = {
-    '1': 'badge-critical',
-    '2': 'badge-critical',
-    '3': 'badge-waiting',
-    '4': 'badge-new',
-    '5': 'badge-new',
+    "1": "badge-critical",
+    "2": "badge-critical",
+    "3": "badge-waiting",
+    "4": "badge-new",
+    "5": "badge-new",
   };
 
   const statusLabels = {
-    '1': 'New',
-    '2': 'In Progress',
-    '3': 'Waiting',
-    '6': 'Resolved',
-    '7': 'Closed',
+    "1": "New",
+    "2": "In Progress",
+    "3": "Waiting",
+    "6": "Resolved",
+    "7": "Closed",
   };
 
   const createdDate = new Date(ticket.sys_created_on);
@@ -89,33 +92,41 @@ function renderTicketCard(ticket: TicketCard): string {
       <!-- Header -->
       <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-2">
-          <i data-lucide="${typeIcons[ticket.type] || 'file'}" class="w-4 h-4 text-accent-primary"></i>
+          <i data-lucide="${typeIcons[ticket.type] || "file"}" class="w-4 h-4 text-accent-primary"></i>
           <span class="font-mono text-sm text-accent-primary">${ticket.number}</span>
-          <span class="text-xs ${statusColors[ticket.state] || 'badge-new'} px-2 py-0.5 rounded">
-            ${statusLabels[ticket.state] || 'Unknown'}
+          <span class="text-xs ${statusColors[ticket.state] || "badge-new"} px-2 py-0.5 rounded">
+            ${statusLabels[ticket.state] || "Unknown"}
           </span>
-          ${ticket.priority ? `
-            <span class="text-xs ${priorityColors[ticket.priority] || 'badge-new'} px-2 py-0.5 rounded">
+          ${
+            ticket.priority
+              ? `
+            <span class="text-xs ${priorityColors[ticket.priority] || "badge-new"} px-2 py-0.5 rounded">
               P${ticket.priority}
             </span>
-          ` : ''}
+          `
+              : ""
+          }
         </div>
         <span class="text-xs text-text-muted">${timeAgo}</span>
       </div>
 
       <!-- Title -->
       <h3 class="text-text-primary font-medium line-clamp-2 mb-2">
-        ${ticket.short_description || 'No description'}
+        ${ticket.short_description || "No description"}
       </h3>
 
       <!-- Footer -->
       <div class="flex items-center justify-between text-xs text-text-muted">
-        ${ticket.assigned_to ? `
+        ${
+          ticket.assigned_to
+            ? `
           <div class="flex items-center gap-1">
             <i data-lucide="user" class="w-3 h-3"></i>
             <span>${ticket.assigned_to}</span>
           </div>
-        ` : '<span>Unassigned</span>'}
+        `
+            : "<span>Unassigned</span>"
+        }
         <i data-lucide="arrow-right" class="w-4 h-4"></i>
       </div>
     </button>
@@ -132,7 +143,7 @@ function getTimeAgo(date: Date): string {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return 'Just now';
+  if (diffMins < 1) return "Just now";
   if (diffMins < 60) return `${diffMins}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
@@ -148,21 +159,21 @@ export const feedRoutes = new Elysia()
   .get(
     "/feed",
     async ({ query }) => {
-      const type = query.type || 'all';
-      const status = query.status || 'all';
+      const type = query.type || "all";
+      const status = query.status || "all";
       const offset = parseInt(query.offset as string) || 0;
       const limit = parseInt(query.limit as string) || 50;
 
       try {
         // Determine API endpoint based on type
-        let apiUrl = 'http://localhost:3008/api/incidents';
-        if (type === 'task') apiUrl = 'http://localhost:3008/api/tasks';
+        let apiUrl = "http://localhost:3008/api/incidents";
+        if (type === "task") apiUrl = "http://localhost:3008/api/tasks";
         // Add more types as needed
 
         // Build query params
         const params = new URLSearchParams();
-        if (status !== 'all') params.append('state', status);
-        params.append('limit', limit.toString());
+        if (status !== "all") params.append("state", status);
+        params.append("limit", limit.toString());
 
         // Fetch tickets
         const response = await fetch(`${apiUrl}?${params}`);
@@ -172,7 +183,7 @@ export const feedRoutes = new Elysia()
           const tickets = data.data.map((ticket: any) => ({
             sys_id: ticket.sys_id,
             number: ticket.number,
-            type: type === 'all' ? 'incident' : type,
+            type: type === "all" ? "incident" : type,
             short_description: ticket.short_description,
             state: ticket.state,
             priority: ticket.priority,
@@ -183,11 +194,13 @@ export const feedRoutes = new Elysia()
 
           const feedHTML = `
             <div id="feed-list" class="grid grid-cols-1 gap-4">
-              ${tickets.map((ticket: TicketCard) => renderTicketCard(ticket)).join('')}
+              ${tickets.map((ticket: TicketCard) => renderTicketCard(ticket)).join("")}
             </div>
 
             <!-- Infinite Scroll Trigger -->
-            ${data.data.length >= limit ? `
+            ${
+              data.data.length >= limit
+                ? `
               <div
                 id="load-more-trigger"
                 class="flex justify-center py-8"
@@ -201,14 +214,16 @@ export const feedRoutes = new Elysia()
                   <span class="text-sm">Loading more...</span>
                 </div>
               </div>
-            ` : `
+            `
+                : `
               <div class="flex justify-center py-8 text-text-muted text-sm">
                 <div class="flex items-center gap-2">
                   <i data-lucide="check-circle" class="w-5 h-5"></i>
                   <span>All tickets loaded</span>
                 </div>
               </div>
-            `}
+            `
+            }
           `;
 
           return feedHTML;
@@ -222,12 +237,12 @@ export const feedRoutes = new Elysia()
           `;
         }
       } catch (error) {
-        console.error('Feed fetch error:', error);
+        console.error("Feed fetch error:", error);
         return `
           <div class="flex flex-col items-center justify-center py-16 text-center">
             <i data-lucide="alert-circle" class="w-16 h-16 text-accent-danger mb-4"></i>
             <h3 class="text-lg font-medium text-text-primary mb-2">Failed to load tickets</h3>
-            <p class="text-sm text-text-muted">${error.message || 'Unknown error'}</p>
+            <p class="text-sm text-text-muted">${error.message || "Unknown error"}</p>
             <button
               class="btn-primary mt-4"
               hx-get="/ui/feed?type=${type}&status=${status}&offset=${offset}&limit=${limit}"
@@ -248,5 +263,5 @@ export const feedRoutes = new Elysia()
         offset: t.Optional(t.String()),
         limit: t.Optional(t.String()),
       }),
-    }
+    },
   );

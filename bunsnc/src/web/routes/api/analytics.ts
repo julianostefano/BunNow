@@ -18,8 +18,12 @@ const app = new Elysia({ prefix: "/api/v1/analytics" })
     console.log(`  - username: "${username}"`);
 
     if (!instanceUrl || !username || !password) {
-      console.error("[analytics.ts] Missing ServiceNow credentials in env vars");
-      throw new Error("ServiceNow credentials not configured. Check .env file.");
+      console.error(
+        "[analytics.ts] Missing ServiceNow credentials in env vars",
+      );
+      throw new Error(
+        "ServiceNow credentials not configured. Check .env file.",
+      );
     }
 
     const serviceNowClient = ServiceNowClient.createWithCredentials(
@@ -32,13 +36,14 @@ const app = new Elysia({ prefix: "/api/v1/analytics" })
     return { serviceNowClient };
   })
 
-  .get("/dashboard", async ({ serviceNowClient }) => {  // ✅ Use injected client
+  .get("/dashboard", async ({ serviceNowClient }) => {
+    // ✅ Use injected client
     try {
       // Get overview statistics (using injected client)
-      const stats = await getOverviewStats(serviceNowClient);  // ✅ Use injected client
+      const stats = await getOverviewStats(serviceNowClient); // ✅ Use injected client
 
       // Generate chart data
-      const chartData = await generateChartData(serviceNowClient);  // ✅ Use injected client
+      const chartData = await generateChartData(serviceNowClient); // ✅ Use injected client
 
       // Get processing metrics
       const processingMetrics = getProcessingMetrics();
@@ -342,12 +347,13 @@ const app = new Elysia({ prefix: "/api/v1/analytics" })
 
   .get(
     "/trends/:type",
-    async ({ params, query, serviceNowClient }) => {  // ✅ Use injected client
+    async ({ params, query, serviceNowClient }) => {
+      // ✅ Use injected client
       try {
         const type = params.type; // incidents, problems, changes
         const days = parseInt(query.days as string) || 30;
 
-        const trendData = await generateTrendData(serviceNowClient, type, days);  // ✅ Use injected client
+        const trendData = await generateTrendData(serviceNowClient, type, days); // ✅ Use injected client
 
         return {
           success: true,

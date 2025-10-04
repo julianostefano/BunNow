@@ -75,7 +75,7 @@ class RedisConnectionManager extends EventEmitter {
       commandTimeout: 5000,
       enableOfflineQueue: true,
       enableReadyCheck: true,
-      lazyConnect: false,
+      lazyConnect: true, // FIX v5.5.19: Use lazy connect to prevent blocking during module load
     };
   }
 

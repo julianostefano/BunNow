@@ -459,5 +459,8 @@ export class ServiceNowBridgeService {
   }
 }
 
-// Singleton instance para reuso
-export const serviceNowBridgeService = new ServiceNowBridgeService();
+// FIX v5.5.19: Removed top-level instantiation to prevent cascade of imports
+// Root cause: Importing ServiceNowBridgeService triggers this instantiation
+// which imports ServiceNowRateLimit, CircuitBreaker, etc., creating import cascade
+// Use ServiceNowBridgeService class directly in consumers
+// export const serviceNowBridgeService = new ServiceNowBridgeService();

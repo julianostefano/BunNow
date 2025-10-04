@@ -640,8 +640,8 @@ export class GlassDesignServer {
           <link rel="stylesheet" href="/public/css/components.css">
 
           <!-- HTMX -->
-          <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-          <script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
+          <script src="/ui/js/htmx.min.js"></script>
+          <script src="/ui/js/htmx/ext/sse.js"></script>
 
           <!-- Meta -->
           <meta name="description" content="Modern ServiceNow analytics and management interface with real-time updates">

@@ -16,9 +16,12 @@ import { serviceNowPlugin } from "../plugins/servicenow";
 
 import { ServiceNowClient } from "../client/ServiceNowClient";
 import { RedisStreamManager } from "../bigdata/redis/RedisStreamManager";
-import { consolidatedServiceNowService } from "../services/ConsolidatedServiceNowService";
-import { dataService } from "../services/ConsolidatedDataService";
-import { serviceNowAuthClient } from "../services/ServiceNowAuthClient";
+// FIX v5.5.19: Import from services/index.ts to use lazy Proxy singletons
+import {
+  consolidatedServiceNowService,
+  dataService,
+  serviceNowAuthClient,
+} from "../services";
 import { ServiceNowStreams } from "../config/redis-streams";
 import { mongoCollectionManager } from "../config/mongodb-collections";
 import { TicketRepository } from "../repositories/TicketRepository";
@@ -230,7 +233,10 @@ export class WebServerController {
           });
           console.log("[BG-SERVICE] ✅ Auto-sync started (background)");
         } catch (error: unknown) {
-          console.error("[BG-SERVICE] ⚠️ Auto-sync initialization error:", error);
+          console.error(
+            "[BG-SERVICE] ⚠️ Auto-sync initialization error:",
+            error,
+          );
         }
       } else {
         console.warn(

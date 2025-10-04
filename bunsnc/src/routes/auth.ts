@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia";
-import { serviceNowAuthClient } from "../services/ServiceNowAuthClient";
+import { serviceNowAuthClient } from "../services";
 import { serviceNowSAMLAuth } from "../services/auth/ServiceNowSAMLAuth";
 import { SAMLConfig } from "../types/saml";
 

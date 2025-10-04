@@ -70,9 +70,7 @@ export interface ModalProps {
 
 // TypeBox Schema for Ticket Update Validation
 export const UpdateTicketSchema = t.Object({
-  short_description: t.Optional(
-    t.String({ minLength: 3, maxLength: 160 }),
-  ),
+  short_description: t.Optional(t.String({ minLength: 3, maxLength: 160 })),
   description: t.Optional(t.String({ maxLength: 4000 })),
   priority: t.Optional(t.String({ pattern: "^[1-5]$" })),
   state: t.Optional(t.String()),

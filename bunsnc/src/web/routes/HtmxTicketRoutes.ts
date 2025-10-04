@@ -6,7 +6,7 @@
 import { Elysia, t } from "elysia";
 import { html } from "@elysiajs/html";
 import { htmx } from "@gtramontina.com/elysia-htmx";
-import { serviceNowAuthClient } from "../../services/ServiceNowAuthClient";
+import { serviceNowAuthClient } from "../../services";
 
 export const htmxTicketRoutes = new Elysia()
   .use(html())

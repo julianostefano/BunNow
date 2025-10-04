@@ -170,15 +170,9 @@ class MongoDBManager extends EventEmitter {
         logger.info(
           `🔌 [MongoDBManager] Starting connection attempt ${attempt}/${maxRetries}...`,
         );
-        logger.info(
-          `   Host: ${this.config.host}:${this.config.port}`,
-        );
-        logger.info(
-          `   Database: ${this.config.databaseName || "bunsnc"}`,
-        );
-        logger.info(
-          `   User: ${this.config.username}`,
-        );
+        logger.info(`   Host: ${this.config.host}:${this.config.port}`);
+        logger.info(`   Database: ${this.config.databaseName || "bunsnc"}`);
+        logger.info(`   User: ${this.config.username}`);
 
         const connectionOptions = {
           maxPoolSize: this.config.options?.maxPoolSize || 10,
@@ -235,9 +229,7 @@ class MongoDBManager extends EventEmitter {
 
         // Exponential backoff: 2s, 4s, 8s
         const backoffMs = Math.pow(2, attempt) * 1000;
-        logger.info(
-          `⏳ [MongoDBManager] Retrying in ${backoffMs / 1000}s...`,
-        );
+        logger.info(`⏳ [MongoDBManager] Retrying in ${backoffMs / 1000}s...`);
         await new Promise((resolve) => setTimeout(resolve, backoffMs));
       }
     }
@@ -1119,4 +1111,9 @@ export const defaultDataServiceConfig: DataServiceConfig = {
   },
 };
 
-export const dataService = createDataService(defaultDataServiceConfig);
+// FIX v5.5.19: Removed top-level instantiation to prevent startup hang
+// Root cause: createDataService() executes MongoDB/Redis connections during import
+// Violates ElysiaJS best practice: Services should NOT be instantiated at module scope
+// Use createDataService(defaultDataServiceConfig) in handlers instead
+// See: docs/reports/ELYSIA_COMPLIANCE_REPORT_v5.5.19.md - CRITICAL-1
+// export const dataService = createDataService(defaultDataServiceConfig);

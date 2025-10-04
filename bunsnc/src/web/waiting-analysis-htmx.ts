@@ -6,7 +6,7 @@
 import { Elysia } from "elysia";
 import { html } from "@elysiajs/html";
 import { htmx } from "@gtramontina.com/elysia-htmx";
-import { serviceNowAuthClient } from "../services/ServiceNowAuthClient";
+import { serviceNowAuthClient } from "../services";
 
 const FALLBACK_GROUPS = [
   "L2-NE-IT APP AND DATABASE",
@@ -79,9 +79,9 @@ export const waitingAnalysisHtmx = new Elysia({ prefix: "/waiting-analysis" })
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>BunSNC - Análise de Chamados em Espera</title>
-            <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-            <script src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js" defer></script>
-            <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+            <script src="/ui/js/htmx.min.js"></script>
+            <!-- AlpineJS removed - using HTMX only -->
+            <link href="/ui/styles/tailwind.css" rel="stylesheet">
             <style>
                 .htmx-request { opacity: 0.7; transition: opacity 0.3s; }
                 .htmx-request::after { content: " ⏳"; }

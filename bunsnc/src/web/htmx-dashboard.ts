@@ -6,7 +6,7 @@
 import { Elysia, t } from "elysia";
 import { html } from "@elysiajs/html";
 import { htmx } from "@gtramontina.com/elysia-htmx";
-import { serviceNowAuthClient } from "../services/ServiceNowAuthClient";
+import { serviceNowAuthClient } from "../services";
 
 import { htmxSearchRoutes } from "./routes/HtmxSearchRoutes";
 import { htmxTicketRoutes } from "./routes/HtmxTicketRoutes";
@@ -29,10 +29,10 @@ export const htmxDashboard = new Elysia({ prefix: "/htmx" })
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>BunSNC - ServiceNow Dashboard</title>
-            <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-            <script src="https://unpkg.com/htmx.org/dist/ext/ws.js"></script>
-            <script src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js" defer></script>
-            <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+            <script src="/ui/js/htmx.min.js"></script>
+            <script src="/ui/js/htmx/ext/ws.js"></script>
+            <!-- AlpineJS removed - using HTMX only -->
+            <link href="/ui/styles/tailwind.css" rel="stylesheet">
             <link href="/htmx/styles" rel="stylesheet">
             <style>
                 body { 

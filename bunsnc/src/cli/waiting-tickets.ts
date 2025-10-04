@@ -3,7 +3,7 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-import { serviceNowAuthClient } from "../services/ServiceNowAuthClient";
+import { serviceNowAuthClient } from "../services";
 
 const FALLBACK_GROUPS = [
   "L2-NE-IT APP AND DATABASE",

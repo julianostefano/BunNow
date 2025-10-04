@@ -236,6 +236,7 @@ export class CircuitBreaker {
   }
 }
 
+// Export singleton instance for ServiceNow API calls
 export const serviceNowCircuitBreaker = new CircuitBreaker({
   failureThreshold: 8,
   resetTimeout: 120000, // 2 minutes

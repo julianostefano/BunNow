@@ -9,7 +9,7 @@ import {
   ChangeTaskDocument,
   SCTaskDocument,
 } from "../../config/mongodb-collections";
-import { systemService } from "../SystemService";
+import { SystemService } from "../SystemService"; // FIX v5.5.19: Import class instead of instance
 import { enhancedTicketStorageService } from "../index";
 import { logger } from "../../utils/Logger";
 import type { TicketData } from "../../types/TicketTypes";
@@ -18,7 +18,7 @@ export class TicketDataCore {
   protected client: any = null;
   protected db: any = null;
   protected isConnected = false;
-  protected groupService = systemService.getGroupManager();
+  protected groupService: any = null; // FIX v5.5.19: Lazy initialization in initialize()
   private initPromise: Promise<void> | null = null;
 
   constructor() {
@@ -31,6 +31,10 @@ export class TicketDataCore {
    */
   async initialize(): Promise<void> {
     try {
+      // FIX v5.5.19: Lazy initialization of groupService
+      const systemService = SystemService.getInstance();
+      this.groupService = systemService.getGroupManager();
+
       await this.initializeMongoDB();
       await this.groupService.initialize();
       logger.info(" [TICKET-DATA] TicketDataCore initialized successfully");

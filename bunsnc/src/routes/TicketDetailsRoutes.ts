@@ -63,17 +63,14 @@ function formatDate(dateString: string): string {
   return dateString.slice(0, 16);
 }
 
-export function createTicketDetailsRoutes(
-  serviceNowClient: ServiceNowAuthClient,
-  mongoService?: ConsolidatedDataService,
-  redisStreams?: ServiceNowStreams,
-) {
+// FIX v5.5.20: Updated to use context instead of parameters (ElysiaJS best practices)
+export function createTicketDetailsRoutes() {
   return (
     new Elysia({ prefix: "/tickets" })
       // Inline handler with proper service usage
       .get(
         "/ticket-details/:sysId/:table",
-        async ({ params, set }) => {
+        async ({ params, set, mongoService, redisStreams }) => {
           try {
             const { sysId, table } = params;
             console.log(
@@ -353,7 +350,13 @@ export function createTicketDetailsRoutes(
       // Enhanced professional modal - simplified fallback without circular imports
       .get(
         "/enhanced/:sysId/:table",
-        async ({ params, set, consolidatedServiceNowService }) => {
+        async ({
+          params,
+          set,
+          consolidatedServiceNowService,
+          mongoService,
+          redisStreams,
+        }) => {
           try {
             if (!mongoService || !redisStreams) {
               console.warn(

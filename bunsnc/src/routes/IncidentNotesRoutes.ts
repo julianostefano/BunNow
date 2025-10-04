@@ -279,9 +279,7 @@ export function createIncidentNotesRoutes(
             const { sysId } = params;
             const { note, noteType = "work_notes" } = body;
 
-            console.log(
-              `📝 [API] Adding ${noteType} to incident: ${sysId}`,
-            );
+            console.log(`📝 [API] Adding ${noteType} to incident: ${sysId}`);
 
             if (!note || note.trim() === "") {
               set.status = 400;
@@ -344,80 +342,84 @@ export function createIncidentNotesRoutes(
         },
       )
 
-  // GET endpoint to retrieve ticket history from sys_audit table
-  .get("/history/:sysId", async ({ params, query, set }) => {
-    try {
-      const { sysId } = params;
-      const limit = query.limit ? parseInt(query.limit as string) : 100;
-      const offset = query.offset ? parseInt(query.offset as string) : 0;
+      // GET endpoint to retrieve ticket history from sys_audit table
+      .get(
+        "/history/:sysId",
+        async ({ params, query, set }) => {
+          try {
+            const { sysId } = params;
+            const limit = query.limit ? parseInt(query.limit as string) : 100;
+            const offset = query.offset ? parseInt(query.offset as string) : 0;
 
-      console.log(`📜 [API] Ticket history requested: ${sysId}`);
+            console.log(`📜 [API] Ticket history requested: ${sysId}`);
 
-      // Query sys_audit table for this document's history
-      const auditQuery = `documentkey=${sysId}^ORDERBYDESCsys_created_on`;
+            // Query sys_audit table for this document's history
+            const auditQuery = `documentkey=${sysId}^ORDERBYDESCsys_created_on`;
 
-      const auditResponse = await serviceNowClient.makeRequestFullFields(
-        "sys_audit",
-        auditQuery,
-        limit,
-      );
+            const auditResponse = await serviceNowClient.makeRequestFullFields(
+              "sys_audit",
+              auditQuery,
+              limit,
+            );
 
-      if (!auditResponse?.result) {
-        return {
-          success: true,
-          sys_id: sysId,
-          history: [],
-          total: 0,
-          limit,
-          offset,
-          retrieved_at: new Date().toISOString(),
-        };
-      }
+            if (!auditResponse?.result) {
+              return {
+                success: true,
+                sys_id: sysId,
+                history: [],
+                total: 0,
+                limit,
+                offset,
+                retrieved_at: new Date().toISOString(),
+              };
+            }
 
-      const historyEntries = auditResponse.result.map((audit) => ({
-        sys_id: extractValue(audit.sys_id),
-        documentkey: extractValue(audit.documentkey),
-        tablename: extractValue(audit.tablename),
-        fieldname: extractValue(audit.fieldname),
-        oldvalue: extractValue(audit.oldvalue),
-        newvalue: extractValue(audit.newvalue),
-        user: extractValue(audit.user),
-        sys_created_on: extractValue(audit.sys_created_on),
-        sys_created_by: extractValue(audit.sys_created_by),
-        reason: extractValue(audit.reason),
-        record_checkpoint: extractValue(audit.record_checkpoint),
-      }));
+            const historyEntries = auditResponse.result.map((audit) => ({
+              sys_id: extractValue(audit.sys_id),
+              documentkey: extractValue(audit.documentkey),
+              tablename: extractValue(audit.tablename),
+              fieldname: extractValue(audit.fieldname),
+              oldvalue: extractValue(audit.oldvalue),
+              newvalue: extractValue(audit.newvalue),
+              user: extractValue(audit.user),
+              sys_created_on: extractValue(audit.sys_created_on),
+              sys_created_by: extractValue(audit.sys_created_by),
+              reason: extractValue(audit.reason),
+              record_checkpoint: extractValue(audit.record_checkpoint),
+            }));
 
-      set.headers["content-type"] = "application/json";
-      return {
-        success: true,
-        sys_id: sysId,
-        history: historyEntries,
-        total: historyEntries.length,
-        limit,
-        offset,
-        retrieved_at: new Date().toISOString(),
-      };
-    } catch (error: unknown) {
-      console.error("❌ [API] Error getting ticket history:", error);
-      set.status = 500;
-      return {
-        success: false,
-        error: "Failed to retrieve ticket history",
-        message: error instanceof Error ? error.message : String(error),
-      };
-    }
-  }, {
-    params: t.Object({
-      sysId: t.String({ minLength: 32, maxLength: 32 }),
-    }),
-    query: t.Optional(
-      t.Object({
-        limit: t.Optional(t.String()),
-        offset: t.Optional(t.String()),
-      }),
-    ),
-  })
+            set.headers["content-type"] = "application/json";
+            return {
+              success: true,
+              sys_id: sysId,
+              history: historyEntries,
+              total: historyEntries.length,
+              limit,
+              offset,
+              retrieved_at: new Date().toISOString(),
+            };
+          } catch (error: unknown) {
+            console.error("❌ [API] Error getting ticket history:", error);
+            set.status = 500;
+            return {
+              success: false,
+              error: "Failed to retrieve ticket history",
+              message: error instanceof Error ? error.message : String(error),
+            };
+          }
+        },
+        {
+          params: t.Object({
+            sysId: t.String({ minLength: 32, maxLength: 32 }),
+          }),
+          query: t.Optional(
+            t.Object({
+              limit: t.Optional(t.String()),
+              offset: t.Optional(t.String()),
+            }),
+          ),
+        },
+      )
   );
 }
 

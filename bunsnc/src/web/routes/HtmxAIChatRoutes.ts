@@ -48,8 +48,8 @@ export const htmxAIChatRoutes = new Elysia({ prefix: "/ai/chat" })
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>AI Assistant Chat - BunSNC</title>
-        <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-        <script src="https://unpkg.com/hyperscript.org@0.9.12"></script>
+        <script src="/ui/js/htmx.min.js"></script>
+        <!-- Hyperscript removed - using HTMX only -->
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body {

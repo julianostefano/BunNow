@@ -4,7 +4,9 @@
  */
 
 import { Elysia, t } from "elysia";
-import { dataService, GroupFilter } from "../services/ConsolidatedDataService";
+// FIX v5.5.19: Import from services/index.ts to use lazy Proxy singleton
+import { dataService } from "../services";
+import type { GroupFilter } from "../services/ConsolidatedDataService";
 import { GroupData } from "../config/mongodb-collections";
 import { logger } from "../utils/Logger";
 import { mongoClient } from "../config/mongodb";

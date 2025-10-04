@@ -27,10 +27,8 @@ import {
   ConsolidatedServiceNowService,
 } from "../services";
 import { ServiceNowAuthClient } from "../services/ServiceNowAuthClient";
-import {
-  ServiceNowBridgeService,
-  serviceNowBridgeService,
-} from "../services/ServiceNowBridgeService";
+// FIX v5.5.20: Import class only (instance created in .derive())
+import { ServiceNowBridgeService } from "../services/ServiceNowBridgeService";
 import type { ServiceNowRecord, QueryOptions } from "../types/servicenow";
 
 // Types para Eden Treaty
@@ -108,10 +106,12 @@ export const clientIntegrationPlugin = new Elysia({
 
   // Dependency Injection: Create unified client instance using Bridge Service (Elysia best practice: 1 controller = 1 instance)
   .derive(async () => {
-    // Import Bridge Service following Elysia best practices - real logic only
-    const { serviceNowBridgeService } = await import(
+    // FIX v5.5.20: Import class and instantiate locally (ElysiaJS pattern)
+    // Root cause: ServiceNowBridgeService.ts exports class, not instance
+    const { ServiceNowBridgeService } = await import(
       "../services/ServiceNowBridgeService"
     );
+    const serviceNowBridgeService = new ServiceNowBridgeService();
     const { attachmentAPI } = await import("../api/AttachmentAPI");
 
     // Get configuration from environment

@@ -22,10 +22,8 @@ import {
   HybridDataOptions,
 } from "../services/ConsolidatedDataService";
 import { ServiceNowStreams } from "../config/redis-streams";
-import {
-  ServiceNowBridgeService,
-  serviceNowBridgeService,
-} from "../services/ServiceNowBridgeService";
+// FIX v5.5.20: Import class only (instance created in .derive())
+import { ServiceNowBridgeService } from "../services/ServiceNowBridgeService";
 
 // Types para Eden Treaty
 export interface DataPluginContext {
@@ -93,6 +91,9 @@ export const dataPlugin = new Elysia({
     );
     const dataService = createDataService(defaultDataServiceConfig);
 
+    // FIX v5.5.20: Create ServiceNowBridgeService instance locally
+    const serviceNowBridgeService = new ServiceNowBridgeService();
+
     // Initialize Redis Streams (optional)
     let redisStreams: ServiceNowStreams | undefined;
     try {
@@ -117,7 +118,7 @@ export const dataPlugin = new Elysia({
       console.warn("⚠️ Data Plugin: MongoDB not available:", error.message);
     }
 
-    return { dataService, redisStreams };
+    return { dataService, redisStreams, serviceNowBridgeService };
   })
 
   // High-level ticket retrieval method - replaces direct data service calls with real functionality

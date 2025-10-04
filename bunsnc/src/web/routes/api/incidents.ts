@@ -67,8 +67,12 @@ const app = new Elysia({ prefix: "/api/incidents" })
     console.log(`  - password length: ${password?.length}`);
 
     if (!instanceUrl || !username || !password) {
-      console.error("[incidents.ts] Missing ServiceNow credentials in env vars");
-      throw new Error("ServiceNow credentials not configured. Check .env file.");
+      console.error(
+        "[incidents.ts] Missing ServiceNow credentials in env vars",
+      );
+      throw new Error(
+        "ServiceNow credentials not configured. Check .env file.",
+      );
     }
 
     const serviceNowClient = ServiceNowClient.createWithCredentials(
@@ -81,15 +85,16 @@ const app = new Elysia({ prefix: "/api/incidents" })
     const services = await initializeServices();
     return {
       ...services,
-      serviceNowClient,  // ✅ Inject client in context
+      serviceNowClient, // ✅ Inject client in context
     };
   })
 
   .get(
     "/",
-    async ({ query, serviceNowClient }) => {  // ✅ Use injected client
+    async ({ query, serviceNowClient }) => {
+      // ✅ Use injected client
       try {
-        const gr = serviceNowClient.getGlideRecord("incident");  // ✅ No more client creation
+        const gr = serviceNowClient.getGlideRecord("incident"); // ✅ No more client creation
 
         // Apply filters from query parameters
         if (query.state && query.state !== "all") {
@@ -170,9 +175,10 @@ const app = new Elysia({ prefix: "/api/incidents" })
     },
   )
 
-  .get("/:id", async ({ params, serviceNowClient }) => {  // ✅ Use injected client
+  .get("/:id", async ({ params, serviceNowClient }) => {
+    // ✅ Use injected client
     try {
-      const gr = serviceNowClient.getGlideRecord("incident");  // ✅ No more client creation
+      const gr = serviceNowClient.getGlideRecord("incident"); // ✅ No more client creation
       gr.addQuery("sys_id", params.id);
       gr.query();
 
@@ -265,10 +271,15 @@ const app = new Elysia({ prefix: "/api/incidents" })
 
   .get(
     "/stats/summary",
-    async ({ enhancedMetricsService, contractualViolationService, serviceNowClient }) => {  // ✅ Use injected client
+    async ({
+      enhancedMetricsService,
+      contractualViolationService,
+      serviceNowClient,
+    }) => {
+      // ✅ Use injected client
       try {
         // Get active incidents count (using injected client)
-        const activeGr = serviceNowClient.getGlideRecord("incident");  // ✅ Use injected client
+        const activeGr = serviceNowClient.getGlideRecord("incident"); // ✅ Use injected client
         activeGr.addQuery("state", "!=", "6"); // Not resolved
         activeGr.addQuery("state", "!=", "7"); // Not closed
         activeGr.query();
@@ -276,7 +287,7 @@ const app = new Elysia({ prefix: "/api/incidents" })
         while (activeGr.next()) activeCount++;
 
         // Get high priority incidents
-        const highPriorityGr = serviceNowClient.getGlideRecord("incident");  // ✅ Use injected client
+        const highPriorityGr = serviceNowClient.getGlideRecord("incident"); // ✅ Use injected client
         highPriorityGr.addQuery("priority", "IN", "1,2");
         highPriorityGr.addQuery("state", "!=", "6");
         highPriorityGr.addQuery("state", "!=", "7");
@@ -421,13 +432,14 @@ const app = new Elysia({ prefix: "/api/incidents" })
 
   .get(
     "/trends/hourly",
-    async ({ query, serviceNowClient }) => {  // ✅ Use injected client
+    async ({ query, serviceNowClient }) => {
+      // ✅ Use injected client
       try {
         const days = parseInt(query.days as string) || 7;
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
 
-        const gr = serviceNowClient.getGlideRecord("incident");  // ✅ Use injected client
+        const gr = serviceNowClient.getGlideRecord("incident"); // ✅ Use injected client
         gr.addQuery(
           "sys_created_on",
           ">=",

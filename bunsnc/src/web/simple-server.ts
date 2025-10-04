@@ -39,9 +39,9 @@ const app = new Elysia()
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ServiceNow Analytics Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <script src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js" defer></script>
+    <script src="/ui/styles/tailwind.css"></script>
+    <script src="/ui/js/htmx.min.js"></script>
+    <!-- AlpineJS removed - using HTMX only -->
 </head>
 <body class="bg-gray-100 min-h-screen font-sans">
     <div class="container mx-auto px-4 py-8">

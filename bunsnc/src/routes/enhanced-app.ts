@@ -9,13 +9,18 @@
  */
 
 import { Elysia, t } from "elysia";
-import { consolidatedServiceNowService } from "../services/ConsolidatedServiceNowService";
-import { ServiceNowAuthClient } from "../services/ServiceNowAuthClient";
+// FIX v5.5.20: Remove static imports, use factory pattern
+// import { consolidatedServiceNowService } from "../services";
+// import { dataService } from "../services";
+import {
+  ServiceNowAuthClient,
+  ConsolidatedServiceNowService,
+  ConsolidatedDataService,
+} from "../services";
 import { createTicketActionsRoutes } from "./TicketActionsRoutes";
 import { createTicketListRoutes } from "./TicketListRoutes";
 import { createTicketDetailsRoutes } from "./TicketDetailsRoutes";
 import { ServiceNowStreams } from "../config/redis-streams";
-import { dataService } from "../services/ConsolidatedDataService";
 
 // Import unified schema registry and API schemas
 import {
@@ -87,7 +92,17 @@ function createSuccessResponse(data: any, metadata?: any) {
 
 // Create enhanced async app initialization function
 async function createEnhancedApp() {
-  const app = new Elysia();
+  // FIX v5.5.20: Create service instances using factory pattern
+  const consolidatedServiceNowService =
+    ConsolidatedServiceNowService.createInstance();
+  const dataService = new ConsolidatedDataService();
+
+  const app = new Elysia({ name: "enhanced-app-routes" })
+    // Use .derive() for service injection following ElysiaJS pattern
+    .derive(() => ({
+      consolidatedServiceNowService,
+      dataService,
+    }));
 
   // Global error handler
   app.error("VALIDATION", ({ error, code }) => {
@@ -127,7 +142,7 @@ async function createEnhancedApp() {
 
       // Test database connection
       try {
-        await enhancedTicketStorageService.ping();
+        await dataService.ping();
       } catch (error: unknown) {
         checks.database = "error";
       }
@@ -204,7 +219,7 @@ async function createEnhancedApp() {
         );
       } catch (error: unknown) {
         console.error("Create record error:", error);
-        return createErrorResponse("CREATE_ERROR", error.message);
+        return createErrorResponse("CREATE_ERROR", (error as Error).message);
       }
     },
     {
@@ -269,7 +284,7 @@ async function createEnhancedApp() {
         );
       } catch (error: unknown) {
         console.error("Get record error:", error);
-        return createErrorResponse("GET_ERROR", error.message);
+        return createErrorResponse("GET_ERROR", (error as Error).message);
       }
     },
     {
@@ -351,7 +366,7 @@ async function createEnhancedApp() {
         );
       } catch (error: unknown) {
         console.error("Batch operation error:", error);
-        return createErrorResponse("BATCH_ERROR", error.message);
+        return createErrorResponse("BATCH_ERROR", (error as Error).message);
       }
     },
     {
@@ -408,7 +423,7 @@ async function createEnhancedApp() {
         );
       } catch (error: unknown) {
         console.error("Upload attachment error:", error);
-        return createErrorResponse("UPLOAD_ERROR", error.message);
+        return createErrorResponse("UPLOAD_ERROR", (error as Error).message);
       }
     },
     {
@@ -476,14 +491,15 @@ async function createEnhancedApp() {
   let mongoService = dataService;
   let redisStreams: ServiceNowStreams | undefined;
 
+  // FIX v5.5.20: Initialize services with proper error handling
   try {
-    await enhancedTicketStorageService.initialize();
-    mongoService = enhancedTicketStorageService;
+    await dataService.initialize();
+    mongoService = dataService;
     console.log(" Enhanced app: MongoDB service initialized");
   } catch (error: unknown) {
     console.warn(
       " Enhanced app: MongoDB service not available:",
-      error.message,
+      (error as Error).message,
     );
   }
 
@@ -492,7 +508,10 @@ async function createEnhancedApp() {
     await redisStreams.initialize();
     console.log(" Enhanced app: Redis Streams initialized");
   } catch (error: unknown) {
-    console.warn(" Enhanced app: Redis Streams not available:", error.message);
+    console.warn(
+      " Enhanced app: Redis Streams not available:",
+      (error as Error).message,
+    );
   }
 
   // Add existing ticket routes
@@ -509,7 +528,7 @@ async function createEnhancedApp() {
   return app;
 }
 
-// Initialize and export the enhanced app
-const enhancedAppPromise = createEnhancedApp();
+// FIX v5.5.20: Export factory function only, no top-level async call
+// const enhancedAppPromise = createEnhancedApp();
 export { createEnhancedApp };
-export default enhancedAppPromise;
+export default createEnhancedApp;

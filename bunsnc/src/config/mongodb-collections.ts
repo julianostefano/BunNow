@@ -96,7 +96,8 @@ export type CollectionName =
   (typeof COLLECTION_NAMES)[keyof typeof COLLECTION_NAMES];
 
 import { MongoClient, Db, Collection, IndexSpecification } from "mongodb";
-import { dataService } from "../services/ConsolidatedDataService";
+// FIX v5.5.19: Import from services/index.ts to use lazy Proxy singleton
+import { dataService } from "../services";
 
 export interface CollectionConfig {
   name: string;

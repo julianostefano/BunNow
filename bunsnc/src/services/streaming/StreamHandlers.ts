@@ -248,10 +248,7 @@ export class StreamHandlers extends StreamingCore {
                   ? 85 + Math.random() * 10
                   : Math.random() * 100;
 
-            if (
-              options?.filters?.breachesOnly &&
-              eventType !== "sla-breach"
-            ) {
+            if (options?.filters?.breachesOnly && eventType !== "sla-breach") {
               continue;
             }
 
@@ -274,9 +271,7 @@ export class StreamHandlers extends StreamingCore {
                     ? new Date().toISOString()
                     : undefined,
                 severity:
-                  eventType === "sla-breach"
-                    ? "critical"
-                    : ("medium" as any),
+                  eventType === "sla-breach" ? "critical" : ("medium" as any),
                 assignmentGroup: "IT Support Level 2",
                 timestamp: new Date().toISOString(),
               },
@@ -407,7 +402,6 @@ export class StreamHandlers extends StreamingCore {
       },
     });
   }
-
 
   /**
    * Broadcast message to all connections monitoring a specific ticket

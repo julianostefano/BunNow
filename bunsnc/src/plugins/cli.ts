@@ -22,10 +22,8 @@ import {
 } from "../services";
 import { ServiceNowAuthClient } from "../services/ServiceNowAuthClient";
 import { ServiceNowClient } from "../client/ServiceNowClient";
-import {
-  ServiceNowBridgeService,
-  serviceNowBridgeService,
-} from "../services/ServiceNowBridgeService";
+// FIX v5.5.20: Import class only (instance created in .derive())
+import { ServiceNowBridgeService } from "../services/ServiceNowBridgeService";
 import type { ServiceNowRecord } from "../types/servicenow";
 import * as dotenv from "dotenv";
 
@@ -110,6 +108,9 @@ export const cliPlugin = new Elysia({
     const consolidatedService = consolidatedServiceNowService;
     const authClient = serviceNowAuthClient;
 
+    // FIX v5.5.20: Create ServiceNowBridgeService instance locally
+    const serviceNowBridgeService = new ServiceNowBridgeService();
+
     // Initialize ServiceNow client
     // FIX v5.5.15: Use correct environment variables (SERVICENOW_* instead of SNC_*)
     const instanceUrl = process.env.SERVICENOW_INSTANCE_URL || "";
@@ -140,6 +141,7 @@ export const cliPlugin = new Elysia({
       authClient,
       serviceNowClient,
       cliCommander,
+      serviceNowBridgeService,
     };
   })
 
