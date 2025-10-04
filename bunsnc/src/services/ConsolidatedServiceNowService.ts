@@ -4,6 +4,9 @@
  * Consolidates: servicenow.service, ConsolidatedServiceNowService, ConsolidatedServiceNowService, AttachmentService, BatchService
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
+console.log(
+  "🔍 [DEBUG-CSN] ConsolidatedServiceNowService.ts: Module loading START",
+);
 
 import { EventEmitter } from "events";
 import { logger } from "../utils/Logger";
@@ -1041,17 +1044,64 @@ export class ConsolidatedServiceNowService extends EventEmitter {
   }
 }
 
-// ==================== SINGLETON INSTANCE ====================
+// ==================== FACTORY FUNCTION ====================
+
+// FIX v5.5.19: Removed top-level instantiation to prevent startup hang
+// Root cause: Service instantiation with full config during import
+// Violates ElysiaJS best practice: Services should NOT be instantiated at module scope
+// Use createConsolidatedServiceNowService() factory in handlers instead
+// See: docs/reports/ELYSIA_COMPLIANCE_REPORT_v5.5.19.md - CRITICAL-1
+
+export const createConsolidatedServiceNowService = (config?: {
+  instanceUrl?: string;
+  authToken?: string;
+  rateLimiting?: {
+    enabled: boolean;
+    maxRequests: number;
+    timeWindow: number;
+  };
+  retryPolicy?: {
+    enabled: boolean;
+    maxRetries: number;
+    baseDelay: number;
+  };
+}) => {
+  const instanceUrl =
+    config?.instanceUrl ||
+    process.env.SERVICENOW_INSTANCE_URL ||
+    "https://iberdrola.service-now.com";
+
+  return new ConsolidatedServiceNowService({
+    instanceUrl,
+    authToken:
+      config?.authToken ||
+      process.env.AUTH_SERVICE_URL ||
+      "http://10.219.8.210:8000/auth",
+    rateLimiting: config?.rateLimiting || {
+      enabled: true,
+      maxRequests: parseInt(process.env.SERVICENOW_RATE_LIMIT || "95"),
+      timeWindow: 60000, // 1 minute
+    },
+    retryPolicy: config?.retryPolicy || {
+      enabled: true,
+      maxRetries: 3,
+      baseDelay: 1000,
+    },
+  });
+};
+
+// FIX v5.5.22: Re-enable instance export for backward compatibility with Lazy Proxy pattern
+// Root cause: services/index.ts Lazy Proxy expects this export to exist
+// This is TEMPORARY - will be replaced by plugin-only pattern in next phase
+// Reference: CRITICAL-0 from analysis - "Export named 'consolidatedServiceNowService' not found"
 
 import { ServiceNowAuthClient } from "./ServiceNowAuthClient";
 
 const instanceUrl =
   process.env.SERVICENOW_INSTANCE_URL || "https://iberdrola.service-now.com";
 
-// Use ServiceNowAuthClient with broker authentication
 const authClient = new ServiceNowAuthClient();
 
-// Check if auth is configured properly (will always be false initially due to deferred initialization)
 if (!authClient.getBaseUrl()) {
   console.warn(
     "[ConsolidatedServiceNowService] Authentication broker not configured, using direct proxy URLs",
@@ -1068,7 +1118,7 @@ const consolidatedServiceNowService = new ConsolidatedServiceNowService({
   rateLimiting: {
     enabled: true,
     maxRequests: parseInt(process.env.SERVICENOW_RATE_LIMIT || "95"),
-    timeWindow: 60000, // 1 minute
+    timeWindow: 60000,
   },
   retryPolicy: {
     enabled: true,

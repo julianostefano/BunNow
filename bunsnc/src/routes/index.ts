@@ -14,8 +14,7 @@ import {
 } from "./notifications";
 import { createGroupRoutes } from "./GroupRoutes";
 import { createModalRoutes, createSSERoutes } from "./ModalRoutes";
-import { createSystemService, SystemConfig } from "../services/SystemService";
-import { MongoClient } from "mongodb";
+import { systemPlugin } from "../plugins/system";
 import { serviceNowProxyRoutes } from "../modules/servicenow-proxy";
 
 // Plugin System Integration
@@ -26,6 +25,13 @@ import {
 
 export async function createMainApp(): Promise<Elysia> {
   const mainApp = new Elysia();
+
+  // FIX v5.5.22: Add OpenTelemetry instrumentation plugin (FIRST)
+  // Must be loaded before other plugins to trace all HTTP requests
+  // Reference: CRITICAL-2 from COMPLETE_CODEBASE_ANALYSIS.md
+  const { instrumentation } = await import("../instrumentation");
+  mainApp.use(instrumentation);
+  console.log("📊 OpenTelemetry HTTP tracing enabled");
 
   // Integrate Plugin System - All 8 plugins with dependency injection
   mainApp.use(
@@ -70,60 +76,18 @@ export async function createMainApp(): Promise<Elysia> {
   // Background sync functionality consolidated into ConsolidatedDataService
   // Initialized via WebServerController.ts
 
-  // Initialize system service (includes performance monitoring and cache optimization)
-  try {
-    const mongoClient = new MongoClient(
-      process.env.MONGODB_URL || "mongodb://localhost:27018",
-    );
-    const systemConfig: SystemConfig = {
-      mongodb: {
-        client: mongoClient,
-        database: process.env.MONGODB_DATABASE || "bunsnc",
-      },
-      redis: {
-        host: process.env.REDIS_HOST || "localhost",
-        port: parseInt(process.env.REDIS_PORT || "6379"),
-        password: process.env.REDIS_PASSWORD,
-      },
-      performance: {
-        monitoring: true,
-        thresholds: {
-          response_time_warning: 1000,
-          response_time_critical: 5000,
-          memory_warning: 500,
-          memory_critical: 1000,
-        },
-      },
-      tasks: {
-        concurrency: 3,
-        retryDelay: 5000,
-        maxRetries: 3,
-        cleanupInterval: 300000,
-      },
-    };
-
-    const systemService = createSystemService(systemConfig);
-    systemService
-      .initialize()
-      .then(() => {
-        console.log(
-          " System service initialized (performance monitoring + cache optimization)",
-        );
-      })
-      .catch((error) => {
-        console.error(" Failed to initialize system service:", error);
-        console.warn(" Server will continue without system monitoring");
-      });
-  } catch (error: unknown) {
-    console.error(" Failed to create system service:", error);
-    console.warn(" Server will continue without system monitoring");
-  }
+  // FIX v5.5.21: SystemService now initialized via systemPlugin (ElysiaJS best practice)
+  // Root cause: Local variable creation didn't initialize Singleton
+  // Solution: systemPlugin with .derive() provides proper DI
+  // See: src/plugins/system.ts, src/web/ui/routes/streaming-metrics.routes.ts
 
   // Add NEW UI Dashboard v2.0 (Corporate Clean Design)
   try {
     const { default: uiApp } = await import("../web/ui/index");
     mainApp.use(uiApp);
-    console.log("✨ BunSNC Dashboard v2.0 added at /ui (Corporate Clean Design)");
+    console.log(
+      "✨ BunSNC Dashboard v2.0 added at /ui (Corporate Clean Design)",
+    );
   } catch (error: unknown) {
     console.error("⚠️ Failed to add UI Dashboard v2.0:", error);
     console.warn("⚠️ Server will continue without UI v2.0");
@@ -133,15 +97,21 @@ export async function createMainApp(): Promise<Elysia> {
   // Reason: Route must be at /api/streaming/metrics (not /ui/api/streaming/metrics)
   // Pattern: Following GroupRoutes.ts error handling for _r_r bug
   try {
+    console.log("🔍 [DEBUG] About to import streaming-metrics.routes...");
     const { streamingMetricsRoutes } = await import(
       "../web/ui/routes/streaming-metrics.routes"
     );
+    console.log("🔍 [DEBUG] streaming-metrics.routes imported successfully");
     mainApp.use(streamingMetricsRoutes);
-    console.log("📡 SSE streaming metrics endpoint added at /api/streaming/metrics");
+    console.log(
+      "📡 SSE streaming metrics endpoint added at /api/streaming/metrics",
+    );
   } catch (error: unknown) {
     console.error("⚠️ Failed to add SSE streaming metrics:", error);
     console.warn("⚠️ Server will continue without real-time metrics streaming");
   }
+
+  console.log("🔍 [DEBUG] After SSE metrics, before createApp()...");
 
   // FIX v5.5.15: Legacy HTMX Dashboard temporarily disabled
   // Root cause: Top-level import of ServiceNowAuthClient causes context conflicts
@@ -193,9 +163,14 @@ export async function createMainApp(): Promise<Elysia> {
     }
   });
 
+  // FIX v5.5.20: Removed pre-initialization - authPlugin handles lazy loading via .derive()
+  // Plugin pattern is the ElysiaJS best practice for service management
+
   // Add main application routes with error handling
   try {
+    console.log("🔍 [DEBUG] Calling createApp()...");
     const appRoutes = await createApp();
+    console.log("🔍 [DEBUG] createApp() returned successfully");
     mainApp.use(appRoutes);
     console.log(" Main application routes added");
   } catch (error: unknown) {
@@ -306,47 +281,45 @@ export async function createMainApp(): Promise<Elysia> {
       }),
   );
 
-  // Performance monitoring endpoints
-  mainApp.group("/monitoring", (app) =>
-    app
-      .get("/performance", async () => {
-        try {
-          return await systemService.getCurrentMetrics();
-        } catch (error: unknown) {
-          return { error: error.message };
-        }
-      })
-      .get("/performance/detailed", async () => {
-        try {
-          return await systemService.getDetailedReport();
-        } catch (error: unknown) {
-          return { error: error.message };
-        }
-      })
-      .get("/cache", async () => {
-        try {
-          return await systemService.getCacheStats();
-        } catch (error: unknown) {
-          return { error: error.message };
-        }
-      })
-      .post("/cache/optimize", async () => {
-        try {
-          await cacheOptimizationService.optimizeCache();
-          return { success: true, message: "Cache optimization completed" };
-        } catch (error: unknown) {
-          return { success: false, error: error.message };
-        }
-      })
-      .post("/cache/clear", async () => {
-        try {
-          await cacheOptimizationService.clearCache();
-          return { success: true, message: "Cache cleared successfully" };
-        } catch (error: unknown) {
-          return { success: false, error: error.message };
-        }
-      }),
-  );
+  // Performance monitoring endpoints - Using systemPlugin for DI
+  mainApp
+    .use(systemPlugin)
+    .group("/monitoring", (app) =>
+      app
+        .get("/performance", async ({ systemService }) => {
+          try {
+            return await systemService.getPerformanceStats(24);
+          } catch (error: unknown) {
+            return { error: error.message };
+          }
+        })
+        .get("/performance/detailed", async ({ systemService }) => {
+          try {
+            return await systemService.getSystemStats();
+          } catch (error: unknown) {
+            return { error: error.message };
+          }
+        })
+        .get("/cache", async ({ systemService }) => {
+          try {
+            const memUsage = systemService.getMemoryUsage();
+            return {
+              memory: memUsage,
+              status: "ok",
+              message: "Cache stats available via systemService"
+            };
+          } catch (error: unknown) {
+            return { error: error.message };
+          }
+        })
+        .get("/health", async ({ systemService }) => {
+          try {
+            return await systemService.getSystemHealth();
+          } catch (error: unknown) {
+            return { error: error.message };
+          }
+        }),
+    );
 
   // Health check endpoint
   mainApp.get("/health", async () => {
@@ -376,8 +349,12 @@ export async function createMainApp(): Promise<Elysia> {
   // Initialize deferred cache warming after server is ready
   setImmediate(async () => {
     try {
-      console.warn("⚠️ [Cache Warmup] ServiceNow queries may timeout after 61s");
-      console.warn("⚠️ This is expected and does not affect main functionality");
+      console.warn(
+        "⚠️ [Cache Warmup] ServiceNow queries may timeout after 61s",
+      );
+      console.warn(
+        "⚠️ This is expected and does not affect main functionality",
+      );
       console.warn("⚠️ See docs/progresso*61s* for details");
 
       const { serviceNowAuthClient } = await import(

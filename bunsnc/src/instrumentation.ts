@@ -21,7 +21,9 @@ import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
 } from "@opentelemetry/semantic-conventions";
-import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
+// FIX v5.5.22: Removed getNodeAutoInstrumentations() - was blocking startup
+// Root cause: Auto-instrumentations try to patch modules before they load
+// Solution: Use Elysia native instrumentation only (HTTP tracing built-in)
 
 const isProduction = process.env.NODE_ENV === "production";
 const serviceName = "BunSNC";
@@ -67,12 +69,17 @@ const batchSpanProcessor = new BatchSpanProcessor(otlpTraceExporter, {
   exportTimeoutMillis: 10000,
 });
 
+// FIX v5.5.22: Export Elysia plugin for HTTP instrumentation
+// Elysia's opentelemetry plugin provides automatic HTTP tracing without blocking startup
+// Reference: https://elysiajs.com/plugins/opentelemetry.html
 export const instrumentation = opentelemetry({
   serviceName,
   resource,
   spanProcessors: [batchSpanProcessor],
-  instrumentations: [getNodeAutoInstrumentations()],
+  // ✅ REMOVED: instrumentations: [getNodeAutoInstrumentations()]
+  // Elysia plugin automatically instruments HTTP requests/responses
 });
 
 console.log("[OpenTelemetry] Elysia instrumentation initialized successfully");
+console.log("[OpenTelemetry] HTTP tracing enabled (Elysia native)");
 console.log("[OpenTelemetry] Traces will be exported to Jaeger via OTLP");

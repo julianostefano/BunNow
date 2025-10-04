@@ -1,6 +1,21 @@
+console.log("🔍 [DEBUG-INDEX] src/index.ts: Entry point START");
+
+/**
+ * FIX v5.5.22: Re-enable OpenTelemetry instrumentation
+ * Root cause resolved: Removed getNodeAutoInstrumentations() blocking startup
+ * Now uses Elysia native HTTP instrumentation only (non-blocking)
+ * Reference: docs/reports/COMPLETE_CODEBASE_ANALYSIS.md - CRITICAL-2
+ */
+import { instrumentation } from "./instrumentation";
+
+console.log("🔍 [DEBUG-INDEX] src/index.ts: OpenTelemetry instrumentation loaded");
+console.log("🔍 [DEBUG-INDEX] src/index.ts: Checking CLI args...");
+
 // Detecta argumentos CLI antes de subir o servidor
 const userArgs = process.argv.slice(2);
 const isCli = userArgs.length > 0;
+
+console.log(`🔍 [DEBUG-INDEX] src/index.ts: CLI mode = ${isCli}`);
 
 if (isCli) {
   // Executa CLI
