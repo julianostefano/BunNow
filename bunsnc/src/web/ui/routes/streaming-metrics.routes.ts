@@ -8,6 +8,10 @@
  * Reference: https://elysiajs.com/essential/handler.html#server-sent-events-sse
  * Reference: docs/ELYSIA_BEST_PRACTICES.md:346-386
  *
+ * FIX v5.5.24: Module loading race condition resolved via lazy route loading
+ * This route is now imported dynamically at endpoint access (routes/index.ts:322)
+ * Previous experimental fixes (mock systemService, dynamic import) reverted
+ *
  * Key Learning:
  * - ElysiaJS requires function*() (sync generator), NOT async function*()
  * - await IS ALLOWED inside function*() (JavaScript feature)
@@ -33,7 +37,7 @@ import { systemPlugin } from "../../../plugins/system";
  * Reference: ELYSIA_BEST_PRACTICES.md:404 - "Evitar yield* delegation quando usando await"
  */
 export const streamingMetricsRoutes = new Elysia()
-  .use(systemPlugin) // ✅ Inject systemService via plugin
+  .use(systemPlugin)
   .get("/api/streaming/metrics", async function* ({ query, systemService }) {
     const clientId = `dashboard-metrics-${Date.now()}`;
     const intervalSeconds = parseInt(query.interval as string) || 5;

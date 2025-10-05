@@ -93,25 +93,8 @@ export async function createMainApp(): Promise<Elysia> {
     console.warn("⚠️ Server will continue without UI v2.0");
   }
 
-  // FIX v5.5.17: Add SSE streaming metrics endpoint directly to main app
-  // Reason: Route must be at /api/streaming/metrics (not /ui/api/streaming/metrics)
-  // Pattern: Following GroupRoutes.ts error handling for _r_r bug
-  try {
-    console.log("🔍 [DEBUG] About to import streaming-metrics.routes...");
-    const { streamingMetricsRoutes } = await import(
-      "../web/ui/routes/streaming-metrics.routes"
-    );
-    console.log("🔍 [DEBUG] streaming-metrics.routes imported successfully");
-    mainApp.use(streamingMetricsRoutes);
-    console.log(
-      "📡 SSE streaming metrics endpoint added at /api/streaming/metrics",
-    );
-  } catch (error: unknown) {
-    console.error("⚠️ Failed to add SSE streaming metrics:", error);
-    console.warn("⚠️ Server will continue without real-time metrics streaming");
-  }
-
-  console.log("🔍 [DEBUG] After SSE metrics, before createApp()...");
+  // FIX v5.5.24: SSE streaming metrics endpoint now uses lazy loading pattern
+  // Removed static import - see line ~345 for lazy-loaded implementation
 
   // FIX v5.5.15: Legacy HTMX Dashboard temporarily disabled
   // Root cause: Top-level import of ServiceNowAuthClient causes context conflicts
@@ -331,6 +314,57 @@ export async function createMainApp(): Promise<Elysia> {
       },
     };
   });
+
+  // FIX v5.5.24: Lazy-loaded SSE streaming metrics endpoint
+  // Root cause: Module loading race condition when importing streaming-metrics at startup
+  // Solution: Import dynamically only when endpoint is accessed (eliminates race condition)
+  // Reference: docs/reports/STREAMING_METRICS_DEADLOCK_FIX_v5.5.24.md
+  mainApp.get("/api/streaming/metrics", async function* (context) {
+    try {
+      // Dynamic import apenas quando endpoint é acessado (evita race condition)
+      const { streamingMetricsRoutes } = await import(
+        "../web/ui/routes/streaming-metrics.routes"
+      );
+
+      // Extract the SSE handler from the imported route module
+      const metricsRoute = streamingMetricsRoutes.routes.find(
+        (r: any) => r.path === "/api/streaming/metrics"
+      );
+
+      if (!metricsRoute || !metricsRoute.handler) {
+        throw new Error("Streaming metrics handler not found in route module");
+      }
+
+      // Delegate to the actual SSE handler with proper context binding
+      yield* metricsRoute.handler.call(this, context);
+    } catch (error: unknown) {
+      console.error("❌ Streaming metrics error:", error);
+
+      // Yield error event in SSE format
+      yield {
+        event: "error",
+        data: JSON.stringify({
+          type: "error",
+          error: error instanceof Error ? error.message : "Unknown error",
+          timestamp: new Date().toISOString(),
+        }),
+      };
+    }
+  });
+
+  // Test endpoint for SSE metrics availability
+  mainApp.get("/api/streaming/metrics/test", () => {
+    return {
+      status: "ok",
+      message: "SSE metrics endpoint available (lazy-loaded pattern)",
+      endpoint: "/api/streaming/metrics",
+      pattern: "Lazy Loading Pattern (import on first access)",
+      streamType: "dashboard-metrics",
+      timestamp: new Date().toISOString(),
+    };
+  });
+
+  console.log("📡 SSE streaming metrics endpoint added (lazy-loaded pattern)");
 
   // Add group management routes with error handling
   try {

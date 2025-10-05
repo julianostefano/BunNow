@@ -1,11 +1,15 @@
 /**
- * System Plugin - SystemService dependency injection with lazy initialization
+ * System Plugin - SystemService dependency injection
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  *
  * FIX v5.5.21: SystemService Plugin Pattern (ElysiaJS Best Practice)
  * Root cause: streaming-metrics.routes.ts calling getInstance() without config
  * Solution: Plugin with .derive() for lazy initialization and proper DI
  * Reference: docs/ELYSIA_BEST_PRACTICES.md - "Plugin Dependency Injection"
+ *
+ * FIX v5.5.24: Module loading race condition resolved via lazy route loading
+ * Previous experimental fix (lazy import in .derive) reverted
+ * Actual fix: streaming-metrics imported dynamically at endpoint access (routes/index.ts:322)
  */
 
 import { Elysia } from "elysia";
@@ -25,6 +29,7 @@ import { logger } from "../utils/Logger";
  */
 export const systemPlugin = new Elysia({ name: "system" }).derive(async () => {
   try {
+
     // Get existing singleton OR create with config
     let systemService = SystemService.getInstance();
 
