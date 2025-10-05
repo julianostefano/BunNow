@@ -5,8 +5,7 @@
  */
 
 // Force correct ServiceNow proxy from environment variables
-process.env.SERVICENOW_PROXY =
-  `http://${process.env.CORPORATE_PROXY_USER}:${process.env.CORPORATE_PROXY_PASSWORD}@10.219.77.12:8080`;
+process.env.SERVICENOW_PROXY = `http://${process.env.CORPORATE_PROXY_USER}:${process.env.CORPORATE_PROXY_PASSWORD}@10.219.77.12:8080`;
 
 import { ServiceNowFetchClient } from "../services/ServiceNowFetchClient";
 import { writeFileSync, mkdirSync, existsSync } from "fs";

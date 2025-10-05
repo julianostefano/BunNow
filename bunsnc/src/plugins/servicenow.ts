@@ -73,7 +73,9 @@ export interface ServiceNowPluginContext {
     location?: string,
   ) => Promise<BridgeResponse<ServiceNowRecord[]>>;
   // FIX v5.5.22: Add attachment/batch operations
-  uploadAttachment: (request: AttachmentUploadRequest) => Promise<AttachmentInfo>;
+  uploadAttachment: (
+    request: AttachmentUploadRequest,
+  ) => Promise<AttachmentInfo>;
   downloadAttachment: (attachmentId: string) => Promise<Uint8Array>;
   executeBatch: (operations: BatchOperation[]) => Promise<any[]>;
 }
@@ -238,9 +240,7 @@ export const serviceNowPlugin = new Elysia({
   // FIX v5.5.22: Attachment operations - resolves circular dependency in routes/app.ts
   .decorate(
     "uploadAttachment",
-    async function (
-      request: AttachmentUploadRequest,
-    ): Promise<AttachmentInfo> {
+    async function (request: AttachmentUploadRequest): Promise<AttachmentInfo> {
       // TEMPORARY: Use consolidatedServiceNowService from Lazy Proxy
       // TODO: Move attachment logic to ServiceNowBridgeService in next phase
       const { consolidatedServiceNowService } = await import("../services");
@@ -254,7 +254,9 @@ export const serviceNowPlugin = new Elysia({
       // TEMPORARY: Use consolidatedServiceNowService from Lazy Proxy
       // TODO: Move attachment logic to ServiceNowBridgeService in next phase
       const { consolidatedServiceNowService } = await import("../services");
-      return await consolidatedServiceNowService.downloadAttachment(attachmentId);
+      return await consolidatedServiceNowService.downloadAttachment(
+        attachmentId,
+      );
     },
   )
 

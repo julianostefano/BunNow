@@ -7,7 +7,9 @@ peer = true
 [run]
 smol = true
 env-file = ".env"
+preload = ["./src/env-preload.ts"]
 
-# FIX v5.5.19: Removed preload to fix environment variable loading order
-# Instrumentation now imported explicitly in src/index.ts AFTER .env loads
-# Root cause: preload executes BEFORE env-file, causing undefined process.env values
+# FIX v5.5.23: Re-enabled preload with manual .env loader
+# env-preload.ts manually parses .env BEFORE any imports
+# This ensures process.env variables are available during module initialization
+# Resolves: CORPORATE_PROXY_USER/PASSWORD needed by proxy auth during import

@@ -8,7 +8,9 @@ console.log("🔍 [DEBUG-INDEX] src/index.ts: Entry point START");
  */
 import { instrumentation } from "./instrumentation";
 
-console.log("🔍 [DEBUG-INDEX] src/index.ts: OpenTelemetry instrumentation loaded");
+console.log(
+  "🔍 [DEBUG-INDEX] src/index.ts: OpenTelemetry instrumentation loaded",
+);
 console.log("🔍 [DEBUG-INDEX] src/index.ts: Checking CLI args...");
 
 // Detecta argumentos CLI antes de subir o servidor

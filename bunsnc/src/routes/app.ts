@@ -33,40 +33,40 @@ async function createApp() {
   console.log("🔍 [DEBUG-APP] authPlugin loaded ✓");
 
   app.onError(({ error, code, set }) => {
-      console.error("Global error handler:", {
-        error: error.message,
-        code,
-        stack: error.stack,
-      });
+    console.error("Global error handler:", {
+      error: error.message,
+      code,
+      stack: error.stack,
+    });
 
-      if (code === "NOT_FOUND") {
-        set.status = 404;
-        return {
-          success: false,
-          error: "Route not found",
-          message: "The requested endpoint does not exist",
-          timestamp: new Date().toISOString(),
-        };
-      }
-
-      if (code === "VALIDATION") {
-        set.status = 400;
-        return {
-          success: false,
-          error: "Validation error",
-          message: error.message,
-          timestamp: new Date().toISOString(),
-        };
-      }
-
-      set.status = 500;
+    if (code === "NOT_FOUND") {
+      set.status = 404;
       return {
         success: false,
-        error: "Internal server error",
-        message: "An unexpected error occurred",
+        error: "Route not found",
+        message: "The requested endpoint does not exist",
         timestamp: new Date().toISOString(),
       };
-    });
+    }
+
+    if (code === "VALIDATION") {
+      set.status = 400;
+      return {
+        success: false,
+        error: "Validation error",
+        message: error.message,
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    set.status = 500;
+    return {
+      success: false,
+      error: "Internal server error",
+      message: "An unexpected error occurred",
+      timestamp: new Date().toISOString(),
+    };
+  });
 
   // CRUD seguro - Using plugin context
   app.post(
@@ -88,7 +88,9 @@ async function createApp() {
     },
   );
 
-  console.log("🔍 [DEBUG-APP] Setting up attachment/batch endpoints using plugin methods...");
+  console.log(
+    "🔍 [DEBUG-APP] Setting up attachment/batch endpoints using plugin methods...",
+  );
 
   // FIX v5.5.22: Use serviceNowPlugin methods instead of creating new instances
   // This resolves CRITICAL-2 circular dependency by using plugin-provided services
@@ -168,7 +170,9 @@ async function createApp() {
   // Solution: Initialize on-demand via plugins or background tasks
   // See: ELYSIA_BEST_PRACTICES.md - "Non-blocking Service Initialization"
 
-  console.log("🔍 [DEBUG-APP] Skipping MongoDB/Redis sync initialization (non-blocking pattern)");
+  console.log(
+    "🔍 [DEBUG-APP] Skipping MongoDB/Redis sync initialization (non-blocking pattern)",
+  );
   console.log("   Enhanced features will initialize on-demand via plugins");
 
   // FIX v5.5.20: Removed .derive() - services provided via pre-initialization (ROADMAP FASE 1.4)

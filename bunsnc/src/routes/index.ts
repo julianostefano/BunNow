@@ -282,44 +282,42 @@ export async function createMainApp(): Promise<Elysia> {
   );
 
   // Performance monitoring endpoints - Using systemPlugin for DI
-  mainApp
-    .use(systemPlugin)
-    .group("/monitoring", (app) =>
-      app
-        .get("/performance", async ({ systemService }) => {
-          try {
-            return await systemService.getPerformanceStats(24);
-          } catch (error: unknown) {
-            return { error: error.message };
-          }
-        })
-        .get("/performance/detailed", async ({ systemService }) => {
-          try {
-            return await systemService.getSystemStats();
-          } catch (error: unknown) {
-            return { error: error.message };
-          }
-        })
-        .get("/cache", async ({ systemService }) => {
-          try {
-            const memUsage = systemService.getMemoryUsage();
-            return {
-              memory: memUsage,
-              status: "ok",
-              message: "Cache stats available via systemService"
-            };
-          } catch (error: unknown) {
-            return { error: error.message };
-          }
-        })
-        .get("/health", async ({ systemService }) => {
-          try {
-            return await systemService.getSystemHealth();
-          } catch (error: unknown) {
-            return { error: error.message };
-          }
-        }),
-    );
+  mainApp.use(systemPlugin).group("/monitoring", (app) =>
+    app
+      .get("/performance", async ({ systemService }) => {
+        try {
+          return await systemService.getPerformanceStats(24);
+        } catch (error: unknown) {
+          return { error: error.message };
+        }
+      })
+      .get("/performance/detailed", async ({ systemService }) => {
+        try {
+          return await systemService.getSystemStats();
+        } catch (error: unknown) {
+          return { error: error.message };
+        }
+      })
+      .get("/cache", async ({ systemService }) => {
+        try {
+          const memUsage = systemService.getMemoryUsage();
+          return {
+            memory: memUsage,
+            status: "ok",
+            message: "Cache stats available via systemService",
+          };
+        } catch (error: unknown) {
+          return { error: error.message };
+        }
+      })
+      .get("/health", async ({ systemService }) => {
+        try {
+          return await systemService.getSystemHealth();
+        } catch (error: unknown) {
+          return { error: error.message };
+        }
+      }),
+  );
 
   // Health check endpoint
   mainApp.get("/health", async () => {
