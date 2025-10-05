@@ -139,8 +139,8 @@ auth_data = auth_response.json()
 
 session = requests.Session()
 session.proxies = {
-    "http": "AMER%5CE966380:Neoenergia%402025@10.219.77.12:8080",
-    "https": "AMER%5CE966380:Neoenergia%402025@10.219.77.12:8080",
+    "http": f"{os.getenv('CORPORATE_PROXY_USER')}:{os.getenv('CORPORATE_PROXY_PASSWORD')}@10.219.77.12:8080",
+    "https": f"{os.getenv('CORPORATE_PROXY_USER')}:{os.getenv('CORPORATE_PROXY_PASSWORD')}@10.219.77.12:8080",
 }
 
 for cookie in auth_data.get("cookies", []):

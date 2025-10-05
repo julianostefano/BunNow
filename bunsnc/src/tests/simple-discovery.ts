@@ -4,9 +4,9 @@
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  */
 
-// Force correct ServiceNow proxy
+// Force correct ServiceNow proxy from environment variables
 process.env.SERVICENOW_PROXY =
-  "http://AMER%5CE966380:Neoenergia%402026@10.219.77.12:8080";
+  `http://${process.env.CORPORATE_PROXY_USER}:${process.env.CORPORATE_PROXY_PASSWORD}@10.219.77.12:8080`;
 
 import { ServiceNowFetchClient } from "../services/ServiceNowFetchClient";
 import { writeFileSync, mkdirSync, existsSync } from "fs";

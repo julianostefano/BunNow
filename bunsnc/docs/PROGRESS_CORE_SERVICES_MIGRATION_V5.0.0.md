@@ -2706,7 +2706,7 @@ console.log("✅ [Config Validation] All ServiceNow config values are valid!");
    - Length: 33
 🔍 [Config Validation] ServiceNow username:
    - Type: string
-   - Value: "AMER\\E966380"
+   - Value: "${SERVICENOW_USERNAME}"
    - Length: 13
 🔍 [Config Validation] ServiceNow password:
    - Type: string
@@ -2719,7 +2719,7 @@ console.log("✅ [Config Validation] All ServiceNow config values are valid!");
 ```
 [ServiceNowClient.createWithCredentials] Parameters:
   - instanceUrl type: string, value: "https://iberdrola.service-now.com"
-  - username type: string, value: "AMER\\E966380"
+  - username type: string, value: "${SERVICENOW_USERNAME}"
   - password type: string, length: 15
 ```
 
@@ -2736,8 +2736,8 @@ console.log("✅ [Config Validation] All ServiceNow config values are valid!");
 **Environment Configuration (.env):**
 ```bash
 SERVICENOW_INSTANCE_URL=https://iberdrola.service-now.com
-SERVICENOW_USERNAME=AMER\\E966380
-SERVICENOW_PASSWORD=Neoenergia@2026
+SERVICENOW_USERNAME=YOUR_USERNAME
+SERVICENOW_PASSWORD=YOUR_PASSWORD
 SERVICENOW_AUTH_TYPE=saml
 ```
 

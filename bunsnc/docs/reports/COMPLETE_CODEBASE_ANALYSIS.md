@@ -625,7 +625,7 @@ interface ConsolidatedPluginContext extends
   - `initializeCacheWarming()` - Cache warmup (61s timeout mitigation)
 - **Authentication Flow**:
   1. Auth Service (http://10.219.8.210:8000/auth)
-  2. Corporate proxy (AMER%5CE966380:Neoenergia%402025@10.219.77.12:8080)
+  2. Corporate proxy (${CORPORATE_PROXY_USER}:${CORPORATE_PROXY_PASSWORD}@10.219.77.12:8080)
   3. ServiceNow session cookies + headers
 - **Status**: ✅ Operational (61s timeout mitigated)
 
@@ -890,7 +890,7 @@ interface ConsolidatedPluginContext extends
 
 **ServiceNow Integration**:
 - Auth Service: http://10.219.8.210:8000/auth
-- Proxy: AMER%5CE966380:Neoenergia%402025@10.219.77.12:8080
+- Proxy: ${CORPORATE_PROXY_USER}:${CORPORATE_PROXY_PASSWORD}@10.219.77.12:8080
 - Rate Limit: 95 req/sec, max 18 concurrent
 
 **Hadoop Integration**:
@@ -2029,7 +2029,7 @@ routes/app.ts
 - **Instance**: https://iberdrola.service-now.com
 - **Auth Service**: http://10.219.8.210:8000/auth
 - **Corporate Proxy**: http://10.219.77.12:8080
-  - Credentials: AMER%5CE966380:Neoenergia%402025
+  - Credentials: ${CORPORATE_PROXY_USER}:${CORPORATE_PROXY_PASSWORD}
 
 **Authentication Flow**:
 1. BunSNC → Auth Service (GET /auth)

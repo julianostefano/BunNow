@@ -62,15 +62,17 @@ export class ServiceNowAuthClient {
     host: '10.219.77.12',
     port: 8080,
     auth: {
-      username: 'AMER%5CE966380',
-      password: 'Neoenergia%402026'
+      username: process.env.CORPORATE_PROXY_USER || '',
+      password: process.env.CORPORATE_PROXY_PASSWORD || ''
     }
   };
 
   constructor() {
     // Set environment variables like Python scripts
-    process.env.http_proxy = 'http://AMER%5CE966380:Neoenergia%402026@10.219.77.12:8080';
-    process.env.https_proxy = 'http://AMER%5CE966380:Neoenergia%402026@10.219.77.12:8080';
+    const proxyUser = process.env.CORPORATE_PROXY_USER || '';
+    const proxyPass = process.env.CORPORATE_PROXY_PASSWORD || '';
+    process.env.http_proxy = `http://${proxyUser}:${proxyPass}@10.219.77.12:8080`;
+    process.env.https_proxy = `http://${proxyUser}:${proxyPass}@10.219.77.12:8080`;
     process.env.no_proxy = '10.219.8.210,localhost,127.0.0.1,ibfs.iberdrola.com,10.219.0.41';
 
     this.axiosClient = axios.create({
