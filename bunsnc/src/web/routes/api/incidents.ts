@@ -1,100 +1,29 @@
 /**
  * Incidents API Routes - Enhanced with contractual SLA calculations
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
+ *
+ * FIX v1.0.0 (HIGH-3): Refactored to use plugin dependency injection
+ * - Uses slaPlugin for SLA services (Singleton Lazy Loading Pattern)
+ * - Uses serviceNowPlugin for ServiceNow client
+ * - Eliminates direct service instantiation
  */
 
 import { Elysia, t } from "elysia";
-import { MongoClient } from "mongodb";
-import { ServiceNowClient } from "../../../client/ServiceNowClient";
-import { ContractualSLAService } from "../../../services/ContractualSLAService";
-import { EnhancedMetricsService } from "../../../services/EnhancedMetricsService";
-import { ContractualViolationService } from "../../../services/ContractualViolationService";
+import { slaPlugin } from "../../../plugins/sla-controller";
+import { serviceNowPlugin } from "../../../plugins/servicenow";
 import { TicketType } from "../../../types/ContractualSLA";
 import { logger } from "../../../utils/Logger";
 
-// Initialize services
-const mongoClient = new MongoClient(
-  process.env.MONGODB_URL || "mongodb://localhost:27018",
-);
-const databaseName = process.env.MONGODB_DATABASE || "bunsnc";
-
-let contractualSLAService: ContractualSLAService;
-let enhancedMetricsService: EnhancedMetricsService;
-let contractualViolationService: ContractualViolationService;
-
-// Initialize services on first request
-const initializeServices = async () => {
-  if (!contractualSLAService) {
-    await mongoClient.connect();
-    contractualSLAService = ContractualSLAService.getInstance(
-      mongoClient,
-      databaseName,
-    );
-    await contractualSLAService.initialize();
-
-    enhancedMetricsService = EnhancedMetricsService.getInstance(
-      mongoClient,
-      databaseName,
-      contractualSLAService,
-    );
-
-    contractualViolationService = ContractualViolationService.getInstance(
-      mongoClient,
-      databaseName,
-      contractualSLAService,
-    );
-    await contractualViolationService.initialize();
-
-    logger.info(" [IncidentsAPI] All services initialized");
-  }
-  return {
-    contractualSLAService,
-    enhancedMetricsService,
-    contractualViolationService,
-  };
-};
-
 const app = new Elysia({ prefix: "/api/incidents" })
-  .derive(async () => {
-    // ✅ Validate and create ServiceNow client ONCE at startup
-    const instanceUrl = process.env.SERVICENOW_INSTANCE_URL;
-    const username = process.env.SERVICENOW_USERNAME;
-    const password = process.env.SERVICENOW_PASSWORD;
-
-    console.log("[incidents.ts] Creating ServiceNowClient via .derive():");
-    console.log(`  - instanceUrl: "${instanceUrl}"`);
-    console.log(`  - username: "${username}"`);
-    console.log(`  - password length: ${password?.length}`);
-
-    if (!instanceUrl || !username || !password) {
-      console.error(
-        "[incidents.ts] Missing ServiceNow credentials in env vars",
-      );
-      throw new Error(
-        "ServiceNow credentials not configured. Check .env file.",
-      );
-    }
-
-    const serviceNowClient = ServiceNowClient.createWithCredentials(
-      instanceUrl,
-      username,
-      password,
-      { enableCache: true },
-    );
-
-    const services = await initializeServices();
-    return {
-      ...services,
-      serviceNowClient, // ✅ Inject client in context
-    };
-  })
+  .use(slaPlugin)        // ✅ Provides SLA services via DI
+  .use(serviceNowPlugin) // ✅ Provides ServiceNow client via DI
 
   .get(
     "/",
     async ({ query, serviceNowClient }) => {
-      // ✅ Use injected client
+      // ✅ Services injected by plugins (slaPlugin, serviceNowPlugin)
       try {
-        const gr = serviceNowClient.getGlideRecord("incident"); // ✅ No more client creation
+        const gr = serviceNowClient.getGlideRecord("incident");
 
         // Apply filters from query parameters
         if (query.state && query.state !== "all") {
@@ -176,9 +105,9 @@ const app = new Elysia({ prefix: "/api/incidents" })
   )
 
   .get("/:id", async ({ params, serviceNowClient }) => {
-    // ✅ Use injected client
+    // ✅ ServiceNow client injected by serviceNowPlugin
     try {
-      const gr = serviceNowClient.getGlideRecord("incident"); // ✅ No more client creation
+      const gr = serviceNowClient.getGlideRecord("incident");
       gr.addQuery("sys_id", params.id);
       gr.query();
 
@@ -276,10 +205,10 @@ const app = new Elysia({ prefix: "/api/incidents" })
       contractualViolationService,
       serviceNowClient,
     }) => {
-      // ✅ Use injected client
+      // ✅ All services injected by plugins (no direct instantiation)
       try {
-        // Get active incidents count (using injected client)
-        const activeGr = serviceNowClient.getGlideRecord("incident"); // ✅ Use injected client
+        // Get active incidents count
+        const activeGr = serviceNowClient.getGlideRecord("incident");
         activeGr.addQuery("state", "!=", "6"); // Not resolved
         activeGr.addQuery("state", "!=", "7"); // Not closed
         activeGr.query();
@@ -287,7 +216,7 @@ const app = new Elysia({ prefix: "/api/incidents" })
         while (activeGr.next()) activeCount++;
 
         // Get high priority incidents
-        const highPriorityGr = serviceNowClient.getGlideRecord("incident"); // ✅ Use injected client
+        const highPriorityGr = serviceNowClient.getGlideRecord("incident");
         highPriorityGr.addQuery("priority", "IN", "1,2");
         highPriorityGr.addQuery("state", "!=", "6");
         highPriorityGr.addQuery("state", "!=", "7");
@@ -433,13 +362,13 @@ const app = new Elysia({ prefix: "/api/incidents" })
   .get(
     "/trends/hourly",
     async ({ query, serviceNowClient }) => {
-      // ✅ Use injected client
+      // ✅ ServiceNow client injected by serviceNowPlugin
       try {
         const days = parseInt(query.days as string) || 7;
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
 
-        const gr = serviceNowClient.getGlideRecord("incident"); // ✅ Use injected client
+        const gr = serviceNowClient.getGlideRecord("incident");
         gr.addQuery(
           "sys_created_on",
           ">=",
