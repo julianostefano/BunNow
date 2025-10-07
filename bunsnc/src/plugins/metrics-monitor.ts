@@ -2,7 +2,16 @@
  * Plugin Metrics and Monitoring System - Advanced performance and health monitoring
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  *
- * Implements enterprise-grade monitoring and metrics collection:
+ * FIX v5.6.1: Singleton Lazy Loading Pattern (ElysiaJS Key Concepts #5 + #7)
+ * Root cause: PluginMetricsCollector instanciado múltiplas vezes (singleton exportado diretamente)
+ * Solution: Singleton instance com lazy initialization na primeira request via plugin
+ * Reference: docs/ELYSIA_BEST_PRACTICES.md - "Plugin Deduplication Mechanism"
+ *
+ * Este plugin implementa as Elysia best practices:
+ * - Separate Instance Method plugin pattern
+ * - Singleton Lazy Loading (v5.6.1)
+ * - Global lifecycle scope (.as("global"))
+ * - Implements enterprise-grade monitoring and metrics collection:
  * - Real-time performance metrics collection
  * - Plugin health monitoring and alerting
  * - Memory and CPU usage tracking
@@ -13,6 +22,7 @@
  * - Performance trend analysis
  */
 
+import { Elysia } from "elysia";
 import { logger } from "../utils/Logger";
 import { systemMetricsCollector } from "../utils/SystemMetrics";
 
@@ -816,7 +826,37 @@ export class PluginMetricsCollector {
   }
 }
 
-// Export singleton instance
+// FIX v5.6.1: Singleton Lazy Loading Pattern
+let _metricsCollectorSingleton: PluginMetricsCollector | null = null;
+
+const getMetricsCollector = async (config?: {
+  retentionMs?: number;
+  maxHistorySize?: number;
+  collectionIntervalMs?: number;
+  performanceIntervalMs?: number;
+}) => {
+  if (_metricsCollectorSingleton) {
+    return { metricsCollector: _metricsCollectorSingleton };
+  }
+
+  console.log(
+    "📦 Creating PluginMetricsCollector (SINGLETON - first initialization)",
+  );
+  const metricsConfig = {
+    retentionMs: config?.retentionMs || 24 * 60 * 60 * 1000, // 24 hours
+    maxHistorySize: config?.maxHistorySize || 1000,
+    collectionIntervalMs: config?.collectionIntervalMs || 60000, // 1 minute
+    performanceIntervalMs: config?.performanceIntervalMs || 30000, // 30 seconds
+  };
+  _metricsCollectorSingleton = new PluginMetricsCollector(metricsConfig);
+  console.log(
+    "✅ PluginMetricsCollector created (SINGLETON - reused across all requests)",
+  );
+
+  return { metricsCollector: _metricsCollectorSingleton };
+};
+
+// Export singleton instance (deprecated, use plugin instead)
 export const pluginMetricsCollector = new PluginMetricsCollector({
   retentionMs: 24 * 60 * 60 * 1000, // 24 hours
   maxHistorySize: 1000,
@@ -833,3 +873,41 @@ export const createMetricsCollector = (config?: {
 }) => {
   return new PluginMetricsCollector(config);
 };
+
+// Export Elysia Plugin
+export const metricsMonitorPlugin = new Elysia({ name: "metrics-monitor" })
+  .onStart(() =>
+    console.log(
+      "🔧 Metrics Monitor Plugin starting - Singleton Lazy Loading pattern",
+    ),
+  )
+  .derive(async ({ config }) => {
+    const metricsConfig = {
+      retentionMs: config?.metrics?.retentionMs || 24 * 60 * 60 * 1000,
+      maxHistorySize: config?.metrics?.maxHistorySize || 1000,
+      collectionIntervalMs: config?.metrics?.collectionIntervalMs || 60000,
+      performanceIntervalMs: config?.metrics?.performanceIntervalMs || 30000,
+    };
+
+    const { metricsCollector } = await getMetricsCollector(metricsConfig);
+
+    return {
+      metricsCollector,
+      registerMetric: metricsCollector.registerMetric.bind(metricsCollector),
+      incrementCounter:
+        metricsCollector.incrementCounter.bind(metricsCollector),
+      setGauge: metricsCollector.setGauge.bind(metricsCollector),
+      observeHistogram:
+        metricsCollector.observeHistogram.bind(metricsCollector),
+      observeSummary: metricsCollector.observeSummary.bind(metricsCollector),
+      getMetricsSummary:
+        metricsCollector.getMetricsSummary.bind(metricsCollector),
+      getHealthStatuses:
+        metricsCollector.getHealthStatuses.bind(metricsCollector),
+      getActiveAlerts: metricsCollector.getActiveAlerts.bind(metricsCollector),
+      getPerformanceHistory:
+        metricsCollector.getPerformanceHistory.bind(metricsCollector),
+      getMetricsStats: metricsCollector.getStats.bind(metricsCollector),
+    };
+  })
+  .as("global"); // ✅ Global lifecycle scope for plugin deduplication

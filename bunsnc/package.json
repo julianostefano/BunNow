@@ -57,7 +57,9 @@
   "scripts": {
     "start": "bun src/index.ts",
     "dev": "bun --watch src/web/app.ts",
-    "build": "bun build",
+    "build": "bun run build:types && bun build",
+    "build:types": "bun --bun tsc -p tsconfig.types.json",
+    "build:types:watch": "bun --bun tsc -p tsconfig.types.json --watch",
     "compile": "bun compile src/cli/index.ts --out dist/bunsnc",
     "lint": "bun run format:check && bun run typecheck",
     "lint:fix": "bun run format && bun run typecheck",

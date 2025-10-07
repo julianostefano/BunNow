@@ -2,6 +2,16 @@
  * Attachment Controller Plugin - ServiceNow attachment operations as Elysia Plugin
  * Migrated from AttachmentController + AttachmentAPI to unified plugin architecture
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
+ *
+ * FIX v5.6.1: Singleton Lazy Loading Pattern (ElysiaJS Key Concepts #5 + #7)
+ * Root cause: PluginAttachmentController instanciado a cada request via .derive()
+ * Solution: Singleton instance com lazy initialization na primeira request
+ * Reference: docs/ELYSIA_BEST_PRACTICES.md - "Plugin Deduplication Mechanism"
+ *
+ * Este plugin implementa as Elysia best practices:
+ * - Separate Instance Method plugin pattern
+ * - Singleton Lazy Loading (v5.6.1)
+ * - Global lifecycle scope (.as("global"))
  */
 
 import { Elysia, t } from "elysia";
@@ -669,6 +679,28 @@ const AttachmentIdSchema = t.Object({
   }),
 });
 
+// FIX v5.6.1: Singleton Lazy Loading Pattern
+let _attachmentControllerSingleton: PluginAttachmentController | null = null;
+
+const getAttachmentController = async (serviceLocator: any, config: any) => {
+  if (_attachmentControllerSingleton) {
+    return { attachmentController: _attachmentControllerSingleton };
+  }
+
+  console.log(
+    "📦 Creating PluginAttachmentController (SINGLETON - first initialization)",
+  );
+  _attachmentControllerSingleton = new PluginAttachmentController(
+    serviceLocator,
+    config,
+  );
+  console.log(
+    "✅ PluginAttachmentController created (SINGLETON - reused across all requests)",
+  );
+
+  return { attachmentController: _attachmentControllerSingleton };
+};
+
 // Plugin context interface
 export interface AttachmentControllerPluginContext {
   attachmentController: PluginAttachmentController;
@@ -700,8 +732,13 @@ export interface AttachmentControllerPluginContext {
 export const attachmentControllerPlugin = new Elysia({
   name: "attachment-controller",
 })
+  .onStart(() =>
+    console.log(
+      "🔧 Attachment Controller Plugin starting - Singleton Lazy Loading pattern",
+    ),
+  )
   .derive(async ({ config, services, ...serviceLocator }) => {
-    const attachmentController = new PluginAttachmentController(
+    const { attachmentController } = await getAttachmentController(
       { services, ...serviceLocator },
       config,
     );
@@ -838,4 +875,4 @@ export const attachmentControllerPlugin = new Elysia({
       },
     },
   )
-  .as("scoped");
+  .as("global"); // ✅ Global lifecycle scope for plugin deduplication

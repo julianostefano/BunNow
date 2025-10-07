@@ -2,8 +2,17 @@
  * API Controller Plugin - REST endpoints and data processing methods
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  *
- * Implements "Separate Instance Method" pattern following Elysia best practices
- * Migrated from class-based APIController to plugin architecture
+ * FIX v5.6.1: Singleton Lazy Loading Pattern (ElysiaJS Key Concepts #5 + #7)
+ * Root cause: PluginAPIController instanciado a cada request via .derive()
+ * Solution: Singleton instance com lazy initialization na primeira request
+ * Reference: docs/ELYSIA_BEST_PRACTICES.md - "Plugin Deduplication Mechanism"
+ *
+ * Este plugin implementa as Elysia best practices:
+ * - Separate Instance Method plugin pattern
+ * - Singleton Lazy Loading (v5.6.1)
+ * - Global lifecycle scope (.as("global"))
+ * - Implements "Separate Instance Method" pattern following Elysia best practices
+ * - Migrated from class-based APIController to plugin architecture
  *
  * Features:
  * - ServiceNow data integration via service locator
@@ -625,6 +634,25 @@ class PluginAPIController {
   }
 }
 
+// FIX v5.6.1: Singleton Lazy Loading Pattern
+let _apiControllerSingleton: PluginAPIController | null = null;
+
+const getAPIController = async (serviceLocator: any, config: any) => {
+  if (_apiControllerSingleton) {
+    return { apiController: _apiControllerSingleton };
+  }
+
+  console.log(
+    "📦 Creating PluginAPIController (SINGLETON - first initialization)",
+  );
+  _apiControllerSingleton = new PluginAPIController(serviceLocator, config);
+  console.log(
+    "✅ PluginAPIController created (SINGLETON - reused across all requests)",
+  );
+
+  return { apiController: _apiControllerSingleton };
+};
+
 /**
  * API Controller Plugin - Following Elysia "1 controller = 1 instance" Pattern
  * Provides REST API endpoints for ServiceNow data and system operations
@@ -632,14 +660,14 @@ class PluginAPIController {
 export const apiControllerPlugin = new Elysia({ name: "api-controller" })
   .onStart(async () => {
     logger.info(
-      "🎯 API Controller Plugin initializing with Elysia best practices",
+      "🎯 API Controller Plugin initializing with Elysia best practices - Singleton Lazy Loading pattern",
       "APIControllerPlugin",
     );
   })
   .derive(async ({ config, services, ...serviceLocator }) => {
     try {
-      // Create API controller instance with service locator
-      const apiController = new PluginAPIController(serviceLocator, config);
+      // Create API controller instance with service locator (singleton)
+      const { apiController } = await getAPIController(serviceLocator, config);
 
       logger.info(
         "✅ API Controller ready with service integration",
@@ -992,7 +1020,7 @@ export const apiControllerPlugin = new Elysia({ name: "api-controller" })
   .onStop(() => {
     logger.info("🛑 API Controller Plugin stopped", "APIControllerPlugin");
   })
-  .as("scoped"); // Scoped for business logic integration
+  .as("global"); // ✅ Global lifecycle scope for plugin deduplication
 
 // Export plugin app type for Eden Treaty
 export type APIControllerPluginApp = typeof apiControllerPlugin;

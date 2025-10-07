@@ -2,8 +2,14 @@
  * Streaming Plugin - Elysia plugin for real-time features and Server-Sent Events
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  *
+ * FIX v5.6.1: Singleton Lazy Loading Pattern (ElysiaJS Key Concepts #5 + #7)
+ * Root cause: ServiceNowStreams criada a cada request via new StreamsClass()
+ * Solution: Singleton instance com lazy initialization na primeira request
+ * Reference: docs/ELYSIA_BEST_PRACTICES.md - "Plugin Deduplication Mechanism"
+ *
  * Este plugin implementa as Elysia best practices:
  * - Separate Instance Method plugin pattern
+ * - Singleton Lazy Loading (v5.6.1)
  * - Dependency injection via .decorate()
  * - Shared streaming service instance para evitar duplicação
  * - Plugin lifecycle hooks (onStart, onStop)
@@ -24,6 +30,10 @@ import type {
   SLAEvent,
   SyncProgressEvent,
 } from "../services/streaming/StreamingCore";
+
+// FIX v5.6.1: Singleton Lazy Loading Pattern
+// Streaming services criadas UMA VEZ e reusadas
+let _redisStreamsSingleton: ServiceNowStreams | null = null;
 
 // Types para Eden Treaty
 export interface StreamingPluginContext {
@@ -66,8 +76,51 @@ export interface SSEConnectionOptions {
 }
 
 /**
- * Streaming Plugin - Separate Instance Method pattern
+ * Initialize Streaming Services once (singleton pattern)
+ * Returns immediately if already initialized
+ */
+const getStreamingServices = async () => {
+  // Get UnifiedStreamingService singleton (already implements singleton pattern)
+  const streamingService = UnifiedStreamingService.getInstance();
+
+  // Check if Redis Streams already initialized
+  if (_redisStreamsSingleton) {
+    return { streamingService, redisStreams: _redisStreamsSingleton };
+  }
+
+  // First request - initialize Redis Streams
+  console.log("📦 Creating Redis Streams (SINGLETON - first initialization)");
+
+  try {
+    const { ServiceNowStreams: StreamsClass } = await import(
+      "../config/redis-streams"
+    );
+    _redisStreamsSingleton = new StreamsClass();
+    await _redisStreamsSingleton.initialize();
+    streamingService.initialize(_redisStreamsSingleton);
+    console.log(
+      "✅ Redis Streams created (SINGLETON - reused across all requests)",
+    );
+  } catch (error: any) {
+    console.warn(
+      "⚠️ Streaming Plugin: Redis Streams not available:",
+      error.message,
+    );
+  }
+
+  return { streamingService, redisStreams: _redisStreamsSingleton };
+};
+
+/**
+ * Streaming Plugin - Singleton Lazy Loading Pattern
  * Provides unified real-time streaming functionality through dependency injection
+ *
+ * Usage:
+ * ```typescript
+ * new Elysia()
+ *   .use(streamingPlugin)
+ *   .get('/stream', ({ createSSEConnection }) => createSSEConnection('ticket-updates'))
+ * ```
  */
 export const streamingPlugin = new Elysia({
   name: "servicenow-streaming-plugin",
@@ -89,35 +142,17 @@ export const streamingPlugin = new Elysia({
   // Note: WebSocket support will be added when @elysiajs/websocket is compatible
 
   // Lifecycle Hook: onStart - Initialize Streaming Services
-  .onStart(async () => {
+  .onStart(() => {
     console.log(
-      "📡 ServiceNow Streaming Plugin starting - initializing real-time services",
+      "📡 Streaming Plugin starting - Singleton Lazy Loading pattern",
     );
   })
 
-  // Dependency Injection: Create streaming service instance
+  // FIX v5.6.1: Singleton Lazy Loading Pattern
+  // Streaming services criadas UMA VEZ na primeira request
+  // Reusadas em todas as requests seguintes (singleton pattern)
   .derive(async () => {
-    // Initialize unified streaming service
-    const streamingService = UnifiedStreamingService.getInstance();
-
-    // Initialize Redis Streams (optional)
-    let redisStreams: ServiceNowStreams | undefined;
-    try {
-      const { ServiceNowStreams: StreamsClass } = await import(
-        "../config/redis-streams"
-      );
-      redisStreams = new StreamsClass();
-      await redisStreams.initialize();
-      streamingService.initialize(redisStreams);
-      console.log("✅ Streaming Plugin: Redis Streams initialized");
-    } catch (error: any) {
-      console.warn(
-        "⚠️ Streaming Plugin: Redis Streams not available:",
-        error.message,
-      );
-    }
-
-    return { streamingService, redisStreams };
+    return await getStreamingServices();
   })
 
   // High-level SSE connection method - replaces direct streaming calls

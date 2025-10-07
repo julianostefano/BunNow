@@ -85,8 +85,8 @@ export interface TaskQueueOptions {
 }
 
 export class TaskQueue extends EventEmitter {
-  private redis: RedisClient | RedisCluster | null = null;
-  private subscriber: RedisClient | RedisCluster | null = null;
+  private redis: RedisClient | null = null;
+  private subscriber: RedisClient | null = null;
   private options: TaskQueueOptions;
   private workers: Map<string, TaskWorker> = new Map();
   private isRunning: boolean = false;
@@ -136,12 +136,17 @@ export class TaskQueue extends EventEmitter {
 
       // Subscribe to task events
       if (this.subscriber) {
-        this.subscriber.subscribe("task:events", (message) => {
+        await this.subscriber.subscribe("task:events");
+        this.subscriber.on("message", (_channel: string, message: string) => {
           try {
             const event = JSON.parse(message);
             this.emit("taskEvent", event);
           } catch (error: unknown) {
-            logger.error("Error parsing task event", "TaskQueue", { error });
+            logger.error(
+              "Error parsing task event",
+              "TaskQueue",
+              error instanceof Error ? error : new Error(String(error)),
+            );
           }
         });
       }

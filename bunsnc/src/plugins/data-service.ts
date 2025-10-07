@@ -2,6 +2,16 @@
  * Data Service Plugin - Elysia Plugin for ConsolidatedDataService
  * Migrated from singleton pattern to Elysia Plugin with Dependency Injection
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
+ *
+ * FIX v5.6.1: Singleton Lazy Loading Pattern (ElysiaJS Key Concepts #5 + #7)
+ * Root cause: PluginDataService instanciado a cada request via .derive()
+ * Solution: Singleton instance com lazy initialization na primeira request
+ * Reference: docs/ELYSIA_BEST_PRACTICES.md - "Plugin Deduplication Mechanism"
+ *
+ * Este plugin implementa as Elysia best practices:
+ * - Separate Instance Method plugin pattern
+ * - Singleton Lazy Loading (v5.6.1)
+ * - Global lifecycle scope (.as("global"))
  */
 
 import { Elysia } from "elysia";
@@ -614,18 +624,40 @@ const getDefaultDataServiceConfig = (): DataServiceConfig => ({
   },
 });
 
-// ELYSIA PLUGIN IMPLEMENTATION
-export const dataServicePlugin = new Elysia({ name: "data-service" }).derive(
-  async ({ config }) => {
-    try {
-      // Get configuration with defaults
-      const dataConfig = {
-        ...getDefaultDataServiceConfig(),
-        ...config?.dataService,
-      };
+// FIX v5.6.1: Singleton Lazy Loading Pattern
+let _dataServiceSingleton: PluginDataService | null = null;
 
-      // Create new instance (NO SINGLETON)
-      const dataService = new PluginDataService(dataConfig);
+const getDataService = async (config: any) => {
+  if (_dataServiceSingleton) {
+    return { dataService: _dataServiceSingleton };
+  }
+
+  console.log(
+    "📦 Creating PluginDataService (SINGLETON - first initialization)",
+  );
+  const dataConfig = {
+    ...getDefaultDataServiceConfig(),
+    ...config?.dataService,
+  };
+  _dataServiceSingleton = new PluginDataService(dataConfig);
+  console.log(
+    "✅ PluginDataService created (SINGLETON - reused across all requests)",
+  );
+
+  return { dataService: _dataServiceSingleton };
+};
+
+// ELYSIA PLUGIN IMPLEMENTATION
+export const dataServicePlugin = new Elysia({ name: "data-service" })
+  .onStart(() =>
+    console.log(
+      "🔧 Data Service Plugin starting - Singleton Lazy Loading pattern",
+    ),
+  )
+  .derive(async ({ config }) => {
+    try {
+      // Get data service instance (singleton)
+      const { dataService } = await getDataService(config);
 
       // ✅ NOTE: MongoDB initialization moved to app.ts to ensure ServiceNowStreams is available first
       // MongoDB will be initialized manually after server starts
@@ -706,8 +738,8 @@ export const dataServicePlugin = new Elysia({ name: "data-service" }).derive(
         },
       };
     }
-  },
-);
+  })
+  .as("global"); // ✅ Global lifecycle scope for plugin deduplication
 
 // Export types for use in other plugins and routes
 export type { DataServicePluginContext };

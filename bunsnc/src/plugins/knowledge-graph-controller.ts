@@ -2,8 +2,17 @@
  * Knowledge Graph Controller Plugin - Elysia Plugin Implementation
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  *
- * Migrated from KnowledgeGraphService to follow v5.0.0 plugin architecture
- * Implements relationship mapping, analytics, and knowledge cluster analysis
+ * FIX v5.6.1: Singleton Lazy Loading Pattern (ElysiaJS Key Concepts #5 + #7)
+ * Root cause: PluginKnowledgeGraphController instanciado a cada request via .derive()
+ * Solution: Singleton instance com lazy initialization na primeira request
+ * Reference: docs/ELYSIA_BEST_PRACTICES.md - "Plugin Deduplication Mechanism"
+ *
+ * Este plugin implementa as Elysia best practices:
+ * - Separate Instance Method plugin pattern
+ * - Singleton Lazy Loading (v5.6.1)
+ * - Global lifecycle scope (.as("global"))
+ * - Migrated from KnowledgeGraphService to follow v5.0.0 plugin architecture
+ * - Implements relationship mapping, analytics, and knowledge cluster analysis
  */
 
 import { Elysia, t } from "elysia";
@@ -769,11 +778,42 @@ const KnowledgeGraphQuerySchema = t.Object({
   }),
 });
 
+// FIX v5.6.1: Singleton Lazy Loading Pattern
+let _knowledgeGraphControllerSingleton: PluginKnowledgeGraphController | null =
+  null;
+
+const getKnowledgeGraphController = async (
+  serviceLocator: any,
+  config: any,
+) => {
+  if (_knowledgeGraphControllerSingleton) {
+    return { knowledgeGraphController: _knowledgeGraphControllerSingleton };
+  }
+
+  console.log(
+    "📦 Creating PluginKnowledgeGraphController (SINGLETON - first initialization)",
+  );
+  _knowledgeGraphControllerSingleton = new PluginKnowledgeGraphController(
+    serviceLocator,
+    config,
+  );
+  console.log(
+    "✅ PluginKnowledgeGraphController created (SINGLETON - reused across all requests)",
+  );
+
+  return { knowledgeGraphController: _knowledgeGraphControllerSingleton };
+};
+
 export const knowledgeGraphControllerPlugin = new Elysia({
   name: "knowledge-graph-controller",
 })
+  .onStart(() =>
+    console.log(
+      "🔧 Knowledge Graph Controller Plugin starting - Singleton Lazy Loading pattern",
+    ),
+  )
   .derive(async ({ config, services, ...serviceLocator }) => {
-    const knowledgeGraphController = new PluginKnowledgeGraphController(
+    const { knowledgeGraphController } = await getKnowledgeGraphController(
       { services, ...serviceLocator },
       config,
     );
@@ -961,4 +1001,4 @@ export const knowledgeGraphControllerPlugin = new Elysia({
     },
   )
 
-  .as("scoped");
+  .as("global"); // ✅ Global lifecycle scope for plugin deduplication

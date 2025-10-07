@@ -1,9 +1,15 @@
 /**
- * Data Service Plugin - Elysia plugin for MongoDB/Redis data management
+ * Data Service Plugin - Elysia plugin for MongoDB/Redis data management with Singleton Lazy Loading
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
+ *
+ * FIX v5.6.0: Singleton Lazy Loading Pattern (ElysiaJS Key Concepts #5 + #7)
+ * Root cause: ConsolidatedDataService + ServiceNowBridgeService instanciados a cada request
+ * Solution: Singleton instances com lazy initialization na primeira request
+ * Reference: docs/ELYSIA_BEST_PRACTICES.md - "Plugin Deduplication Mechanism"
  *
  * Este plugin implementa as Elysia best practices:
  * - Separate Instance Method plugin pattern
+ * - Singleton Lazy Loading (v5.6.0)
  * - Dependency injection via .decorate()
  * - Shared data service instance para evitar duplicação
  * - Plugin lifecycle hooks (onStart, onStop)
@@ -22,8 +28,13 @@ import {
   HybridDataOptions,
 } from "../services/ConsolidatedDataService";
 import { ServiceNowStreams } from "../config/redis-streams";
-// FIX v5.5.20: Import class only (instance created in .derive())
 import { ServiceNowBridgeService } from "../services/ServiceNowBridgeService";
+
+// FIX v5.6.0: Singleton Lazy Loading Pattern
+// Data service instances criadas UMA VEZ e reusadas
+let _dataServiceSingleton: ConsolidatedDataService | null = null;
+let _redisStreamsSingleton: ServiceNowStreams | null = null;
+let _initializationPromise: Promise<void> | null = null;
 
 // Types para Eden Treaty
 export interface DataPluginContext {
@@ -57,7 +68,76 @@ export interface DataPluginContext {
 }
 
 /**
- * Data Service Plugin - Separate Instance Method pattern
+ * Initialize data services once (singleton pattern)
+ * Returns immediately if already initialized
+ */
+const initializeDataServices = async () => {
+  // Already initialized - return existing
+  if (_dataServiceSingleton) {
+    return {
+      dataService: _dataServiceSingleton,
+      redisStreams: _redisStreamsSingleton || undefined,
+    };
+  }
+
+  // Currently initializing - wait for completion
+  if (_initializationPromise) {
+    await _initializationPromise;
+    return {
+      dataService: _dataServiceSingleton!,
+      redisStreams: _redisStreamsSingleton || undefined,
+    };
+  }
+
+  // First request - initialize
+  _initializationPromise = (async () => {
+    console.log("📦 Creating Data Services (SINGLETON - first initialization)");
+
+    // Initialize data service with default config
+    const { defaultDataServiceConfig, createDataService } = await import(
+      "../services/ConsolidatedDataService"
+    );
+    _dataServiceSingleton = createDataService(defaultDataServiceConfig);
+
+    // Initialize Redis Streams (optional)
+    try {
+      const { ServiceNowStreams: StreamsClass } = await import(
+        "../config/redis-streams"
+      );
+      _redisStreamsSingleton = new StreamsClass();
+      await _redisStreamsSingleton.initialize();
+      console.log("✅ Data Plugin: Redis Streams initialized (SINGLETON)");
+    } catch (error: any) {
+      console.warn(
+        "⚠️ Data Plugin: Redis Streams not available:",
+        error.message,
+      );
+    }
+
+    // Initialize MongoDB
+    try {
+      await _dataServiceSingleton.initialize();
+      console.log("✅ Data Plugin: MongoDB initialized (SINGLETON)");
+    } catch (error: any) {
+      console.warn("⚠️ Data Plugin: MongoDB not available:", error.message);
+    }
+
+    console.log(
+      "✅ Data Services created (SINGLETON - reused across all requests)",
+    );
+  })();
+
+  await _initializationPromise;
+  _initializationPromise = null;
+
+  return {
+    dataService: _dataServiceSingleton!,
+    redisStreams: _redisStreamsSingleton || undefined,
+  };
+};
+
+/**
+ * Data Service Plugin - Singleton Lazy Loading Pattern
  * Provides shared data management functionality through dependency injection
  */
 export const dataPlugin = new Elysia({
@@ -79,46 +159,15 @@ export const dataPlugin = new Elysia({
   // Lifecycle Hook: onStart - Initialize Data Services
   .onStart(async () => {
     console.log(
-      "💾 ServiceNow Data Plugin starting - initializing MongoDB and Redis",
+      "💾 ServiceNow Data Plugin starting - Singleton Lazy Loading pattern",
     );
   })
 
-  // Dependency Injection: Create data service instance
+  // FIX v5.6.0: Singleton Lazy Loading Pattern
+  // Data service instance criada UMA VEZ na primeira request
+  // Reusada em todas as requests seguintes (singleton pattern)
   .derive(async () => {
-    // Initialize data service with default config
-    const { defaultDataServiceConfig, createDataService } = await import(
-      "../services/ConsolidatedDataService"
-    );
-    const dataService = createDataService(defaultDataServiceConfig);
-
-    // FIX v5.5.20: Create ServiceNowBridgeService instance locally
-    const serviceNowBridgeService = new ServiceNowBridgeService();
-
-    // Initialize Redis Streams (optional)
-    let redisStreams: ServiceNowStreams | undefined;
-    try {
-      const { ServiceNowStreams: StreamsClass } = await import(
-        "../config/redis-streams"
-      );
-      redisStreams = new StreamsClass();
-      await redisStreams.initialize();
-      console.log("✅ Data Plugin: Redis Streams initialized");
-    } catch (error: any) {
-      console.warn(
-        "⚠️ Data Plugin: Redis Streams not available:",
-        error.message,
-      );
-    }
-
-    // Initialize MongoDB
-    try {
-      await dataService.initialize();
-      console.log("✅ Data Plugin: MongoDB initialized");
-    } catch (error: any) {
-      console.warn("⚠️ Data Plugin: MongoDB not available:", error.message);
-    }
-
-    return { dataService, redisStreams, serviceNowBridgeService };
+    return await initializeDataServices();
   })
 
   // High-level ticket retrieval method - replaces direct data service calls with real functionality

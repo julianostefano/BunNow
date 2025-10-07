@@ -7,9 +7,10 @@ import { Elysia } from "elysia";
 import { html } from "@elysiajs/html";
 import { staticPlugin } from "@elysiajs/static";
 import { cors } from "@elysiajs/cors";
-import { openapi } from "@elysiajs/openapi";
+import { openapi, fromTypes } from "@elysiajs/openapi";
 import { jwt } from "@elysiajs/jwt";
 import { autoroutes } from "elysia-autoroutes";
+import path from "path";
 
 // Configuration interface
 interface ModernServerConfig {
@@ -98,9 +99,18 @@ export class ModernWebServer {
       )
 
       // FIX v1.0.0 (CRITICAL-2): Migrated from @elysiajs/swagger to @elysiajs/openapi
-      // OpenAPI documentation with modern features
+      // FIX v1.0.0 (CRITICAL-3): Type-based OpenAPI generation with fromTypes()
       .use(
         openapi({
+          references: fromTypes(
+            process.env.NODE_ENV === "production"
+              ? "dist/types/types/api.types.d.ts"
+              : "src/types/api.types.ts",
+            {
+              projectRoot: path.join(import.meta.dir, "../.."),
+              tsconfigPath: "tsconfig.json",
+            },
+          ),
           documentation: {
             info: {
               title: "ServiceNow Analytics API",

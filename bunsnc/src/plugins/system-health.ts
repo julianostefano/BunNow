@@ -2,8 +2,14 @@
  * System Health Plugin - Elysia plugin for comprehensive system monitoring and metrics
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  *
+ * FIX v5.6.1: Singleton Lazy Loading Pattern (ElysiaJS Key Concepts #5 + #7)
+ * Root cause: PerformanceMonitor + SystemPerformanceMonitor criados a cada request via .derive()
+ * Solution: Singleton instances com lazy initialization na primeira request
+ * Reference: docs/ELYSIA_BEST_PRACTICES.md - "Plugin Deduplication Mechanism"
+ *
  * Este plugin implementa as Elysia best practices:
  * - Separate Instance Method plugin pattern
+ * - Singleton Lazy Loading (v5.6.1)
  * - Dependency injection via .decorate()
  * - Shared monitoring services para evitar duplicação
  * - Plugin lifecycle hooks (onStart, onStop)
@@ -16,6 +22,17 @@
 import { Elysia } from "elysia";
 import { SystemPerformanceMonitor } from "../services/system/SystemPerformanceMonitor";
 import { PerformanceMonitor } from "../utils/PerformanceMonitor";
+
+// FIX v5.6.1: Singleton Lazy Loading Pattern
+// Health services criadas UMA VEZ e reusadas
+let _performanceMonitorSingleton: PerformanceMonitor | null = null;
+let _systemMonitorSingleton: SystemPerformanceMonitor | null = null;
+let _healthStateSingleton: {
+  healthHistory: HealthHistoryEntry[];
+  alerts: HealthAlert[];
+  startTime: Date;
+  healthCheckInterval: NodeJS.Timeout;
+} | null = null;
 
 // Types para Eden Treaty
 export interface SystemHealthPluginContext {
@@ -172,8 +189,89 @@ export interface HealthHistoryEntry {
 }
 
 /**
- * System Health Plugin - Separate Instance Method pattern
+ * Initialize Health Services once (singleton pattern)
+ * Returns immediately if already initialized
+ */
+const getHealthServices = async () => {
+  // Already initialized - return existing
+  if (
+    _performanceMonitorSingleton &&
+    _systemMonitorSingleton &&
+    _healthStateSingleton
+  ) {
+    return {
+      performanceMonitor: _performanceMonitorSingleton,
+      systemMonitor: _systemMonitorSingleton,
+      healthHistory: _healthStateSingleton.healthHistory,
+      alerts: _healthStateSingleton.alerts,
+      startTime: _healthStateSingleton.startTime,
+      healthCheckInterval: _healthStateSingleton.healthCheckInterval,
+    };
+  }
+
+  // First request - initialize
+  console.log("📦 Creating Health Services (SINGLETON - first initialization)");
+
+  // Initialize monitors
+  _performanceMonitorSingleton = new PerformanceMonitor();
+  _systemMonitorSingleton = new SystemPerformanceMonitor({
+    performance: {
+      thresholds: {
+        response_time_warning: 1000,
+        response_time_critical: 5000,
+        memory_warning: 512,
+        memory_critical: 1024,
+        cpu_warning: 70,
+        cpu_critical: 90,
+      },
+    },
+  });
+
+  // Initialize state
+  const healthHistory: HealthHistoryEntry[] = [];
+  const alerts: HealthAlert[] = [];
+  const startTime = new Date();
+
+  // Initialize periodic health checks
+  const healthCheckInterval = setInterval(async () => {
+    try {
+      console.log("🔍 Background health check performed");
+    } catch (error: any) {
+      console.error("❌ Background health check failed:", error.message);
+    }
+  }, 60000); // Every minute
+
+  _healthStateSingleton = {
+    healthHistory,
+    alerts,
+    startTime,
+    healthCheckInterval,
+  };
+
+  console.log(
+    "✅ Health Services created (SINGLETON - reused across all requests)",
+  );
+
+  return {
+    performanceMonitor: _performanceMonitorSingleton,
+    systemMonitor: _systemMonitorSingleton,
+    healthHistory,
+    alerts,
+    startTime,
+    healthCheckInterval,
+  };
+};
+
+/**
+ * System Health Plugin - Singleton Lazy Loading Pattern
  * Provides comprehensive system monitoring through dependency injection
+ *
+ * Usage:
+ * ```typescript
+ * new Elysia()
+ *   .use(systemHealthPlugin)
+ *   .get('/health', ({ getOverallHealth }) => getOverallHealth())
+ * ```
  */
 export const systemHealthPlugin = new Elysia({
   name: "servicenow-system-health-plugin",
@@ -190,53 +288,17 @@ export const systemHealthPlugin = new Elysia({
   },
 })
   // Lifecycle Hook: onStart - Initialize Health Monitoring
-  .onStart(async () => {
+  .onStart(() => {
     console.log(
-      "🏥 ServiceNow System Health Plugin starting - initializing monitoring services",
+      "🏥 System Health Plugin starting - Singleton Lazy Loading pattern",
     );
   })
 
-  // Health monitoring state
+  // FIX v5.6.1: Singleton Lazy Loading Pattern
+  // Health services criadas UMA VEZ na primeira request
+  // Reusadas em todas as requests seguintes (singleton pattern)
   .derive(async () => {
-    const healthHistory: HealthHistoryEntry[] = [];
-    const alerts: HealthAlert[] = [];
-    const startTime = new Date();
-
-    // Initialize real performance monitoring services
-    const performanceMonitor = new PerformanceMonitor();
-    const systemMonitor = new SystemPerformanceMonitor({
-      performance: {
-        thresholds: {
-          response_time_warning: 1000,
-          response_time_critical: 5000,
-          memory_warning: 512,
-          memory_critical: 1024,
-          cpu_warning: 70,
-          cpu_critical: 90,
-        },
-      },
-    });
-
-    // Note: startMonitoring() method not implemented in SystemPerformanceMonitor
-    // Monitoring happens automatically via periodic health checks below
-
-    // Initialize periodic health checks
-    const healthCheckInterval = setInterval(async () => {
-      try {
-        console.log("🔍 Background health check performed");
-      } catch (error: any) {
-        console.error("❌ Background health check failed:", error.message);
-      }
-    }, 60000); // Every minute
-
-    return {
-      healthHistory,
-      alerts,
-      startTime,
-      healthCheckInterval,
-      performanceMonitor,
-      systemMonitor,
-    };
+    return await getHealthServices();
   })
 
   // Overall health assessment method
@@ -1187,6 +1249,16 @@ export const systemHealthPlugin = new Elysia({
       },
     },
   )
+
+  // Lifecycle Hook: onStop - Cleanup health check interval
+  .onStop(() => {
+    console.log("🛑 System Health Plugin stopping - cleanup completed");
+
+    if (_healthStateSingleton?.healthCheckInterval) {
+      clearInterval(_healthStateSingleton.healthCheckInterval);
+      console.log("✅ Health check interval cleared");
+    }
+  })
 
   // Global scope - exposes context across entire application following best practices
   .as("global");

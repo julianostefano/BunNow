@@ -852,13 +852,36 @@ class ServiceNowSyncService implements SyncService {
   }
 }
 
+// FIX v5.6.1: Singleton Lazy Loading Pattern
+let _syncServiceSingleton: ServiceNowSyncService | null = null;
+
+const getSyncService = async (syncConfig: SyncConfig, dependencies: any) => {
+  if (_syncServiceSingleton) {
+    return { syncService: _syncServiceSingleton };
+  }
+
+  console.log(
+    "📦 Creating ServiceNowSyncService (SINGLETON - first initialization)",
+  );
+  _syncServiceSingleton = new ServiceNowSyncService(syncConfig, dependencies);
+  await _syncServiceSingleton.initialize();
+  console.log(
+    "✅ ServiceNowSyncService created (SINGLETON - reused across all requests)",
+  );
+
+  return { syncService: _syncServiceSingleton };
+};
+
 /**
  * Sync Controller Plugin
  * Follows Elysia "1 controller = 1 instância" best practice
  */
 export const syncController = new Elysia({ name: "sync" })
   .onStart(async () => {
-    logger.info("🔄 Sync Controller initializing...", "SyncController");
+    logger.info(
+      "🔄 Sync Controller initializing - Singleton Lazy Loading pattern...",
+      "SyncController",
+    );
   })
   .derive(async ({ config, mongoService, cacheService }) => {
     // Get sync configuration
@@ -872,16 +895,15 @@ export const syncController = new Elysia({ name: "sync" })
       parallelTables: config?.sync?.parallelTables || 3,
     };
 
-    // Create sync service instance with dependencies
-    const syncService = new ServiceNowSyncService(syncConfig, {
+    // Create sync service instance with dependencies (singleton)
+    const { syncService } = await getSyncService(syncConfig, {
       mongoService,
       cacheService,
       serviceNowService: null, // Will be injected when available
     });
 
     try {
-      // Initialize service
-      await syncService.initialize();
+      // Service already initialized in getSyncService
 
       logger.info("✅ Sync Controller ready", "SyncController", {
         tables: syncConfig.tables?.length,
@@ -1012,7 +1034,7 @@ export const syncController = new Elysia({ name: "sync" })
       logger.info("🛑 Sync Controller stopped", "SyncController");
     }
   })
-  .as("scoped"); // Scoped for service composition
+  .as("global"); // ✅ Global lifecycle scope for plugin deduplication
 
 // Sync Controller Context Type
 export interface SyncControllerContext {

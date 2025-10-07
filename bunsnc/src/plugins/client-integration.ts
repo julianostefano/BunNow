@@ -2,8 +2,14 @@
  * Client Integration Plugin - Elysia plugin for unified ServiceNow client management
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  *
+ * FIX v5.6.1: Singleton Lazy Loading Pattern (ElysiaJS Key Concepts #5 + #7)
+ * Root cause: ServiceNowBridgeService instanciado a cada request via .derive()
+ * Solution: Singleton instance com lazy initialization na primeira request
+ * Reference: docs/ELYSIA_BEST_PRACTICES.md - "Plugin Deduplication Mechanism"
+ *
  * Este plugin implementa as Elysia best practices:
  * - Separate Instance Method plugin pattern
+ * - Singleton Lazy Loading (v5.6.1)
  * - Dependency injection via .decorate()
  * - Shared client instances para evitar duplicação
  * - Plugin lifecycle hooks (onStart, onStop)
@@ -27,9 +33,39 @@ import {
   ConsolidatedServiceNowService,
 } from "../services";
 import { ServiceNowAuthClient } from "../services/ServiceNowAuthClient";
-// FIX v5.5.20: Import class only (instance created in .derive())
 import { ServiceNowBridgeService } from "../services/ServiceNowBridgeService";
 import type { ServiceNowRecord, QueryOptions } from "../types/servicenow";
+
+// FIX v5.6.1: Singleton Lazy Loading Pattern
+// ServiceNowBridgeService criado UMA VEZ e reusado
+let _bridgeServiceSingleton: ServiceNowBridgeService | null = null;
+let _attachmentAPISingleton: any = null;
+
+const getBridgeServices = async () => {
+  if (_bridgeServiceSingleton && _attachmentAPISingleton) {
+    return {
+      bridgeService: _bridgeServiceSingleton,
+      attachmentAPI: _attachmentAPISingleton,
+    };
+  }
+
+  console.log(
+    "📦 Creating ServiceNowBridgeService (SINGLETON - first initialization)",
+  );
+  _bridgeServiceSingleton = new ServiceNowBridgeService();
+
+  const { attachmentAPI } = await import("../api/AttachmentAPI");
+  _attachmentAPISingleton = attachmentAPI;
+
+  console.log(
+    "✅ ServiceNowBridgeService created (SINGLETON - reused across all requests)",
+  );
+
+  return {
+    bridgeService: _bridgeServiceSingleton,
+    attachmentAPI: _attachmentAPISingleton,
+  };
+};
 
 // Types para Eden Treaty
 export interface ClientIntegrationContext {
@@ -100,45 +136,32 @@ export const clientIntegrationPlugin = new Elysia({
   // Lifecycle Hook: onStart - Initialize Client Integration
   .onStart(async () => {
     console.log(
-      "Client Integration Plugin starting - initializing unified ServiceNow client",
+      "🔧 Client Integration Plugin starting - Singleton Lazy Loading pattern",
     );
   })
 
-  // Dependency Injection: Create unified client instance using Bridge Service (Elysia best practice: 1 controller = 1 instance)
+  // FIX v5.6.1: Inject singleton services
   .derive(async () => {
-    // FIX v5.5.20: Import class and instantiate locally (ElysiaJS pattern)
-    // Root cause: ServiceNowBridgeService.ts exports class, not instance
-    const { ServiceNowBridgeService } = await import(
-      "../services/ServiceNowBridgeService"
-    );
-    const serviceNowBridgeService = new ServiceNowBridgeService();
-    const { attachmentAPI } = await import("../api/AttachmentAPI");
+    const services = await getBridgeServices();
 
     // Get configuration from environment
     const instanceUrl = process.env.SNC_INSTANCE_URL || "";
     const authToken = process.env.SNC_AUTH_TOKEN || "";
 
-    console.log(
-      "🔌 Client Integration Plugin: Using Bridge Service directly - eliminating mock fallbacks",
-    );
-
-    // Create unified ServiceNow client configuration
     const clientConfig: ClientConfiguration = {
       instance: instanceUrl,
       auth: authToken,
-      timeout: 900000, // 15 minutes (as per Bridge Service architecture)
+      timeout: 900000, // 15 minutes
       retryLimit: 3,
       enableCache: true,
       enablePerformanceMonitoring: true,
-      enableLogging: false, // Disable in production
+      enableLogging: false,
     };
 
-    // Real client using Bridge Service - no mocks, following "1 controller = 1 instance" principle
     return {
-      bridgeService: serviceNowBridgeService,
-      attachmentAPI,
+      ...services,
       clientConfig,
-      // Remove mock clients - use Bridge Service directly
+      serviceNowBridgeService: services.bridgeService, // Backward compatibility
     };
   })
 
@@ -165,7 +188,7 @@ export const clientIntegrationPlugin = new Elysia({
         };
 
         // Execute query via bridge service (eliminates 61s timeout)
-        const bridgeResponse = await serviceNowBridgeService.queryTable(
+        const bridgeResponse = await this.serviceNowBridgeService.queryTable(
           table,
           queryParams,
         );
@@ -204,7 +227,7 @@ export const clientIntegrationPlugin = new Elysia({
         );
 
         // Use ServiceNow Bridge Service to avoid 61s timeout issue
-        const bridgeResponse = await serviceNowBridgeService.createRecord(
+        const bridgeResponse = await this.serviceNowBridgeService.createRecord(
           table,
           data,
         );
@@ -240,7 +263,7 @@ export const clientIntegrationPlugin = new Elysia({
         );
 
         // Use ServiceNow Bridge Service to avoid 61s timeout issue
-        const bridgeResponse = await serviceNowBridgeService.getRecord(
+        const bridgeResponse = await this.serviceNowBridgeService.getRecord(
           table,
           sysId,
         );
@@ -285,7 +308,7 @@ export const clientIntegrationPlugin = new Elysia({
         );
 
         // Use ServiceNow Bridge Service to avoid 61s timeout issue
-        const bridgeResponse = await serviceNowBridgeService.updateRecord(
+        const bridgeResponse = await this.serviceNowBridgeService.updateRecord(
           table,
           sysId,
           data,
@@ -322,7 +345,7 @@ export const clientIntegrationPlugin = new Elysia({
         );
 
         // Use ServiceNow Bridge Service to avoid 61s timeout issue
-        const bridgeResponse = await serviceNowBridgeService.deleteRecord(
+        const bridgeResponse = await this.serviceNowBridgeService.deleteRecord(
           table,
           sysId,
         );
@@ -547,7 +570,7 @@ export const clientIntegrationPlugin = new Elysia({
       );
 
       // Use ServiceNow Bridge Service health check to avoid 61s timeout issue
-      const healthResponse = await serviceNowBridgeService.healthCheck();
+      const healthResponse = await this.serviceNowBridgeService.healthCheck();
 
       if (healthResponse.success && healthResponse.result) {
         const isConnected = healthResponse.result.auth;
@@ -578,8 +601,8 @@ export const clientIntegrationPlugin = new Elysia({
       );
 
       // Get real metrics from the bridge service
-      const metrics = serviceNowBridgeService.getMetrics();
-      const healthResponse = await serviceNowBridgeService.healthCheck();
+      const metrics = this.serviceNowBridgeService.getMetrics();
+      const healthResponse = await this.serviceNowBridgeService.healthCheck();
       const isAuthValid = healthResponse.success && healthResponse.result?.auth;
 
       const stats = {
@@ -666,10 +689,10 @@ export const clientIntegrationPlugin = new Elysia({
       );
 
       // Reset authentication on bridge service to force re-authentication
-      serviceNowBridgeService.resetAuth();
+      this.serviceNowBridgeService.resetAuth();
 
       // Test the connection after reset
-      const healthResponse = await serviceNowBridgeService.healthCheck();
+      const healthResponse = await this.serviceNowBridgeService.healthCheck();
       const isRefreshed = healthResponse.success && healthResponse.result?.auth;
 
       console.log(

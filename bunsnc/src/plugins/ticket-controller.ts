@@ -2,8 +2,17 @@
  * Ticket Controller Plugin - Unified ticket operations for ServiceNow integration
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  *
- * Implements unified ticket management following Elysia "1 controller = 1 instância" best practice
- * Merges TicketController and EnhancedTicketController into a single plugin architecture
+ * FIX v5.6.1: Singleton Lazy Loading Pattern (ElysiaJS Key Concepts #5 + #7)
+ * Root cause: PluginTicketController instanciado a cada request via .derive()
+ * Solution: Singleton instance com lazy initialization na primeira request
+ * Reference: docs/ELYSIA_BEST_PRACTICES.md - "Plugin Deduplication Mechanism"
+ *
+ * Este plugin implementa as Elysia best practices:
+ * - Separate Instance Method plugin pattern
+ * - Singleton Lazy Loading (v5.6.1)
+ * - Global lifecycle scope (.as("global"))
+ * - Implements unified ticket management following Elysia "1 controller = 1 instância" best practice
+ * - Merges TicketController and EnhancedTicketController into a single plugin architecture
  *
  * Features:
  * - Hybrid data access (MongoDB cache + ServiceNow API)
@@ -589,6 +598,37 @@ const TicketCountQuerySchema = t.Object({
   ),
 });
 
+// FIX v5.6.1: Singleton Lazy Loading Pattern
+let _ticketControllerSingleton: PluginTicketController | null = null;
+
+const getTicketController = async (
+  serviceLocator: any,
+  config: any,
+  serviceNowAuthClient: any,
+  mongoService: any,
+  redisStreams: any,
+) => {
+  if (_ticketControllerSingleton) {
+    return { ticketController: _ticketControllerSingleton };
+  }
+
+  console.log(
+    "📦 Creating PluginTicketController (SINGLETON - first initialization)",
+  );
+  _ticketControllerSingleton = new PluginTicketController(
+    serviceLocator,
+    config,
+    serviceNowAuthClient,
+    mongoService,
+    redisStreams,
+  );
+  console.log(
+    "✅ PluginTicketController created (SINGLETON - reused across all requests)",
+  );
+
+  return { ticketController: _ticketControllerSingleton };
+};
+
 /**
  * Ticket Controller Plugin
  * Provides unified ticket management with REST endpoints and TypeBox validation
@@ -602,6 +642,11 @@ const TicketCountQuerySchema = t.Object({
  * - GET /api/tickets/stats - Controller statistics
  */
 export const ticketControllerPlugin = new Elysia({ name: "ticket-controller" })
+  .onStart(() =>
+    console.log(
+      "🔧 Ticket Controller Plugin starting - Singleton Lazy Loading pattern",
+    ),
+  )
   .derive(async ({ config, services, ...serviceLocator }) => {
     try {
       // Get required services from service locator
@@ -611,8 +656,8 @@ export const ticketControllerPlugin = new Elysia({ name: "ticket-controller" })
         serviceLocator.cache?.getRedisStreams?.() ||
         services?.get("redisStreams");
 
-      // Create ticket controller instance
-      const ticketController = new PluginTicketController(
+      // Create ticket controller instance (singleton)
+      const { ticketController } = await getTicketController(
         serviceLocator,
         config,
         serviceNowAuthClient,
@@ -843,7 +888,7 @@ export const ticketControllerPlugin = new Elysia({ name: "ticket-controller" })
     },
   )
 
-  .as("scoped"); // Scoped plugin for service composition
+  .as("global"); // ✅ Global lifecycle scope for plugin deduplication
 
 // Export types for service locator integration
 export interface TicketControllerContext {

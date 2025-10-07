@@ -2,6 +2,11 @@
  * MongoDB Controller - Specialized Elysia Controller
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  *
+ * FIX v5.6.1: Singleton Lazy Loading Pattern (ElysiaJS Key Concepts #5 + #7)
+ * Root cause: MongoDBService instanciado a cada request via .derive()
+ * Solution: Singleton instance com lazy initialization na primeira request
+ * Reference: docs/ELYSIA_BEST_PRACTICES.md - "Plugin Deduplication Mechanism"
+ *
  * Implements "1 controller = 1 instância" Elysia best practice
  * Handles MongoDB connection, CRUD operations, and data persistence
  *
@@ -11,6 +16,7 @@
  * - Connection pooling and health monitoring
  * - Graceful degradation with fallback data
  * - Proper lifecycle management with .onStart()/.onStop()
+ * - Singleton Lazy Loading (v5.6.1)
  */
 
 import { Elysia } from "elysia";
@@ -494,109 +500,96 @@ class MongoDBService implements MongoService {
   }
 }
 
+// FIX v5.6.1: Singleton Lazy Loading Pattern
+// MongoDBService criado UMA VEZ e reusado
+let _mongoServiceSingleton: MongoDBService | null = null;
+let _initializationPromise: Promise<any> | null = null;
+
+const getMongoService = async (config?: any) => {
+  // Already initialized - return existing
+  if (_mongoServiceSingleton) {
+    return {
+      mongo: _mongoServiceSingleton,
+      mongoService: _mongoServiceSingleton,
+      findOne: _mongoServiceSingleton.findOne.bind(_mongoServiceSingleton),
+      find: _mongoServiceSingleton.find.bind(_mongoServiceSingleton),
+      insertOne: _mongoServiceSingleton.insertOne.bind(_mongoServiceSingleton),
+      updateOne: _mongoServiceSingleton.updateOne.bind(_mongoServiceSingleton),
+      deleteOne: _mongoServiceSingleton.deleteOne.bind(_mongoServiceSingleton),
+      upsert: _mongoServiceSingleton.upsert.bind(_mongoServiceSingleton),
+      insertMany: _mongoServiceSingleton.insertMany.bind(
+        _mongoServiceSingleton,
+      ),
+      updateMany: _mongoServiceSingleton.updateMany.bind(
+        _mongoServiceSingleton,
+      ),
+      deleteMany: _mongoServiceSingleton.deleteMany.bind(
+        _mongoServiceSingleton,
+      ),
+      count: _mongoServiceSingleton.count.bind(_mongoServiceSingleton),
+      distinct: _mongoServiceSingleton.distinct.bind(_mongoServiceSingleton),
+      aggregate: _mongoServiceSingleton.aggregate.bind(_mongoServiceSingleton),
+      mongoHealthCheck: _mongoServiceSingleton.healthCheck.bind(
+        _mongoServiceSingleton,
+      ),
+      mongoStats: _mongoServiceSingleton.getStats.bind(_mongoServiceSingleton),
+    };
+  }
+
+  // Currently initializing - wait for completion
+  if (_initializationPromise) {
+    await _initializationPromise;
+    return getMongoService(config);
+  }
+
+  // First request - initialize
+  _initializationPromise = (async () => {
+    console.log(
+      "📦 Creating MongoDBService (SINGLETON - first initialization)",
+    );
+
+    const mongoConfig: MongoConfig = {
+      host: config?.mongodb?.host || process.env.MONGODB_HOST || "10.219.8.210",
+      port:
+        config?.mongodb?.port || parseInt(process.env.MONGODB_PORT || "27018"),
+      database: config?.mongodb?.database || process.env.MONGODB_DB || "bunsnc",
+      username: config?.mongodb?.username || process.env.MONGODB_USERNAME,
+      password: config?.mongodb?.password || process.env.MONGODB_PASSWORD,
+      url: config?.mongodb?.url || process.env.MONGODB_URL,
+    };
+
+    _mongoServiceSingleton = new MongoDBService(mongoConfig);
+
+    try {
+      await _mongoServiceSingleton.initialize();
+      console.log(
+        "✅ MongoDBService created (SINGLETON - reused across all requests)",
+      );
+    } catch (error: any) {
+      logger.warn(
+        "⚠️ MongoDBService init warning - using fallback:",
+        error.message,
+      );
+    }
+  })();
+
+  await _initializationPromise;
+  _initializationPromise = null;
+  return getMongoService(config);
+};
+
 /**
  * MongoDB Controller Plugin
  * Follows Elysia "1 controller = 1 instância" best practice
  */
 export const mongoController = new Elysia({ name: "mongo" })
   .onStart(async () => {
-    logger.info("🔌 MongoDB Controller initializing...", "MongoController");
+    logger.info(
+      "🔧 MongoDB Controller starting - Singleton Lazy Loading pattern",
+      "MongoController",
+    );
   })
-  .derive(async ({ config }) => {
-    // Get MongoDB configuration
-    const mongoConfig: MongoConfig = {
-      host: config?.mongodb?.host,
-      port: config?.mongodb?.port,
-      database: config?.mongodb?.database,
-      username: config?.mongodb?.username,
-      password: config?.mongodb?.password,
-      url: config?.mongodb?.url,
-    };
-
-    // Create MongoDB service instance
-    const mongoService = new MongoDBService(mongoConfig);
-
-    try {
-      // Initialize connection
-      await mongoService.initialize();
-
-      logger.info("✅ MongoDB Controller ready", "MongoController", {
-        connected: mongoService.isConnected,
-        database: mongoConfig.database,
-      });
-
-      return {
-        mongo: mongoService,
-        mongoService,
-        // Expose individual methods for convenience
-        findOne: mongoService.findOne.bind(mongoService),
-        find: mongoService.find.bind(mongoService),
-        insertOne: mongoService.insertOne.bind(mongoService),
-        updateOne: mongoService.updateOne.bind(mongoService),
-        deleteOne: mongoService.deleteOne.bind(mongoService),
-        upsert: mongoService.upsert.bind(mongoService),
-        insertMany: mongoService.insertMany.bind(mongoService),
-        updateMany: mongoService.updateMany.bind(mongoService),
-        deleteMany: mongoService.deleteMany.bind(mongoService),
-        count: mongoService.count.bind(mongoService),
-        distinct: mongoService.distinct.bind(mongoService),
-        aggregate: mongoService.aggregate.bind(mongoService),
-        mongoHealthCheck: mongoService.healthCheck.bind(mongoService),
-        mongoStats: mongoService.getStats.bind(mongoService),
-      };
-    } catch (error: any) {
-      logger.error(
-        "❌ MongoDB Controller initialization failed",
-        "MongoController",
-        {
-          error: error.message,
-        },
-      );
-
-      // Return fallback service that doesn't crash the application
-      const fallbackService: MongoService = {
-        isConnected: false,
-        database: null,
-        client: null,
-        findOne: async () => null,
-        find: async () => [],
-        insertOne: async () => ({ insertedId: "fallback-id" }),
-        updateOne: async () => ({ modifiedCount: 0 }),
-        deleteOne: async () => ({ deletedCount: 0 }),
-        upsert: async () => ({ modifiedCount: 0 }),
-        insertMany: async () => ({ insertedCount: 0 }),
-        updateMany: async () => ({ modifiedCount: 0 }),
-        deleteMany: async () => ({ deletedCount: 0 }),
-        count: async () => 0,
-        distinct: async () => [],
-        aggregate: async () => [],
-        healthCheck: async () => false,
-        getStats: async () => ({
-          connected: false,
-          error: "Connection failed",
-        }),
-      };
-
-      return {
-        mongo: fallbackService,
-        mongoService: fallbackService,
-        findOne: fallbackService.findOne,
-        find: fallbackService.find,
-        insertOne: fallbackService.insertOne,
-        updateOne: fallbackService.updateOne,
-        deleteOne: fallbackService.deleteOne,
-        upsert: fallbackService.upsert,
-        insertMany: fallbackService.insertMany,
-        updateMany: fallbackService.updateMany,
-        deleteMany: fallbackService.deleteMany,
-        count: fallbackService.count,
-        distinct: fallbackService.distinct,
-        aggregate: fallbackService.aggregate,
-        mongoHealthCheck: fallbackService.healthCheck,
-        mongoStats: fallbackService.getStats,
-      };
-    }
-  })
+  .derive(async ({ config }) => await getMongoService(config))
   .onStop(async ({ mongoService }) => {
     if (mongoService && mongoService.isConnected) {
       await mongoService.close();

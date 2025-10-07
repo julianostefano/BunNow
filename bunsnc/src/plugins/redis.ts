@@ -1,9 +1,16 @@
 /**
- * Redis Plugin - Elysia Dependency Injection Pattern
+ * Redis Plugin - Elysia Dependency Injection Pattern with Singleton Lazy Loading
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  *
- * Implements Redis connection management via Elysia DI instead of singleton pattern
- * Following Elysia best practices for resource management
+ * FIX v5.6.0: Singleton Lazy Loading Pattern (ElysiaJS Key Concepts #5 + #7)
+ * Root cause: .derive(async) executado a cada request, criando conexões duplicadas
+ * Solution: Singleton instance com lazy initialization na primeira request
+ * Reference: docs/ELYSIA_BEST_PRACTICES.md - "Plugin Deduplication Mechanism"
+ *
+ * Key Concepts Applied:
+ * - #5 Plugin Deduplication: Named plugin com singleton instance
+ * - #7 Plugin Re-execution Behavior: Previne re-execução via singleton
+ * - #6 Lifecycle Order: .onStart() para inicialização não-bloqueante
  */
 
 import { Elysia } from "elysia";
@@ -82,22 +89,38 @@ const createRedisConnection = async (
   return redis;
 };
 
-/**
- * Redis Plugin - Single instance pattern with proper Elysia DI
- */
-export const redisPlugin = new Elysia({
-  name: "redis-plugin",
-})
-  .onStart(async () => {
-    console.log("🔌 Redis Plugin initializing with Elysia DI pattern...");
-  })
+// FIX v5.6.0: Singleton Lazy Loading Pattern
+// Conexões Redis criadas UMA VEZ e reusadas em todas as requests
+let _redisConnectionsSingleton: {
+  redis: RedisClient;
+  redisCache: RedisClient;
+  redisStreams: RedisClient;
+} | null = null;
 
-  // Derive Redis connections using Elysia pattern
-  .derive(async () => {
+let _connectionPromise: Promise<void> | null = null;
+
+/**
+ * Initialize Redis connections once (singleton pattern)
+ * Returns immediately if already initialized
+ */
+const getRedisConnections = async () => {
+  // Already initialized - return existing
+  if (_redisConnectionsSingleton) {
+    return _redisConnectionsSingleton;
+  }
+
+  // Currently initializing - wait for completion
+  if (_connectionPromise) {
+    await _connectionPromise;
+    return _redisConnectionsSingleton!;
+  }
+
+  // First request - initialize
+  _connectionPromise = (async () => {
     const config = getDefaultRedisConfig();
 
     console.log(
-      "📦 Creating Redis connections via Elysia derive() - single initialization",
+      "📦 Creating Redis connections (SINGLETON - first initialization)",
     );
 
     // Create specialized Redis connections for different purposes
@@ -107,13 +130,34 @@ export const redisPlugin = new Elysia({
       createRedisConnection({ ...config, db: 3 }, "streams"),
     ]);
 
-    console.log("✅ Redis connections established via Elysia plugin context");
+    _redisConnectionsSingleton = { redis, redisCache, redisStreams };
 
-    return {
-      redis,
-      redisCache,
-      redisStreams,
-    };
+    console.log(
+      "✅ Redis connections established (SINGLETON - reused across all requests)",
+    );
+  })();
+
+  await _connectionPromise;
+  _connectionPromise = null;
+
+  return _redisConnectionsSingleton!;
+};
+
+/**
+ * Redis Plugin - Singleton Lazy Loading Pattern
+ * Conexões criadas UMA VEZ na primeira request, reusadas em todas as seguintes
+ */
+export const redisPlugin = new Elysia({
+  name: "redis-plugin",
+})
+  .onStart(async () => {
+    console.log("🔌 Redis Plugin initializing with Singleton Lazy Loading...");
+  })
+
+  // FIX v5.6.0: Lazy singleton initialization via .derive()
+  // Returns SAME instances across ALL requests (singleton pattern)
+  .derive(async () => {
+    return await getRedisConnections();
   })
 
   // Decorate utility methods

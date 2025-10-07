@@ -2,6 +2,11 @@
  * Cache Controller - Specialized Elysia Controller
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  *
+ * FIX v5.6.1: Singleton Lazy Loading Pattern (ElysiaJS Key Concepts #5 + #7)
+ * Root cause: RedisCacheService instanciado a cada request via .derive()
+ * Solution: Singleton instance com lazy initialization na primeira request
+ * Reference: docs/ELYSIA_BEST_PRACTICES.md - "Plugin Deduplication Mechanism"
+ *
  * Implements "1 controller = 1 instância" Elysia best practice
  * Handles Redis cache operations, streams, and pub/sub functionality
  *
@@ -12,6 +17,7 @@
  * - Pub/Sub messaging for notifications
  * - Connection health monitoring and failover
  * - Graceful degradation with in-memory fallback
+ * - Singleton Lazy Loading (v5.6.1)
  */
 
 import { Elysia } from "elysia";
@@ -991,136 +997,96 @@ class RedisCacheService implements CacheService {
   }
 }
 
+// FIX v5.6.1: Singleton Lazy Loading Pattern
+// RedisCacheService criado UMA VEZ e reusado
+let _cacheServiceSingleton: RedisCacheService | null = null;
+let _initializationPromise: Promise<any> | null = null;
+
+const getCacheService = async (config?: any) => {
+  // Already initialized - return existing
+  if (_cacheServiceSingleton) {
+    return {
+      cache: _cacheServiceSingleton,
+      cacheService: _cacheServiceSingleton,
+      cacheGet: _cacheServiceSingleton.get.bind(_cacheServiceSingleton),
+      cacheSet: _cacheServiceSingleton.set.bind(_cacheServiceSingleton),
+      cacheDel: _cacheServiceSingleton.del.bind(_cacheServiceSingleton),
+      cacheExists: _cacheServiceSingleton.exists.bind(_cacheServiceSingleton),
+      cacheExpire: _cacheServiceSingleton.expire.bind(_cacheServiceSingleton),
+      cacheTtl: _cacheServiceSingleton.ttl.bind(_cacheServiceSingleton),
+      cacheHget: _cacheServiceSingleton.hget.bind(_cacheServiceSingleton),
+      cacheHset: _cacheServiceSingleton.hset.bind(_cacheServiceSingleton),
+      cacheHgetall: _cacheServiceSingleton.hgetall.bind(_cacheServiceSingleton),
+      cacheKeys: _cacheServiceSingleton.keys.bind(_cacheServiceSingleton),
+      cachePublish: _cacheServiceSingleton.publish.bind(_cacheServiceSingleton),
+      cacheSubscribe: _cacheServiceSingleton.subscribe.bind(
+        _cacheServiceSingleton,
+      ),
+      cacheXadd: _cacheServiceSingleton.xadd.bind(_cacheServiceSingleton),
+      cacheXread: _cacheServiceSingleton.xread.bind(_cacheServiceSingleton),
+      cacheXrange: _cacheServiceSingleton.xrange.bind(_cacheServiceSingleton),
+      cacheHealthCheck: _cacheServiceSingleton.healthCheck.bind(
+        _cacheServiceSingleton,
+      ),
+      cacheStats: _cacheServiceSingleton.getStats.bind(_cacheServiceSingleton),
+    };
+  }
+
+  // Currently initializing - wait for completion
+  if (_initializationPromise) {
+    await _initializationPromise;
+    return getCacheService(config);
+  }
+
+  // First request - initialize
+  _initializationPromise = (async () => {
+    console.log(
+      "📦 Creating RedisCacheService (SINGLETON - first initialization)",
+    );
+
+    // Get Redis configuration
+    const cacheConfig: CacheConfig = {
+      host: config?.redis?.host || process.env.REDIS_HOST || "10.219.8.210",
+      port: config?.redis?.port || parseInt(process.env.REDIS_PORT || "6380"),
+      password: config?.redis?.password || process.env.REDIS_PASSWORD,
+      database:
+        config?.redis?.database || parseInt(process.env.REDIS_DB || "0"),
+      keyPrefix: config?.redis?.keyPrefix || "bunsnc:",
+      cluster: config?.redis?.cluster,
+    };
+
+    _cacheServiceSingleton = new RedisCacheService(cacheConfig);
+
+    try {
+      await _cacheServiceSingleton.initialize();
+      console.log(
+        "✅ RedisCacheService created (SINGLETON - reused across all requests)",
+      );
+    } catch (error: any) {
+      logger.warn(
+        "⚠️ RedisCacheService init warning - using fallback:",
+        error.message,
+      );
+    }
+  })();
+
+  await _initializationPromise;
+  _initializationPromise = null;
+  return getCacheService(config);
+};
+
 /**
  * Cache Controller Plugin
  * Follows Elysia "1 controller = 1 instância" best practice
  */
 export const cacheController = new Elysia({ name: "cache" })
   .onStart(async () => {
-    logger.info("🗄️ Cache Controller initializing...", "CacheController");
+    logger.info(
+      "🔧 Cache Controller starting - Singleton Lazy Loading pattern",
+      "CacheController",
+    );
   })
-  .derive(async ({ config }) => {
-    // Get Redis configuration
-    const cacheConfig: CacheConfig = {
-      host: config?.redis?.host,
-      port: config?.redis?.port,
-      password: config?.redis?.password,
-      database: config?.redis?.database,
-      keyPrefix: config?.redis?.keyPrefix || "bunsnc:",
-      cluster: config?.redis?.cluster,
-    };
-
-    // Create Redis cache service instance
-    const cacheService = new RedisCacheService(cacheConfig);
-
-    try {
-      // Initialize connection
-      await cacheService.initialize();
-
-      logger.info("✅ Cache Controller ready", "CacheController", {
-        connected: cacheService.isConnected,
-        database: cacheConfig.database,
-        keyPrefix: cacheConfig.keyPrefix,
-      });
-
-      return {
-        cache: cacheService,
-        cacheService,
-        // Expose individual methods for convenience
-        cacheGet: cacheService.get.bind(cacheService),
-        cacheSet: cacheService.set.bind(cacheService),
-        cacheDel: cacheService.del.bind(cacheService),
-        cacheExists: cacheService.exists.bind(cacheService),
-        cacheExpire: cacheService.expire.bind(cacheService),
-        cacheTtl: cacheService.ttl.bind(cacheService),
-        cacheHget: cacheService.hget.bind(cacheService),
-        cacheHset: cacheService.hset.bind(cacheService),
-        cacheHgetall: cacheService.hgetall.bind(cacheService),
-        cacheKeys: cacheService.keys.bind(cacheService),
-        cachePublish: cacheService.publish.bind(cacheService),
-        cacheSubscribe: cacheService.subscribe.bind(cacheService),
-        cacheXadd: cacheService.xadd.bind(cacheService),
-        cacheXread: cacheService.xread.bind(cacheService),
-        cacheXrange: cacheService.xrange.bind(cacheService),
-        cacheHealthCheck: cacheService.healthCheck.bind(cacheService),
-        cacheStats: cacheService.getStats.bind(cacheService),
-      };
-    } catch (error: any) {
-      logger.error(
-        "❌ Cache Controller initialization failed",
-        "CacheController",
-        {
-          error: error.message,
-        },
-      );
-
-      // Return fallback service that doesn't crash the application
-      const fallbackService: CacheService = {
-        isConnected: false,
-        client: null,
-        get: async () => null,
-        set: async () => false,
-        del: async () => false,
-        exists: async () => false,
-        expire: async () => false,
-        ttl: async () => -1,
-        hget: async () => null,
-        hset: async () => false,
-        hgetall: async () => null,
-        hdel: async () => false,
-        hkeys: async () => [],
-        lpush: async () => 0,
-        rpush: async () => 0,
-        lpop: async () => null,
-        rpop: async () => null,
-        llen: async () => 0,
-        lrange: async () => [],
-        sadd: async () => false,
-        srem: async () => false,
-        smembers: async () => [],
-        sismember: async () => false,
-        xadd: async () => "0-0",
-        xread: async () => [],
-        xrange: async () => [],
-        xlen: async () => 0,
-        publish: async () => 0,
-        subscribe: async () => {},
-        unsubscribe: async () => {},
-        pipeline: () => null,
-        multi: () => null,
-        keys: async () => [],
-        flushdb: async () => false,
-        info: async () => "",
-        healthCheck: async () => false,
-        getStats: async () => ({
-          connected: false,
-          error: "Connection failed",
-        }),
-      };
-
-      return {
-        cache: fallbackService,
-        cacheService: fallbackService,
-        cacheGet: fallbackService.get,
-        cacheSet: fallbackService.set,
-        cacheDel: fallbackService.del,
-        cacheExists: fallbackService.exists,
-        cacheExpire: fallbackService.expire,
-        cacheTtl: fallbackService.ttl,
-        cacheHget: fallbackService.hget,
-        cacheHset: fallbackService.hset,
-        cacheHgetall: fallbackService.hgetall,
-        cacheKeys: fallbackService.keys,
-        cachePublish: fallbackService.publish,
-        cacheSubscribe: fallbackService.subscribe,
-        cacheXadd: fallbackService.xadd,
-        cacheXread: fallbackService.xread,
-        cacheXrange: fallbackService.xrange,
-        cacheHealthCheck: fallbackService.healthCheck,
-        cacheStats: fallbackService.getStats,
-      };
-    }
-  })
+  .derive(async ({ config }) => await getCacheService(config))
   .onStop(async ({ cacheService }) => {
     if (cacheService && cacheService.isConnected) {
       await cacheService.close();

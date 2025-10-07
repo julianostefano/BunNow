@@ -2,8 +2,14 @@
  * CLI Plugin - Elysia plugin for command-line interface integration
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  *
+ * FIX v5.6.1: Singleton Lazy Loading Pattern (ElysiaJS Key Concepts #5 + #7)
+ * Root cause: ServiceNowBridgeService instanciado a cada request via .derive()
+ * Solution: Singleton instance com lazy initialization na primeira request
+ * Reference: docs/ELYSIA_BEST_PRACTICES.md - "Plugin Deduplication Mechanism"
+ *
  * Este plugin implementa as Elysia best practices:
  * - Separate Instance Method plugin pattern
+ * - Singleton Lazy Loading (v5.6.1)
  * - Dependency injection via .decorate()
  * - Shared service instances para evitar duplicação
  * - Plugin lifecycle hooks (onStart, onStop)
@@ -22,13 +28,59 @@ import {
 } from "../services";
 import { ServiceNowAuthClient } from "../services/ServiceNowAuthClient";
 import { ServiceNowClient } from "../client/ServiceNowClient";
-// FIX v5.5.20: Import class only (instance created in .derive())
 import { ServiceNowBridgeService } from "../services/ServiceNowBridgeService";
 import type { ServiceNowRecord } from "../types/servicenow";
 import * as dotenv from "dotenv";
 
 // Load environment variables
 dotenv.config();
+
+// FIX v5.6.1: Singleton Lazy Loading Pattern
+// ServiceNowBridgeService criado UMA VEZ e reusado
+let _cliServicesSingleton: any = null;
+
+const getCLIServices = async () => {
+  if (_cliServicesSingleton) {
+    return _cliServicesSingleton;
+  }
+
+  console.log("📦 Creating CLI Services (SINGLETON - first initialization)");
+
+  const consolidatedService = consolidatedServiceNowService;
+  const authClient = serviceNowAuthClient;
+  const serviceNowBridgeService = new ServiceNowBridgeService();
+
+  const instanceUrl = process.env.SERVICENOW_INSTANCE_URL || "";
+  const username = process.env.SERVICENOW_USERNAME || "";
+  const password = process.env.SERVICENOW_PASSWORD || "";
+
+  const serviceNowClient = ServiceNowClient.createWithCredentials(
+    instanceUrl,
+    username,
+    password,
+    { enableCache: true },
+  );
+
+  const cliCommander = new Command();
+  cliCommander
+    .name("bunsnc")
+    .description("CLI para ServiceNow via Bun/Elysia")
+    .version("2.2.0");
+
+  _cliServicesSingleton = {
+    consolidatedService,
+    authClient,
+    serviceNowClient,
+    cliCommander,
+    serviceNowBridgeService,
+  };
+
+  console.log(
+    "✅ CLI Services created (SINGLETON - reused across all requests)",
+  );
+
+  return _cliServicesSingleton;
+};
 
 // Types para Eden Treaty
 export interface CLIPluginContext {
@@ -97,53 +149,11 @@ export const cliPlugin = new Elysia({
 })
   // Lifecycle Hook: onStart - Initialize CLI Services
   .onStart(async () => {
-    console.log(
-      "CLI Plugin starting - initializing command-line interface services",
-    );
+    console.log("🔧 CLI Plugin starting - Singleton Lazy Loading pattern");
   })
 
-  // Dependency Injection: Create service instances
-  .derive(async () => {
-    // Initialize services via dependency injection
-    const consolidatedService = consolidatedServiceNowService;
-    const authClient = serviceNowAuthClient;
-
-    // FIX v5.5.20: Create ServiceNowBridgeService instance locally
-    const serviceNowBridgeService = new ServiceNowBridgeService();
-
-    // Initialize ServiceNow client
-    // FIX v5.5.15: Use correct environment variables (SERVICENOW_* instead of SNC_*)
-    const instanceUrl = process.env.SERVICENOW_INSTANCE_URL || "";
-    const username = process.env.SERVICENOW_USERNAME || "";
-    const password = process.env.SERVICENOW_PASSWORD || "";
-
-    // ✅ FIX v5.4.5: Use factory method instead of incorrect object constructor
-    // ServiceNowClient constructor expects (instanceUrl, authToken, options)
-    // NOT an object with {instance, auth} properties
-    const serviceNowClient = ServiceNowClient.createWithCredentials(
-      instanceUrl,
-      username,
-      password,
-      {
-        enableCache: true,
-      },
-    );
-
-    // Initialize commander instance
-    const cliCommander = new Command();
-    cliCommander
-      .name("bunsnc")
-      .description("CLI para ServiceNow via Bun/Elysia")
-      .version("2.2.0");
-
-    return {
-      consolidatedService,
-      authClient,
-      serviceNowClient,
-      cliCommander,
-      serviceNowBridgeService,
-    };
-  })
+  // FIX v5.6.1: Inject singleton services
+  .derive(async () => await getCLIServices())
 
   // CLI-specific decorated methods for real functionality
   .decorate(
@@ -173,7 +183,8 @@ export const cliPlugin = new Elysia({
         );
 
         try {
-          const healthResponse = await serviceNowBridgeService.healthCheck();
+          const healthResponse =
+            await this.serviceNowBridgeService.healthCheck();
 
           if (healthResponse.success && healthResponse.result?.auth) {
             console.log(
@@ -386,7 +397,7 @@ export const cliPlugin = new Elysia({
           `🔌 CLI Plugin: Creating record in ${table} via Bridge Service...`,
         );
 
-        const bridgeResponse = await serviceNowBridgeService.createRecord(
+        const bridgeResponse = await this.serviceNowBridgeService.createRecord(
           table,
           data,
         );
@@ -441,7 +452,7 @@ export const cliPlugin = new Elysia({
           `🔌 CLI Plugin: Updating record in ${table}/${sysId} via Bridge Service...`,
         );
 
-        const bridgeResponse = await serviceNowBridgeService.updateRecord(
+        const bridgeResponse = await this.serviceNowBridgeService.updateRecord(
           table,
           sysId,
           data,
@@ -490,7 +501,7 @@ export const cliPlugin = new Elysia({
           `🔌 CLI Plugin: Deleting record in ${table}/${sysId} via Bridge Service...`,
         );
 
-        const bridgeResponse = await serviceNowBridgeService.deleteRecord(
+        const bridgeResponse = await this.serviceNowBridgeService.deleteRecord(
           table,
           sysId,
         );
@@ -663,7 +674,7 @@ export const cliPlugin = new Elysia({
           console.log(
             "🔌 CLI Plugin: Initializing data service with Bridge Service...",
           );
-          await dataService.initialize(serviceNowBridgeService as any);
+          await dataService.initialize(this.serviceNowBridgeService as any);
         } catch (initError) {
           console.log(
             "Data service already initialized or initialization skipped",

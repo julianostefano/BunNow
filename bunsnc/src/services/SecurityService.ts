@@ -213,8 +213,8 @@ export const securityService = new SecurityService();
 // Verify encryption is working on initialization
 if (!securityService.test()) {
   console.error(
-    "❌ Security service initialization failed - encryption test failed",
+    "Security service initialization failed - encryption test failed",
   );
 } else {
-  console.log("🔐 Security service initialized successfully");
+  console.log("Security service initialized successfully");
 }

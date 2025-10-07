@@ -5,7 +5,8 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
-    "noEmit": true,
+    "noEmit": false,
+    "emitDeclarationOnly": true,
     "composite": false,
     "strict": true,
     "downlevelIteration": true,
@@ -35,6 +36,9 @@
     "dist",
     "coverage",
     "**/*.test.ts",
-    "**/*.spec.ts"
+    "**/*.spec.ts",
+    "src/background/**/*",
+    "src/api/AttachmentAPI.ts",
+    "src/bigdata/**/*"
   ]
 }

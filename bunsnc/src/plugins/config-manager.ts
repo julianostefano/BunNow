@@ -2,8 +2,17 @@
  * Configuration Manager Plugin - Elysia Best Practices Implementation
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  *
- * Implements "Separate Instance Method" pattern for configuration management
- * Following "1 controller = 1 instância" principle
+ * FIX v5.6.1: Singleton Lazy Loading Pattern (ElysiaJS Key Concepts #5 + #7)
+ * Root cause: PluginConfigurationManager instanciado a cada request via .derive()
+ * Solution: Singleton instance com lazy initialization na primeira request
+ * Reference: docs/ELYSIA_BEST_PRACTICES.md - "Plugin Deduplication Mechanism"
+ *
+ * Este plugin implementa as Elysia best practices:
+ * - Separate Instance Method plugin pattern
+ * - Singleton Lazy Loading (v5.6.1)
+ * - Global lifecycle scope (.as("global"))
+ * - Implements "Separate Instance Method" pattern for configuration management
+ * - Following "1 controller = 1 instância" principle
  *
  * Includes enterprise-grade configuration management:
  * - Environment-based configuration loading
@@ -719,6 +728,25 @@ export interface ConfigPluginContext {
   reloadConfig: () => Promise<void>;
 }
 
+// FIX v5.6.1: Singleton Lazy Loading Pattern
+let _configManagerSingleton: PluginConfigurationManager | null = null;
+
+const getConfigManager = async () => {
+  if (_configManagerSingleton) {
+    return { configManager: _configManagerSingleton };
+  }
+
+  console.log(
+    "📦 Creating PluginConfigurationManager (SINGLETON - first initialization)",
+  );
+  _configManagerSingleton = new PluginConfigurationManager();
+  console.log(
+    "✅ PluginConfigurationManager created (SINGLETON - reused across all requests)",
+  );
+
+  return { configManager: _configManagerSingleton };
+};
+
 /**
  * Configuration Plugin - Following Elysia "1 controller = 1 instance" Pattern
  * Provides configuration management as dependency injection across all plugins
@@ -726,13 +754,13 @@ export interface ConfigPluginContext {
 export const configPlugin = new Elysia({ name: "config" })
   .onStart(async () => {
     logger.info(
-      "🔧 Configuration Plugin initializing with Elysia best practices",
+      "🔧 Configuration Plugin initializing with Elysia best practices - Singleton Lazy Loading pattern",
       "ConfigPlugin",
     );
   })
   .derive(async () => {
-    // Create configuration manager instance
-    const configManager = new PluginConfigurationManager();
+    // Create configuration manager instance (singleton)
+    const { configManager } = await getConfigManager();
 
     try {
       // Load configuration from all sources
@@ -925,7 +953,7 @@ export const configPlugin = new Elysia({ name: "config" })
   .onStop(() => {
     logger.info("🛑 Configuration Plugin stopped", "ConfigPlugin");
   })
-  .as("scoped"); // Critical fix: Enable context propagation across routes
+  .as("global"); // ✅ Global lifecycle scope for plugin deduplication and context propagation
 
 // Export legacy instance for backward compatibility (deprecated)
 // @deprecated Use configPlugin instead

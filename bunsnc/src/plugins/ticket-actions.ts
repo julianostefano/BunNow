@@ -2,8 +2,14 @@
  * Ticket Actions Plugin - Elysia plugin for ServiceNow workflow operations
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  *
+ * FIX v5.6.1: Singleton Lazy Loading Pattern (ElysiaJS Key Concepts #5 + #7)
+ * Root cause: consolidatedServiceNowService imported from barrel (lazy proxy)
+ * Solution: Singleton instance com lazy initialization na primeira request
+ * Reference: docs/ELYSIA_BEST_PRACTICES.md - "Plugin Deduplication Mechanism"
+ *
  * Este plugin implementa as Elysia best practices:
  * - Separate Instance Method plugin pattern
+ * - Singleton Lazy Loading (v5.6.1)
  * - Dependency injection via .decorate()
  * - Shared ticket action functionality
  * - Plugin lifecycle hooks (onStart, onStop)
@@ -13,7 +19,27 @@
  */
 
 import { Elysia, t } from "elysia";
-import { consolidatedServiceNowService } from "../services";
+import { createConsolidatedServiceNowService } from "../services";
+
+// FIX v5.6.1: Singleton Lazy Loading Pattern
+// ConsolidatedServiceNowService criado UMA VEZ e reusado
+let _consolidatedServiceSingleton: any = null;
+
+const getConsolidatedService = async () => {
+  if (_consolidatedServiceSingleton) {
+    return { consolidatedServiceNowService: _consolidatedServiceSingleton };
+  }
+
+  console.log(
+    "📦 Creating ConsolidatedServiceNowService (SINGLETON - first initialization)",
+  );
+  _consolidatedServiceSingleton = createConsolidatedServiceNowService();
+  console.log(
+    "✅ ConsolidatedServiceNowService created (SINGLETON - reused across all requests)",
+  );
+
+  return { consolidatedServiceNowService: _consolidatedServiceSingleton };
+};
 
 // Types para Eden Treaty
 export interface TicketActionsPluginContext {
@@ -127,19 +153,23 @@ export const ticketActionsPlugin = new Elysia({
   // Lifecycle Hook: onStart - Initialize Ticket Actions
   .onStart(() => {
     console.log(
-      "🎫 Ticket Actions Plugin starting - workflow operations available",
+      "🔧 Ticket Actions Plugin starting - Singleton Lazy Loading pattern",
     );
   })
+
+  // FIX v5.6.1: Inject singleton service
+  .derive(async () => await getConsolidatedService())
 
   // Business logic methods - replace direct service calls
   .decorate(
     "resolveTicket",
     async function (
-      this: {},
+      this: { consolidatedServiceNowService: any },
       data: ResolveTicketRequest,
     ): Promise<ActionResult> {
       try {
-        const result = await consolidatedServiceNowService.resolveTicket(data);
+        const result =
+          await this.consolidatedServiceNowService.resolveTicket(data);
         return {
           success: result.success,
           data: result,
@@ -157,9 +187,13 @@ export const ticketActionsPlugin = new Elysia({
 
   .decorate(
     "closeTicket",
-    async function (this: {}, data: CloseTicketRequest): Promise<ActionResult> {
+    async function (
+      this: { consolidatedServiceNowService: any },
+      data: CloseTicketRequest,
+    ): Promise<ActionResult> {
       try {
-        const result = await consolidatedServiceNowService.closeTicket(data);
+        const result =
+          await this.consolidatedServiceNowService.closeTicket(data);
         return {
           success: result.success,
           data: result,
@@ -178,11 +212,12 @@ export const ticketActionsPlugin = new Elysia({
   .decorate(
     "reopenTicket",
     async function (
-      this: {},
+      this: { consolidatedServiceNowService: any },
       data: ReopenTicketRequest,
     ): Promise<ActionResult> {
       try {
-        const result = await consolidatedServiceNowService.reopenTicket(data);
+        const result =
+          await this.consolidatedServiceNowService.reopenTicket(data);
         return {
           success: result.success,
           data: result,
@@ -201,11 +236,12 @@ export const ticketActionsPlugin = new Elysia({
   .decorate(
     "assignTicket",
     async function (
-      this: {},
+      this: { consolidatedServiceNowService: any },
       data: AssignTicketRequest,
     ): Promise<ActionResult> {
       try {
-        const result = await consolidatedServiceNowService.assignTicket(data);
+        const result =
+          await this.consolidatedServiceNowService.assignTicket(data);
         return {
           success: result.success,
           data: result,
@@ -224,11 +260,12 @@ export const ticketActionsPlugin = new Elysia({
   .decorate(
     "updatePriority",
     async function (
-      this: {},
+      this: { consolidatedServiceNowService: any },
       data: UpdatePriorityRequest,
     ): Promise<ActionResult> {
       try {
-        const result = await consolidatedServiceNowService.updatePriority(data);
+        const result =
+          await this.consolidatedServiceNowService.updatePriority(data);
         return {
           success: result.success,
           data: result,
@@ -247,11 +284,12 @@ export const ticketActionsPlugin = new Elysia({
   .decorate(
     "updateCategory",
     async function (
-      this: {},
+      this: { consolidatedServiceNowService: any },
       data: UpdateCategoryRequest,
     ): Promise<ActionResult> {
       try {
-        const result = await consolidatedServiceNowService.updateCategory(data);
+        const result =
+          await this.consolidatedServiceNowService.updateCategory(data);
         return {
           success: result.success,
           data: result,
@@ -270,11 +308,11 @@ export const ticketActionsPlugin = new Elysia({
   .decorate(
     "escalateTicket",
     async function (
-      this: {},
+      this: { consolidatedServiceNowService: any },
       data: EscalateTicketRequest,
     ): Promise<ActionResult> {
       try {
-        const result = await consolidatedServiceNowService.assignTicket({
+        const result = await this.consolidatedServiceNowService.assignTicket({
           table: data.table,
           sysId: data.sysId,
           assignmentGroup: data.escalationGroup,
@@ -299,7 +337,7 @@ export const ticketActionsPlugin = new Elysia({
   .decorate(
     "selfAssignTicket",
     async function (
-      this: {},
+      this: { consolidatedServiceNowService: any },
       data: SelfAssignRequest,
       authContext?: { userId?: string; userSysId?: string },
     ): Promise<ActionResult> {
@@ -319,7 +357,7 @@ export const ticketActionsPlugin = new Elysia({
           };
         }
 
-        const result = await consolidatedServiceNowService.assignTicket({
+        const result = await this.consolidatedServiceNowService.assignTicket({
           table: data.table,
           sysId: data.sysId,
           assignedTo: currentUser,
@@ -344,7 +382,10 @@ export const ticketActionsPlugin = new Elysia({
   // Reference data methods - queries ServiceNow for real resolution codes
   .decorate(
     "getResolutionCodes",
-    async function (this: {}, table: string): Promise<ResolutionCode[]> {
+    async function (
+      this: { consolidatedServiceNowService: any },
+      table: string,
+    ): Promise<ResolutionCode[]> {
       try {
         // Query ServiceNow for actual resolution codes based on table type
         const fieldName =
@@ -363,7 +404,7 @@ export const ticketActionsPlugin = new Elysia({
           sysparm_limit: 100,
         };
 
-        const result = await consolidatedServiceNowService.query(
+        const result = await this.consolidatedServiceNowService.query(
           "sys_choice",
           choiceListQuery,
         );

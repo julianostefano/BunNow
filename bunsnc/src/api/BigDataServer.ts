@@ -5,12 +5,13 @@
 
 import { Elysia, t } from "elysia";
 import { cors } from "@elysiajs/cors";
-import { openapi } from "@elysiajs/openapi";
+import { openapi, fromTypes } from "@elysiajs/openapi";
 import { jwt } from "@elysiajs/jwt";
 import { rateLimit } from "elysia-rate-limit";
 import { helmet } from "elysia-helmet";
 import { logger } from "../utils/Logger";
 import { performanceMonitor } from "../utils/PerformanceMonitor";
+import path from "path";
 
 // Import all big data services
 import { ServiceNowParquetIntegration } from "../bigdata/parquet/index";
@@ -177,9 +178,18 @@ export class BigDataServer {
       )
 
       // FIX v1.0.0 (CRITICAL-2): Migrated from @elysiajs/swagger to @elysiajs/openapi
-      // OpenAPI documentation with modern features
+      // FIX v1.0.0 (CRITICAL-3): Type-based OpenAPI generation with fromTypes()
       .use(
         openapi({
+          references: fromTypes(
+            process.env.NODE_ENV === "production"
+              ? "dist/types/types/api.types.d.ts"
+              : "src/types/api.types.ts",
+            {
+              projectRoot: path.join(import.meta.dir, "../.."),
+              tsconfigPath: "tsconfig.json",
+            },
+          ),
           documentation: {
             info: {
               title: "ServiceNow Big Data API",

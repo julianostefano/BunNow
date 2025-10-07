@@ -2,8 +2,17 @@
  * Health Controller - Specialized Elysia Controller
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  *
- * Implements "1 controller = 1 instância" Elysia best practice
- * Handles system health monitoring, metrics collection, and service diagnostics
+ * FIX v5.6.1: Singleton Lazy Loading Pattern (ElysiaJS Key Concepts #5 + #7)
+ * Root cause: SystemHealthService instanciado a cada request via .derive()
+ * Solution: Singleton instance com lazy initialization na primeira request
+ * Reference: docs/ELYSIA_BEST_PRACTICES.md - "Plugin Deduplication Mechanism"
+ *
+ * Este plugin implementa as Elysia best practices:
+ * - Separate Instance Method plugin pattern
+ * - Singleton Lazy Loading (v5.6.1)
+ * - Global lifecycle scope (.as("global"))
+ * - Implements "1 controller = 1 instância" Elysia best practice
+ * - Handles system health monitoring, metrics collection, and service diagnostics
  *
  * Features:
  * - System health checks (MongoDB, Redis, ServiceNow connectivity)
@@ -1065,13 +1074,38 @@ class SystemHealthService implements HealthService {
   }
 }
 
+// FIX v5.6.1: Singleton Lazy Loading Pattern
+let _healthServiceSingleton: SystemHealthService | null = null;
+
+const getHealthService = async (
+  healthConfig: HealthConfig,
+  dependencies: any,
+) => {
+  if (_healthServiceSingleton) {
+    return { healthService: _healthServiceSingleton };
+  }
+
+  console.log(
+    "📦 Creating SystemHealthService (SINGLETON - first initialization)",
+  );
+  _healthServiceSingleton = new SystemHealthService(healthConfig, dependencies);
+  console.log(
+    "✅ SystemHealthService created (SINGLETON - reused across all requests)",
+  );
+
+  return { healthService: _healthServiceSingleton };
+};
+
 /**
  * Health Controller Plugin
  * Follows Elysia "1 controller = 1 instância" best practice
  */
 export const healthController = new Elysia({ name: "health" })
   .onStart(async () => {
-    logger.info("🩺 Health Controller initializing...", "HealthController");
+    logger.info(
+      "🩺 Health Controller initializing - Singleton Lazy Loading pattern...",
+      "HealthController",
+    );
   })
   .derive(async ({ config, mongoService, cacheService, syncService }) => {
     // Get health configuration
@@ -1090,8 +1124,8 @@ export const healthController = new Elysia({ name: "health" })
       enableHistory: config?.health?.enableHistory !== false,
     };
 
-    // Create health service instance with dependencies
-    const healthService = new SystemHealthService(healthConfig, {
+    // Create health service instance with dependencies (singleton)
+    const { healthService } = await getHealthService(healthConfig, {
       mongoService,
       cacheService,
       syncService,
@@ -1252,7 +1286,7 @@ export const healthController = new Elysia({ name: "health" })
       logger.info("🛑 Health Controller stopped", "HealthController");
     }
   })
-  .as("scoped"); // Scoped for service composition
+  .as("global"); // ✅ Global lifecycle scope for plugin deduplication
 
 // Health Controller Context Type
 export interface HealthControllerContext {

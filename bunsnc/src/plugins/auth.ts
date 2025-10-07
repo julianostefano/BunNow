@@ -2,8 +2,14 @@
  * ServiceNow Auth Plugin - Elysia plugin for authentication and authorization
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  *
+ * FIX v5.6.1: Singleton Lazy Loading Pattern (ElysiaJS Key Concepts #5 + #7)
+ * Root cause: ServiceNowAuthClient instanciado a cada request via .derive()
+ * Solution: Singleton instance com lazy initialization na primeira request
+ * Reference: docs/ELYSIA_BEST_PRACTICES.md - "Plugin Deduplication Mechanism"
+ *
  * Este plugin implementa as Elysia best practices:
  * - Separate Instance Method plugin pattern
+ * - Singleton Lazy Loading (v5.6.1)
  * - Dependency injection via .decorate()
  * - Shared authentication instance para evitar duplicação
  * - Plugin lifecycle hooks (onStart, onStop)
@@ -13,12 +19,15 @@
  */
 
 import { Elysia } from "elysia";
-// FIX v5.5.20: Convert to type-only imports to avoid circular dependency during eager loading
 import type {
   ServiceNowAuthClient,
   ServiceNowRecord,
   ServiceNowQueryResult,
 } from "../services/ServiceNowAuthClient";
+
+// FIX v5.6.1: Singleton Lazy Loading Pattern
+// ServiceNowAuthClient instance criada UMA VEZ e reusada
+let _authClientSingleton: ServiceNowAuthClient | null = null;
 
 // Types para Eden Treaty
 export interface AuthPluginContext {
@@ -64,15 +73,29 @@ export const authPlugin = new Elysia({
   // Lifecycle Hook: onStart - Initialize Auth Client
   .onStart(async () => {
     console.log(
-      "🔐 ServiceNow Auth Plugin starting - initializing authentication",
+      "🔐 ServiceNow Auth Plugin starting - Singleton Lazy Loading pattern",
     );
   })
 
-  // FIX v5.5.20: Lazy loading via .derive() - ElysiaJS best practice
-  // ServiceNowAuthClient created on-demand per request (avoids circular dependency at module load)
-  .derive(() => {
-    const authClient = new ServiceNowAuthClient();
-    return { authClient };
+  // FIX v5.6.1: Singleton Lazy Loading Pattern
+  // ServiceNowAuthClient instance criada UMA VEZ na primeira request
+  // Reusada em todas as requests seguintes (singleton pattern)
+  .derive(async () => {
+    if (!_authClientSingleton) {
+      console.log(
+        "📦 Creating ServiceNowAuthClient (SINGLETON - first initialization)",
+      );
+      // Dynamic import to avoid circular dependency
+      const { ServiceNowAuthClient: AuthClientClass } = await import(
+        "../services/ServiceNowAuthClient"
+      );
+      _authClientSingleton = new AuthClientClass();
+      console.log(
+        "✅ ServiceNowAuthClient created (SINGLETON - reused across all requests)",
+      );
+    }
+
+    return { authClient: _authClientSingleton };
   })
 
   // Authentication validation method

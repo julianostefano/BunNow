@@ -2,6 +2,11 @@
  * Service Locator - Centralized Dependency Management
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  *
+ * FIX v5.6.1: Singleton Lazy Loading Pattern (ElysiaJS Key Concepts #5 + #7)
+ * Root cause: Service Locator compõe plugins que já implementam Singleton pattern
+ * Solution: Plugin aggregator - não cria instâncias, apenas compõe services
+ * Reference: docs/ELYSIA_BEST_PRACTICES.md - "Plugin Deduplication Mechanism"
+ *
  * Implements Service Locator pattern following Elysia "1 controller = 1 instância" best practice
  * Centralizes all specialized controllers and provides unified service access
  *
@@ -12,6 +17,7 @@
  * - Graceful degradation when services are unavailable
  * - Service health monitoring and lifecycle management
  * - Type-safe service access with full IntelliSense support
+ * - Singleton Lazy Loading (v5.6.1) - compõe plugins singleton
  */
 
 import { Elysia } from "elysia";
@@ -163,7 +169,7 @@ export const globalServiceRegistry = new ServiceRegistry();
 export const serviceLocator = new Elysia({ name: "service-locator" })
   .onStart(async () => {
     logger.info(
-      "🏗️ Service Locator initializing - composing specialized controllers",
+      "🔧 Service Locator starting - Singleton Lazy Loading pattern (aggregator)",
       "ServiceLocator",
     );
   })

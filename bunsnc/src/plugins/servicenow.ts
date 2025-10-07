@@ -1,9 +1,15 @@
 /**
- * ServiceNow Plugin - Elysia plugin for ServiceNow integration following best practices
+ * ServiceNow Plugin - Elysia plugin for ServiceNow integration with Singleton Lazy Loading
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
+ *
+ * FIX v5.6.0: Singleton Lazy Loading Pattern (ElysiaJS Key Concepts #5 + #7)
+ * Root cause: ServiceNowBridgeService instanciado a cada request via .derive()
+ * Solution: Singleton instance com lazy initialization na primeira request
+ * Reference: docs/ELYSIA_BEST_PRACTICES.md - "Plugin Deduplication Mechanism"
  *
  * Este plugin implementa as Elysia best practices:
  * - Separate Instance Method plugin pattern
+ * - Singleton Lazy Loading (v5.6.0)
  * - Dependency injection via .decorate()
  * - Shared service instance para evitar self-referencing calls
  * - Plugin lifecycle hooks (onStart, onStop)
@@ -20,8 +26,9 @@ import type {
 } from "../services/ServiceNowBridgeService";
 import type { ServiceNowRecord } from "../services/ServiceNowFetchClient";
 
-// FIX v5.5.19: Removed import of top-level serviceNowBridgeService instance
-// Now creating instance via .derive() for lazy instantiation
+// FIX v5.6.0: Singleton Lazy Loading Pattern
+// ServiceNowBridgeService instance criada UMA VEZ e reusada
+let _serviceNowBridgeSingleton: ServiceNowBridgeService | null = null;
 
 // FIX v5.5.22: Add attachment/batch types
 export interface AttachmentUploadRequest {
@@ -81,7 +88,7 @@ export interface ServiceNowPluginContext {
 }
 
 /**
- * ServiceNow Plugin - Separate Instance Method pattern
+ * ServiceNow Plugin - Singleton Lazy Loading Pattern
  * Provides shared ServiceNow functionality through dependency injection
  */
 export const serviceNowPlugin = new Elysia({
@@ -101,14 +108,26 @@ export const serviceNowPlugin = new Elysia({
 })
   // Lifecycle Hook: onStart - Initialize ServiceNow Bridge Service
   .onStart(() => {
-    console.log("🚀 ServiceNow Plugin starting - initializing bridge service");
+    console.log(
+      "🚀 ServiceNow Plugin starting - Singleton Lazy Loading pattern",
+    );
   })
 
-  // FIX v5.5.19: Use .derive() instead of .decorate() for lazy instantiation
-  // Creates ServiceNowBridgeService instance on first request instead of during import
+  // FIX v5.6.0: Singleton Lazy Loading Pattern
+  // ServiceNowBridgeService instance criada UMA VEZ na primeira request
+  // Reusada em todas as requests seguintes (singleton pattern)
   .derive(() => {
-    const serviceNowBridge = new ServiceNowBridgeService();
-    return { serviceNowBridge };
+    if (!_serviceNowBridgeSingleton) {
+      console.log(
+        "📦 Creating ServiceNowBridgeService (SINGLETON - first initialization)",
+      );
+      _serviceNowBridgeSingleton = new ServiceNowBridgeService();
+      console.log(
+        "✅ ServiceNowBridgeService created (SINGLETON - reused across all requests)",
+      );
+    }
+
+    return { serviceNowBridge: _serviceNowBridgeSingleton };
   })
 
   // High-level query method - replaces HTTP calls in services

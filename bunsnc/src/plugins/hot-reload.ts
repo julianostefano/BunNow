@@ -2,7 +2,16 @@
  * Plugin Hot-Reload System - Dynamic plugin reloading capability
  * Author: Juliano Stefano <jsdealencar@ayesa.com> [2025]
  *
- * Implements hot-reload functionality for Elysia plugins following best practices:
+ * FIX v5.6.1: Singleton Lazy Loading Pattern (ElysiaJS Key Concepts #5 + #7)
+ * Root cause: PluginHotReloadManager instanciado a cada request via .derive()
+ * Solution: Singleton instance com lazy initialization na primeira request
+ * Reference: docs/ELYSIA_BEST_PRACTICES.md - "Plugin Deduplication Mechanism"
+ *
+ * Este plugin implementa as Elysia best practices:
+ * - Separate Instance Method plugin pattern
+ * - Singleton Lazy Loading (v5.6.1)
+ * - Global lifecycle scope (.as("global"))
+ * - Implements hot-reload functionality for Elysia plugins following best practices:
  * - File system watching for plugin changes
  * - Safe plugin unloading and reloading
  * - Dependency graph management
@@ -518,10 +527,61 @@ export class PluginHotReloadManager {
   }
 }
 
-// Export singleton instance
+// FIX v5.6.1: Singleton Lazy Loading Pattern
+let _hotReloadManagerSingleton: PluginHotReloadManager | null = null;
+
+const getHotReloadManager = async (config?: Partial<HotReloadConfig>) => {
+  if (_hotReloadManagerSingleton) {
+    return { hotReloadManager: _hotReloadManagerSingleton };
+  }
+
+  console.log(
+    "📦 Creating PluginHotReloadManager (SINGLETON - first initialization)",
+  );
+  _hotReloadManagerSingleton = new PluginHotReloadManager(config);
+  console.log(
+    "✅ PluginHotReloadManager created (SINGLETON - reused across all requests)",
+  );
+
+  return { hotReloadManager: _hotReloadManagerSingleton };
+};
+
+// Export singleton instance (deprecated, use plugin instead)
 export const pluginHotReloadManager = new PluginHotReloadManager();
 
 // Export factory function for custom configurations
 export const createHotReloadManager = (config?: Partial<HotReloadConfig>) => {
   return new PluginHotReloadManager(config);
 };
+
+// Export Elysia Plugin
+export const hotReloadPlugin = new Elysia({ name: "hot-reload" })
+  .onStart(() =>
+    console.log(
+      "🔧 Hot Reload Plugin starting - Singleton Lazy Loading pattern",
+    ),
+  )
+  .derive(async ({ config }) => {
+    const hotReloadConfig: Partial<HotReloadConfig> = {
+      watchPaths: config?.hotReload?.watchPaths || ["src/plugins"],
+      debounceMs: config?.hotReload?.debounceMs || 1000,
+      enableAutoReload: config?.hotReload?.enableAutoReload !== false,
+      safeMode: config?.hotReload?.safeMode !== false,
+      excludePatterns: config?.hotReload?.excludePatterns || [
+        "*.test.ts",
+        "*.spec.ts",
+        "*.d.ts",
+      ],
+    };
+
+    const { hotReloadManager } = await getHotReloadManager(hotReloadConfig);
+
+    return {
+      hotReloadManager,
+      reloadPluginById:
+        hotReloadManager.reloadPluginById.bind(hotReloadManager),
+      getHotReloadStats: hotReloadManager.getStats.bind(hotReloadManager),
+      setAutoReload: hotReloadManager.setAutoReload.bind(hotReloadManager),
+    };
+  })
+  .as("global"); // ✅ Global lifecycle scope for plugin deduplication

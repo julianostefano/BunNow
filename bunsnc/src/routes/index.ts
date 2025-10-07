@@ -328,7 +328,7 @@ export async function createMainApp(): Promise<Elysia> {
 
       // Extract the SSE handler from the imported route module
       const metricsRoute = streamingMetricsRoutes.routes.find(
-        (r: any) => r.path === "/api/streaming/metrics"
+        (r: any) => r.path === "/api/streaming/metrics",
       );
 
       if (!metricsRoute || !metricsRoute.handler) {
