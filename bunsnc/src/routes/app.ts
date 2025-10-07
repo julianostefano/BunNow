@@ -11,6 +11,12 @@ import { createTicketListRoutes } from "./TicketListRoutes";
 import { createTicketDetailsRoutes } from "./TicketDetailsRoutes";
 import { authRoutes } from "./auth";
 import type { ServiceNowStreams } from "../config/redis-streams";
+import {
+  TableParam,
+  TableSysIdParams,
+  AttachmentUpload,
+  BatchOperation,
+} from "../guards/shared.guards";
 
 // Create async app initialization function
 async function createApp() {
@@ -68,35 +74,33 @@ async function createApp() {
     };
   });
 
-  // CRUD seguro - Using plugin context
-  app.post(
-    "/record/:table",
-    async ({ params, body, headers, createServiceNowRecord }) => {
+  // CRUD seguro - Using plugin context with Guard pattern
+  app
+    .use(TableParam)
+    .post("/record/:table", async ({ params, body, headers, createServiceNowRecord }) => {
       const result = await createServiceNowRecord(params.table, body);
       if (!result.success) {
         throw new Error(result.error || "Failed to create record");
       }
       return result;
-    },
-    {
-      params: t.Object({ table: t.String() }),
+    }, {
       body: t.Record(t.String(), t.Any()),
       headers: t.Object({
         "x-instance-url": t.Optional(t.String()),
         authorization: t.Optional(t.String()),
       }),
-    },
-  );
+    });
 
   console.log(
     "🔍 [DEBUG-APP] Setting up attachment/batch endpoints using plugin methods...",
   );
 
-  // FIX v5.5.22: Use serviceNowPlugin methods instead of creating new instances
+  // FIX v5.5.22: Use serviceNowPlugin methods with Guard pattern
   // This resolves CRITICAL-2 circular dependency by using plugin-provided services
   // Plugin already loaded on line 30, so uploadAttachment/downloadAttachment/executeBatch are available
   app
-    // Upload de anexo
+    // Upload de anexo with TableSysIdParams Guard
+    .use(TableSysIdParams)
     .post(
       "/attachment/:table/:sysId",
       async ({ params, body, headers, uploadAttachment }) => {
@@ -108,7 +112,6 @@ async function createApp() {
         });
       },
       {
-        params: t.Object({ table: t.String(), sysId: t.String() }),
         body: t.Object({ file: t.Any(), fileName: t.Optional(t.String()) }),
         headers: t.Object({
           "x-instance-url": t.Optional(t.String()),
@@ -130,24 +133,11 @@ async function createApp() {
         }),
       },
     )
-    // Batch real
+    // Batch real with BatchOperation Guard
+    .use(BatchOperation)
     .post(
       "/batch",
       async ({ body, headers, executeBatch }) => {
-        if (
-          !body ||
-          body.operations == null ||
-          !Array.isArray(body.operations)
-        ) {
-          console.error(
-            "Batch endpoint: invalid operations value",
-            body && body.operations,
-          );
-          return Response.json(
-            { error: "operations deve ser um array" },
-            { status: 400 },
-          );
-        }
         try {
           const results = await executeBatch(body.operations);
           return Response.json(results, { status: 200 });
@@ -156,7 +146,6 @@ async function createApp() {
         }
       },
       {
-        body: t.Object({ operations: t.Array(t.Any()) }),
         headers: t.Object({
           "x-instance-url": t.Optional(t.String()),
           authorization: t.Optional(t.String()),

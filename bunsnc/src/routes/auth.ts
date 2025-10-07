@@ -2,21 +2,17 @@ import { Elysia, t } from "elysia";
 import { serviceNowAuthClient } from "../services";
 import { serviceNowSAMLAuth } from "../services/auth/ServiceNowSAMLAuth";
 import { SAMLConfig } from "../types/saml";
+import { LoginRequest } from "../guards/shared.guards";
 
 // const authService = new AuthService();
 
 export const authRoutes = new Elysia({ prefix: "/auth" })
   // === Legacy Authentication Endpoints ===
-  .post(
-    "/login",
-    async ({ body }) => {
-      const { username, password } = body;
-      return await serviceNowAuthClient.authenticate(username, password);
-    },
-    {
-      body: t.Object({ username: t.String(), password: t.String() }),
-    },
-  )
+  .use(LoginRequest)
+  .post("/login", async ({ body }) => {
+    const { username, password } = body;
+    return await serviceNowAuthClient.authenticate(username, password);
+  })
   .post("/logout", async ({ headers }) => {
     const token = headers["authorization"] || "";
     return await serviceNowAuthClient.logout();
