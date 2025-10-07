@@ -5,7 +5,7 @@
 
 import { Elysia, t } from "elysia";
 import { cors } from "@elysiajs/cors";
-import { swagger } from "@elysiajs/swagger";
+import { openapi } from "@elysiajs/openapi";
 import { jwt } from "@elysiajs/jwt";
 import { rateLimit } from "elysia-rate-limit";
 import { helmet } from "elysia-helmet";
@@ -176,9 +176,10 @@ export class BigDataServer {
         } as any),
       )
 
-      // Swagger documentation
+      // FIX v1.0.0 (CRITICAL-2): Migrated from @elysiajs/swagger to @elysiajs/openapi
+      // OpenAPI documentation with modern features
       .use(
-        swagger({
+        openapi({
           documentation: {
             info: {
               title: "ServiceNow Big Data API",

@@ -7,7 +7,7 @@ import { Elysia } from "elysia";
 import { html } from "@elysiajs/html";
 import { staticPlugin } from "@elysiajs/static";
 import { cors } from "@elysiajs/cors";
-import { swagger } from "@elysiajs/swagger";
+import { openapi } from "@elysiajs/openapi";
 import { jwt } from "@elysiajs/jwt";
 import { accepts } from "elysia-accepts";
 import { background } from "elysia-background";
@@ -307,8 +307,9 @@ export class WebServerController {
         }),
       )
       .use(background())
+      // FIX v1.0.0 (CRITICAL-2): Migrated from @elysiajs/swagger to @elysiajs/openapi
       .use(
-        swagger({
+        openapi({
           documentation: {
             info: {
               title: "ServiceNow Web Interface API",

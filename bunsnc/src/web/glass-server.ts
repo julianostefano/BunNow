@@ -7,7 +7,7 @@ import { Elysia } from "elysia";
 import { html } from "@elysiajs/html";
 import { staticPlugin } from "@elysiajs/static";
 import { cors } from "@elysiajs/cors";
-import { swagger } from "@elysiajs/swagger";
+import { openapi } from "@elysiajs/openapi";
 import { htmx } from "@gtramontina.com/elysia-htmx";
 // Plugin System Integration - replacing direct service imports
 import {
@@ -333,9 +333,10 @@ export class GlassDesignServer {
           }),
         )
 
-        // Swagger documentation
+        // FIX v1.0.0 (CRITICAL-2): Migrated from @elysiajs/swagger to @elysiajs/openapi
+        // OpenAPI documentation with modern features
         .use(
-          swagger({
+          openapi({
             documentation: {
               info: {
                 title: "ServiceNow Analytics API",

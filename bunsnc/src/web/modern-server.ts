@@ -7,7 +7,7 @@ import { Elysia } from "elysia";
 import { html } from "@elysiajs/html";
 import { staticPlugin } from "@elysiajs/static";
 import { cors } from "@elysiajs/cors";
-import { swagger } from "@elysiajs/swagger";
+import { openapi } from "@elysiajs/openapi";
 import { jwt } from "@elysiajs/jwt";
 import { autoroutes } from "elysia-autoroutes";
 
@@ -97,9 +97,10 @@ export class ModernWebServer {
         }),
       )
 
-      // Swagger documentation
+      // FIX v1.0.0 (CRITICAL-2): Migrated from @elysiajs/swagger to @elysiajs/openapi
+      // OpenAPI documentation with modern features
       .use(
-        swagger({
+        openapi({
           documentation: {
             info: {
               title: "ServiceNow Analytics API",

@@ -7,9 +7,19 @@ peer = true
 [run]
 smol = true
 env-file = ".env"
-preload = ["./src/env-preload.ts"]
+preload = [
+  "./src/env-preload.ts",
+  "./src/instrumentation.ts"
+]
 
 # FIX v5.5.23: Re-enabled preload with manual .env loader
 # env-preload.ts manually parses .env BEFORE any imports
 # This ensures process.env variables are available during module initialization
 # Resolves: CORPORATE_PROXY_USER/PASSWORD needed by proxy auth during import
+
+# FIX v1.0.0 (CRITICAL-1): Add instrumentation.ts to preload array
+# Root cause: Bun requires explicit preload for OpenTelemetry initialization
+# Solution: Add instrumentation.ts to preload array for complete HTTP tracing
+# Impact: Enables full OpenTelemetry trace collection in Jaeger
+# Reference: docs/reports/BUNSNC_ELYSIA_ASSESSMENT_v1.0.md - CRITICAL-1
+# Reference: docs/ELYSIA_OPENTELEMETRY_APPENDIX.md:147-179

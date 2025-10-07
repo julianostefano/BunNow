@@ -5,7 +5,7 @@
 
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
-import { swagger } from "@elysiajs/swagger";
+import { openapi } from "@elysiajs/openapi";
 import { logger } from "../utils/Logger";
 // Plugin System Integration - Shared Plugins Pattern
 import {
@@ -42,8 +42,10 @@ export class AIServer {
           }),
         )
 
+        // FIX v1.0.0 (CRITICAL-2): Migrated from @elysiajs/swagger to @elysiajs/openapi
+        // OpenAPI documentation with modern features
         .use(
-          swagger({
+          openapi({
             documentation: {
               info: {
                 title: "BunSNC AI Services API",
